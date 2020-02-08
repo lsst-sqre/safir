@@ -7,3 +7,26 @@ requires = [
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
+
+[tool.black]
+line-length = 79
+target-version = ['py37']
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | build
+  | dist
+)/
+'''
+# Use single-quoted strings so TOML treats the string like a Python r-string
+# Multi-line strings are implicitly treated by black as regular expressions
+
+[tool.isort]
+multi_line_output = 3
+known_first_party = "safir"
+known_third_party = ["safir", "setuptools"]
