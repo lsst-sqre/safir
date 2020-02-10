@@ -26,6 +26,9 @@ description = Compile coverage from each test run.
 basepython = python3.7
 skip_install = true
 deps = coverage[toml]>=5.0.2
+depends =
+    py37
+    py38
 commands =
     coverage combine
     coverage report
