@@ -8,6 +8,53 @@ build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
 
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py37,coverage-report,typing,lint
+isolated_build = True
+
+[testenv]
+description = Run pytest against {envname}.
+extras =
+    dev
+commands=
+    coverage run -m pytest {posargs}
+
+[testenv:coverage-report]
+description = Compile coverage from each test run.
+skip_install = true
+deps = coverage[toml]>=5.0.2
+commands =
+    coverage combine
+    coverage report
+
+[testenv:typing]
+description = Run mypy.
+extras =
+    dev
+commands =
+    mypy src/safir tests setup.py
+
+[testenv:lint]
+description = Lint codebase by running pre-commit (Black, isort, Flake8).
+skip_install = true
+deps =
+    pre-commit
+commands = pre-commit run --all-files
+"""
+
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["safir"]
+
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+
 [tool.black]
 line-length = 79
 target-version = ['py37']
