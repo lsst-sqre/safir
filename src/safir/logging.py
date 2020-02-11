@@ -1,12 +1,77 @@
 """Utilities for configuring structlog-based logging.
 """
 
-__all__ = ["configure_logging"]
+from __future__ import annotations
 
 import logging
 import sys
+from contextvars import ContextVar
+from typing import TYPE_CHECKING
 
 import structlog
+
+__all__ = ["configure_logging", "response_logger", "get_response_logger"]
+
+
+if TYPE_CHECKING:
+    from structlog._config import BoundLoggerLazyProxy
+
+
+response_logger: ContextVar[BoundLoggerLazyProxy] = ContextVar(
+    "response_logger"
+)
+"""A context-local structlog logger.
+
+This logger is set by the `safir.middleware.bind_logger` middleware.
+
+See also
+--------
+get_response_logger
+
+Examples
+--------
+Usage:
+
+>>> logger = response_logger.get()
+>>> logger.info(key='value')
+"""
+
+
+def get_response_logger() -> BoundLoggerLazyProxy:
+    """Get the context-local structlog logger with bound request context.
+
+    This logger is set by `safir.middleware.bind_logger`.
+
+    Returns
+    -------
+    logger : BoundLoggerLazyProxy
+        A context-local structlog logger.
+
+    See also
+    --------
+    response_logger
+
+    Examples
+    --------
+    Usage:
+
+    .. code-block:: python
+
+       from safir.logging import get_response_logger
+       logger = get_response_logger()
+       logger.info('Some message', somekey='somevalue')
+
+    An alternative way to get the logger is through the ``request`` instance
+    inside the handler. For example:
+
+    .. code-block:: python
+
+       @routes.get("/")
+       async def get_index(request):
+           logger = request["logger"]
+           logger.info("Logged message", somekey="somevalue")
+    """
+    return response_logger.get()
 
 
 def configure_logging(
