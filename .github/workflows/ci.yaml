@@ -33,5 +33,10 @@ jobs:
           # only takes a single file path or pattern at the moment.
           key: ${{ runner.os }}-${{ matrix.python }}-tox-${{ hashFiles('setup.cfg') }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
+      - name: Inspect cache
+        run: |
+          ls -alh .tox
+          tree .tox/.package
+
       - name: Run tox
         run: tox -e py,lint,typing  # run tox using Python in path
