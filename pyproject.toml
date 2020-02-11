@@ -23,7 +23,6 @@ commands=
 
 [testenv:coverage-report]
 description = Compile coverage from each test run.
-basepython = python3.7
 skip_install = true
 deps = coverage[toml]>=5.0.2
 depends =
@@ -35,7 +34,6 @@ commands =
 
 [testenv:typing]
 description = Run mypy.
-basepython = python3.7
 extras =
     dev
 commands =
@@ -43,7 +41,6 @@ commands =
 
 [testenv:lint]
 description = Lint codebase by running pre-commit (Black, isort, Flake8).
-basepython = python3.7
 skip_install = true
 deps =
     pre-commit
