@@ -21,4 +21,4 @@ jobs:
       - name: Install tox
         run: pip install tox
       - name: Run tox
-        run: tox -e py  # run tox using Python in path
+        run: tox -e py,lint,typing  # run tox using Python in path
