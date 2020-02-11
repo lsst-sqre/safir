@@ -7,4 +7,6 @@ Safir is a Python package that lets you develop Roundtable bots faster.
 
 README edit.
 
+More README edits.
+
 .. _Roundtable: https://roundtable.lsst.io
