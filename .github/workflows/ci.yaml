@@ -23,5 +23,15 @@ jobs:
       - name: Install tox
         run: pip install tox
 
+      - name: Cache tox environments
+        id: cache-tox
+        uses: actions/cache@v1
+        with:
+          path: .tox
+          # setup.cfg, pyproject.toml, and .pre-commit-config.yaml have
+          # versioning info that would impact the tox environment. hashFiles
+          # only takes a single file path or pattern at the moment.
+          key: ${{ runner.os }}-tox-${{ hashFiles('setup.cfg') }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
       - name: Run tox
         run: tox -e py,lint,typing  # run tox using Python in path
