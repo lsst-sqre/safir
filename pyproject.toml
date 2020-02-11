@@ -79,4 +79,4 @@ exclude = '''
 [tool.isort]
 multi_line_output = 3
 known_first_party = "safir"
-known_third_party = ["safir", "setuptools"]
+known_third_party = ["safir", "setuptools", "structlog"]
