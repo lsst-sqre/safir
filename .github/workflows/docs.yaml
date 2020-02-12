@@ -15,8 +15,14 @@ jobs:
         with:
           python-version: 3.7
 
-      - name: Install tox
-        run: pip install tox
+      - name: Install tox and LTD Conveyor
+        run: pip install tox ltd-conveyor
 
       - name: Run tox
         run: tox -e docs
+
+      - name: Upload to LSST the Docs
+        env:
+          LTD_USERNAME: travis
+          LTD_PASSWORD: ${{ secrets.LTD_PASSWORD }}
+        run: ltd upload --product safir --git-ref $GITHUB_REF --dir docs/_build/html
