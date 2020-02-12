@@ -45,6 +45,13 @@ skip_install = true
 deps =
     pre-commit
 commands = pre-commit run --all-files
+
+[testenv:docs]
+description = Build documentation (HTML) with Sphinx.
+extras =
+    dev
+commands =
+    sphinx-build -n -T -b html -d {envtmpdir}/doctrees docs docs/_build/html
 """
 
 [tool.coverage.run]
@@ -80,3 +87,4 @@ exclude = '''
 multi_line_output = 3
 known_first_party = "safir"
 known_third_party = ["aiohttp", "safir", "setuptools", "structlog"]
+skip = ["docs/conf.py"]
