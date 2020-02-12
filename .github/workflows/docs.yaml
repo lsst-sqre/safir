@@ -1,0 +1,22 @@
+name: Documentation
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Run tox
+        run: tox -e docs
