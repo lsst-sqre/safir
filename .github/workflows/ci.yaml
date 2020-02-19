@@ -3,7 +3,7 @@ name: Python CI
 on: [push]
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
     strategy:
@@ -25,3 +25,27 @@ jobs:
 
       - name: Run tox
         run: tox -e py,lint,typing  # run tox using Python in path
+
+  docs:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: Install tox and LTD Conveyor
+        run: pip install tox ltd-conveyor
+
+      - name: Run tox
+        run: tox -e docs
+
+      - name: Upload to LSST the Docs
+        env:
+          LTD_USERNAME: travis
+          LTD_PASSWORD: ${{ secrets.LTD_PASSWORD }}
+        run: ltd upload --product safir --git-ref $GITHUB_REF --dir docs/_build/html
