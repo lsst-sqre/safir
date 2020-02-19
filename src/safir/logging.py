@@ -58,8 +58,9 @@ def get_response_logger() -> BoundLoggerLazyProxy:
     .. code-block:: python
 
        from safir.logging import get_response_logger
+
        logger = get_response_logger()
-       logger.info('Some message', somekey='somevalue')
+       logger.info("Some message", somekey="somevalue")
 
     An alternative way to get the logger is through the ``request`` instance
     inside the handler. For example:

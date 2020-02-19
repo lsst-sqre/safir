@@ -89,10 +89,10 @@ async def bind_logger(request: Request, handler: Handler) -> StreamResponse:
 
     .. code-block:: python
 
-       @routes.get('/')
+       @routes.get("/")
        async def get_index(request):
-           logger = request['logger']
-           logger.info('Logged message', somekey='somevalue')
+           logger = request["logger"]
+           logger.info("Logged message", somekey="somevalue")
 
     If the request object is not available, you can still get the logger
     through the `safir.logging.get_response_logger` function:
@@ -100,8 +100,9 @@ async def bind_logger(request: Request, handler: Handler) -> StreamResponse:
     .. code-block:: python
 
        from safir.logging import get_response_logger
+
        logger = get_response_logger()
-       logger.info('My message', somekey='somevalue')
+       logger.info("My message", somekey="somevalue")
 
     Under the hood, you can also get this logger from the
     `safir.logging.response_logger` context variable. For example:
@@ -109,8 +110,9 @@ async def bind_logger(request: Request, handler: Handler) -> StreamResponse:
     .. code-block:: python
 
        from safir.logging import response_logger
+
        logger = response_logger.get()
-       logger.info('My message', somekey='somevalue')
+       logger.info("My message", somekey="somevalue")
 
     The ``response_logger.get()`` syntax is because ``response_logger`` is a
     `contextvars.ContextVar`. A `~contextvars.ContextVar` is isolated to each
