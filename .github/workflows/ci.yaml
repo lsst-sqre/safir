@@ -39,7 +39,7 @@ jobs:
           python-version: 3.7
 
       - name: Install tox and LTD Conveyor
-        run: pip install tox ltd-conveyor
+        run: pip install tox git+https://github.com/lsst-sqre/ltd-conveyor.git@tickets/DM-23591
 
       - name: Run tox
         run: tox -e docs
@@ -48,7 +48,7 @@ jobs:
         env:
           LTD_USERNAME: travis
           LTD_PASSWORD: ${{ secrets.LTD_PASSWORD }}
-        run: ltd upload --product safir --git-ref $GITHUB_REF --dir docs/_build/html
+        run: ltd upload --product safir --gh --dir docs/_build/html
 
   pypi:
 
