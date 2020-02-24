@@ -39,7 +39,7 @@ jobs:
           python-version: 3.7
 
       - name: Install tox and LTD Conveyor
-        run: pip install tox git+https://github.com/lsst-sqre/ltd-conveyor.git@tickets/DM-23591
+        run: pip install tox ltd-conveyor
 
       - name: Run tox
         run: tox -e docs
