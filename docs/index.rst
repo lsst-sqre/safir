@@ -18,6 +18,14 @@ Getting started
 
    changelog
 
+Guides
+======
+
+.. toctree::
+   :maxdepth: 2
+
+   storage-keys
+
 API
 ===
 
