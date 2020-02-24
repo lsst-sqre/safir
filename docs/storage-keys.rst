@@ -43,6 +43,7 @@ Safir's application keys
 
 ``safir/httpClient``
     The `aiohttp.ClientSession` created by `safir.http.init_http_session` generator.
+    See :doc:`./http-client`.
 
 ``safir/metadata``
     The application's metadata dictionary.

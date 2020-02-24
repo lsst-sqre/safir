@@ -24,6 +24,7 @@ Guides
 .. toctree::
    :maxdepth: 2
 
+   http-client
    storage-keys
 
 API
