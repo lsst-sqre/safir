@@ -25,6 +25,7 @@ Guides
    :maxdepth: 2
 
    http-client
+   logging
    storage-keys
 
 API

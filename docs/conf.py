@@ -8,6 +8,7 @@ import safir
 rst_epilog = """
 
 .. _Roundtable: https://roundtable.lsst.io
+.. _structlog: http://www.structlog.org/en/stable/
 """
 
 # Extensions =================================================================
@@ -58,6 +59,7 @@ default_role = "py:obj"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "aiohttp": ("https://docs.aiohttp.org/en/stable/", None),
+    "structlog": ("http://www.structlog.org/en/stable/", None),
 }
 
 intersphinx_timeout = 10.0  # seconds

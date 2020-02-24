@@ -53,3 +53,4 @@ Safir's request keys
 
 ``safir/logger``
     This is a structlog logger added to the request by the logging middleware.
+    See :doc:`./logging`.
