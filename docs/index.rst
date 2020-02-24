@@ -26,6 +26,15 @@ API
 
    api
 
+Development guide
+=================
+
+.. toctree::
+   :maxdepth: 1
+
+   dev/development
+   dev/release
+
 Indices
 =======
 
