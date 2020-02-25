@@ -93,5 +93,5 @@ exclude = '''
 [tool.isort]
 multi_line_output = 3
 known_first_party = "safir"
-known_third_party = ["aiohttp", "setuptools", "structlog"]
+known_third_party = ["aiohttp", "pytest", "setuptools", "structlog"]
 skip = ["docs/conf.py"]

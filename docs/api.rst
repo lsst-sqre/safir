@@ -11,5 +11,8 @@ API reference
 .. automodapi:: safir.logging
    :include-all-objects:
 
+.. automodapi:: safir.metadata
+   :include-all-objects:
+
 .. automodapi:: safir.middleware
    :include-all-objects:
