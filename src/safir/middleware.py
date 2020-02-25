@@ -84,14 +84,14 @@ async def bind_logger(request: Request, handler: Handler) -> StreamResponse:
 
     **Using the logger**
 
-    Within a handler, you can access the logger directly from the ``logger``
-    key of the request object:
+    Within a handler, you can access the logger directly from the
+    ``safir/logger`` key of the request object:
 
     .. code-block:: python
 
        @routes.get("/")
        async def get_index(request):
-           logger = request["logger"]
+           logger = request["safir/logger"]
            logger.info("Logged message", somekey="somevalue")
 
     If the request object is not available, you can still get the logger
@@ -119,8 +119,8 @@ async def bind_logger(request: Request, handler: Handler) -> StreamResponse:
     asyncio Task, which makes it great for storing context specific to each
     reponse.
 
-    The ``request['logger']`` and `safir.logging.get_response_logger` APIs
-    are the best ways to get the logger.
+    The ``request["safir/logger"]`` and `safir.logging.get_response_logger`
+    APIs are the best ways to get the logger.
     """
     try:
         config = request.config_dict["safir/config"]
@@ -137,7 +137,7 @@ async def bind_logger(request: Request, handler: Handler) -> StreamResponse:
     response_logger.set(logger)
 
     # Also add the logger to the request instance
-    request["logger"] = logger
+    request["safir/logger"] = logger
 
     response = await handler(request)
 

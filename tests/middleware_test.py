@@ -32,7 +32,7 @@ async def test_bind_logger(
     """
 
     async def handler(request: Request) -> StreamResponse:
-        logger = request["logger"]
+        logger = request["safir/logger"]
         logger.info("Hello world")
         return web.Response(body="OK")
 
