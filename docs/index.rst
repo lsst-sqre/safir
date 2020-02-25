@@ -18,6 +18,14 @@ Getting started
 
    changelog
 
+Tutorials
+=========
+
+.. toctree::
+   :maxdepth: 1
+
+   set-up-from-template
+
 Guides
 ======
 

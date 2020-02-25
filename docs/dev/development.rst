@@ -35,7 +35,7 @@ This init step does three things:
 2. Installs pre-commit and tox.
 3. Installs the pre-commit hooks.
 
-.. _pre-commit:
+.. _pre-commit-hooks:
 
 Pre-commit hooks
 ================
@@ -159,6 +159,3 @@ Documentation
 .. _`Google Developer Style Guide`: https://developers.google.com/style/
 .. _`LSST DM Docstring Style Guide`: https://developer.lsst.io/python/style.html
 .. _`LSST DM ReStructuredTextStyle Guide`: https://developer.lsst.io/restructuredtext/style.html
-.. _mypy: http://www.mypy-lang.org
-.. _pytest: https://pytest.org
-.. _tox: https://tox.readthedocs.io/en/latest/

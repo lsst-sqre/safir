@@ -7,8 +7,14 @@ import safir
 
 rst_epilog = """
 
+.. _mypy: http://www.mypy-lang.org
+.. _pre-commit: https://pre-commit.com
+.. _pytest: https://docs.pytest.org/en/latest/
 .. _Roundtable: https://roundtable.lsst.io
+.. _roundtable_aiohttp_bot: https://github.com/lsst/templates/tree/tickets/DM-23356/project_templates/roundtable_aiohttp_bot
 .. _structlog: http://www.structlog.org/en/stable/
+.. _templatekit: https://templatekit.lsst.io
+.. _tox: https://tox.readthedocs.io/en/latest/
 """
 
 # Extensions =================================================================
