@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 async def init_http_session(app: Application) -> AsyncGenerator:
     """Create an aiohttp.ClientSession and make it available as a
-    ``"safir/httpSession"`` key on the application.
+    ``"safir/http_session"`` key on the application.
 
     Parameters
     ----------
@@ -38,9 +38,18 @@ async def init_http_session(app: Application) -> AsyncGenerator:
 
     .. code-block:: python
 
-       session = app["safir/httpSession"]
+       http_session = app["safir/http_session"]
+
+    From a request handler:
+
+    .. code-block:: python
+
+       @routes.get("/")
+       async def get_index(request: web.Request) -> web.Response:
+           http_session = request.config_dict["safir/http_session"]
+           ...
     """
-    key = "safir/httpSession"
+    key = "safir/http_session"
 
     # Startup phase
     session = ClientSession()

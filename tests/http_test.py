@@ -26,4 +26,4 @@ async def test_init_http_session(aiohttp_client: TestClient) -> None:
     # Need to create the client itself to "start up" the app
     await aiohttp_client(app)
 
-    assert "safir/httpSession" in app
+    assert "safir/http_session" in app

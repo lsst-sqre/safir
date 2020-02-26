@@ -23,13 +23,13 @@ The cleanup context ensures that the client session is closed when the applicati
 Using the ClientSession
 =======================
 
-`~safir.http.init_http_session` attaches the session to the ``safir/httpSession`` key of the application.
+`~safir.http.init_http_session` attaches the session to the ``safir/http_session`` key of the application.
 
 Accessing the session directly from the app:
 
 .. code-block:: python
 
-   http_session = app["safir/httpSession"]
+   http_session = app["safir/http_session"]
    response = await http_session.get("https://keeper.lsst.codes")
 
 Inside a request handler, use `~aiohttp.web.Request.config_dict`:
@@ -38,7 +38,7 @@ Inside a request handler, use `~aiohttp.web.Request.config_dict`:
 
    @routes.get("/")
    async def get_index(request: web.Request) -> web.Response:
-       http_session = request.config_dict["safir/httpSession"]
+       http_session = request.config_dict["safir/http_session"]
        response = await http_session.get("https://keeper.lsst.codes")
        data = await response.json()
        return web.json_response(data)

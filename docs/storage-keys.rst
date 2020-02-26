@@ -9,8 +9,8 @@ This page describes the conventions and keys that Safir-based apps use.
 Conventions
 ===========
 
-Use the root app
-----------------
+Use the root app for storage
+----------------------------
 
 Safir apps typically have two `~aiohttp.web.Application` instances: a root application and a sub-application.
 The sub-application serves externally-accessible routes under the application's name (``/<app-name>/``), while the root application serves internally-accessible routes relative to the root path (``/``).
@@ -38,10 +38,12 @@ If your application adds custom data (outside the Safir framework) to the applic
 Safir's application keys
 ========================
 
+These keys are available from the root application in general, or from the `~aiohttp.web.Request.config_dict` attribute of `~aiohttp.web.Request` objects in handlers:
+
 ``safir/config``
     The conventional key for storing your application's configuration instance.
 
-``safir/httpClient``
+``safir/http_client``
     The `aiohttp.ClientSession` created by `safir.http.init_http_session` generator.
     See :doc:`./http-client`.
 
@@ -50,6 +52,8 @@ Safir's application keys
 
 Safir's request keys
 ====================
+
+These keys are available directly from `~aiohttp.web.Request` objects in handlers (without using ``config_dict``):
 
 ``safir/logger``
     This is a structlog logger added to the request by the logging middleware.
