@@ -34,7 +34,7 @@ The best way to start contributing to Safir is by cloning this repository creati
    cd safir
    make init
 
-For details, see https://safir.lsst.io/v/dev/development.html.
+For details, see https://safir.lsst.io/dev/development.html.
 
 .. _Roundtable: https://roundtable.lsst.io
 .. _aiohttp.web: https://docs.aiohttp.org/en/stable/web.html
