@@ -1,5 +1,4 @@
-"""Utilities for configuring structlog-based logging.
-"""
+"""Utilities for configuring structlog-based logging."""
 
 from __future__ import annotations
 

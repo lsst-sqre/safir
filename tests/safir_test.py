@@ -1,5 +1,4 @@
-"""Tests for safir, the top-level import.
-"""
+"""Tests for safir, the top-level import."""
 
 import safir
 

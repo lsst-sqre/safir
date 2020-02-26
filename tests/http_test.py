@@ -1,5 +1,4 @@
-"""Tests for the safir.http module.
-"""
+"""Tests for the safir.http module."""
 
 from __future__ import annotations
 
@@ -14,8 +13,7 @@ if TYPE_CHECKING:
 
 
 async def test_init_http_session(aiohttp_client: TestClient) -> None:
-    """Test basic use of init_http_session.
-    """
+    """Test basic use of init_http_session."""
 
     def create_app() -> web.Application:
         app = web.Application()

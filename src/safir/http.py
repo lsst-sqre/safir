@@ -1,5 +1,4 @@
-"""Utilities for using the aiohttp client in Safir-based apps.
-"""
+"""Utilities for using the aiohttp client in Safir-based apps."""
 
 from __future__ import annotations
 

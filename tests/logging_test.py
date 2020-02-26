@@ -1,5 +1,4 @@
-"""Tests for the safir.logging module.
-"""
+"""Tests for the safir.logging module."""
 
 from __future__ import annotations
 
@@ -15,8 +14,7 @@ if TYPE_CHECKING:
 
 
 def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
-    """Test that development-mode logging is key-value formatted.
-    """
+    """Test that development-mode logging is key-value formatted."""
     caplog.set_level(logging.INFO)
 
     configure_logging(name="myapp", profile="development", log_level="info")
@@ -33,8 +31,7 @@ def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
 
 
 def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
-    """Test that production-mode logging is JSON formatted.
-    """
+    """Test that production-mode logging is JSON formatted."""
     caplog.set_level(logging.INFO)
 
     configure_logging(name="myapp", profile="production", log_level="info")
@@ -52,8 +49,7 @@ def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
 
 
 def test_configure_logging_level(caplog: LogCaptureFixture) -> None:
-    """Test that the logging level is set.
-    """
+    """Test that the logging level is set."""
     caplog.set_level(logging.DEBUG)
 
     configure_logging(name="myapp", log_level="info")

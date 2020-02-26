@@ -1,5 +1,4 @@
-"""Middleware for aiohttp.web servers.
-"""
+"""Middleware for aiohttp.web servers."""
 
 from __future__ import annotations
 

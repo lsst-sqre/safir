@@ -1,5 +1,4 @@
-"""Tests for the safir.middleware module.
-"""
+"""Tests for the safir.middleware module."""
 
 from __future__ import annotations
 
