@@ -19,11 +19,10 @@ In a clean Python virtual environment, install templatekit_:
 ======================================
 
 Next, you'll actually create the project files using the template.
-Since the template isn't available on the ``master`` branch of the templates repository yet, you'll need to clone the repository first:
 
 .. prompt:: bash
 
-   git clone --single-branch --branch tickets/DM-23356 https://github.com/lsst/templates
+   git clone https://github.com/lsst/templates
    templatekit -r templates make roundtable_aiohttp_bot
 
 Answer the prompts, and move into that directory in your shell.
