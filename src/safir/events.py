@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import structlog
+from aiokafka import AIOKafkaProducer
 from kafkit.ssl import concatenate_certificates, create_ssl_context
 
-__all__ = ["configure_kafka_ssl"]
+__all__ = ["configure_kafka_ssl", "init_kafka_producer"]
 
 if TYPE_CHECKING:
     from typing import AsyncGenerator
@@ -83,3 +85,60 @@ async def configure_kafka_ssl(app: Application) -> AsyncGenerator:
         logger.info("Created Kafka SSL context")
 
     yield
+
+
+async def init_kafka_producer(app: Application) -> AsyncGenerator:
+    """Initialize and cleanup the aiokafka producer instance.
+
+    Parameters
+    ----------
+    app : `aiohttp.web.Application`
+        The aiohttp.web-based application. This app *must* include a standard
+        configuration object at the ``"safir/config"`` key. The config must
+        have these attributes:
+
+        ``logger_name``
+            Name of the application's logger.
+        ``kafka_broker_url``
+            The URL of a Kafka broker.
+        ``kafka_protocol``
+            The protocol for Kafka broker communication.
+
+        Additionally, `configure_kafka_ssl` must be applied **before** this
+        initializer so that ``safir/kafka_ssl_context`` is set on the
+        application.
+
+    Notes
+    -----
+    This initializer adds an `aiokafka.AIOKafkaProducer` instance to the
+    ``app`` under the ``safir/kafka_producer`` key.
+
+    Examples
+    --------
+    Use this function as a `cleanup context
+    <https://aiohttp.readthedocs.io/en/stable/web_reference.html#aiohttp.web.Application.cleanup_ctx>`__.
+
+    To access the producer:
+
+    .. code-block:: python
+
+       producer = app["safir/kafka_producer"]
+    """
+    # Startup phase
+    logger = structlog.get_logger(app["safir/config"].logger_name)
+    logger.info("Starting Kafka producer")
+    producer = AIOKafkaProducer(
+        loop=asyncio.get_running_loop(),
+        bootstrap_servers=app["safir/config"].kafka_broker_url,
+        ssl_context=app["safir/kafka_ssl_context"],
+        security_protocol=app["safir/kafka_protocol"],
+    )
+    await producer.start()
+    app["safir/kafka_producer"] = producer
+    logger.info("Finished starting Kafka producer")
+
+    yield
+
+    # Cleanup phase
+    logger.info("Shutting down Kafka producer")
+    await producer.stop()
