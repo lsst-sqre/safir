@@ -69,7 +69,7 @@ async def configure_kafka_ssl(app: Application) -> AsyncGenerator:
 
     else:
         client_cert_path = Path("./kafka_client.crt")
-        client_cert_path = concatenate_certificates(
+        concatenate_certificates(
             cert_path=app["safir/config"].kafka_client_cert_path,
             ca_path=app["safir/config"].kafka_client_ca_path,
             output_path=client_cert_path,
