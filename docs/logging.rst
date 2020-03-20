@@ -99,7 +99,7 @@ Inside a request handler, get the logging from the ``"safir/logger"`` key of the
    async def get_index(request: web.Request) -> web.Response:
        """GET /<path>/ (the app's external root).
        """
-       logger = request.config_dict["safir/logger"]
+       logger = request["safir/logger"]
        logger.info("My message", somekey=42)
 
        return web.json_response({})
@@ -127,7 +127,7 @@ To bind new context, get a new logger with the `~structlog.Boundlogger.bind` met
 
    @routes.get("/")
    async def get_index(request: web.Request) -> web.Response:
-       logger = request.config_dict["safir/logger"]
+       logger = request["safir/logger"]
        logger = logger.bind(answer=42)
 
        logger.info("Message 1")
