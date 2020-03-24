@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import structlog
 from aiokafka import AIOKafkaProducer
-from kafkit.ssl import concatenate_certificates, create_ssl_context
+from kafkit.ssl import create_ssl_context
 
 __all__ = ["configure_kafka_ssl", "init_kafka_producer"]
 
@@ -34,8 +33,6 @@ async def configure_kafka_ssl(app: Application) -> AsyncGenerator:
             to make the SSL context (this function is a no-op otherwise).
         ``kafka_cluster_ca_path``
             Local file path of the Kafka cluster CA.
-        ``kafka_client_ca_path``
-            Local file path of the Kafka client CA.
         ``kafka_client_cert_path``
             Local file path of the Kafka client cert.
         ``kafka_client_key_path``
@@ -68,15 +65,9 @@ async def configure_kafka_ssl(app: Application) -> AsyncGenerator:
         logger.info("Connecting to Kafka without SSL")
 
     else:
-        client_cert_path = Path("./kafka_client.crt")
-        concatenate_certificates(
-            cert_path=app["safir/config"].kafka_client_cert_path,
-            ca_path=app["safir/config"].kafka_client_ca_path,
-            output_path=client_cert_path,
-        )
         ssl_context = create_ssl_context(
             cluster_ca_path=app["safir/config"].kafka_cluster_ca_path,
-            client_cert_path=client_cert_path,
+            client_cert_path=app["safir/config"].kafka_client_cert_path,
             client_key_path=app["safir/config"].kafka_client_key_path,
         )
 
