@@ -7,9 +7,15 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiokafka import AIOKafkaProducer
+from kafkit.registry.aiohttp import RegistryApi
+from kafkit.registry.manager import RecordNameSchemaManager
 from kafkit.ssl import create_ssl_context
 
-__all__ = ["configure_kafka_ssl", "init_kafka_producer"]
+__all__ = [
+    "configure_kafka_ssl",
+    "init_kafka_producer",
+    "init_recordname_schema_manager",
+]
 
 if TYPE_CHECKING:
     from typing import AsyncGenerator
@@ -145,3 +151,100 @@ async def init_kafka_producer(app: Application) -> AsyncGenerator:
     if producer is not None:
         logger.info("Shutting down Kafka producer")
         await producer.stop()
+
+
+async def init_recordname_schema_manager(app: Application) -> AsyncGenerator:
+    """Initialize a `~kafkit.registry.manager.RecordNameSchemaManager` for
+    serializing messages given the name of the Avro schema.
+
+    Parameters
+    ----------
+    app : `aiohttp.web.Application`
+        The aiohttp.web-based application. This app *must* include a standard
+        configuration object at the ``"safir/config"`` key. The config must
+        have these attributes:
+
+        ``logger_name``
+            Name of the application's logger (`str`).
+
+        ``schema_registry_url``
+            The URL of a Schema Registry (`str`).
+
+        ``schema_compatibility``
+            The compatibility setting to apply to schemas in a Schema Registry
+            subject.
+
+            Valid settings are:
+
+            - ``"BACKWARD"``
+            - ``"BACKWARD_TRANSITIVE"``
+            - ``"FORWARD"``
+            - ``"FORWARD_TRANSITIVE"``
+            - ``"FULL"``
+            - ``"FULL_TRANSITIVE"``
+            - ``"NONE"``
+
+            Leave as `None` to avoid setting (or resetting) a subject.
+
+        ``schema_root_dir``
+            A local file path (`pathlib.Path`) for a directory containing
+            Avro schemas.
+
+        ``schema_suffix``
+            A suffix to apply to all locally-managed Avro schema names. The
+            suffix allows you dynamically create alternative Schema Registry
+            subjects for development.
+
+        Additionally, the `safir.http.init_http_session` initializer needs
+        to be run **before** this initializer. The ``safir/http_session``
+        key needs to be available on the ``app``.
+
+    Notes
+    -----
+    This initializer adds a `~kafkit.registry.manager.RecordNameSchemaManager`
+    to the ``app`` under the ``safir/schema_manager`` key.
+
+    Examples
+    --------
+    Use this function as a `cleanup context
+    <https://aiohttp.readthedocs.io/en/stable/web_reference.html#aiohttp.web.Application.cleanup_ctx>`__.
+
+    To access the schema manager:
+
+    .. code-block:: python
+
+       manager = app["safir/schema_manager"]
+    """
+    logger = structlog.get_logger(app["safir/config"].logger_name)
+
+    registry_url = app["safir/config"].schema_registry_url
+    if registry_url is None:
+        raise RuntimeError(
+            "The `schema_registry_url` configuration attribute must be set "
+            "for init_recordname_schema_manager."
+        )
+
+    registry = RegistryApi(
+        session=app["safir/http_session"],
+        url=app["safir/config"].schema_registry_url,
+    )
+
+    schema_root_dir = app["safir/config"].schema_root_dir
+
+    try:
+        schema_suffix = app["safir/config"].schema_suffix
+    except AttributeError:
+        schema_suffix = ""
+
+    manager = RecordNameSchemaManager(
+        root=schema_root_dir, suffix=schema_suffix, registry=registry,
+    )
+    await manager.register_schemas(
+        compatibility=app["safir/config"].schema_compatibility
+    )
+
+    app["safir/schema_registry"] = registry
+    app["safir/schema_manager"] = manager
+    logger.info("Finished registering Avro schemas")
+
+    yield
