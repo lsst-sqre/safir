@@ -1,8 +1,8 @@
 [build-system]
 requires = [
-  "setuptools>=42",
-  "wheel",
-  "setuptools_scm[toml]>=3.4"
+    "setuptools>=42",
+    "wheel",
+    "setuptools_scm[toml]>=3.4"
 ]
 build-backend = 'setuptools.build_meta'
 
@@ -91,7 +91,8 @@ exclude = '''
 # Multi-line strings are implicitly treated by black as regular expressions
 
 [tool.isort]
+include_trailing_comma = true
 multi_line_output = 3
 known_first_party = "safir"
-known_third_party = ["aiohttp", "pytest", "setuptools", "structlog"]
+known_third_party = ["aiohttp", "aiokafka", "kafkit", "pytest", "setuptools", "structlog"]
 skip = ["docs/conf.py"]
