@@ -23,8 +23,7 @@ In a request context, you can access application data, regardless of whether it 
 
    @routes.get("/")
    async def get_index(request: web.Request) -> web.Response:
-       """GET /<path>/ (the app's external root).
-       """
+       """GET /<path>/ (the app's external root)."""
        metadata = request.config_dict["safir/metadata"]
        data = {"_metadata": metadata}
        return web.json_response(data)

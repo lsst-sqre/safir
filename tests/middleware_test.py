@@ -12,9 +12,9 @@ from safir.logging import configure_logging
 from safir.middleware import bind_logger
 
 if TYPE_CHECKING:
-    from aiohttp.web.web_response import Request, StreamResponse
-    from aiohttp.pytest_plugin.test_utils import TestClient
     from _pytest.logging import LogCaptureFixture
+    from aiohttp.pytest_plugin.test_utils import TestClient
+    from aiohttp.web.web_response import Request, StreamResponse
 
 
 async def test_bind_logger(

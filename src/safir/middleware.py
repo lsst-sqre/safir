@@ -15,6 +15,7 @@ __all__ = ["bind_logger"]
 
 if TYPE_CHECKING:
     from typing import Awaitable, Callable
+
     from aiohttp.web.web_response import Request, StreamResponse
 
     Handler = Callable[[Request], Awaitable[StreamResponse]]
@@ -129,7 +130,9 @@ async def bind_logger(request: Request, handler: Handler) -> StreamResponse:
 
     logger = structlog.get_logger(logger_name)
     logger = logger.new(
-        request_id=str(uuid.uuid4()), path=request.path, method=request.method,
+        request_id=str(uuid.uuid4()),
+        path=request.path,
+        method=request.method,
     )
 
     # Add the logger to the ContextVar

@@ -19,8 +19,9 @@ else:
 
 if TYPE_CHECKING:
     from email.message import Message
-    from aiohttp.web.web_response import Request, StreamResponse
+
     from aiohttp.pytest_plugin.test_utils import TestClient
+    from aiohttp.web.web_response import Request, StreamResponse
 
 
 @pytest.fixture(scope="session")
@@ -29,22 +30,19 @@ def safir_metadata() -> Message:
 
 
 def test_get_project_url(safir_metadata: Message) -> None:
-    """Test the get_project_url function using Safir's own metadata.
-    """
+    """Test the get_project_url function using Safir's own metadata."""
     source_url = get_project_url(safir_metadata, "Source code")
     assert source_url == "https://github.com/lsst-sqre/safir"
 
 
 def test_get_project_url_missing(safir_metadata: Message) -> None:
-    """Test that get_project_url returns None for a missing URL.
-    """
+    """Test that get_project_url returns None for a missing URL."""
     source_url = get_project_url(safir_metadata, "Nonexistent")
     assert source_url is None
 
 
 async def test_setup_metadata(aiohttp_client: TestClient) -> None:
-    """Test setup_metadata in normal usage.
-    """
+    """Test setup_metadata in normal usage."""
 
     async def handler(request: Request) -> StreamResponse:
         m = request.config_dict["safir/metadata"]
@@ -73,8 +71,7 @@ async def test_setup_metadata(aiohttp_client: TestClient) -> None:
 
 
 async def test_setup_metadata_missing(aiohttp_client: TestClient) -> None:
-    """Test setup_metadata if safir/config hasn't been added to the app.
-    """
+    """Test setup_metadata if safir/config hasn't been added to the app."""
 
     def create_app() -> web.Application:
         app = web.Application()

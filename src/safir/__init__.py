@@ -3,12 +3,11 @@
 __all__ = ["__version__", "version_info"]
 
 import sys
-from typing import List
 
 if sys.version_info < (3, 8):
-    from importlib_metadata import version, PackageNotFoundError
+    from importlib_metadata import PackageNotFoundError, version
 else:
-    from importlib.metadata import version, PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError, version
 
 
 __version__: str
@@ -20,7 +19,7 @@ except PackageNotFoundError:
     # package is not installed
     __version__ = "0.0.0"
 
-version_info: List[str] = __version__.split(".")
+version_info = __version__.split(".")
 """The decomposed version, split across "``.``."
 
 Use this for version comparison.
