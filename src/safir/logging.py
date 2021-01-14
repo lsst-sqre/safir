@@ -141,6 +141,7 @@ def configure_logging(
     stream_handler = logging.StreamHandler(stream=sys.stdout)
     stream_handler.setFormatter(logging.Formatter("%(message)s"))
     logger = logging.getLogger(name)
+    logger.handlers = []
     logger.addHandler(stream_handler)
     logger.setLevel(log_level.upper())
 
