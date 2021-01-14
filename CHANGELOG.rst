@@ -5,6 +5,12 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+0.1.1 (2021-01-14)
+==================
+
+- Fix duplicated log output when logging is configured multiple times.
+- Update dependencies.
+
 0.1.0 (2020-02-26)
 ==================
 
