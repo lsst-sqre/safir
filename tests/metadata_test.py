@@ -18,7 +18,16 @@ else:
     from importlib.metadata import metadata
 
 if TYPE_CHECKING:
-    from email.message import Message
+    if sys.version_info < (3, 8):
+        # mypy doesn't understand the PackageMetadata type returned by the
+        # importlib_metadata backport supports dict operations.  In Python 3.8
+        # and later, it's an email.message.Message, so declare it explicitly
+        # as that type but alias that to Any on older versions.
+        from typing import Any
+
+        Message = Any
+    else:
+        from email.message import Message
 
     from aiohttp.pytest_plugin.test_utils import TestClient
     from aiohttp.web.web_response import Request, StreamResponse
