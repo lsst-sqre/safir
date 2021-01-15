@@ -13,6 +13,8 @@ __all__ = ["configure_logging", "response_logger", "get_response_logger"]
 
 
 if TYPE_CHECKING:
+    from typing import Any, List
+
     from structlog._config import BoundLoggerLazyProxy
 
 
@@ -139,12 +141,13 @@ def configure_logging(
     stream_handler = logging.StreamHandler(stream=sys.stdout)
     stream_handler.setFormatter(logging.Formatter("%(message)s"))
     logger = logging.getLogger(name)
+    logger.handlers = []
     logger.addHandler(stream_handler)
     logger.setLevel(log_level.upper())
 
     if profile == "production":
         # JSON-formatted logging
-        processors = [
+        processors: List[Any] = [
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.add_log_level,

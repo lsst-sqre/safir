@@ -97,8 +97,7 @@ Inside a request handler, get the logging from the ``"safir/logger"`` key of the
 
    @routes.get("/")
    async def get_index(request: web.Request) -> web.Response:
-       """GET /<path>/ (the app's external root).
-       """
+       """GET /<path>/ (the app's external root)."""
        logger = request["safir/logger"]
        logger.info("My message", somekey=42)
 

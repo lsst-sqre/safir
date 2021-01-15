@@ -11,7 +11,7 @@ build-backend = 'setuptools.build_meta'
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py37,coverage-report,typing,lint
+envlist = py,coverage-report,typing,lint
 isolated_build = True
 
 [testenv]
@@ -26,8 +26,7 @@ description = Compile coverage from each test run.
 skip_install = true
 deps = coverage[toml]>=5.0.2
 depends =
-    py37
-    py38
+    py
 commands =
     coverage combine
     coverage report
@@ -92,6 +91,5 @@ exclude = '''
 
 [tool.isort]
 multi_line_output = 3
-known_first_party = "safir"
-known_third_party = ["aiohttp", "pytest", "setuptools", "structlog"]
+known_first_party = ["safir", "tests"]
 skip = ["docs/conf.py"]

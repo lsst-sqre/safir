@@ -10,6 +10,7 @@ import structlog
 from safir.logging import configure_logging
 
 if TYPE_CHECKING:
+    from _pytest.capture import CaptureFixture
     from _pytest.logging import LogCaptureFixture
 
 
@@ -61,3 +62,15 @@ def test_configure_logging_level(caplog: LogCaptureFixture) -> None:
     # debug-level shouldn't get logged
     logger.debug("DEBUG message")
     assert len(caplog.record_tuples) == 1
+
+
+def test_duplicate_handlers(capsys: CaptureFixture[str]) -> None:
+    """Test that configuring logging more than once doesn't duplicate logs."""
+    configure_logging(name="myapp", profile="production", log_level="info")
+    configure_logging(name="myapp", profile="production", log_level="info")
+
+    logger = structlog.get_logger("myapp")
+
+    logger.info("INFO not duplicate message")
+    captured = capsys.readouterr()
+    assert len(captured.out.splitlines()) == 1
