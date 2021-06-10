@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import re
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
+from unittest.mock import ANY
 
 import structlog
 
@@ -31,6 +35,39 @@ def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
     )
 
 
+def test_configure_logging_dev_timestamp(caplog: LogCaptureFixture) -> None:
+    """Test development-mode logging with an added timestamp."""
+    caplog.set_level(logging.INFO)
+
+    configure_logging(
+        name="myapp",
+        profile="development",
+        log_level="info",
+        add_timestamp=True,
+    )
+
+    logger = structlog.get_logger("myapp")
+    logger = logger.bind(answer=42)
+    logger.info("Hello world")
+
+    assert caplog.record_tuples[0][0] == "myapp"
+    assert caplog.record_tuples[0][1] == logging.INFO
+    match = re.match(
+        (
+            r"(\d+-\d+-\d+T\d+:\d+:[\d.]+Z) \[info\s+\] Hello world \s+"
+            r" \[myapp\] answer=42"
+        ),
+        caplog.record_tuples[0][2],
+    )
+    assert match
+    isotimestamp = match.group(1)
+    assert isotimestamp.endswith("Z")
+    timestamp = datetime.fromisoformat(isotimestamp[:-1])
+    timestamp = timestamp.replace(tzinfo=timezone.utc)
+    now = datetime.now(tz=timezone.utc)
+    assert now - timedelta(seconds=5) < timestamp < now
+
+
 def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
     """Test that production-mode logging is JSON formatted."""
     caplog.set_level(logging.INFO)
@@ -47,6 +84,38 @@ def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
         '{"answer": 42, "event": "Hello world", "logger": "myapp", '
         '"level": "info"}',
     )
+
+
+def test_configure_logging_prod_timestamp(caplog: LogCaptureFixture) -> None:
+    """Test development-mode logging with an added timestamp."""
+    caplog.set_level(logging.INFO)
+
+    configure_logging(
+        name="myapp",
+        profile="production",
+        log_level="info",
+        add_timestamp=True,
+    )
+
+    logger = structlog.get_logger("myapp")
+    logger = logger.bind(answer=42)
+    logger.info("Hello world")
+
+    assert caplog.record_tuples[0][0] == "myapp"
+    assert caplog.record_tuples[0][1] == logging.INFO
+    data = json.loads(caplog.record_tuples[0][2])
+    assert data == {
+        "answer": 42,
+        "event": "Hello world",
+        "logger": "myapp",
+        "level": "info",
+        "timestamp": ANY,
+    }
+    assert data["timestamp"].endswith("Z")
+    timestamp = datetime.fromisoformat(data["timestamp"][:-1])
+    timestamp = timestamp.replace(tzinfo=timezone.utc)
+    now = datetime.now(tz=timezone.utc)
+    assert now - timedelta(seconds=5) < timestamp < now
 
 
 def test_configure_logging_level(caplog: LogCaptureFixture) -> None:
