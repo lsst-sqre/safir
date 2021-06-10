@@ -90,23 +90,27 @@ def configure_logging(
     name : `str`
         Name of the logger, which is typically the name of your application's
         root namespace.
-    profile : `str`
+    profile : `str`, optional
         The name of the application profile:
 
         development
             Log messages are formatted for easier reading on the terminal.
         production
             Log messages are formatted as JSON objects.
-    log_level : `str`
-        The log level, in string form:
+
+        The default is ``production``.
+    log_level : `str`, optional
+        The log level, in string form (case-insensitive):
 
         - ``DEBUG``
         - ``INFO``
         - ``WARNINGS``
         - ``ERROR``
+
+        The default is ``INFO``.
     add_timestamp : `bool`
-        Whether to add an ISO-format timestamp to each log message.  Default
-        is `False`.
+        Whether to add an ISO-format timestamp to each log message.  The
+        default is `False`.
 
     Notes
     -----
