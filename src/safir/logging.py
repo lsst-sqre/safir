@@ -77,7 +77,11 @@ def get_response_logger() -> BoundLoggerLazyProxy:
 
 
 def configure_logging(
-    *, name: str, profile: str = "production", log_level: str = "info"
+    *,
+    name: str,
+    profile: str = "production",
+    log_level: str = "info",
+    add_timestamp: bool = False,
 ) -> None:
     """Configure logging and structlog.
 
@@ -86,20 +90,27 @@ def configure_logging(
     name : `str`
         Name of the logger, which is typically the name of your application's
         root namespace.
-    profile : `str`
+    profile : `str`, optional
         The name of the application profile:
 
         development
             Log messages are formatted for easier reading on the terminal.
         production
             Log messages are formatted as JSON objects.
-    log_level : `str`
-        The log level, in string form:
+
+        The default is ``production``.
+    log_level : `str`, optional
+        The log level, in string form (case-insensitive):
 
         - ``DEBUG``
         - ``INFO``
         - ``WARNINGS``
         - ``ERROR``
+
+        The default is ``INFO``.
+    add_timestamp : `bool`
+        Whether to add an ISO-format timestamp to each log message.  The
+        default is `False`.
 
     Notes
     -----
@@ -145,30 +156,27 @@ def configure_logging(
     logger.addHandler(stream_handler)
     logger.setLevel(log_level.upper())
 
+    processors: List[Any] = [
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+    ]
+    if add_timestamp:
+        processors.append(structlog.processors.TimeStamper(fmt="iso"))
+    processors.extend(
+        [
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+        ]
+    )
     if profile == "production":
         # JSON-formatted logging
-        processors: List[Any] = [
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.processors.UnicodeDecoder(),
-            structlog.processors.JSONRenderer(),
-        ]
+        processors.append(structlog.processors.JSONRenderer())
     else:
         # Key-value formatted logging
-        processors = [
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.processors.UnicodeDecoder(),
-            structlog.dev.ConsoleRenderer(),
-        ]
+        processors.append(structlog.dev.ConsoleRenderer())
 
     structlog.configure(
         processors=processors,
