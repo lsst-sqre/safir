@@ -5,6 +5,12 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+0.2.0 (2021-06-10)
+==================
+
+- ``configure_logging`` now supports an optional ``add_timestamp`` parameter (false by default) that adds a timestamp to each log message.
+- Update dependencies.
+
 0.1.1 (2021-01-14)
 ==================
 
