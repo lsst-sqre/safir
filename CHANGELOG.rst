@@ -5,6 +5,11 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+2.0.0 (unreleased)
+==================
+
+As of this release, Safir is a helper library for FastAPI applications instead of aiohttp applications.
+
 1.0.0 (2021-06-18)
 ==================
 

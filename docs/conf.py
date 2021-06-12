@@ -7,12 +7,12 @@ import safir
 
 rst_epilog = """
 
-.. _aiohttp.web: https://docs.aiohttp.org/en/stable/web.html
+.. _FastAPI: https://fastapi.tiangolo.com/
 .. _mypy: http://www.mypy-lang.org
 .. _pre-commit: https://pre-commit.com
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _Roundtable: https://roundtable.lsst.io
-.. _roundtable_aiohttp_bot: https://github.com/lsst/templates/tree/master/project_templates/roundtable_aiohttp_bot
+.. _roundtable_fastapi_bot: https://github.com/lsst/templates/tree/master/project_templates/roundtable_fastapi_bot
 .. _structlog: http://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
 .. _tox: https://tox.readthedocs.io/en/latest/
@@ -43,7 +43,7 @@ master_doc = "index"
 # General information about the project.
 project = "Safir"
 copyright = (
-    "2020 "
+    "2020-2021 "
     "Association of Universities for Research in Astronomy, Inc. (AURA)"
 )
 author = "LSST Data Management"
@@ -65,7 +65,6 @@ default_role = "py:obj"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
-    "aiohttp": ("https://docs.aiohttp.org/en/stable/", None),
     "structlog": ("http://www.structlog.org/en/stable/", None),
 }
 

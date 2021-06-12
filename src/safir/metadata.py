@@ -4,11 +4,9 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING
 
-from aiohttp import web
-
-__all__ = ["setup_metadata", "get_project_url"]
+__all__ = ["get_metadata", "get_project_url"]
 
 
 if sys.version_info < (3, 8):
@@ -17,6 +15,8 @@ else:
     from importlib.metadata import metadata
 
 if TYPE_CHECKING:
+    from typing import Any, Dict, Optional
+
     if sys.version_info < (3, 8):
         # mypy doesn't understand the PackageMetadata type returned by the
         # importlib_metadata backport supports dict operations.  In Python 3.8
@@ -27,30 +27,41 @@ if TYPE_CHECKING:
         from email.message import Message
 
 
-def setup_metadata(
-    *, package_name: str, app: web.Application, **kwargs: Any
-) -> None:
-    """Add a metadata object to the application under the ``safir/metadata``
-    key.
+def get_metadata(
+    *, package_name: str, application_name: str, **kwargs: Any
+) -> Dict[str, Optional[str]]:
+    """Retrieve metadata for the application.
 
     Parameters
     ----------
     pacakge_name : `str`
         The name of the package (Python namespace). This name is used to look
         up metadata about the package.
-    app : `aiohttp.web.Application`
-        The application, which must already have a standard configuration
-        object at the ``safir/config`` key. This function uses the ``name``
-        attribute of the configuration.
+    application_name : `str`
+        The value to return as the application name (the ``name`` metadata
+        field).
     **kwargs
         Add additional metadata keys, and their values, as keyword arguments.
         In practice, values must be JSON-serializable.
 
+    Returns
+    -------
+    metadata : Dict[`str`, Optional[`str`]]
+        The package metadata as a dictionary  For example:
+
+        .. code-block:: python
+
+           {
+               "name": "safirdemo",
+               "version": "0.1.0",
+               "description": "Demonstration of a Safir-based app.",
+               "repository_url": "https://github.com/lsst-sqre/safirdemo",
+               "documentation_url": "https://github.com/lsst-sqre/safirdemo",
+           }
+
     Notes
     -----
-    **Metadata sources**
-
-    ``setup_metadata`` integrates extensively with your package's metadata.
+    ``get_metadata`` integrates extensively with your package's metadata.
     Typically this metadata is either set in the ``setup.cfg`` or ``setup.py``
     file (for setuptools-based applications):
 
@@ -63,41 +74,11 @@ def setup_metadata(
         Used as the ``documentation_url`` metadata.
     project_urls, Source code
         Used as the ``respository_url``.
-
-    The configuration object (``app["safir/config"]``) also provides metadata:
-
-    config.name
-        Used as the ``name`` metadata field.
-
-    **Metadata schema**
-
-    The metadata is stored as a `dict` in the ``"safir/metadata"`` key of the
-    application:
-
-    .. code-block:: json
-
-       {
-         "name": "safirdemo",
-         "version": "0.1.0",
-         "description": "Demonstration of a Safir-based app.",
-         "repository_url": "https://github.com/lsst-sqre/safirdemo",
-         "documentation_url": "https://github.com/lsst-sqre/safirdemo"
-       }
     """
     pkg_metadata: Message = metadata(package_name)
-
-    try:
-        config = app["safir/config"]
-    except KeyError:
-        raise RuntimeError(
-            "Application does not have a 'safir/config' key. "
-            "Add configuration to the application before running "
-            "setup_metadata."
-        )
-
-    meta: Dict[str, Any] = {
-        # Use configured name in case it is dynamically changed.
-        "name": config.name,
+    meta: Dict[str, Optional[str]] = {
+        # Use provided name in case it is dynamically changed.
+        "name": application_name,
         # Get metadata from the package configuration
         "version": pkg_metadata.get("Version", "0.0.0"),
         "description": pkg_metadata.get("Summary", None),
@@ -105,7 +86,7 @@ def setup_metadata(
         "documentation_url": pkg_metadata.get("Home-page", None),
     }
     meta.update(**kwargs)
-    app["safir/metadata"] = meta
+    return meta
 
 
 def get_project_url(meta: Message, label: str) -> Optional[str]:

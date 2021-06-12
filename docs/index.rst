@@ -6,7 +6,7 @@ Safir is the SQuaRE Framework for Roundtable
 ============================================
 
 Roundtable_ is the SQuaRE application and bot deployment platform, hosted on Kubernetes with Argo CD.
-Safir is a Python package that lets you develop Roundtable bots, based on the `aiohttp.web`_ asyncio web framework.
+Safir is a Python package that lets you develop Roundtable bots, based on the `FastAPI`_ asyncio web framework.
 
 Safir is developed on GitHub at https://github.com/lsst-sqre/safir.
 
@@ -34,7 +34,6 @@ Guides
 
    http-client
    logging
-   storage-keys
 
 API
 ===

@@ -3,7 +3,7 @@ Safir is the SQuaRE Framework for Roundtable
 ############################################
 
 Roundtable_ is the SQuaRE application and bot deployment platform, hosted on Kubernetes with Argo CD.
-Safir is a Python package that lets you develop Roundtable bots, based on the `aiohttp.web`_ asyncio web framework.
+Safir is a Python package that lets you develop Roundtable bots, based on the `FastAPI`_ asyncio web framework.
 
 Install from PyPI:
 
@@ -11,7 +11,7 @@ Install from PyPI:
 
    pip install safir
 
-The best way to create a new Safir-based Roundtable bot is with the `roundtable_aiohttp_bot`_ template.
+The best way to create a new Safir-based Roundtable bot is with the `roundtable_fastapi_bot`_ template.
 
 Read more about Safir at https://safir.lsst.io
 
@@ -37,5 +37,5 @@ The best way to start contributing to Safir is by cloning this repository creati
 For details, see https://safir.lsst.io/dev/development.html.
 
 .. _Roundtable: https://roundtable.lsst.io
-.. _aiohttp.web: https://docs.aiohttp.org/en/stable/web.html
-.. _roundtable_aiohttp_bot: https://github.com/lsst/templates/tree/master/project_templates/roundtable_aiohttp_bot
+.. _FastAPI: https://fastapi.tiangolo.com/
+.. _roundtable_fastapi_bot: https://github.com/lsst/templates/tree/master/project_templates/roundtable_fastapi_bot
