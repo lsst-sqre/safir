@@ -34,6 +34,7 @@ Guides
 
    http-client
    logging
+   x-forwarded
 
 API
 ===
