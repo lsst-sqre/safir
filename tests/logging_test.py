@@ -11,6 +11,7 @@ from unittest.mock import ANY
 
 import structlog
 
+from safir import logging as safir_logging
 from safir.logging import configure_logging
 
 if TYPE_CHECKING:
@@ -23,6 +24,7 @@ def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO)
 
     configure_logging(name="myapp", profile="development", log_level="info")
+    assert safir_logging.logger_name == "myapp"
 
     logger = structlog.get_logger("myapp")
     logger = logger.bind(answer=42)

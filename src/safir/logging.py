@@ -4,76 +4,25 @@ from __future__ import annotations
 
 import logging
 import sys
-from contextvars import ContextVar
 from typing import TYPE_CHECKING
 
 import structlog
 
-__all__ = ["configure_logging", "response_logger", "get_response_logger"]
-
-
 if TYPE_CHECKING:
-    from typing import Any, List
+    from typing import Any, List, Optional
 
-    from structlog._config import BoundLoggerLazyProxy
+__all__ = ["configure_logging", "logger_name"]
 
+logger_name: Optional[str] = None
+"""Name of the configured global logger.
 
-response_logger: ContextVar[BoundLoggerLazyProxy] = ContextVar(
-    "response_logger"
-)
-"""A context-local structlog logger.
+When :py:func:`configure_logging` is called, the name of the configured logger
+is stored in this variable. It is used by the logger dependency to retrieve
+the application's configured logger.
 
-This logger is set by the `safir.middleware.bind_logger` middleware.
-
-See also
---------
-get_response_logger
-
-Examples
---------
-Usage:
-
->>> logger = response_logger.get()
->>> logger.info(key='value')
+Only one configured logger is supported. Additional calls to
+:py:func:`configure_logging` change the stored logger name.
 """
-
-
-def get_response_logger() -> BoundLoggerLazyProxy:
-    """Get the context-local structlog logger with bound request context.
-
-    This logger is set by `safir.middleware.bind_logger`.
-
-    Returns
-    -------
-    logger : BoundLoggerLazyProxy
-        A context-local structlog logger.
-
-    See also
-    --------
-    response_logger
-
-    Examples
-    --------
-    Usage:
-
-    .. code-block:: python
-
-       from safir.logging import get_response_logger
-
-       logger = get_response_logger()
-       logger.info("Some message", somekey="somevalue")
-
-    An alternative way to get the logger is through the ``request`` instance
-    inside the handler. For example:
-
-    .. code-block:: python
-
-       @routes.get("/")
-       async def get_index(request):
-           logger = request["logger"]
-           logger.info("Logged message", somekey="somevalue")
-    """
-    return response_logger.get()
 
 
 def configure_logging(
@@ -184,3 +133,7 @@ def configure_logging(
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+
+    # Set the configured name for the global logger.
+    global logger_name
+    logger_name = name

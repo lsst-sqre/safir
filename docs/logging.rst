@@ -23,65 +23,18 @@ To configure logging, run the `safir.logging.configure_logging` function in appl
 
 .. code-block:: python
 
-   def create_app() -> web.Application:
-       config = Configuration()
-       configure_logging(
-           profile=config.profile,
-           log_level=config.log_level,
-           name=config.logger_name,
-       )
-
-       root_app = web.Application()
-
-       return root_app
+   config = Configuration()
+   configure_logging(
+       profile=config.profile,
+       log_level=config.log_level,
+       name=config.logger_name,
+   )
 
 .. note::
 
    The ``Configuration`` object is the responsibility of each each app to create.
 
    See the `~safir.logging.configure_logging` for details about the parameters.
-
-Configuring the logging middleware
-----------------------------------
-
-To enable the logging middleware for request handlers, append `safir.middleware.bind_logger` to `aiohttp.web.Application.middlewares`:
-
-.. code-block:: python
-
-   def create_app() -> web.Application:
-       root_app = web.Application()
-       root_app["safir/config"] = Configuration()
-       app.middlewares.append(bind_logger)
-
-       return app
-
-.. important::
-
-   `~safir.middleware.bind_logger` relies upon your application having a configuration object stored in your application under the ``safir/config`` key.
-   This configuration object **must** have a ``logger_name`` attribute that matches the ``name`` parameter passed to `~safir.logging.configure_logging` in the first step.
-
-This middleware creates a request-specific logger for each request with bound context fields:
-
-``method``
-    The HTTP method (such as GET, POST, DELETE).
-
-``path``
-    The path of the request.
-
-``request_id``
-    The request ID is a UUID.
-    Use it to collect all messages generated from a given request.
-
-For example, a JSON formatted log message from a request looks like this:
-
-.. code-block:: json
-
-   {
-     "event": "Hello world",
-     "method": "GET",
-     "path": "/exampleapp/",
-     "request_id": "62983174-5c51-46ad-b451-d774562783b9"
-   }
 
 .. _logging-in-handlers:
 
@@ -91,28 +44,36 @@ Logging in request handlers
 Basic usage
 -----------
 
-Inside a request handler, get the logging from the ``"safir/logger"`` key of the request:
+Each handler that wants to use the logger requests it as a FastAPI dependency.
 
 .. code-block:: python
 
-   @routes.get("/")
-   async def get_index(request: web.Request) -> web.Response:
-       """GET /<path>/ (the app's external root)."""
-       logger = request["safir/logger"]
+   from structlog.stdlib import BoundLogger
+
+   from safir.dependencies.logger import logger_dependency
+
+
+   @app.get("/")
+   async def get_index(
+       logger: BoundLogger = Depends(logger_dependency),
+   ) -> Dict[str, str]:
        logger.info("My message", somekey=42)
+       return {}
 
-       return web.json_response({})
-
-The log message is:
+The log message will look something like:
 
 .. code-block:: json
 
    {
      "event": "My message",
+     "level": "info",
+     "logger": "myapp",
      "method": "GET",
      "path": "/exampleapp/",
+     "remote": "192.168.1.1",
      "request_id": "62983174-5c51-46ad-b451-d774562783b9",
-     "somekey": 42
+     "somekey": 42,
+     "user_agent": "some-user-agent/1.0"
    }
 
 Binding extra context to the logger
@@ -120,13 +81,14 @@ Binding extra context to the logger
 
 You might wish to bind additional context to the request logger.
 That way, each subsequent log message will include that context.
-To bind new context, get a new logger with the `~structlog.Boundlogger.bind` method:
+To bind new context, get a new logger with the `~structlog.BoundLogger.bind` method:
 
 .. code-block:: python
 
    @routes.get("/")
-   async def get_index(request: web.Request) -> web.Response:
-       logger = request["safir/logger"]
+   async def get_index(
+       logger: BoundLogger = Depends(logger_dependency),
+   ) -> Dict[str, str]:
        logger = logger.bind(answer=42)
 
        logger.info("Message 1")
@@ -141,9 +103,13 @@ This generates log messages:
    {
      "answer": 42,
      "event": "Message 1",
+     "level": "info",
+     "logger": "myapp",
      "method": "GET",
      "path": "/exampleapp/",
+     "remote": "192.168.1.1",
      "request_id": "62983174-5c51-46ad-b451-d774562783b9"
+     "user_agent": "some-user-agent/1.0"
    }
 
 .. code-block:: json
@@ -151,12 +117,16 @@ This generates log messages:
    {
      "answer": 42,
      "event": "Message 2",
+     "level": "info",
+     "logger": "myapp",
      "method": "GET",
      "path": "/exampleapp/",
+     "remote": "192.168.1.1",
      "request_id": "62983174-5c51-46ad-b451-d774562783b9"
+     "user_agent": "some-user-agent/1.0"
    }
 
-Because `~structlog.Boundlogger.bind` returns a new logger, you'll need to pass this logger to any functions that your handler calls.
+Because `~structlog.BoundLogger.bind` returns a new logger, you'll need to pass this logger to any functions that your handler calls.
 
 .. _logging-elsewhere:
 
