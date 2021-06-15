@@ -59,14 +59,14 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : `fastapi.Request`
+        request : ``fastapi.Request``
             The incoming request.
         call_next : `typing.Callable`
             The next step in the processing stack.
 
         Returns
         -------
-        response : `fastapi.Response`
+        response : ``fastapi.Response``
             The response with additional information about proxy headers.
         """
         forwarded_for = list(reversed(self._get_forwarded_for(request)))
@@ -116,7 +116,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : `fastapi.Request`
+        request : ``fastapi.Request``
             The incoming request.
 
         Returns
@@ -140,7 +140,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : `fastapi.Request`
+        request : ``fastapi.Request``
             The incoming request.
 
         Returns
@@ -161,12 +161,12 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : `fastapi.Request`
+        request : ``fastapi.Request``
             The incoming request.
 
         Returns
         -------
-        forwarded_for : List[`ipaddress._BaseAddress`]
+        forwarded_for : List[``ipaddress._BaseAddress``]
             The list of addresses found in the header.  If there are multiple
             ``X-Forwarded-Proto`` headers, we don't know which one is correct,
             so act as if there are no headers.

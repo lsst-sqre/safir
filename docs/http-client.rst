@@ -1,14 +1,14 @@
-########################
-Using the aiohttp client
-########################
+######################
+Using the httpx client
+######################
 
-Safir helps you manage a single `httpx.AsyncClient` for your application.
+Safir helps you manage a single ``httpx.AsyncClient`` for your application.
 Using a single HTTP client improves performance by reusing connections.
 
 Setting up the httpx.AsyncClient
 ================================
 
-The `httpx.AsyncClient` will be dyanmically created during application startup.
+The ``httpx.AsyncClient`` will be dyanmically created during application startup.
 Nothing further is needed apart from importing the dependency.
 However, it must be closed during application shutdown or a warning will be generated.
 
@@ -47,8 +47,8 @@ To use the client in a handler, just request it via a FastAPI dependency:
 Testing considerations
 ======================
 
-If you are using `httpx.AsyncClient` in your application tests as well, note that it will not trigger shutdown events, so if you trigger handlers that use the HTTP client, you will get a warning about an unclosed `httpx.AsyncClient` in your test output.
-To avoid this, wrap your test application in `asgi_lifespan.LifespanManager` from the asgi-lifespan Python package:
+If you are using ``httpx.AsyncClient`` in your application tests as well, note that it will not trigger shutdown events, so if you trigger handlers that use the HTTP client, you will get a warning about an unclosed ``httpx.AsyncClient`` in your test output.
+To avoid this, wrap your test application in ``asgi_lifespan.LifespanManager`` from the asgi-lifespan Python package:
 
 .. code-block:: python
 

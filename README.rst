@@ -18,10 +18,11 @@ Read more about Safir at https://safir.lsst.io
 Features
 ========
 
-- Set up an aiohttp.ClientSession as part of the application start up an tear-down lifecycle.
+- Set up an ``httpx.AsyncClient`` as part of the application start-up and shutdown lifecycle.
 - Set up structlog-based logging.
 - Middleware for attaching request context to the logger to include a request UUID, method, and route in all log messages.
-- Gather and structure Roundtable-standard metadata about your application.
+- Process ``X-Forwarded-*`` headers to determine the source IP and related information of the request.
+- Gather and structure standard metadata about your application.
 
 Developing Safir
 ================

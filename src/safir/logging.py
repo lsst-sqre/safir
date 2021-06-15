@@ -16,12 +16,12 @@ __all__ = ["configure_logging", "logger_name"]
 logger_name: Optional[str] = None
 """Name of the configured global logger.
 
-When :py:func:`configure_logging` is called, the name of the configured logger
-is stored in this variable. It is used by the logger dependency to retrieve
-the application's configured logger.
+When `configure_logging` is called, the name of the configured logger is
+stored in this variable. It is used by the logger dependency to retrieve the
+application's configured logger.
 
 Only one configured logger is supported. Additional calls to
-:py:func:`configure_logging` change the stored logger name.
+`configure_logging` change the stored logger name.
 """
 
 

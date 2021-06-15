@@ -20,7 +20,7 @@ seconds. Users of this dependency can always lower it if needed.
 
 
 class HTTPClientDependency:
-    """Provides an `httpx.AsyncClient` as a dependency.
+    """Provides an ``httpx.AsyncClient`` as a dependency.
 
     Notes
     -----
@@ -38,11 +38,11 @@ class HTTPClientDependency:
         self.http_client = httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT)
 
     def __call__(self) -> httpx.AsyncClient:
-        """Return the cached `httpx.AsyncClient`."""
+        """Return the cached ``httpx.AsyncClient``."""
         return self.http_client
 
     async def aclose(self) -> None:
-        """Close the `httpx.AsyncClient`.
+        """Close the ``httpx.AsyncClient``.
 
         It is an error to use the dependency after this method has been
         called. It should only be called during application shutdown.

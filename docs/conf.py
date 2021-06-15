@@ -65,7 +65,7 @@ default_role = "py:obj"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
-    "structlog": ("http://www.structlog.org/en/stable/", None),
+    "structlog": ("https://www.structlog.org/en/stable/", None),
 }
 
 intersphinx_timeout = 10.0  # seconds
