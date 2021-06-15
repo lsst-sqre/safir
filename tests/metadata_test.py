@@ -31,6 +31,7 @@ def test_get_project_url_missing(safir_metadata: Message) -> None:
     assert source_url is None
 
 
+@pytest.mark.asyncio
 async def test_get_metadata() -> None:
     """Test get_metadata in normal usage."""
     data = get_metadata(package_name="safir", application_name="testapp")
