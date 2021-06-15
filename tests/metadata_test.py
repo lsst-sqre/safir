@@ -3,29 +3,15 @@
 
 from __future__ import annotations
 
-import sys
+from importlib.metadata import metadata
 from typing import TYPE_CHECKING
 
 import pytest
 
 from safir.metadata import get_metadata, get_project_url
 
-if sys.version_info < (3, 8):
-    from importlib_metadata import metadata
-else:
-    from importlib.metadata import metadata
-
 if TYPE_CHECKING:
-    if sys.version_info < (3, 8):
-        # mypy doesn't understand the PackageMetadata type returned by the
-        # importlib_metadata backport supports dict operations.  In Python 3.8
-        # and later, it's an email.message.Message, so declare it explicitly
-        # as that type but alias that to Any on older versions.
-        from typing import Any
-
-        Message = Any
-    else:
-        from email.message import Message
+    from email.message import Message
 
 
 @pytest.fixture(scope="session")
