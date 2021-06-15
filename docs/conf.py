@@ -12,7 +12,7 @@ rst_epilog = """
 .. _pre-commit: https://pre-commit.com
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _Roundtable: https://roundtable.lsst.io
-.. _roundtable_fastapi_bot: https://github.com/lsst/templates/tree/master/project_templates/roundtable_fastapi_bot
+.. _fastapi_safir_app: https://github.com/lsst/templates/tree/master/project_templates/fastapi_safir_app
 .. _structlog: http://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
 .. _tox: https://tox.readthedocs.io/en/latest/

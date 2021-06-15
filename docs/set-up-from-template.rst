@@ -2,7 +2,7 @@
 Creating an app from the template
 #################################
 
-The best way to create a new Safir-based application for Roundtable_ is with the roundtable_fastapi_bot_ template.
+The best way to create a new Safir-based application for Roundtable_ is with the fastapi_safir_app_ template.
 The quickest way to do this is with the ``@sqrbot-jr create project`` Slack command.
 This page describes how to manually use the template to set up a new application.
 
@@ -23,7 +23,7 @@ Next, you'll actually create the project files using the template.
 .. prompt:: bash
 
    git clone https://github.com/lsst/templates
-   templatekit -r templates make roundtable_fastapi_bot
+   templatekit -r templates make fastapi_safir_app
 
 Answer the prompts, and move into that directory in your shell.
 
@@ -117,7 +117,7 @@ After setting these secrets, re-run the GitHub Action by `re-running the workflo
 8. Try the local test commands
 ==============================
 
-The roundtable_fastapi_bot_ template is set up to help you successfully test and maintain your bot.
+The fastapi_safir_app_ template is set up to help you successfully test and maintain your bot.
 There are two ways for you to run tests.
 
 First, you can run pytest_ directly from your local development environment:

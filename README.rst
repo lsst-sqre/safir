@@ -11,7 +11,7 @@ Install from PyPI:
 
    pip install safir
 
-The best way to create a new Safir-based Roundtable bot is with the `roundtable_fastapi_bot`_ template.
+The best way to create a new Safir-based Roundtable bot is with the `fastapi_safir_app`_ template.
 
 Read more about Safir at https://safir.lsst.io
 
@@ -38,4 +38,4 @@ For details, see https://safir.lsst.io/dev/development.html.
 
 .. _Roundtable: https://roundtable.lsst.io
 .. _FastAPI: https://fastapi.tiangolo.com/
-.. _roundtable_fastapi_bot: https://github.com/lsst/templates/tree/master/project_templates/roundtable_fastapi_bot
+.. _fastapi_safir_app: https://github.com/lsst/templates/tree/master/project_templates/fastapi_safir_app
