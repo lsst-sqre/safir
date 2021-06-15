@@ -60,6 +60,24 @@ Each handler that wants to use the logger requests it as a FastAPI dependency.
        logger.info("My message", somekey=42)
        return {}
 
+This dependency creates a request-specific logger for each request with bound context fields:
+
+``method``
+    The HTTP method (such as GET, POST, DELETE).
+
+``path``
+    The path of the request.
+
+``remote``
+    The IP address of the client that sent the request.
+
+``request_id``
+    The request ID is a UUID.
+    Use it to collect all messages generated from a given request.
+
+``user_agent``
+    The value of the ``User-Agent`` header, which can assist with debugging.
+
 The log message will look something like:
 
 .. code-block:: json
