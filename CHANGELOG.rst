@@ -5,6 +5,17 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+1.0.0 (unreleased)
+==================
+
+Safir v1 will be the major release supporting aiohttp.
+Starting with Safir v2, Safir will become a support library for FastAPI_ applications.
+
+.. _FastAPI: https://fastapi.tiangolo.com/
+
+This release has no significant difference from 0.2.0.
+The version bump is to indicate that the aiohttp support is stable.
+
 0.2.0 (2021-06-10)
 ==================
 
