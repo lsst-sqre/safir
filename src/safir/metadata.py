@@ -4,18 +4,37 @@
 from __future__ import annotations
 
 from importlib.metadata import metadata
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from email.message import Message
-    from typing import Any, Dict, Optional
 
-__all__ = ["get_metadata", "get_project_url"]
+__all__ = ["Metadata", "get_metadata", "get_project_url"]
 
 
-def get_metadata(
-    *, package_name: str, application_name: str, **kwargs: Any
-) -> Dict[str, Optional[str]]:
+class Metadata(BaseModel):
+    """Metadata about a package."""
+
+    name: str = Field(..., title="Application name", example="myapp")
+
+    version: str = Field(..., title="Version", example="1.0.0")
+
+    description: Optional[str] = Field(
+        None, title="Description", example="string"
+    )
+
+    repository_url: Optional[str] = Field(
+        None, title="Repository URL", example="https://example.com/"
+    )
+
+    documentation_url: Optional[str] = Field(
+        None, title="Documentation URL", example="https://example.com/"
+    )
+
+
+def get_metadata(*, package_name: str, application_name: str) -> Metadata:
     """Retrieve metadata for the application.
 
     Parameters
@@ -26,24 +45,12 @@ def get_metadata(
     application_name : `str`
         The value to return as the application name (the ``name`` metadata
         field).
-    **kwargs
-        Add additional metadata keys, and their values, as keyword arguments.
-        In practice, values must be JSON-serializable.
 
     Returns
     -------
-    metadata : Dict[`str`, Optional[`str`]]
-        The package metadata as a dictionary  For example:
-
-        .. code-block:: python
-
-           {
-               "name": "safirdemo",
-               "version": "0.1.0",
-               "description": "Demonstration of a Safir-based app.",
-               "repository_url": "https://github.com/lsst-sqre/safirdemo",
-               "documentation_url": "https://github.com/lsst-sqre/safirdemo",
-           }
+    metadata : `Metadata`
+        The package metadata as a Pydantic model, suitable for returning as
+        the result of a FastAPI route.
 
     Notes
     -----
@@ -62,22 +69,17 @@ def get_metadata(
         Used as the ``respository_url``.
     """
     pkg_metadata: Message = metadata(package_name)
-    meta: Dict[str, Optional[str]] = {
-        # Use provided name in case it is dynamically changed.
-        "name": application_name,
-        # Get metadata from the package configuration
-        "version": pkg_metadata.get("Version", "0.0.0"),
-        "description": pkg_metadata.get("Summary", None),
-        "repository_url": get_project_url(pkg_metadata, "Source code"),
-        "documentation_url": pkg_metadata.get("Home-page", None),
-    }
-    meta.update(**kwargs)
-    return meta
+    return Metadata(
+        name=application_name,
+        version=pkg_metadata.get("Version", "0.0.0"),
+        description=pkg_metadata.get("Summary", None),
+        repository_url=get_project_url(pkg_metadata, "Source code"),
+        documentation_url=pkg_metadata.get("Home-page", None),
+    )
 
 
 def get_project_url(meta: Message, label: str) -> Optional[str]:
-    """Get a specific URL from the ``project_urls`` key of a package's
-    metadata.
+    """Get a specific URL from a package's ``project_urls`` metadata.
 
     Parameters
     ----------

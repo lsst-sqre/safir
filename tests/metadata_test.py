@@ -35,8 +35,8 @@ def test_get_project_url_missing(safir_metadata: Message) -> None:
 async def test_get_metadata() -> None:
     """Test get_metadata in normal usage."""
     data = get_metadata(package_name="safir", application_name="testapp")
-    assert data["name"] == "testapp"
-    assert "version" in data
-    assert "description" in data
-    assert data["repository_url"] == "https://github.com/lsst-sqre/safir"
-    assert data["documentation_url"] == "https://safir.lsst.io"
+    assert data.name == "testapp"
+    assert data.version
+    assert data.description
+    assert data.repository_url == "https://github.com/lsst-sqre/safir"
+    assert data.documentation_url == "https://safir.lsst.io"
