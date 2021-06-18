@@ -9,6 +9,19 @@ Change log
 ==================
 
 As of this release, Safir is a helper library for FastAPI applications instead of aiohttp applications.
+Much of the library has changed.
+Authors of software that uses Safir should read the documentation again as part of the upgrade to FastAPI.
+
+Included in this release is:
+
+- A FastAPI dependency to provide a structlog logger as configured by the ``safir.logging`` package, replacing the aiohttp middleware.
+- A FastAPI dependency to provide a global ``httpx.AsyncClient``, replacing the middleware that provided an aiohttp client.
+- Starlette (FastAPI) middleware to parse ``X-Forwarded-*`` headers and update request information accordingly.
+- ``safir.metadata.get_metadata`` now returns a Pydantic_ model.
+
+.. _Pydantic: https://pydantic-docs.helpmanual.io/
+
+As of this release, Safir only supports Python 3.8 or later.
 
 1.0.0 (2021-06-18)
 ==================
