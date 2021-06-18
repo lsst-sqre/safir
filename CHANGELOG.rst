@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-1.0.0 (unreleased)
+1.0.0 (2021-06-18)
 ==================
 
 Safir v1 will be the major release supporting aiohttp.
