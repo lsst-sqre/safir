@@ -83,7 +83,7 @@ def get_project_url(meta: Message, label: str) -> Optional[str]:
 
     Parameters
     ----------
-    meta : ``email.message.Message``
+    meta : `email.message.Message`
         The package metadata, as returned by the
         ``importlib.metadata.metadata`` function.
     label : `str`
