@@ -126,7 +126,7 @@ This generates log messages:
      "method": "GET",
      "path": "/exampleapp/",
      "remote": "192.168.1.1",
-     "request_id": "62983174-5c51-46ad-b451-d774562783b9"
+     "request_id": "62983174-5c51-46ad-b451-d774562783b9",
      "user_agent": "some-user-agent/1.0"
    }
 
