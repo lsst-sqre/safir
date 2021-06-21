@@ -6,6 +6,11 @@ The best way to create a new Safir-based application for Roundtable_ is with the
 The quickest way to do this is with the ``@sqrbot-jr create project`` Slack command.
 This page describes how to manually use the template to set up a new application.
 
+The question for either creation method about deployment with Helm may require some further clarification.
+By default, the generated app will include Kustomize deployment configuration in a ``manifests`` directory.
+However, if you are planning on writing a Helm chart for it instead (normally in the `charts repository <https://github.com/lsst-sqre/charts>`__), this configuration is not useful.
+If you indicate the app will be deployed with Helm, the ``manifests`` directory will be omitted so that it won't clutter your app with unused files.
+
 1. Install templatekit
 ======================
 
