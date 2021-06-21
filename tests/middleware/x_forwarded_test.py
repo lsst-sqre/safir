@@ -147,7 +147,7 @@ async def test_no_proto_or_host() -> None:
 
 @pytest.mark.asyncio
 async def test_too_many_headers() -> None:
-    """Test handlng of duplicate headers.
+    """Test handling of duplicate headers.
 
     httpx doesn't allow passing in duplicate headers, so we cannot test end to
     end.  Instead, test by generating a mock request and then calling the
