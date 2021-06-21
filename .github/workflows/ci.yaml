@@ -38,6 +38,9 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install Graphviz
+        run: sudo apt-get install graphviz
+
       - name: Install tox and LTD Conveyor
         run: pip install tox ltd-conveyor
 
