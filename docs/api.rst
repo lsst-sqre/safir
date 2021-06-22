@@ -5,7 +5,10 @@ API reference
 .. automodapi:: safir
    :include-all-objects:
 
-.. automodapi:: safir.http
+.. automodapi:: safir.dependencies.http_client
+   :include-all-objects:
+
+.. automodapi:: safir.dependencies.logger
    :include-all-objects:
 
 .. automodapi:: safir.logging
@@ -14,5 +17,5 @@ API reference
 .. automodapi:: safir.metadata
    :include-all-objects:
 
-.. automodapi:: safir.middleware
+.. automodapi:: safir.middleware.x_forwarded
    :include-all-objects:

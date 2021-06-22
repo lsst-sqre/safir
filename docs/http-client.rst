@@ -1,44 +1,60 @@
-########################
-Using the aiohttp client
-########################
+######################
+Using the httpx client
+######################
 
-Safir helps you manage a single `aiohttp.ClientSession` for your application.
+Safir helps you manage a single ``httpx.AsyncClient`` for your application.
 Using a single HTTP client improves performance by reusing connections.
 
-Setting up the aiohttp.ClientSession
-====================================
+Setting up the httpx.AsyncClient
+================================
 
-To initialize the client, add `safir.http.init_http_session` as a cleanup context to your root application:
+The ``httpx.AsyncClient`` will be dyanmically created during application startup.
+Nothing further is needed apart from importing the dependency.
+However, it must be closed during application shutdown or a warning will be generated.
 
-.. code-block:: python
-
-   def create_app() -> web.Application:
-       root_app = web.Application()
-       root_app.cleanup_ctx.append(init_http_session)
-
-       return root_app
-
-The cleanup context ensures that the client session is closed when the application shuts down.
-
-Using the ClientSession
-=======================
-
-`~safir.http.init_http_session` attaches the session to the ``safir/http_session`` key of the application.
-
-Accessing the session directly from the app:
+To do this, add a shutdown hook to your application:
 
 .. code-block:: python
 
-   http_session = app["safir/http_session"]
-   response = await http_session.get("https://keeper.lsst.codes")
+   from safir.dependencies.http_client import http_client_dependency
 
-Inside a request handler, use `~aiohttp.web.Request.config_dict`:
+   app = FastAPI()
+
+
+   @app.on_event("shutdown")
+   async def shutdown_event() -> None:
+       await http_client_dependency.aclose()
+
+You can add this line to an existing shutdown hook if you already have one.
+
+Using the httpx.AsyncClient
+===========================
+
+To use the client in a handler, just request it via a FastAPI dependency:
 
 .. code-block:: python
+
+   from safir.dependencies.http_client import http_client_dependency
+
 
    @routes.get("/")
-   async def get_index(request: web.Request) -> web.Response:
-       http_session = request.config_dict["safir/http_session"]
-       response = await http_session.get("https://keeper.lsst.codes")
-       data = await response.json()
-       return web.json_response(data)
+   async def get_index(
+       http_client: httpx.AsyncClient = Depends(http_client_dependency),
+   ) -> Dict[str, Any]:
+       response = await http_client.get("https://keeper.lsst.codes")
+       return await response.json()
+
+Testing considerations
+======================
+
+If you are using ``httpx.AsyncClient`` in your application tests as well, note that it will not trigger shutdown events, so if you trigger handlers that use the HTTP client, you will get a warning about an unclosed ``httpx.AsyncClient`` in your test output.
+To avoid this, wrap your test application in ``asgi_lifespan.LifespanManager`` from the asgi-lifespan Python package:
+
+.. code-block:: python
+
+   app = FastAPI()
+   async with LifespanManager(app):
+       # insert tests here
+       pass
+
+You can do this in a fixture to avoid code duplication.

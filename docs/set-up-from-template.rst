@@ -2,9 +2,14 @@
 Creating an app from the template
 #################################
 
-The best way to create a new Safir-based application for Roundtable_ is with the roundtable_aiohttp_bot_ template.
-This page describes how to directly use the template to set up a new application.
-In the future you will be able to create new applications more quickly with the ``@sqrbot-jr create project`` Slack command.
+The best way to create a new Safir-based application for Roundtable_ is with the fastapi_safir_app_ template.
+The quickest way to do this is with the ``@sqrbot-jr create project`` Slack command.
+This page describes how to manually use the template to set up a new application.
+
+The question for either creation method about deployment with Helm may require some further clarification.
+By default, the generated app will include Kustomize deployment configuration in a ``manifests`` directory.
+However, if you are planning on writing a Helm chart for it instead (normally in the `charts repository <https://github.com/lsst-sqre/charts>`__), this configuration is not useful.
+If you indicate the app will be deployed with Helm, the ``manifests`` directory will be omitted so that it won't clutter your app with unused files.
 
 1. Install templatekit
 ======================
@@ -23,7 +28,7 @@ Next, you'll actually create the project files using the template.
 .. prompt:: bash
 
    git clone https://github.com/lsst/templates
-   templatekit -r templates make roundtable_aiohttp_bot
+   templatekit -r templates make fastapi_safir_app
 
 Answer the prompts, and move into that directory in your shell.
 
@@ -117,7 +122,7 @@ After setting these secrets, re-run the GitHub Action by `re-running the workflo
 8. Try the local test commands
 ==============================
 
-The roundtable_aiohttp_bot_ template is set up to help you successfully test and maintain your bot.
+The fastapi_safir_app_ template is set up to help you successfully test and maintain your bot.
 There are two ways for you to run tests.
 
 First, you can run pytest_ directly from your local development environment:
@@ -179,6 +184,6 @@ Next steps
 
 Now that you have a working application repository, the next steps are to develop your application's logic and interface, and then deploy it to Roundtable.
 
-To learn learn more about developing Safir-based applications like yours, refer to the :doc:`guides in this documentation <index>` and the `aiohttp Server documentation <https://docs.aiohttp.org/en/stable/web.html>`__.
+To learn learn more about developing Safir-based applications like yours, refer to the :doc:`guides in this documentation <index>` and the `FastAPI documentation <https://fastapi.tiangolo.com/>`__.
 
 To learn how to deploy your application to Roundtable, see the `Roundtable documentation <https://roundtable.lsst.io>`__.
