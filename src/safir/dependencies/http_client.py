@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 import httpx
 
 __all__ = [
@@ -35,19 +37,19 @@ class HTTPClientDependency:
     """
 
     def __init__(self) -> None:
-        self.http_client = httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT)
+        self.http_client: Optional[httpx.AsyncClient] = None
 
     def __call__(self) -> httpx.AsyncClient:
         """Return the cached ``httpx.AsyncClient``."""
+        if not self.http_client:
+            self.http_client = httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT)
         return self.http_client
 
     async def aclose(self) -> None:
-        """Close the ``httpx.AsyncClient``.
-
-        It is an error to use the dependency after this method has been
-        called. It should only be called during application shutdown.
-        """
-        await self.http_client.aclose()
+        """Close the ``httpx.AsyncClient``."""
+        if self.http_client:
+            await self.http_client.aclose()
+            self.http_client = None
 
 
 http_client_dependency = HTTPClientDependency()

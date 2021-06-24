@@ -5,6 +5,12 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+2.0.1 (2021-06-24)
+==================
+
+- Defer creation of ``httpx.AsyncClient`` until the first time it is requested.
+  Allow re-creation after ``aclose()``, which makes it easier to write test suites.
+
 2.0.0 (2021-06-21)
 ==================
 
