@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-2.0.1 (unreleased)
+2.0.1 (2021-06-24)
 ==================
 
 - Defer creation of ``httpx.AsyncClient`` until the first time it is requested.
