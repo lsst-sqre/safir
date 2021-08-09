@@ -30,7 +30,7 @@ class LoggerDependency:
     def __init__(self) -> None:
         self.logger: Optional[BoundLogger] = None
 
-    def __call__(self, request: Request) -> BoundLogger:
+    async def __call__(self, request: Request) -> BoundLogger:
         """Return a logger bound with request information.
 
         Returns

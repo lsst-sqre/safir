@@ -39,7 +39,7 @@ class HTTPClientDependency:
     def __init__(self) -> None:
         self.http_client: Optional[httpx.AsyncClient] = None
 
-    def __call__(self) -> httpx.AsyncClient:
+    async def __call__(self) -> httpx.AsyncClient:
         """Return the cached ``httpx.AsyncClient``."""
         if not self.http_client:
             self.http_client = httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT)
