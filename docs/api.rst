@@ -17,5 +17,8 @@ API reference
 .. automodapi:: safir.metadata
    :include-all-objects:
 
+.. automodapi:: safir.models
+   :include-all-objects:
+
 .. automodapi:: safir.middleware.x_forwarded
    :include-all-objects:
