@@ -5,6 +5,13 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+2.1.0 (2021-08-09)
+==================
+
+- Add ``safir.models.ErrorModel``, which is a model of the error message format preferred by FastAPI.
+  Using the model is not necessary but it's helpful to reference it in API documentation to generate more complete information about the error messages.
+- Mark all FastAPI dependencies as async so that FastAPI doesn't run them in an external thread pool.
+
 2.0.1 (2021-06-24)
 ==================
 
