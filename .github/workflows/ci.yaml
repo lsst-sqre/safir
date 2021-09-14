@@ -1,11 +1,25 @@
 name: Python CI
 
-on: [push]
+"on":
+  push:
+    branches-ignore:
+      # These should always correspond to pull requests, so ignore them for
+      # the push trigger and let them be triggered by the pull_request
+      # trigger, avoiding running the workflow twice.  This is a minor
+      # optimization so there's no need to ensure this is comprehensive.
+      - "dependabot/**"
+      - "renovate/**"
+      - "tickets/**"
+      - "u/**"
+    tags:
+      - "*"
+  pull_request: {}
 
 jobs:
   test:
 
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         python:
@@ -20,11 +34,23 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Run pre-commit
+        uses: pre-commit/action@v2.0.3
+
       - name: Install tox
         run: pip install tox
 
+      - name: Cache tox environments
+        id: cache-tox
+        uses: actions/cache@v2
+        with:
+          path: .tox
+          # setup.cfg and pyproject.toml have versioning info that would
+          # impact the tox environment.
+          key: tox-${{ matrix.python }}-${{ hashFiles('pyproject.toml', 'setup.cfg') }}
+
       - name: Run tox
-        run: tox -e py,lint,typing  # run tox using Python in path
+        run: tox -e py,typing  # run tox using Python in path
 
   docs:
 
@@ -47,11 +73,18 @@ jobs:
       - name: Run tox
         run: tox -e docs
 
+      # Only attempt documentation uploads for tagged releases and pull
+      # requests from ticket branches in the same repository.  This avoids
+      # version clutter in the docs and failures when a PR doesn't have access
+      # to secrets.
       - name: Upload to LSST the Docs
         env:
           LTD_USERNAME: travis
           LTD_PASSWORD: ${{ secrets.LTD_PASSWORD }}
         run: ltd upload --product safir --gh --dir docs/_build/html
+        if: >
+          github.event_name != 'pull_request'
+          || startsWith(github.head_ref, 'tickets/')
 
   pypi:
 
