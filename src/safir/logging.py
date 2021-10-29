@@ -116,12 +116,12 @@ def configure_logging(
     processors.extend(
         [
             structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
             structlog.processors.UnicodeDecoder(),
         ]
     )
     if profile == "production":
         # JSON-formatted logging
+        processors.append(structlog.processors.format_exc_info)
         processors.append(structlog.processors.JSONRenderer())
     else:
         # Key-value formatted logging

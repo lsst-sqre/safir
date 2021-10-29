@@ -19,6 +19,14 @@ if TYPE_CHECKING:
     from _pytest.logging import LogCaptureFixture
 
 
+def _strip_color(string: str) -> str:
+    """Strip ANSI color escape sequences.
+
+    See https://stackoverflow.com/questions/14693701/
+    """
+    return re.sub(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]", "", string)
+
+
 def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
     """Test that development-mode logging is key-value formatted."""
     caplog.set_level(logging.INFO)
@@ -30,11 +38,11 @@ def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
     logger = logger.bind(answer=42)
     logger.info("Hello world")
 
-    assert caplog.record_tuples[0] == (
-        "myapp",
-        logging.INFO,
-        "[info     ] Hello world                    [myapp] answer=42",
-    )
+    app, level, line = caplog.record_tuples[0]
+    assert app == "myapp"
+    assert level == logging.INFO
+    expected = "[info     ] Hello world                    [myapp] answer=42"
+    assert _strip_color(line) == expected
 
 
 def test_configure_logging_dev_timestamp(caplog: LogCaptureFixture) -> None:
@@ -59,7 +67,7 @@ def test_configure_logging_dev_timestamp(caplog: LogCaptureFixture) -> None:
             r"(\d+-\d+-\d+T\d+:\d+:[\d.]+Z) \[info\s+\] Hello world \s+"
             r" \[myapp\] answer=42"
         ),
-        caplog.record_tuples[0][2],
+        _strip_color(caplog.record_tuples[0][2]),
     )
     assert match
     isotimestamp = match.group(1)
@@ -145,3 +153,43 @@ def test_duplicate_handlers(capsys: CaptureFixture[str]) -> None:
     logger.info("INFO not duplicate message")
     captured = capsys.readouterr()
     assert len(captured.out.splitlines()) == 1
+
+
+def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
+    """Test that exceptions are properly logged in the development logger."""
+    configure_logging(name="myapp", profile="development", log_level="info")
+    logger = structlog.get_logger("myapp")
+
+    try:
+        raise ValueError("this is some exception")
+    except Exception:
+        logger.exception("exception happened", foo="bar")
+
+    assert caplog.record_tuples[0][0] == "myapp"
+    assert caplog.record_tuples[0][1] == logging.ERROR
+    assert "Traceback (most recent call last)" in caplog.record_tuples[0][2]
+    assert '"this is some exception"' in caplog.record_tuples[0][2]
+
+
+def test_production_exception_logging(caplog: LogCaptureFixture) -> None:
+    """Test that exceptions are properly logged in the production logger."""
+    configure_logging(name="myapp", profile="production", log_level="info")
+    logger = structlog.get_logger("myapp")
+
+    try:
+        raise ValueError("this is some exception")
+    except Exception:
+        logger.exception("exception happened", foo="bar")
+
+    assert caplog.record_tuples[0][0] == "myapp"
+    assert caplog.record_tuples[0][1] == logging.ERROR
+    data = json.loads(caplog.record_tuples[0][2])
+    assert data == {
+        "event": "exception happened",
+        "exception": ANY,
+        "foo": "bar",
+        "logger": "myapp",
+        "level": "error",
+    }
+    assert "Traceback (most recent call last)" in data["exception"]
+    assert '"this is some exception"' in data["exception"]
