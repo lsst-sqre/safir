@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-2.0.2 (unreleased)
+2.0.2 (2021-10-29)
 ==================
 
 - Require structlog 21.2.0 and adjust logger configuration of exception handling for the expectations of that version.
