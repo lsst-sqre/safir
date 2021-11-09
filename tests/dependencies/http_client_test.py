@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import Dict, List
 
 import pytest
+import respx
 from asgi_lifespan import LifespanManager
 from fastapi import Depends, FastAPI
-from httpx import AsyncClient
-from pytest_httpx import HTTPXMock
+from httpx import AsyncClient, Response
 
 from safir.dependencies.http_client import http_client_dependency
 
@@ -19,9 +19,9 @@ def non_mocked_hosts() -> List[str]:
 
 
 @pytest.mark.asyncio
-async def test_http_client(httpx_mock: HTTPXMock) -> None:
+async def test_http_client(respx_mock: respx.Router) -> None:
     app = FastAPI()
-    httpx_mock.add_response(url="https://www.google.com")
+    respx_mock.get("https://www.google.com").mock(return_value=Response(200))
 
     @app.get("/")
     async def handler(
