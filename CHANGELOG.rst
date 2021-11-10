@@ -5,6 +5,12 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+2.2.0 (2021-11-09)
+==================
+
+- Restore previous ``http_client_dependency`` behavior by enabling following redirects by default.
+  This adjusts for the change of defaults in httpx 0.20.0.
+
 2.1.1 (2021-10-29)
 ==================
 

@@ -24,6 +24,9 @@ seconds. Users of this dependency can always lower it if needed.
 class HTTPClientDependency:
     """Provides an ``httpx.AsyncClient`` as a dependency.
 
+    The resulting client will have redirects enabled and the default timeout
+    increased to 20 seconds.
+
     Notes
     -----
     The application must call ``http_client_dependency.aclose()`` as part of a
@@ -42,7 +45,9 @@ class HTTPClientDependency:
     async def __call__(self) -> httpx.AsyncClient:
         """Return the cached ``httpx.AsyncClient``."""
         if not self.http_client:
-            self.http_client = httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT)
+            self.http_client = httpx.AsyncClient(
+                timeout=DEFAULT_HTTP_TIMEOUT, follow_redirects=True
+            )
         return self.http_client
 
     async def aclose(self) -> None:
