@@ -8,7 +8,7 @@ import pytest
 import respx
 from asgi_lifespan import LifespanManager
 from fastapi import Depends, FastAPI
-from httpx import AsyncClient, Response
+from httpx import AsyncClient
 
 from safir.dependencies.http_client import http_client_dependency
 
@@ -21,7 +21,7 @@ def non_mocked_hosts() -> List[str]:
 @pytest.mark.asyncio
 async def test_http_client(respx_mock: respx.Router) -> None:
     app = FastAPI()
-    respx_mock.get("https://www.google.com").mock(return_value=Response(200))
+    respx_mock.get("https://www.google.com").respond(200)
 
     @app.get("/")
     async def handler(
