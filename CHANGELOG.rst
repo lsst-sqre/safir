@@ -5,6 +5,12 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+2.3.0 (unreleased)
+==================
+
+- When logging in JSON format, use ``severity`` instead of ``level`` for the log level for compatibility with Google Log Explorer.
+- In the FastAPI ``logger_dependency``, add log information about the incoming requst in a format compatible with Google Log Explorer.
+
 2.2.0 (2021-11-09)
 ==================
 
