@@ -41,12 +41,12 @@ async def test_logger(caplog: LogCaptureFixture) -> None:
     assert len(caplog.record_tuples) == 1
     assert json.loads(caplog.record_tuples[0][2]) == {
         "event": "something",
-        "level": "info",
         "logger": "myapp",
         "method": "GET",
         "param": "value",
         "path": "/",
         "remote": "127.0.0.1",
         "request_id": ANY,
+        "severity": "info",
         "user_agent": "some-user-agent/1.0",
     }
