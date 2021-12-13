@@ -7,11 +7,14 @@ import sys
 from typing import TYPE_CHECKING
 
 import structlog
+from structlog.stdlib import add_log_level
 
 if TYPE_CHECKING:
     from typing import Any, List, Optional
 
-__all__ = ["configure_logging", "logger_name"]
+    from structlog.types import EventDict
+
+__all__ = ["add_log_severity", "configure_logging", "logger_name"]
 
 logger_name: Optional[str] = None
 """Name of the configured global logger.
@@ -23,6 +26,37 @@ application's configured logger.
 Only one configured logger is supported. Additional calls to
 `configure_logging` change the stored logger name.
 """
+
+
+def add_log_severity(
+    logger: logging.Logger, method_name: str, event_dict: EventDict
+) -> EventDict:
+    """Add the log level to the event dict as ``severity``.
+
+    Intended for use as a structlog processor.
+
+    This is the same as `structlog.stdlib.add_log_level` except that it
+    uses the ``severity`` key rather than ``level`` for compatibility with
+    Google Log Explorer and its automatic processing of structured logs.
+
+    Parameters
+    ----------
+    logger : `logging.Logger`
+        The wrapped logger object.
+    method_name : `str`
+        The name of the wrapped method (``warning`` or ``error`, for example).
+    event_dict : `structlog.types.EventDict`
+        Current context and current event. This parameter is also modified in
+        place, matching the normal behavior of structlog processors.
+
+    Returns
+    -------
+    event_dict : `structlog.types.EventDict`
+        The modified `~structlog.types.EventDict` with the added key.
+    """
+    severity = add_log_level(logger, method_name, {})["level"]
+    event_dict["severity"] = severity
+    return event_dict
 
 
 def configure_logging(
@@ -84,7 +118,7 @@ def configure_logging(
     .. code-block:: text
 
        {"answer": 42, "event": "Hello world", "logger": "myapp",
-       "level": "info"}
+       "severity": "info"}
 
     Examples
     --------
@@ -108,7 +142,6 @@ def configure_logging(
     processors: List[Any] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
     ]
     if add_timestamp:
@@ -121,10 +154,12 @@ def configure_logging(
     )
     if profile == "production":
         # JSON-formatted logging
+        processors.append(add_log_severity)
         processors.append(structlog.processors.format_exc_info)
         processors.append(structlog.processors.JSONRenderer())
     else:
         # Key-value formatted logging
+        processors.append(structlog.stdlib.add_log_level)
         processors.append(structlog.dev.ConsoleRenderer())
 
     structlog.configure(

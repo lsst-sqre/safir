@@ -92,7 +92,7 @@ def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
         "myapp",
         logging.INFO,
         '{"answer": 42, "event": "Hello world", "logger": "myapp", '
-        '"level": "info"}',
+        '"severity": "info"}',
     )
 
 
@@ -118,7 +118,7 @@ def test_configure_logging_prod_timestamp(caplog: LogCaptureFixture) -> None:
         "answer": 42,
         "event": "Hello world",
         "logger": "myapp",
-        "level": "info",
+        "severity": "info",
         "timestamp": ANY,
     }
     assert data["timestamp"].endswith("Z")
@@ -189,7 +189,7 @@ def test_production_exception_logging(caplog: LogCaptureFixture) -> None:
         "exception": ANY,
         "foo": "bar",
         "logger": "myapp",
-        "level": "error",
+        "severity": "error",
     }
     assert "Traceback (most recent call last)" in data["exception"]
     assert '"this is some exception"' in data["exception"]
