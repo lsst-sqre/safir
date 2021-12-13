@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-2.3.0 (unreleased)
+2.3.0 (2021-12-13)
 ==================
 
 - When logging in JSON format, use ``severity`` instead of ``level`` for the log level for compatibility with Google Log Explorer.
