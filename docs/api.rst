@@ -11,6 +11,9 @@ API reference
 .. automodapi:: safir.dependencies.logger
    :include-all-objects:
 
+.. automodapi:: safir.kubernetes
+   :include-all-objects:
+
 .. automodapi:: safir.logging
    :include-all-objects:
 
@@ -21,4 +24,7 @@ API reference
    :include-all-objects:
 
 .. automodapi:: safir.middleware.x_forwarded
+   :include-all-objects:
+
+.. automodapi:: safir.testing.kubernetes
    :include-all-objects:
