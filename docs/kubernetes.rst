@@ -8,6 +8,9 @@ It provides an async API for Kubernetes that will work naturally with FastAPI ap
 Most Kubernetes work can be done by calling that API directly, with no need for Safir wrapper functions.
 Safir provides a convenient :py:func:`~safir.kubernetes.initialize_kubernetes` function that chooses the correct way to load the Kubernetes configuration depending on whether the code is running from within or outside of a cluster, and a framework for mocking the Kubernetes API for tests.
 
+Kubernetes support in Safir is optional.
+To use it, depend on ``safir[kuberentes]``.
+
 Initializing Kubernetes
 =======================
 

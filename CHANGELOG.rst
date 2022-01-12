@@ -5,6 +5,13 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+2.4.0 (unreleased)
+==================
+
+- Add an ``initialize_kubernetes`` helper function to load Kubernetes configuration.
+  Add the ``safir.testing.kubernetes`` module, which can be used to mock the Kubernetes API for testing.
+  To use the new Kubernetes support, depend on ``safir[kubernetes]``.
+
 2.3.0 (2021-12-13)
 ==================
 
