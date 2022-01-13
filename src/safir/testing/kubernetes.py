@@ -307,8 +307,8 @@ def patch_kubernetes() -> Iterator[MockKubernetesApi]:
     Notes
     -----
     This function will mock out the Kuberentes library configuration API in a
-    manner compatible with :py:func:`safir.kubernetes.initialize_kubernetes`,
-    ensuring that it does nothing during test.  It will replace the Kubernetes
+    manner compatible with `safir.kubernetes.initialize_kubernetes`, ensuring
+    that it does nothing during test.  It will replace the Kubernetes
     ``ApiClient`` object with a `~unittest.mock.MagicMock` and then redirect
     ``CoreV1Api`` and ``CustomObjectsApi`` to a `MockKubernetesApi` instance.
 

@@ -1,7 +1,7 @@
 """Logger dependency for FastAPI.
 
-Provides a :py:mod:`structlog` logger as a FastAPI dependency.  The logger
-will incorporate information from the request in its bound context.
+Provides a `structlog` logger as a FastAPI dependency.  The logger will
+incorporate information from the request in its bound context.
 """
 
 import uuid
