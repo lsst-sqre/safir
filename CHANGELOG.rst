@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-2.4.0 (unreleased)
+2.4.0 (2022-01-13)
 ==================
 
 - Add an ``initialize_kubernetes`` helper function to load Kubernetes configuration.
