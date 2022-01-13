@@ -18,6 +18,7 @@ isolated_build = True
 description = Run pytest against {envname}.
 extras =
     dev
+    kubernetes
 commands=
     coverage run -m pytest {posargs}
 
@@ -90,6 +91,7 @@ exclude = '''
 # Multi-line strings are implicitly treated by black as regular expressions
 
 [tool.isort]
+include_trailing_comma = true
 multi_line_output = 3
 known_first_party = ["safir", "tests"]
 skip = ["docs/conf.py"]

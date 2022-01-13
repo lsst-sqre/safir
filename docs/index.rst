@@ -33,6 +33,7 @@ Guides
    :maxdepth: 2
 
    http-client
+   kubernetes
    logging
    x-forwarded
 
