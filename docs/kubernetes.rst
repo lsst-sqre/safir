@@ -34,7 +34,7 @@ For example:
 Testing with mock Kubernetes
 ============================
 
-The :py:mod:`safir.testing.kubernetes` module provides a mock Kubernetes API with a (very) partial implementation of the full API, and some utility functions to use it.
+The `safir.testing.kubernetes` module provides a mock Kubernetes API with a limited implementation the API, and some utility functions to use it.
 
 Applications that want to run tests with the mock Kubernetes API should define a fixture (in ``conftest.py``) as follows:
 
