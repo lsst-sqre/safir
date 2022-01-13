@@ -75,3 +75,30 @@ If this is set, that callable will be called at the start of every mocked Kubern
 It will receive the method name as its first argument and the arguments to the method as its subsequent arguments.
 
 Inside that callable, the test may, for example, make assertions about the arguments passed in to that method or raise exceptions to simulate errors from the Kubernetes API.
+
+Here is a simplified example from `Gafaelfawr <https://gafaelfawr.lsst.io/>`__ that tests error handling for a command-line invocation when the Kubernetes API is not available:
+
+.. code-block:: python
+
+   def test_update_service_tokens_error(
+       mock_kubernetes: MockKubernetesApi,
+       caplog: LogCaptureFixture,
+   ) -> None:
+       caplog.clear()
+
+       def error_callback(method: str, *args: Any) -> None:
+           if method == "list_cluster_custom_object":
+               raise ApiException(status=500, reason="Some error")
+
+       mock_kubernetes.error_callback = error_callback
+       runner = CliRunner()
+       result = runner.invoke(main, ["update-service-tokens"])
+
+       assert result.exit_code == 1
+       assert parse_log(caplog) == [
+           {
+               "event": "Unable to list GafaelfawrServiceToken objects",
+               "error": "Kubernetes API error: (500)\nReason: Some error\n",
+               "severity": "error",
+           },
+       ]
