@@ -65,7 +65,7 @@ You can then use ``mock_kubernetes`` as a fixture.
 The resulting object supports a limited subset of the ``client.CoreV1Api`` and ``client.CustomObjectsApi`` method calls for creating, retrieving, modifying, and deleting objects.
 The objects created by either the test or by the application code under test will be stored in memory inside the ``mock_kubernetes`` object.
 
-The method :py:meth:`~safir.testing.kubernetes.MockKubernetesApi.get_all_objects_for_test` can be used to retrieve all objects of a given kind, allowing comparisons against an expected list of objects.
+You can use the `~safir.testing.kubernetes.MockKubernetesApi.get_all_objects_for_test` method to retrieve all objects of a given kind, allowing comparisons against an expected list of objects.
 
 Testing error handling
 ----------------------
