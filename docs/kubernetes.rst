@@ -2,7 +2,7 @@
 Using the Kubernetes API
 ########################
 
-Safir clients are encouraged to use the `kubernetes-asyncio <https://github.com/tomplus/kubernetes_asyncio>`__ Python module.
+Safir-based applications are encouraged to use the `kubernetes-asyncio <https://github.com/tomplus/kubernetes_asyncio>`__ Python module.
 It provides an async API for Kubernetes that will work naturally with FastAPI applications.
 
 Most Kubernetes work can be done by calling that API directly, with no need for Safir wrapper functions.
