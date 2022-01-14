@@ -179,7 +179,7 @@ class MockKubernetesApi(Mock):
         namespace: str,
         plural: str,
         name: str,
-        body: Dict[str, Any],
+        body: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         self._maybe_error(
             "patch_namespaced_custom_object_status",
@@ -191,11 +191,10 @@ class MockKubernetesApi(Mock):
         )
         key = f"{group}/{version}/{plural}"
         obj = copy.deepcopy(self._get_object(namespace, key, name))
-        assert "status" in body
-        assert "conditions" in body["status"]
-        if "status" not in obj:
-            obj["status"] = {}
-        obj["status"]["conditions"] = body["status"]["conditions"]
+        for change in body:
+            assert change["op"] == "replace"
+            assert change["path"] == "/status"
+            obj["status"] = change["value"]
         self._store_object(namespace, key, name, obj, replace=True)
         return obj
 

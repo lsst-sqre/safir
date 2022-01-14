@@ -5,6 +5,11 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+2.4.1 (2022-01-14)
+==================
+
+- In the Kubernetes mock API, change the expected body for ``patch_namespaced_custom_object_status`` to reflect the need to send a JSON patch for the entirety of the ``/status`` path in order to work around a kubernetes_asyncio bug.
+
 2.4.0 (2022-01-13)
 ==================
 
