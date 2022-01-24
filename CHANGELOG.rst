@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-2.4.2 (unreleased)
+2.4.2 (2022-01-24)
 ==================
 
 - Add a very basic and limited implementation of ``list_namespaced_pod`` to ``safir.testing.kubernetes``.
