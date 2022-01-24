@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import os
+import re
 import uuid
 from typing import Any, Callable, Dict, Iterator, List, Optional
 from unittest.mock import AsyncMock, Mock, patch
@@ -13,6 +14,7 @@ from kubernetes_asyncio.client import (
     ApiException,
     V1ConfigMap,
     V1Pod,
+    V1PodList,
     V1PodStatus,
     V1Secret,
     V1Status,
@@ -24,7 +26,7 @@ __all__ = [
 ]
 
 
-class MockKubernetesApi(Mock):
+class MockKubernetesApi:
     """Mock Kubernetes API for testing.
 
     This object simulates (with almost everything left out) the ``CoreV1Api``
@@ -46,7 +48,6 @@ class MockKubernetesApi(Mock):
     """
 
     def __init__(self) -> None:
-        super().__init__(spec=client.CoreV1Api)
         self.error_callback: Optional[Callable[..., None]] = None
         self.objects: Dict[str, Dict[str, Dict[str, Any]]] = {}
         self.custom_kinds: Dict[str, str] = {}
@@ -253,6 +254,15 @@ class MockKubernetesApi(Mock):
     ) -> V1Status:
         self._maybe_error("delete_namespaced_pod", name, namespace)
         return self._delete_object(namespace, "Pod", name)
+
+    async def list_namespaced_pod(
+        self, namespace: str, *, field_selector: str
+    ) -> V1PodList:
+        self._maybe_error("list_namespaced_pod", namespace, field_selector)
+        match = re.match(r"metadata\.name=(.*)$", field_selector)
+        assert match and match.group(1)
+        pod = self._get_object(namespace, "Pod", match.group(1))
+        return V1PodList(kind="Pod", items=[pod])
 
     async def read_namespaced_pod(self, name: str, namespace: str) -> V1Pod:
         self._maybe_error("read_namespaced_pod", name, namespace)
