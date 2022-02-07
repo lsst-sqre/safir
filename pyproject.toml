@@ -95,3 +95,10 @@ include_trailing_comma = true
 multi_line_output = 3
 known_first_party = ["safir", "tests"]
 skip = ["docs/conf.py"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+python_files = [
+    "tests/*.py",
+    "tests/*/*.py"
+]
