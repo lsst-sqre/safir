@@ -74,6 +74,7 @@ async def test_logger_xforwarded(caplog: LogCaptureFixture) -> None:
         r = await client.get(
             "/",
             headers={
+                "Host": "foo.example.com",
                 "User-Agent": "",
                 "X-Forwarded-For": "10.10.10.10",
                 "X-Forwarded-Proto": "https",

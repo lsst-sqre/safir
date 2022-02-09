@@ -54,8 +54,14 @@ The IP address stored in the first element of the tuple will be the original cli
 The port number associated with the client is not updated and will be the client port on the proxy.
 (This port number is generally not useful.)
 
-If the application needs additional information about the request, the middleware will store the original client protocol in ``request.state.forwarded_proto`` and the original value of the ``Host`` header in the client request in ``request.state.forwarded_host``.
-Either or both of these may be ``None`` if ``X-Forwarded-Proto`` or ``X-Forwarded-Host`` are missing or invalid.
+If the necessary ``X-Forwarded-Proto`` header is present and appears to be valid, the scheme of the request URL will be set to the original scheme used by the client before the request handler is called.
+This will cause ``request.url_for()`` and similar request methods and attributes to use the scheme of the original request rather than the scheme seen by the server.
+(Generally this means using ``https`` instead of ``http``.)
+If there are multiple ``X-Forwarded-Proto`` headers, there is no way of knowing which is correct, so they are all ignored.
+
+The middleware will store the original value of the ``Host`` header in the client request in ``request.state.forwarded_host``.
+(This is usually not needed, since NGINX generally preserves the ``Host`` header of the original request when proxying.)
+This may be ``None`` if ``X-Forwarded-Host`` is missing or invalid.
 If there are multiple ``X-Forwarded-Host`` headers, there is no way of knowing which is correct, so they are all ignored.
 
 Note that ``X-Forwarded-Host``, unlike the other headers, does not accumulate values as it passes through multiple proxies.
