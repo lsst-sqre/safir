@@ -48,28 +48,11 @@ class LoggerDependency:
             self.logger = structlog.get_logger(logging.logger_name)
         assert self.logger
 
-        # Construct the request URL, honoring X-Forwarded-* if the
-        # XForwardedMiddleware is in use.
-        if getattr(request.state, "forwarded_host", None):
-            if request.state.forwarded_proto:
-                proto = request.state.forwarded_proto
-            else:
-                proto = request.url.scheme
-            if request.state.forwarded_host:
-                host = request.state.forwarded_host
-            else:
-                host = request.url.hostname
-            url = f"{proto}://{host}{request.url.path}"
-            if request.url.query:
-                url += "?" + request.url.query
-        else:
-            url = str(request.url)
-
         # Construct the httpRequest logging data (compatible with the format
         # expected by Google Log Explorer).
         request_data = {
             "requestMethod": request.method,
-            "requestUrl": url,
+            "requestUrl": str(request.url),
             "remoteIp": request.client.host,
         }
         user_agent = request.headers.get("User-Agent")

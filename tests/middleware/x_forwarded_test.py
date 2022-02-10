@@ -25,15 +25,16 @@ async def test_ok() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
-        assert request.state.forwarded_host == "foo.example.com"
-        assert request.state.forwarded_proto == "https"
         assert request.client.host == "10.10.10.10"
+        assert request.state.forwarded_host == "foo.example.com"
+        assert request.url == "https://foo.example.com/"
         return {}
 
     async with AsyncClient(app=app, base_url="http://example.com") as client:
         r = await client.get(
             "/",
             headers={
+                "Host": "foo.example.com",
                 "X-Forwarded-For": "10.10.10.10, 11.11.11.11",
                 "X-Forwarded-Proto": "https, http",
                 "X-Forwarded-Host": "foo.example.com",
@@ -48,9 +49,9 @@ async def test_defaults() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
-        assert request.state.forwarded_host == "foo.example.com"
-        assert request.state.forwarded_proto == "http"
         assert request.client.host == "192.168.0.1"
+        assert request.state.forwarded_host == "foo.example.com"
+        assert request.url == "http://example.com/"
         return {}
 
     async with AsyncClient(app=app, base_url="http://example.com") as client:
@@ -72,8 +73,8 @@ async def test_no_forwards() -> None:
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
         assert not request.state.forwarded_host
-        assert not request.state.forwarded_proto
         assert request.client.host == "127.0.0.1"
+        assert request.url == "http://example.com/"
         return {}
 
     async with AsyncClient(app=app, base_url="http://example.com") as client:
@@ -87,9 +88,9 @@ async def test_all_filtered() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
-        assert request.state.forwarded_host == "foo.example.com"
-        assert request.state.forwarded_proto == "https"
         assert request.client.host == "10.10.10.10"
+        assert request.state.forwarded_host == "foo.example.com"
+        assert request.url == "https://example.com/"
         return {}
 
     async with AsyncClient(app=app, base_url="http://example.com") as client:
@@ -110,9 +111,9 @@ async def test_one_proto() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
-        assert request.state.forwarded_host == "foo.example.com"
-        assert request.state.forwarded_proto == "https"
         assert request.client.host == "10.10.10.10"
+        assert request.state.forwarded_host == "foo.example.com"
+        assert request.url == "https://example.com/"
         return {}
 
     async with AsyncClient(app=app, base_url="http://example.com") as client:
@@ -134,8 +135,8 @@ async def test_no_proto_or_host() -> None:
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
         assert not request.state.forwarded_host
-        assert not request.state.forwarded_proto
         assert request.client.host == "10.10.10.10"
+        assert request.url == "http://example.com/"
         return {}
 
     async with AsyncClient(app=app, base_url="http://example.com") as client:

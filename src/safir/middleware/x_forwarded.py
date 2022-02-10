@@ -25,13 +25,15 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
     proxy networks.
 
     If ``X-Forwarded-For`` is found and ``X-Forwarded-Proto`` is also present,
-    the corresponding entry of ``X-Forwarded-Proto`` is stored as
-    ``forwarded_proto`` in the request state.  If ``X-Forwarded-Proto`` only
-    has one entry (ingress-nginx has this behavior), that one entry will be
-    stored as ``forwarded_proto``.
+    the corresponding entry of ``X-Forwarded-Proto`` is used to replace the
+    scheme in the request scope.  If ``X-Forwarded-Proto`` only has one entry
+    (ingress-nginx has this behavior), that one entry will become the new
+    scheme in the request scope.
 
     The contents of ``X-Forwarded-Host`` will be stored as ``forwarded_host``
-    in the request state if it and ``X-Forwarded-For`` are present.
+    in the request state if it and ``X-Forwarded-For`` are present.  Normally
+    this is not needed since NGINX will pass the original ``Host`` header
+    without modification.
 
     Parameters
     ----------
@@ -101,9 +103,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
         if proto:
             if index >= len(proto):
                 index = -1
-            request.state.forwarded_proto = proto[index]
-        else:
-            request.state.forwarded_proto = None
+            request.scope["scheme"] = proto[index]
 
         # Rather than one entry per hop, NGINX seems to add only a single
         # X-Forwarded-Host header with the original hostname.
@@ -121,7 +121,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Returns
         -------
-        forwarded_for : List[`ipaddress._BaseAddress`]
+        forwarded_for : List[``ipaddress._BaseAddress``]
             The list of addresses found in the header.  If there are multiple
             ``X-Forwarded-For`` headers, we don't know which one is correct,
             so act as if there are no headers.
@@ -145,7 +145,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Returns
         -------
-        forwarded_host : str
+        forwarded_host : `str`
             The value of the ``X-Forwarded-Host`` header, if present and if
             there is only one header.  If there are multiple
             ``X-Forwarded-Host`` headers, we don't know which one is correct,
@@ -166,8 +166,8 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Returns
         -------
-        forwarded_for : List[``ipaddress._BaseAddress``]
-            The list of addresses found in the header.  If there are multiple
+        forwarded_proto : List[`str`]
+            The list of schemes found in the header.  If there are multiple
             ``X-Forwarded-Proto`` headers, we don't know which one is correct,
             so act as if there are no headers.
         """
