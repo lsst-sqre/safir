@@ -32,6 +32,7 @@ Guides
 .. toctree::
    :maxdepth: 2
 
+   database
    http-client
    gafaelfawr
    kubernetes

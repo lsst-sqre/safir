@@ -17,6 +17,8 @@ rst_epilog = """
 .. _templatekit: https://templatekit.lsst.io
 .. _tox: https://tox.readthedocs.io/en/latest/
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
+.. _SQLAlchemy: https://www.sqlalchemy.org/
+.. _asyncpg: https://magicstack.github.io/asyncpg/current/
 """
 
 # Extensions =================================================================
@@ -66,6 +68,7 @@ default_role = "py:obj"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
+    "sqlalchemy": ("https://docs.sqlalchemy.org/en/latest/", None),
     "structlog": ("https://www.structlog.org/en/stable/", None),
 }
 

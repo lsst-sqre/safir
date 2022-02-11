@@ -13,6 +13,9 @@ Change log
 - Add new FastAPI dependencies ``auth_dependency`` and ``auth_logger_dependency`` from the ``safir.dependencies.gafaelfawr`` module.
   ``auth_dependency`` returns the username of the user authenticated via Gafaelfawr (pulled from the ``X-Auth-Request-User`` header.
   ``auth_logger_dependency`` returns the same logger as ``logger_dependency`` but with the ``user`` parameter bound to the username from ``auth_dependency``.
+- Add utility functions to initialize a database and create a sync or async session.
+  The session creation functions optionally support a health check to ensure the database schema has been initialized.
+- Add new FastAPI dependency ``db_session_dependency`` that creates a task-local async SQLAlchemy session and optionally manages the database transaction for that session.
 
 2.4.2 (2022-01-24)
 ==================
