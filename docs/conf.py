@@ -16,6 +16,7 @@ rst_epilog = """
 .. _structlog: http://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
 .. _tox: https://tox.readthedocs.io/en/latest/
+.. _Gafaelfawr: https://gafaelfawr.lsst.io/
 """
 
 # Extensions =================================================================

@@ -10,6 +10,9 @@ Change log
 
 - ``XForwardedMiddleware`` no longer sets ``forwaded_proto`` in the request state and instead directly updates the request scope so that subsequent handlers and middleware believe the request scheme is that given by an ``X-Forwarded-Proto`` header.
   This fixes the scheme returned by other request methods and attributes such as ``url_for`` in cases where the service is behind an ingress that terminates TLS.
+- Add new FastAPI dependencies ``auth_dependency`` and ``auth_logger_dependency`` from the ``safir.dependencies.gafaelfawr`` module.
+  ``auth_dependency`` returns the username of the user authenticated via Gafaelfawr (pulled from the ``X-Auth-Request-User`` header.
+  ``auth_logger_dependency`` returns the same logger as ``logger_dependency`` but with the ``user`` parameter bound to the username from ``auth_dependency``.
 
 2.4.2 (2022-01-24)
 ==================

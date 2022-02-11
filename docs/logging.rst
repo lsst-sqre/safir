@@ -94,6 +94,12 @@ The log message will look something like:
      "user_agent": "some-user-agent/1.0"
    }
 
+Authenticated routes
+--------------------
+
+If the route is protected by `Gafaelfawr`_, instead use ``auth_logger_dependency`` imported from ``safir.dependencies.gafaelfawr``.
+This will behave the same except that it will bind the additional context field ``user`` to the authenticated user as asserted by the headers added by Gafaelfawr.
+
 Binding extra context to the logger
 -----------------------------------
 
