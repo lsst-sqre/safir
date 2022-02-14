@@ -8,48 +8,6 @@ build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
 
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py,coverage-report,typing,lint
-isolated_build = True
-
-[testenv]
-description = Run pytest against {envname}.
-extras =
-    dev
-    kubernetes
-commands=
-    coverage run -m pytest {posargs}
-
-[testenv:coverage-report]
-description = Compile coverage from each test run.
-skip_install = true
-deps = coverage[toml]>=5.0.2
-depends =
-    py
-commands =
-    coverage combine
-    coverage report
-
-[testenv:typing]
-description = Run mypy.
-commands =
-    mypy src/safir tests setup.py
-
-[testenv:lint]
-description = Lint codebase by running pre-commit (Black, isort, Flake8).
-skip_install = true
-deps =
-    pre-commit
-commands = pre-commit run --all-files
-
-[testenv:docs]
-description = Build documentation (HTML) with Sphinx.
-commands =
-    sphinx-build -n -T -b html -d {envtmpdir}/doctrees docs docs/_build/html
-"""
-
 [tool.coverage.run]
 parallel = true
 branch = true
