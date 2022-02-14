@@ -5,6 +5,9 @@ API reference
 .. automodapi:: safir
    :include-all-objects:
 
+.. automodapi:: safir.dependencies.gafaelfawr
+   :include-all-objects:
+
 .. automodapi:: safir.dependencies.http_client
    :include-all-objects:
 
