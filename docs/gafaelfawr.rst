@@ -34,3 +34,37 @@ To include the authenticated user in log messages from a handler, use the `~safi
 It works the same way, but additionally binds the ``user`` context variable to the authenticated user, obtained via `~safir.dependencies.gafaelfawr.auth_dependency`.
 
 For more details, see :ref:`logging-in-handlers`.
+
+Testing applications using this dependency
+==========================================
+
+When testing an application that uses this dependency, any web requests to the authenticated routes of the application must include the ``X-Auth-Request-User`` header, or the test call will be rejected.
+For example (assuming use of ``httpx.AsyncClient`` for testing):
+
+.. code-block:: python
+
+   r = await client.get("/", headers={"X-Auth-Request-User": "someuser"})
+
+The value of the header should be the username of the user the test is simulating.
+Optionally, if a test will be simulating many requests from the same authenticated user, this header can be added as a default header sent by the client.
+This is most easily done by defining a fixture, as follows.
+(This fixture assumes the FastAPI application under test is available via another fixture named ``app``.)
+
+.. code-block:: python
+
+   from typing import AsyncIterator
+
+   import pytest_asyncio
+   from fastapi import FastAPI
+   from httpx import AsyncClient
+
+
+   @pytest_asyncio.fixture
+   async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+       base = "https://example.com/"
+       hdrs = {"X-Auth-Request-User": "user"}
+       async with AsyncClient(app=app, base_url=base, headers=hdrs) as client:
+           yield client
+
+Tests can then use ``client`` as a fixture and don't have to provide the ``X-Auth-Request-User`` header with every call.
+Individual calls that need to use a different ``X-Auth-Request-User`` header set in that call, and that will override the default set in the ``AsyncClient`` object.
