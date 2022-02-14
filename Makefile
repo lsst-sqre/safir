@@ -1,5 +1,5 @@
 .PHONY: init
 init:
-	pip install -e ".[db,dev,kubernetes]"
-	pip install tox tox-docker pre-commit
+	pip install --upgrade pip tox tox-docker pre-commit
+	pip install --upgrade -e ".[db,dev,kubernetes]"
 	pre-commit install
