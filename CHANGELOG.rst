@@ -16,6 +16,7 @@ Change log
 - Add utility functions to initialize a database and create a sync or async session.
   The session creation functions optionally support a health check to ensure the database schema has been initialized.
 - Add new FastAPI dependency ``db_session_dependency`` that creates a task-local async SQLAlchemy session and optionally manages the database transaction for that session.
+- Add utility functions ``datetime_from_db`` and ``datetime_to_db`` to convert between timezone-naive UTC datetimes stored in a database and timezone-aware UTC datetimes used elsewhere in a program.
 
 2.4.2 (2022-01-24)
 ==================

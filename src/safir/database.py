@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import TYPE_CHECKING, Optional
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Optional, overload
 from urllib.parse import urlparse
 
 from sqlalchemy import create_engine
@@ -30,9 +31,12 @@ else:
     _IsolationLevel = str
 
 __all__ = [
+    "DatabaseInitializationError",
     "create_async_session",
     "create_database_engine",
     "create_sync_session",
+    "datetime_from_db",
+    "datetime_to_db",
     "initialize_database",
 ]
 
@@ -69,6 +73,44 @@ def _build_database_url(
             parsed_url = parsed_url._replace(netloc=netloc)
         url = parsed_url.geturl()
     return url
+
+
+@overload
+def datetime_from_db(time: datetime) -> datetime:
+    ...
+
+
+@overload
+def datetime_from_db(time: None) -> None:
+    ...
+
+
+def datetime_from_db(time: Optional[datetime]) -> Optional[datetime]:
+    """Add the UTC time zone to a naive datetime from the database."""
+    if not time:
+        return None
+    if time.tzinfo not in (None, timezone.utc):
+        raise ValueError(f"datetime {time} not in UTC")
+    return time.replace(tzinfo=timezone.utc)
+
+
+@overload
+def datetime_to_db(time: datetime) -> datetime:
+    ...
+
+
+@overload
+def datetime_to_db(time: None) -> None:
+    ...
+
+
+def datetime_to_db(time: Optional[datetime]) -> Optional[datetime]:
+    """Strip time zone for storing a datetime in the database."""
+    if not time:
+        return None
+    if time.tzinfo != timezone.utc:
+        raise ValueError(f"datetime {time} not in UTC")
+    return time.replace(tzinfo=None)
 
 
 def create_database_engine(

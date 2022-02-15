@@ -123,6 +123,60 @@ However, be aware that this means you should call ``await session.flush()`` and 
 If you need to manage the transactions directly, disable automatic transaction management by passing ``manage_transactions=False`` to ``initialize`` during application startup.
 The session returned by the dependency will then not have an open transaction, and you should put any database code inside an ``async with session.begin()`` block to create and commit a transaction.
 
+Handling datetimes in database tables
+=====================================
+
+When a database column is defined using the SQLAlchemy ORM using the `~sqlalchemy.DateTime` generic type, it cannot store a timezone.
+The SQL standard type `~sqlalchemy.DATETIME` may include a timezone with some database backends, but it is database-specific.
+It is therefore normally easier to store times in the database in UTC without timezone information.
+
+However, `~datetime.datetime` objects in regular Python code should always be timezone-aware and use the UTC timezone.
+Timezone-naive datetime objects are often interpreted as being in the local timezone, whatever that happens to be.
+Keeping all datetime objects as timezone-aware in the UTC timezone will minimize surprises from unexpected timezone conversions.
+
+This unfortunately means that the code for storing and retrieving datetime objects from the database needs a conversion layer.
+`asyncpg`_ wisely declines to convert datetime objects and therefore returns timezone-naive objects from the database and raises an exception if a timezone-aware datetime object is stored in a DateTime field.
+The conversion must therefore be done in the code making SQLAlchemy calls.
+
+Safir provides `~safir.database.datetime_to_db` and `~safir.database.datetime_from_db` helper functions to convert from a timezone-aware datetime to a timezone-naive datetime suitable for storing in a DateTime column, and vice versa.
+These helper functions should be used wherever DateTime columns are read or updated.
+`~safir.database.datetime_to_db` ensures the provided datetime object is timezone-aware and in UTC and converts it to a timezone-naive UTC datetime for database storage.
+`~safir.database.datetime_from_db` ensures the provided datetime object is either timezone-naive or in UTC and returns a timezone-aware UTC datetime object.
+Both raise `ValueError` if passed datetime objects in some other timezone.
+`~safir.database.datetime_to_db` also raises `ValueError` if passed a timezone-naive datetime object.
+Both return `None` if passed `None`.
+
+Here is example of reading an object from the database that includes DateTime columns:
+
+.. code-block:: python
+
+   from safir.database import datetime_from_db
+
+
+   stmt = select(SQLJob).where(SQLJob.id == job_id)
+   result = (await session.execute(stmt)).scalar_one()
+   job = Job(
+       job_id=job.id,
+       # ...
+       creation_time=datetime_from_db(job.creation_time),
+       start_time=datetime_from_db(job.start_time),
+       end_time=datetime_from_db(job.end_time),
+       destruction_time=datetime_from_db(job.destruction_time),
+       # ...
+   )
+
+Here is an example of updating a DateTime field in the database:
+
+.. code-block:: python
+
+   from safir.database import datetime_to_db
+
+
+   async with session.begin():
+       stmt = select(SQLJob).where(SQLJob.id == job_id)
+       job = (await session.execute(stmt)).scalar_one()
+       job.destruction_time = datetime_to_db(destruction_time)
+
 .. _async-db-session:
 
 Creating an async database session
