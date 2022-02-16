@@ -11,7 +11,7 @@ This requires using the `SQLAlchemy 2.0 API <https://docs.sqlalchemy.org/en/14/t
 Safir uses the `asyncpg`_ PostgreSQL database driver.
 
 Database support in Safir is optional.
-To use it, depend on ``safir[db]``.
+To use it, depend on ``safir[db]`` in your pip requirements.
 
 Initializing a database
 =======================
