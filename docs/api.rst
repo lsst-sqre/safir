@@ -5,6 +5,11 @@ API reference
 .. automodapi:: safir
    :include-all-objects:
 
+.. automodapi:: safir.database
+
+.. automodapi:: safir.dependencies.db_session
+   :include-all-objects:
+
 .. automodapi:: safir.dependencies.gafaelfawr
    :include-all-objects:
 

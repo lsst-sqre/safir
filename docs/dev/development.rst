@@ -35,6 +35,8 @@ This init step does three things:
 2. Installs pre-commit and tox.
 3. Installs the pre-commit hooks.
 
+You must have Docker installed and configured so that your user can start Docker containers in order to run the test suite.
+
 .. _pre-commit-hooks:
 
 Pre-commit hooks
@@ -63,13 +65,7 @@ To proceed, stage the new modifications and proceed with your Git commit.
 Running tests
 =============
 
-One way to test the library is by running pytest_ from the root of the source repository:
-
-.. code-block:: sh
-
-   pytest
-
-You can also run tox_, which tests the library the same way that the CI workflow does:
+To test the library, run tox_, which tests the library the same way that the CI workflow does:
 
 .. code-block:: sh
 
@@ -80,6 +76,15 @@ To see a listing of test environments, run:
 .. code-block:: sh
 
    tox -av
+
+tox will start a PostgreSQL container, which is required for some tests.
+
+To run a specific test or list of tests, you can add test file names (and any other pytest_ options) after ``--`` when executing the ``py`` tox environment.
+For example:
+
+.. code-block:: sh
+
+   tox -e py -- tests/database_test.py
 
 .. _dev-build-docs:
 
