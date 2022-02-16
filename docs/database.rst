@@ -66,59 +66,6 @@ Note that `~safir.database.initialize_database` returns a `~sqlalchemy.ext.async
 This can be used to perform any further application-specific database initialization that is required, such as adding default table entries.
 Put any such code before the ``await engine.dispose()`` call.
 
-.. _async-db-session:
-
-Creating an async database session
-==================================
-
-(This section describes how to get a database session outside of a FastAPI route handler.
-For details on how to get a database session inside a FastAPI application, see :ref:`fastapi-database-session`.)
-
-To get a new async database connection, use code like the following:
-
-.. code-block:: python
-
-   import structlog
-   from safir.database import create_async_session, create_database_engine
-
-   from .config import config
-
-
-   engine = create_database_engine(config.database_url, config.database_password)
-   session = await create_async_session(engine)
-
-   # ... use the session here ...
-
-   await session.remove()
-   await engine.dispose()
-
-Creating the engine is separate from creating the session so that the engine can be disposed of properly, which ensures the connection pool is closed.
-
-Probing the database connection
--------------------------------
-
-`~safir.database.create_async_session` supports probing the database to ensure that it is accessible and the schema is set up correctly.
-To do this, pass a SQL statement to execute as the ``statement`` argument to `~safir.database.create_async_session`.
-This will be called with ``.limit(1)`` to test the resulting session.
-When ``statement`` is provided, a `structlog`_ logger must also be provided to log any errors when trying to run the statement.
-
-For example:
-
-.. code-block:: python
-
-   import structlog
-   from sqlalchemy.future import select
-
-   from .schema import User
-
-
-   logger = structlog.get_logger(config.logger_name)
-   stmt = select(User)
-   session = await create_async_session(engine, logger, statement=stmt)
-
-If the statement fails, it will be retried up to five times, waiting two seconds between attempts, before raising the underlying exception.
-This is particularly useful for waiting for network or a database proxy to come up when a process has first started.
-
 .. _fastapi-database-session:
 
 Using a database session in request handlers
@@ -176,6 +123,62 @@ However, be aware that this means you should call ``await session.flush()`` and 
 If you need to manage the transactions directly, disable automatic transaction management by passing ``manage_transactions=False`` to ``initialize`` during application startup.
 The session returned by the dependency will then not have an open transaction, and you should put any database code inside an ``async with session.begin()`` block to create and commit a transaction.
 
+.. _async-db-session:
+
+Creating an async database session
+==================================
+
+.. note::
+
+   This section describes how to get a database session outside of a FastAPI route handler, such as for cron jobs, background processing, or other non-web-application uses.
+   Most applications will use database sessions in the context of a FastAPI handler and should instead use the corresponding FastAPI dependency instead of the code below.
+   See :ref:`fastapi-database-session` for more details.
+
+To get a new async database connection, use code like the following:
+
+.. code-block:: python
+
+   import structlog
+   from safir.database import create_async_session, create_database_engine
+
+   from .config import config
+
+
+   engine = create_database_engine(config.database_url, config.database_password)
+   session = await create_async_session(engine)
+
+   # ... use the session here ...
+
+   await session.remove()
+   await engine.dispose()
+
+Creating the engine is separate from creating the session so that the engine can be disposed of properly, which ensures the connection pool is closed.
+
+Probing the database connection
+-------------------------------
+
+`~safir.database.create_async_session` supports probing the database to ensure that it is accessible and the schema is set up correctly.
+To do this, pass a SQL statement to execute as the ``statement`` argument to `~safir.database.create_async_session`.
+This will be called with ``.limit(1)`` to test the resulting session.
+When ``statement`` is provided, a `structlog`_ logger must also be provided to log any errors when trying to run the statement.
+
+For example:
+
+.. code-block:: python
+
+   import structlog
+   from sqlalchemy.future import select
+
+   from .schema import User
+
+
+   logger = structlog.get_logger(config.logger_name)
+   stmt = select(User)
+   session = await create_async_session(engine, logger, statement=stmt)
+
+If the statement fails, it will be retried up to five times, waiting two seconds between attempts, before raising the underlying exception.
+This is particularly useful for waiting for network or a database proxy to come up when a process has first started.
+
 Creating a sync database session
 ================================
 
@@ -215,7 +218,7 @@ As with :ref:`async database sessions <async-db-session>`, you can pass a `struc
        config.database_url, config.database_password, logger, statement=stmt
    )
 
-Applications that use `~safir.database.create_sync_session` must declare a dependency on `psycopg2 <https://pypi.org/project/psycopg2/>`__.
+Applications that use `~safir.database.create_sync_session` must declare a dependency on `psycopg2 <https://pypi.org/project/psycopg2/>`__ in their pip dependencies.
 Safir itself does not depend on psycopg2, even with the ``db`` extra, since most applications that use Safir for database support will only need async sessions.
 
 Setting an isolation level

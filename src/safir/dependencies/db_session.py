@@ -25,19 +25,19 @@ class DatabaseSessionDependency:
     -----
     Creation of the database session factory has to be deferred until the
     configuration has been loaded, which in turn is deferred until app
-    startup.  An app that uses this dependency must call:
+    startup.
+
+    In the app startup hook, run:
 
     .. code-block:: python
 
        await db_session_dependency.initialize(database_url)
 
-    from its startup hook and:
+    In the app shutdown hook, run:
 
     .. code-block:: python
 
        await db_session_dependency.aclose()
-
-    from its shutdown hook.
 
     An isolation level may optionally be configured when calling `initialize`.
     By default, a transaction is opened for every request and committed at the

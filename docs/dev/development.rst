@@ -78,14 +78,13 @@ To see a listing of test environments, run:
    tox -av
 
 tox will start a PostgreSQL container, which is required for some tests.
-You can also run pytest_ from the root of the source repository:
+
+To run a specific test or list of tests, you can add test file names (and any other pytest_ options) after ``--`` when executing the ``py`` tox environment.
+For example:
 
 .. code-block:: sh
 
-   pytest
-
-but you will need to set the environment variable ``TEST_DATABASE_URL`` to point to a PostgreSQL server and already-created database.
-Also set ``TEST_DATABASE_PASSWORD`` if this PostgreSQL database requires a password and it's not already included in the URL.
+   tox -e py -- tests/database_test.py
 
 .. _dev-build-docs:
 
