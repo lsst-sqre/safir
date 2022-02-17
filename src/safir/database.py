@@ -239,7 +239,7 @@ def create_sync_session(
 
     Returns
     -------
-    session : `sqlalchemy.orm.scoped_session`
+    session : `sqlalchemy.orm.scoping.scoped_session`
         The database session proxy.  This manages a separate session per
         thread and therefore should be thread-safe.
     """

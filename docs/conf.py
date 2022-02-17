@@ -77,6 +77,25 @@ intersphinx_mapping = {
 intersphinx_timeout = 10.0  # seconds
 intersphinx_cache_limit = 5  # days
 
+nitpick_ignore = [
+    # Ignore missing cross-references for modules that don't provide
+    # intersphinx.  The documentation itself should use double-quotes instead
+    # of single-quotes to not generate a reference, but automatic references
+    # are generated from the type signatures and can't be avoided.
+    ("py:class", "fastapi.applications.FastAPI"),
+    ("py:class", "kubernetes_asyncio.client.models.v1_config_map.V1ConfigMap"),
+    ("py:class", "kubernetes_asyncio.client.models.v1_pod.V1Pod"),
+    ("py:class", "kubernetes_asyncio.client.models.v1_pod_list.V1PodList"),
+    ("py:class", "kubernetes_asyncio.client.models.v1_secret.V1Secret"),
+    ("py:class", "kubernetes_asyncio.client.models.v1_status.V1Status"),
+    ("py:class", "httpx.AsyncClient"),
+    ("py:class", "pydantic.main.BaseModel"),
+    ("py:class", "pydantic.utils.Representation"),
+    ("py:class", "starlette.middleware.base.BaseHTTPMiddleware"),
+    ("py:class", "starlette.requests.Request"),
+    ("py:class", "starlette.responses.Response"),
+]
+
 # Linkcheck builder ==========================================================
 
 linkcheck_retries = 2
@@ -155,7 +174,10 @@ napoleon_use_rtype = True
 autosummary_generate = True
 
 automodapi_toctreedirnm = "api"
-automodsumm_inherited_members = True
+
+# Inheriting docstrings from parents by default creates huge amounts of noise
+# in Pydantic.  Use the :inherited-members: flag when this is needed.
+automodsumm_inherited_members = False
 
 # Docstrings for classes and methods are inherited from parents.
 autodoc_inherit_docstrings = True

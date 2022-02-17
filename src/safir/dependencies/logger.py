@@ -26,11 +26,10 @@ class LoggerDependency:
     * The IP address of the client
     * The ``User-Agent`` header of the request, if any.
 
-    The results of `~safir.middleware.XForwardedMiddleware` will be honored if
-    present. The last three pieces of information will be added using naming
-    consistent with the expectations of Google Log Explorer so that the
-    request information will be liftedn into the appropriate JSON fields for
-    complex log queries.
+    The last three pieces of information will be added using naming consistent
+    with the expectations of Google Log Explorer so that the request
+    information will be liftedn into the appropriate JSON fields for complex
+    log queries.
     """
 
     def __init__(self) -> None:

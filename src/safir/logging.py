@@ -4,15 +4,11 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import TYPE_CHECKING
+from typing import Any, List, Optional
 
 import structlog
 from structlog.stdlib import add_log_level
-
-if TYPE_CHECKING:
-    from typing import Any, List, Optional
-
-    from structlog.types import EventDict
+from structlog.types import EventDict
 
 __all__ = ["add_log_severity", "configure_logging", "logger_name"]
 
@@ -44,7 +40,8 @@ def add_log_severity(
     logger : `logging.Logger`
         The wrapped logger object.
     method_name : `str`
-        The name of the wrapped method (``warning`` or ``error`, for example).
+        The name of the wrapped method (``warning`` or ``error``, for
+        example).
     event_dict : `structlog.types.EventDict`
         Current context and current event. This parameter is also modified in
         place, matching the normal behavior of structlog processors.
