@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import structlog
@@ -16,6 +17,8 @@ from safir.database import (
     create_async_session,
     create_database_engine,
     create_sync_session,
+    datetime_from_db,
+    datetime_to_db,
     initialize_database,
 )
 
@@ -163,3 +166,24 @@ async def test_create_sync_session() -> None:
             logger,
             statement=select(bad_table),
         )
+
+
+def test_datetime() -> None:
+    tz_aware = datetime.now(tz=timezone.utc)
+    tz_naive = tz_aware.replace(tzinfo=None)
+
+    assert datetime_to_db(tz_aware) == tz_naive
+    assert datetime_from_db(tz_naive) == tz_aware
+    assert datetime_from_db(tz_aware) == tz_aware
+
+    assert datetime_to_db(None) is None
+    assert datetime_from_db(None) is None
+
+    with pytest.raises(ValueError):
+        datetime_to_db(tz_naive)
+
+    tz_local = datetime.now().astimezone(timezone(timedelta(hours=1)))
+    with pytest.raises(ValueError):
+        datetime_to_db(tz_local)
+    with pytest.raises(ValueError):
+        datetime_from_db(tz_local)
