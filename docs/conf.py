@@ -19,6 +19,8 @@ rst_epilog = """
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
 .. _SQLAlchemy: https://www.sqlalchemy.org/
 .. _asyncpg: https://magicstack.github.io/asyncpg/current/
+.. _Click: https://click.palletsprojects.com/
+.. _Uvicorn: https://www.uvicorn.org/
 """
 
 # Extensions =================================================================

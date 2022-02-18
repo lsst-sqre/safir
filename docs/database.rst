@@ -16,8 +16,10 @@ To use it, depend on ``safir[db]`` in your pip requirements.
 Initializing a database
 =======================
 
-Safir supports simple initialization of an empty database with a schema provided by the application.
+Safir supports simple initialization of a database with a schema provided by the application.
+By default, this only adds any declared but missing tables, indices, or other objects, and thus does nothing if the database is already initialized.
 The application may also request a database reset, which will drop and recreate all of the tables in the schema.
+
 More complex database schema upgrades are not supported by Safir.
 If those are required, consider using `Alembic <https://alembic.sqlalchemy.org/en/latest/>`__.
 
@@ -35,28 +37,40 @@ In other files in that directory, define the database tables using the normal SQ
 Each database table definition must inherit from ``Base``, imported from ``.base``.
 In ``schema/__init__.py``, import the table definitions from all of the files in the directory, as well as the ``Base`` variable, and export them using ``__all__``.
 
-Then, Safir can be used to initialize the database with code like:
+The recommended approach to add database initialization to an application is to add an ``init`` command to the command-line interface that runs the database initialization code.
+For applications using `Click`_ (the recommended way to implement a command-line interface), this can be done with code like:
 
 .. code-block:: python
 
+   import click
    import structlog
+   from safir.asyncio import run_with_asyncio
    from safir.database import initialize_database
 
    from .config import config
    from .schema import Base
 
 
-   logger = structlog.get_logger(config.logger_name)
-   engine = await initialize_database(
-       config.database_url,
-       config.database_password,
-       logger,
-       schema=Base.metadata,
-   )
-   await engine.dispose()
+   # Definition of main omitted.
 
-(Although not shown here, this must be done inside an ``async`` function.)
-This code assumes that ``.config`` provides a ``config`` object that contains the settings for the application, including the database URL and password as well as the normal Safir configuration settings.
+
+   @main.command()
+   @click.option(
+       "--reset", is_flag=True, help="Delete all existing database data."
+   )
+   @run_with_asyncio
+   async def init() -> None:
+       logger = structlog.get_logger(config.logger_name)
+       engine = await initialize_database(
+           config.database_url,
+           config.database_password,
+           logger,
+           schema=Base.metadata,
+           reset=reset,
+       )
+       await engine.dispose()
+
+This code assumes that ``main`` is the Click entry point and ``.config`` provides a ``config`` object that contains the settings for the application, including the database URL and password as well as the normal Safir configuration settings.
 
 If it receives a connection error from the database, Safir will attempt the initialization five times, two seconds apart, to allow time for networking or a database proxy to start.
 
@@ -65,6 +79,37 @@ To drop and recreate all of the tables, pass the ``reset=True`` option to `~safi
 Note that `~safir.database.initialize_database` returns a `~sqlalchemy.ext.asyncio.AsyncEngine` object for the newly-initialized database.
 This can be used to perform any further application-specific database initialization that is required, such as adding default table entries.
 Put any such code before the ``await engine.dispose()`` call.
+
+Running database initialization on pod startup
+----------------------------------------------
+
+The recommended pattern for Safir-based applications that use a database is to initialize the database every time the pod has been restarted.
+Since initialization does nothing if the schema already exists, this is safe to do.
+It only wastes a bit of time during normal startup.
+This allows the application to be deployed on a new cluster without any special initialization step.
+
+The easiest way to do this is to add a script (conventionally located in ``scripts/start-frontend.sh``) that runs the ``init`` command and then starts the application with Uvicorn_:
+
+.. code-block:: sh
+
+   #!/bin/bash
+
+   set -eu
+
+   application init
+   uvicorn application.main:app --host 0.0.0.0 --port 8080
+
+Replace ``application`` with the application entry point (the first line) and Python module (the second line).
+(These may be different if the application name contains dashes.)
+
+Then, use this as the default command for the Docker image:
+
+.. code-block:: docker
+
+   COPY scripts/start-frontend.sh /start-frontend.sh
+   CMD ["/start-frontend.sh"]
+
+As a side effect, this will test database connectivity during pod startup and wait for network or a database proxy to be ready if needed, which avoids the need for testing database connectivity during the application startup.
 
 .. _fastapi-database-session:
 
