@@ -192,7 +192,7 @@ async def create_async_session(
             async with session.begin():
                 await session.execute(statement.limit(1))
                 return session
-        except (ConnectionRefusedError, OperationalError):
+        except (ConnectionRefusedError, OperationalError, OSError):
             if logger:
                 logger.info("database not ready, waiting two seconds")
             await session.remove()
@@ -262,7 +262,7 @@ def create_sync_session(
             with session.begin():
                 session.execute(statement.limit(1))
                 return session
-        except OperationalError:
+        except (ConnectionRefusedError, OperationalError, OSError):
             if logger:
                 logger.info("database not ready, waiting two seconds")
             session.remove()
@@ -330,7 +330,7 @@ async def initialize_database(
                     await conn.run_sync(schema.drop_all)
                 await conn.run_sync(schema.create_all)
             success = True
-        except (ConnectionRefusedError, OperationalError) as e:
+        except (ConnectionRefusedError, OperationalError, OSError) as e:
             logger.info("database not ready, waiting two seconds")
             error = str(e)
             await asyncio.sleep(2)
