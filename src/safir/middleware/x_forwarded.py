@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-from ipaddress import ip_address
-from typing import TYPE_CHECKING
+from ipaddress import _BaseAddress, _BaseNetwork, ip_address
+from typing import Awaitable, Callable, List, Optional
 
-from fastapi import Request, Response
+from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-
-if TYPE_CHECKING:
-    from ipaddress import _BaseAddress, _BaseNetwork
-    from typing import Awaitable, Callable, List, Optional
-
-    from fastapi import FastAPI
 
 __all__ = ["XForwardedMiddleware"]
 

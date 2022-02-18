@@ -171,8 +171,8 @@ The session returned by the dependency will then not have an open transaction, a
 Handling datetimes in database tables
 =====================================
 
-When a database column is defined using the SQLAlchemy ORM using the `~sqlalchemy.DateTime` generic type, it cannot store a timezone.
-The SQL standard type `~sqlalchemy.DATETIME` may include a timezone with some database backends, but it is database-specific.
+When a database column is defined using the SQLAlchemy ORM using the `~sqlalchemy.types.DateTime` generic type, it cannot store a timezone.
+The SQL standard type `~sqlalchemy.types.DATETIME` may include a timezone with some database backends, but it is database-specific.
 It is therefore normally easier to store times in the database in UTC without timezone information.
 
 However, `~datetime.datetime` objects in regular Python code should always be timezone-aware and use the UTC timezone.
@@ -323,11 +323,11 @@ Safir itself does not depend on psycopg2, even with the ``db`` extra, since most
 Setting an isolation level
 ==========================
 
-`~safir.database.create_database_engine`, `~safir.database.create_sync_session`, and the ``initialize`` method of `~safir.dependencies.db_sesssion.db_sesssion_dependency` take an optional ``isolation_level`` argument that can be used to set a non-default isolation level.
+`~safir.database.create_database_engine`, `~safir.database.create_sync_session`, and the ``initialize`` method of `~safir.dependencies.db_session.db_session_dependency` take an optional ``isolation_level`` argument that can be used to set a non-default isolation level.
 If given, this parameter is passed through to the underlying SQLAlchemy engine.
 See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/14/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
 
 You may have to set a custom isolation level, such as ``REPEATABLE READ``, if you have multiple simultaneous database writers and need to coordinate their writes to ensure consistent results.
 
 Be aware that most situations in which you need to set a custom isolation level will also result in valid transactions raising exceptions indicating that they need to be retried, because another writer changed the database while the transaction was in progress.
-You therefore will probably need to disable transaction management for the `~safir.dependencies.db_sesssion.db_sesssion_dependency` by passing ``manage_transactions=False`` to the ``initialize`` method and then manage transactions directly in the code (usually inside retry loops).
+You therefore will probably need to disable transaction management for the `~safir.dependencies.db_session.db_session_dependency` by passing ``manage_transactions=False`` to the ``initialize`` method and then manage transactions directly in the code (usually inside retry loops).

@@ -5,6 +5,11 @@ from structlog.stdlib import BoundLogger
 
 from .logger import logger_dependency
 
+__all__ = [
+    "auth_dependency",
+    "auth_logger_dependency",
+]
+
 
 async def auth_dependency(x_auth_request_user: str = Header(...)) -> str:
     """Retrieve authentication information from HTTP headers.

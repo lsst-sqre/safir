@@ -3,13 +3,11 @@
 
 from __future__ import annotations
 
+from email.message import Message
 from importlib.metadata import metadata
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    from email.message import Message
 
 __all__ = ["Metadata", "get_metadata", "get_project_url"]
 
