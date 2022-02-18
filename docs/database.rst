@@ -319,8 +319,8 @@ If you need to preload test data into the database, do that after the call to ``
    Because the tests use a single external PostgreSQL instance with a single database, tests cannot be run in parallel, or a test may see database changes from another test.
    This in turn means that plugins like `pytest-xdist <https://pypi.org/project/pytest-xdist/>`__ unfortunately cannot be used to speed up tests.
 
-Advanced topics
-===============
+Less-used database operations
+=============================
 
 Safir provides support for some other database operations that most applications will not need, but which are helpful in some complex use cases.
 
