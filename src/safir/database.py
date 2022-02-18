@@ -278,21 +278,18 @@ def create_sync_session(
 
 
 async def initialize_database(
-    url: str,
-    password: Optional[str],
+    engine: AsyncEngine,
     logger: BoundLogger,
     *,
     schema: MetaData,
     reset: bool = False,
-) -> AsyncEngine:
+) -> None:
     """Create and initialize a new database.
 
     Parameters
     ----------
-    url : `str`
-        Database connection URL, not including the password.
-    password : `str` or `None`
-        Database connection password.
+    engine : `sqlalchemy.ext.asyncio.AsyncEngine`
+        Database engine to use.  Create with `create_database_engine`.
     logger : ``structlog.stdlib.BoundLogger``
         Logger used to report problems
     schema : `sqlalchemy.sql.schema.MetaData`
@@ -306,14 +303,6 @@ async def initialize_database(
         Useful when running tests with an external database.  Default is
         `False`.
 
-    Returns
-    -------
-    engine : `sqlalchemy.ext.asyncio.AsyncEngine`
-        Database engine for the initialized database.  This may be used by the
-        caller to perform any additional necessary database initialization not
-        included in the schema, such as adding default table rows.  The engine
-        must then be closed with ``await engine.dispose()``.
-
     Raises
     ------
     DatabaseInitializationError
@@ -322,7 +311,6 @@ async def initialize_database(
     """
     success = False
     error = None
-    engine = create_database_engine(url, password)
     for _ in range(5):
         try:
             async with engine.begin() as conn:
@@ -343,4 +331,3 @@ async def initialize_database(
         logger.error(msg)
         await engine.dispose()
         raise DatabaseInitializationError(error)
-    return engine

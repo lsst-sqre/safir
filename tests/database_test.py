@@ -39,41 +39,23 @@ class User(Base):
 @pytest.mark.asyncio
 async def test_database_init() -> None:
     logger = structlog.get_logger(__name__)
-    engine = await initialize_database(
-        TEST_DATABASE_URL,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        schema=Base.metadata,
-        reset=True,
-    )
+    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():
         session.add(User(username="someuser"))
     await session.remove()
-    await engine.dispose()
 
     # Reinitializing the database without reset should preserve the row.
-    engine = await initialize_database(
-        TEST_DATABASE_URL,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        schema=Base.metadata,
-    )
+    await initialize_database(engine, logger, schema=Base.metadata)
     session = await create_async_session(engine, logger)
     async with session.begin():
         result = await session.scalars(select(User.username))
         assert result.all() == ["someuser"]
     await session.remove()
-    await engine.dispose()
 
     # Reinitializing the database with reset should delete the data.
-    engine = await initialize_database(
-        TEST_DATABASE_URL,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        schema=Base.metadata,
-        reset=True,
-    )
+    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():
         result = await session.scalars(select(User.username))
@@ -105,16 +87,9 @@ def test_build_database_url() -> None:
 @pytest.mark.asyncio
 async def test_create_async_session() -> None:
     logger = structlog.get_logger(__name__)
-    engine = await initialize_database(
-        TEST_DATABASE_URL,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        schema=Base.metadata,
-        reset=True,
-    )
-    await engine.dispose()
-
     engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
+
     session = await create_async_session(
         engine, logger, statement=select(User)
     )
@@ -136,13 +111,8 @@ async def test_create_async_session() -> None:
 @pytest.mark.asyncio
 async def test_create_sync_session() -> None:
     logger = structlog.get_logger(__name__)
-    engine = await initialize_database(
-        TEST_DATABASE_URL,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        schema=Base.metadata,
-        reset=True,
-    )
+    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     await engine.dispose()
 
     session = create_sync_session(

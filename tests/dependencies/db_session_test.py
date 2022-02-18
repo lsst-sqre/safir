@@ -14,7 +14,11 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
 from sqlalchemy.orm import declarative_base
 
-from safir.database import create_async_session, initialize_database
+from safir.database import (
+    create_async_session,
+    create_database_engine,
+    initialize_database,
+)
 from safir.dependencies.db_session import db_session_dependency
 
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
@@ -34,13 +38,8 @@ class User(Base):
 @pytest.mark.asyncio
 async def test_session() -> None:
     logger = structlog.get_logger(__name__)
-    engine = await initialize_database(
-        TEST_DATABASE_URL,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        schema=Base.metadata,
-        reset=True,
-    )
+    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     await db_session_dependency.initialize(
         TEST_DATABASE_URL, TEST_DATABASE_PASSWORD
@@ -87,13 +86,8 @@ async def test_session() -> None:
 @pytest.mark.asyncio
 async def test_unmanaged_transactions() -> None:
     logger = structlog.get_logger(__name__)
-    engine = await initialize_database(
-        TEST_DATABASE_URL,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        schema=Base.metadata,
-        reset=True,
-    )
+    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     await engine.dispose()
     await db_session_dependency.initialize(
         TEST_DATABASE_URL, TEST_DATABASE_PASSWORD, manage_transactions=False

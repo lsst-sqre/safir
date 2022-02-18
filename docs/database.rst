@@ -61,12 +61,11 @@ For applications using `Click`_ (the recommended way to implement a command-line
    @run_with_asyncio
    async def init() -> None:
        logger = structlog.get_logger(config.logger_name)
-       engine = await initialize_database(
-           config.database_url,
-           config.database_password,
-           logger,
-           schema=Base.metadata,
-           reset=reset,
+       engine = create_database_engine(
+           config.database_url, config.database_password
+       )
+       await initialize_database(
+           engine, logger, schema=Base.metadata, reset=reset
        )
        await engine.dispose()
 
@@ -290,7 +289,7 @@ For example:
    import pytest_asyncio
    from asgi_lifespan import LifespanManager
    from fastapi import FastAPI
-   from safir.database import initialize_database
+   from safir.database import create_database_engine, initialize_database
 
    from application import main
    from application.config import config
@@ -300,13 +299,10 @@ For example:
    @pytest_asyncio.fixture
    async def app() -> AsyncIterator[FastAPI]:
        logger = structlog.get_logger(config.logger_name)
-       engine = await initialize_database(
-           config.database_url,
-           config.database_password,
-           logger,
-           schema=Base.metadata,
-           reset=True,
+       engine = create_database_engine(
+           config.database_url, config.database_password
        )
+       await initialize_database(engine, logger, schema=Base.metadata, reset=True)
        await engine.dispose()
        async with LifespanManager(main.app):
            yield main.app
