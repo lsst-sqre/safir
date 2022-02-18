@@ -222,10 +222,112 @@ Here is an example of updating a DateTime field in the database:
        job = (await session.execute(stmt)).scalar_one()
        job.destruction_time = datetime_to_db(destruction_time)
 
+Testing applications that use a database
+========================================
+
+The Safir database layer only supports PostgreSQL at present.
+While support for SQLite could be added, testing against the database that will be used for production is usually a better strategy, since some bugs (particularly around transaction management) are sensitive to the choice of backend.
+The recommended strategy for testing applications that use a database is to start a real PostgreSQL server for the tests.
+
+To do this, modify the ``init`` target in ``Makefile`` to install ``tox-docker`` at the same time ``tox`` is installed.
+Then, add the following to ``tox.ini`` to define a database container:
+
+.. code-block:: ini
+
+   [docker:postgres]
+   image = postgres:latest
+   ports =
+       5432:5432/tcp
+   environment =
+       POSTGRES_PASSWORD = INSECURE-PASSWORD
+       POSTGRES_USER = safir
+       POSTGRES_DB = safir
+       PGPORT = 5432
+   # The healthcheck ensures that tox-docker won't run tests until the
+   # container is up and the command finishes with exit code 0 (success)
+   healthcheck_cmd = PGPASSWORD=$POSTGRES_PASSWORD psql  \
+       --user=$POSTGRES_USER --dbname=$POSTGRES_DB       \
+       --host=127.0.0.1 --quiet --no-align --tuples-only \
+       -1 --command="SELECT 1"
+   healthcheck_timeout = 1
+   healthcheck_retries = 30
+   healthcheck_interval = 1
+   healthcheck_start_period = 1
+
+Change ``POSTGRES_USER`` and ``POSTGRES_DB`` to match the name of your application.
+
+Add a dependency on this container to your ``py`` test environment (and any other tox environments that will run ``pytest``):
+
+.. code-block:: ini
+
+   [testenv:py]
+   # ...
+   docker =
+       postgres
+
+You may want to also add this to any ``run`` test environment you have defined so that a PostgreSQL container will be started for the local development environment.
+
+Assuming that your application uses environment variables to configure the database URL and password (the recommended approach), set those environment variables in the ``py`` test environment (and any other relevant test environments, such as ``run``):
+
+.. code-block:: ini
+
+   [testenv:py]
+   # ...
+   setenv =
+       APP_DATABASE_URL = postgresql://safir@127.0.0.1/safir
+       APP_DATABASE_PASSWORD = INSECURE-PASSWORD
+
+Change the names of the environment variables to match those used by your application, and change the database user and database name to match your application if you did so in the ``[docker:postgres]`` section.
+
+Then, initialize the database in a test fixture.
+The simplest way to do this is to add a call to `~safir.database.initialize_database` to the ``app`` fixture.
+For example:
+
+.. code-block:: python
+
+   from typing import AsyncIterator
+
+   import pytest_asyncio
+   from asgi_lifespan import LifespanManager
+   from fastapi import FastAPI
+   from safir.database import initialize_database
+
+   from application import main
+   from application.config import config
+   from application.schema import Base
+
+
+   @pytest_asyncio.fixture
+   async def app() -> AsyncIterator[FastAPI]:
+       logger = structlog.get_logger(config.logger_name)
+       engine = await initialize_database(
+           config.database_url,
+           config.database_password,
+           logger,
+           schema=Base.metadata,
+           reset=True,
+       )
+       await engine.dispose()
+       async with LifespanManager(main.app):
+           yield main.app
+
+This uses the ``reset`` flag to drop and recreate all database tables between each test, which ensures no test records leak from one test to the next.
+If you need to preload test data into the database, do that after the call to ``initialize_database`` and before ``await engine.dispose()``, using the provided engine object.
+
+.. warning::
+
+   Because the tests use a single external PostgreSQL instance with a single database, tests cannot be run in parallel, or a test may see database changes from another test.
+   This in turn means that plugins like `pytest-xdist <https://pypi.org/project/pytest-xdist/>`__ unfortunately cannot be used to speed up tests.
+
+Less-used database operations
+=============================
+
+Safir provides support for some other database operations that most applications will not need, but which are helpful in some complex use cases.
+
 .. _async-db-session:
 
 Creating an async database session
-==================================
+----------------------------------
 
 .. note::
 
@@ -253,6 +355,8 @@ To get a new async database connection, use code like the following:
 
 Creating the engine is separate from creating the session so that the engine can be disposed of properly, which ensures the connection pool is closed.
 
+.. _probing-db-connection:
+
 Probing the database connection
 -------------------------------
 
@@ -279,7 +383,7 @@ If the statement fails, it will be retried up to five times, waiting two seconds
 This is particularly useful for waiting for network or a database proxy to come up when a process has first started.
 
 Creating a sync database session
-================================
+--------------------------------
 
 Although Safir is primarily intended to support asyncio applications, it may sometimes be necessary to write sync code that performs database operations.
 One example would be `Dramatiq <https://dramatiq.io/>`__ workers.
@@ -299,7 +403,7 @@ This can be done with `~safir.database.create_sync_session`.
 
 Unlike `~safir.database.create_async_session`, `~safir.database.create_sync_session` handles creating the engine internally, since sync engines do not require any special shutdown measures.
 
-As with :ref:`async database sessions <async-db-session>`, you can pass a `structlog`_ logger and a statement to perform a connection check on the database before returning the session:
+As with :ref:`async database sessions <probing-db-connection>`, you can pass a `structlog`_ logger and a statement to perform a connection check on the database before returning the session:
 
 .. code-block:: python
 
@@ -321,7 +425,7 @@ Applications that use `~safir.database.create_sync_session` must declare a depen
 Safir itself does not depend on psycopg2, even with the ``db`` extra, since most applications that use Safir for database support will only need async sessions.
 
 Setting an isolation level
-==========================
+--------------------------
 
 `~safir.database.create_database_engine`, `~safir.database.create_sync_session`, and the ``initialize`` method of `~safir.dependencies.db_session.db_session_dependency` take an optional ``isolation_level`` argument that can be used to set a non-default isolation level.
 If given, this parameter is passed through to the underlying SQLAlchemy engine.
