@@ -46,6 +46,7 @@ class DatabaseSessionDependency:
 
     def __init__(self) -> None:
         self._engine: Optional[AsyncEngine] = None
+        self._override_engine: Optional[AsyncEngine] = None
         self._session: Optional[async_scoped_session] = None
         self._manage_transactions = True
 
@@ -109,10 +110,29 @@ class DatabaseSessionDependency:
             failed transactions due to a non-default isolation level.)
         """
         self._manage_transactions = manage_transactions
-        self._engine = create_database_engine(
-            url, password, isolation_level=isolation_level
-        )
-        self._session = await create_async_session(self._engine)
+        if self._override_engine:
+            self._session = await create_async_session(self._override_engine)
+        else:
+            self._engine = create_database_engine(
+                url, password, isolation_level=isolation_level
+            )
+            self._session = await create_async_session(self._engine)
+
+    def override_engine(self, engine: AsyncEngine) -> None:
+        """Force the dependency to use the provided engine.
+
+        Intended for testing, this allows the test suite to configure a single
+        database engine and share it across all of the tests, benefiting from
+        connection pooling for a test speed-up.  In the Gafaelfawr test suite,
+        sharing an engine for all tests improved the time it took to run the
+        full test suite by XX%.
+
+        Parameters
+        ----------
+        engine : `sqlalchemy.ext.asyncio.AsyncEngine`
+            Database engine to use for all sessions.
+        """
+        self._override_engine = engine
 
 
 db_session_dependency = DatabaseSessionDependency()
