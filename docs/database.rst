@@ -45,7 +45,7 @@ For applications using `Click`_ (the recommended way to implement a command-line
    import click
    import structlog
    from safir.asyncio import run_with_asyncio
-   from safir.database import initialize_database
+   from safir.database import create_database_engine, initialize_database
 
    from .config import config
    from .schema import Base
@@ -157,15 +157,23 @@ Then, any handler that needs a database session can depend on the `~safir.depend
    async def get_index(
        session: async_scoped_session = Depends(db_session_dependency),
    ) -> Dict[str, str]:
-       # ... do something with session here ...
-       return {}
+       async with session.begin():
+           # ... do something with session here ...
+           return {}
 
-By default, the session returned by this dependency will be inside a transaction that will automatically be committed when the route handler returns.
-This is normally the best way to write database code for a RESTful web application, since each request should be a single transaction.
-However, be aware that this means you should call ``await session.flush()`` and not ``await session.commit()`` to make changes visible to subsequent database statements.
+Transaction management
+----------------------
 
-If you need to manage the transactions directly, disable automatic transaction management by passing ``manage_transactions=False`` to ``initialize`` during application startup.
-The session returned by the dependency will then not have an open transaction, and you should put any database code inside an ``async with session.begin()`` block to create and commit a transaction.
+When using the Safir database dependency, you must pay careful attention to managing transactions.
+
+SQLAlchemy will automatically start a transaction if you perform any database operation using a session (including read-only operations).
+If that transaction is not explicitly ended, `asyncpg`_ may leave it open, which will cause database deadlocks and other problems.
+Due to an as-yet-unexplained interaction with FastAPI 0.74 and later, managing the transaction inside the database session dependency does not work; calling ``await session.commit()`` there, either explicitly or implicitly via a context manager, immediately fails by raising ``asyncio.CancelledError`` and the transaction is not committed or closed.
+The program using the Safir database dependency must therefore explicitly manage transactions itself and ensure that all transactions are committed or rolled back before a handler returns its result.
+
+Generally the easiest way to do this is to manage the transaction in the handler function, as in the ``get_index`` function in the example above.
+Wrap all code that may make database calls in an ``async with session.begin()`` block.
+This will open a transaction, commit the transaction at the end of the block, and roll back the transaction if the block raises an exception.
 
 Handling datetimes in database tables
 =====================================

@@ -51,14 +51,16 @@ async def test_session() -> None:
     async def add(
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> None:
-        session.add(User(username="foo"))
+        async with session.begin():
+            session.add(User(username="foo"))
 
     @app.get("/list")
     async def list(
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> List[str]:
-        result = await session.scalars(select(User.username))
-        return result.all()
+        async with session.begin():
+            result = await session.scalars(select(User.username))
+            return result.all()
 
     async with AsyncClient(app=app, base_url="https://example.com") as client:
         r = await client.get("/list")
@@ -80,44 +82,4 @@ async def test_session() -> None:
 
     await session.remove()
     await engine.dispose()
-    await db_session_dependency.aclose()
-
-
-@pytest.mark.asyncio
-async def test_unmanaged_transactions() -> None:
-    logger = structlog.get_logger(__name__)
-    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
-    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
-    await engine.dispose()
-    await db_session_dependency.initialize(
-        TEST_DATABASE_URL, TEST_DATABASE_PASSWORD, manage_transactions=False
-    )
-
-    app = FastAPI()
-
-    @app.post("/add")
-    async def add(
-        session: async_scoped_session = Depends(db_session_dependency),
-    ) -> None:
-        # If a transaction was already started, this will fail, so it tests
-        # that automatic transactions were disabled.
-        async with session.begin():
-            session.add(User(username="foo"))
-
-    @app.get("/list")
-    async def list(
-        session: async_scoped_session = Depends(db_session_dependency),
-    ) -> List[str]:
-        async with session.begin():
-            result = await session.scalars(select(User.username))
-            return result.all()
-
-    async with AsyncClient(app=app, base_url="https://example.com") as client:
-        r = await client.post("/add")
-        assert r.status_code == 200
-
-        r = await client.get("/list")
-        assert r.status_code == 200
-        assert r.json() == ["foo"]
-
     await db_session_dependency.aclose()

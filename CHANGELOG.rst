@@ -15,7 +15,7 @@ Change log
   ``auth_logger_dependency`` returns the same logger as ``logger_dependency`` but with the ``user`` parameter bound to the username from ``auth_dependency``.
 - Add utility functions to initialize a database and create a sync or async session.
   The session creation functions optionally support a health check to ensure the database schema has been initialized.
-- Add new FastAPI dependency ``db_session_dependency`` that creates a task-local async SQLAlchemy session and optionally manages the database transaction for that session.
+- Add new FastAPI dependency ``db_session_dependency`` that creates a task-local async SQLAlchemy session.
 - Add utility functions ``datetime_from_db`` and ``datetime_to_db`` to convert between timezone-naive UTC datetimes stored in a database and timezone-aware UTC datetimes used elsewhere in a program.
 - Add a ``run_with_async`` decorator that runs the decorated async function synchronously.
   This is primarily useful for decorating Click command functions (for a command-line interface) that need to make async calls.
