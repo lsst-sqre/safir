@@ -5,6 +5,11 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+3.0.1 (2022-02-24)
+==================
+
+- ``safir.database`` retains the port in the database URL, if provided.
+
 3.0.0 (2022-02-23)
 ==================
 
