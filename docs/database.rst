@@ -164,16 +164,18 @@ Then, any handler that needs a database session can depend on the `~safir.depend
 Transaction management
 ----------------------
 
-When using the Safir database dependency, you must pay careful attention to managing transactions.
-
+The application must manage transactions when using the Safir database dependency.
 SQLAlchemy will automatically start a transaction if you perform any database operation using a session (including read-only operations).
 If that transaction is not explicitly ended, `asyncpg`_ may leave it open, which will cause database deadlocks and other problems.
-Due to an as-yet-unexplained interaction with FastAPI 0.74 and later, managing the transaction inside the database session dependency does not work; calling ``await session.commit()`` there, either explicitly or implicitly via a context manager, immediately fails by raising ``asyncio.CancelledError`` and the transaction is not committed or closed.
-The program using the Safir database dependency must therefore explicitly manage transactions itself and ensure that all transactions are committed or rolled back before a handler returns its result.
 
-Generally the easiest way to do this is to manage the transaction in the handler function, as in the ``get_index`` function in the example above.
+Generally it's best to manage the transaction in the handler function (see the ``get_index`` example, above).
 Wrap all code that may make database calls in an ``async with session.begin()`` block.
 This will open a transaction, commit the transaction at the end of the block, and roll back the transaction if the block raises an exception.
+
+.. note::
+
+   Due to an as-yet-unexplained interaction with FastAPI 0.74 and later, managing the transaction inside the database session dependency does not work.
+   Calling ``await session.commit()`` there, either explicitly or implicitly via a context manager, immediately fails by raising ``asyncio.CancelledError`` and the transaction is not committed or closed.
 
 Handling datetimes in database tables
 =====================================
