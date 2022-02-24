@@ -70,6 +70,8 @@ def _build_database_url(
             parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
         if password:
             netloc = f"{parsed_url.username}:{password}@{parsed_url.hostname}"
+            if parsed_url.port:
+                netloc = f"{netloc}:{parsed_url.port}"
             parsed_url = parsed_url._replace(netloc=netloc)
         url = parsed_url.geturl()
     return url

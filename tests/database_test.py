@@ -79,9 +79,19 @@ def test_build_database_url() -> None:
     assert url == "postgresql+asyncpg://foo@127.0.0.1/foo"
 
     url = _build_database_url(
+        "postgresql://foo@127.0.0.1:5432/foo", None, is_async=True
+    )
+    assert url == "postgresql+asyncpg://foo@127.0.0.1:5432/foo"
+
+    url = _build_database_url(
         "postgresql://foo@127.0.0.1/foo", "otherpass", is_async=True
     )
     assert url == "postgresql+asyncpg://foo:otherpass@127.0.0.1/foo"
+
+    url = _build_database_url(
+        "postgresql://foo@127.0.0.1:5433/foo", "otherpass", is_async=True
+    )
+    assert url == "postgresql+asyncpg://foo:otherpass@127.0.0.1:5433/foo"
 
 
 @pytest.mark.asyncio
