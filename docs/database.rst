@@ -59,7 +59,7 @@ For applications using `Click`_ (the recommended way to implement a command-line
        "--reset", is_flag=True, help="Delete all existing database data."
    )
    @run_with_asyncio
-   async def init() -> None:
+   async def init(reset: bool) -> None:
        logger = structlog.get_logger(config.logger_name)
        engine = create_database_engine(
            config.database_url, config.database_password
