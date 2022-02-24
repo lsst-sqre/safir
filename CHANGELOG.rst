@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-3.0.0 (unreleased)
+3.0.0 (2022-02-23)
 ==================
 
 - ``XForwardedMiddleware`` no longer sets ``forwaded_proto`` in the request state and instead directly updates the request scope so that subsequent handlers and middleware believe the request scheme is that given by an ``X-Forwarded-Proto`` header.
