@@ -46,16 +46,11 @@ class DatabaseSessionDependency:
 
     def __init__(self) -> None:
         self._engine: Optional[AsyncEngine] = None
+        self._override_engine: Optional[AsyncEngine] = None
         self._session: Optional[async_scoped_session] = None
-        self._manage_transactions = True
 
     async def __call__(self) -> AsyncIterator[async_scoped_session]:
-        """Create a database session and open a transaction.
-
-        By default, this implements a policy of one request equals one
-        transaction, which is closed when that request returns.  To disable
-        managed transactions, pass ``manage_transactions=False`` to the
-        `initialize` method.
+        """Return the database session manager.
 
         Returns
         -------
@@ -63,11 +58,7 @@ class DatabaseSessionDependency:
             The newly-created session.
         """
         assert self._session, "db_session_dependency not initialized"
-        if self._manage_transactions:
-            async with self._session.begin():
-                yield self._session
-        else:
-            yield self._session
+        yield self._session
 
         # Following the recommendations in the SQLAlchemy documentation, each
         # session is scoped to a single web request.  However, this all uses
@@ -87,7 +78,6 @@ class DatabaseSessionDependency:
         password: Optional[str],
         *,
         isolation_level: Optional[_IsolationLevel] = None,
-        manage_transactions: bool = True,
     ) -> None:
         """Initialize the session dependency.
 
@@ -100,19 +90,29 @@ class DatabaseSessionDependency:
         isolation_level : `str`, optional
             If specified, sets a non-default isolation level for the database
             engine.
-        manage_transactions : `bool`, optional
-            Whether the dependency should open a new transaction for each
-            request and commit that transaction at the end of the request.
-            This is the default behavior; to manage transactions manually,
-            set this parameter to `False`.  (Disabling managed transactions
-            may be necessary if the application database code has to retry
-            failed transactions due to a non-default isolation level.)
         """
-        self._manage_transactions = manage_transactions
-        self._engine = create_database_engine(
-            url, password, isolation_level=isolation_level
-        )
-        self._session = await create_async_session(self._engine)
+        if self._override_engine:
+            self._session = await create_async_session(self._override_engine)
+        else:
+            self._engine = create_database_engine(
+                url, password, isolation_level=isolation_level
+            )
+            self._session = await create_async_session(self._engine)
+
+    def override_engine(self, engine: AsyncEngine) -> None:
+        """Force the dependency to use the provided engine.
+
+        Intended for testing, this allows the test suite to configure a single
+        database engine and share it across all of the tests, benefiting from
+        connection pooling for a minor test speed-up.  (This is not
+        significant enough to bother with except for an extensive test suite.)
+
+        Parameters
+        ----------
+        engine : `sqlalchemy.ext.asyncio.AsyncEngine`
+            Database engine to use for all sessions.
+        """
+        self._override_engine = engine
 
 
 db_session_dependency = DatabaseSessionDependency()

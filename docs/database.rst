@@ -45,7 +45,7 @@ For applications using `Click`_ (the recommended way to implement a command-line
    import click
    import structlog
    from safir.asyncio import run_with_asyncio
-   from safir.database import initialize_database
+   from safir.database import create_database_engine, initialize_database
 
    from .config import config
    from .schema import Base
@@ -61,12 +61,11 @@ For applications using `Click`_ (the recommended way to implement a command-line
    @run_with_asyncio
    async def init() -> None:
        logger = structlog.get_logger(config.logger_name)
-       engine = await initialize_database(
-           config.database_url,
-           config.database_password,
-           logger,
-           schema=Base.metadata,
-           reset=reset,
+       engine = create_database_engine(
+           config.database_url, config.database_password
+       )
+       await initialize_database(
+           engine, logger, schema=Base.metadata, reset=reset
        )
        await engine.dispose()
 
@@ -158,15 +157,25 @@ Then, any handler that needs a database session can depend on the `~safir.depend
    async def get_index(
        session: async_scoped_session = Depends(db_session_dependency),
    ) -> Dict[str, str]:
-       # ... do something with session here ...
-       return {}
+       async with session.begin():
+           # ... do something with session here ...
+           return {}
 
-By default, the session returned by this dependency will be inside a transaction that will automatically be committed when the route handler returns.
-This is normally the best way to write database code for a RESTful web application, since each request should be a single transaction.
-However, be aware that this means you should call ``await session.flush()`` and not ``await session.commit()`` to make changes visible to subsequent database statements.
+Transaction management
+----------------------
 
-If you need to manage the transactions directly, disable automatic transaction management by passing ``manage_transactions=False`` to ``initialize`` during application startup.
-The session returned by the dependency will then not have an open transaction, and you should put any database code inside an ``async with session.begin()`` block to create and commit a transaction.
+The application must manage transactions when using the Safir database dependency.
+SQLAlchemy will automatically start a transaction if you perform any database operation using a session (including read-only operations).
+If that transaction is not explicitly ended, `asyncpg`_ may leave it open, which will cause database deadlocks and other problems.
+
+Generally it's best to manage the transaction in the handler function (see the ``get_index`` example, above).
+Wrap all code that may make database calls in an ``async with session.begin()`` block.
+This will open a transaction, commit the transaction at the end of the block, and roll back the transaction if the block raises an exception.
+
+.. note::
+
+   Due to an as-yet-unexplained interaction with FastAPI 0.74 and later, managing the transaction inside the database session dependency does not work.
+   Calling ``await session.commit()`` there, either explicitly or implicitly via a context manager, immediately fails by raising ``asyncio.CancelledError`` and the transaction is not committed or closed.
 
 Handling datetimes in database tables
 =====================================
@@ -290,7 +299,7 @@ For example:
    import pytest_asyncio
    from asgi_lifespan import LifespanManager
    from fastapi import FastAPI
-   from safir.database import initialize_database
+   from safir.database import create_database_engine, initialize_database
 
    from application import main
    from application.config import config
@@ -300,13 +309,10 @@ For example:
    @pytest_asyncio.fixture
    async def app() -> AsyncIterator[FastAPI]:
        logger = structlog.get_logger(config.logger_name)
-       engine = await initialize_database(
-           config.database_url,
-           config.database_password,
-           logger,
-           schema=Base.metadata,
-           reset=True,
+       engine = create_database_engine(
+           config.database_url, config.database_password
        )
+       await initialize_database(engine, logger, schema=Base.metadata, reset=True)
        await engine.dispose()
        async with LifespanManager(main.app):
            yield main.app
