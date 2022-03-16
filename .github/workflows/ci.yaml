@@ -34,6 +34,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
+          cache: "pip"
 
       - name: Run pre-commit
         uses: pre-commit/action@v2.0.3
@@ -64,6 +65,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: 3.8
+          cache: "pip"
 
       - name: Install Graphviz
         run: sudo apt-get install graphviz
@@ -100,6 +102,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: 3.8
+          cache: "pip"
 
       - name: Install dependencies
         run: |
