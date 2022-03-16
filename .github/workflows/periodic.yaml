@@ -28,6 +28,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: "pip"
+          cache-dependency-path: "setup.cfg"
 
       - name: Run pre-commit
         uses: pre-commit/action@v2.0.3
