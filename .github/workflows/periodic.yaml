@@ -1,0 +1,40 @@
+# This is a separate run of the Python test suite that doesn't cache the tox
+# environment and runs from a schedule.  The purpose is to test compatibility
+# with the latest versions of all modules Safir depends on, since Safir (being
+# a library) does not pin its dependencies.
+
+name: Periodic CI
+
+"on":
+  schedule:
+    - cron: "0 12 * * 1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python }}
+          cache: "pip"
+          cache-dependency-path: "setup.cfg"
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v2.0.3
+
+      - name: Install tox
+        run: pip install tox tox-docker
+
+      - name: Run tox
+        run: tox -e py,typing
