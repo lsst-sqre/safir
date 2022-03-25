@@ -6,7 +6,7 @@ import asyncio
 import time
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional, overload
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
@@ -63,12 +63,24 @@ def _build_database_url(
     -------
     url : `str`
         The URL including the password.
+
+    Raises
+    ------
+    ValueError
+        A password was provided but the connection URL has no username.
     """
     if is_async or password:
         parsed_url = urlparse(url)
         if is_async and parsed_url.scheme == "postgresql":
             parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
         if password:
+            if not parsed_url.username:
+                raise ValueError(f"No username in database URL {url}")
+            password = quote(password, safe="")
+
+            # The username portion of the parsed URL does not appear to decode
+            # URL escaping of the username, so we should not quote it again or
+            # we will get double-quoting.
             netloc = f"{parsed_url.username}:{password}@{parsed_url.hostname}"
             if parsed_url.port:
                 netloc = f"{netloc}:{parsed_url.port}"
@@ -138,6 +150,11 @@ def create_database_engine(
     engine : `sqlalchemy.ext.asyncio.AsyncEngine`
         Newly-created database engine.  When done with the engine, the caller
         must call ``await engine.dispose()``.
+
+    Raises
+    ------
+    ValueError
+        A password was provided but the connection URL has no username.
     """
     url = _build_database_url(url, password, is_async=True)
     if isolation_level:
@@ -244,6 +261,11 @@ def create_sync_session(
     session : `sqlalchemy.orm.scoping.scoped_session`
         The database session proxy.  This manages a separate session per
         thread and therefore should be thread-safe.
+
+    Raises
+    ------
+    ValueError
+        A password was provided but the connection URL has no username.
     """
     url = _build_database_url(url, password, is_async=False)
     if isolation_level:
