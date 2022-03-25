@@ -5,6 +5,11 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+3.0.2 (unreleased)
+==================
+
+- Fix handling of passwords containing special characters such as ``@`` and ``/`` in ``safir.database``.
+
 3.0.1 (2022-02-24)
 ==================
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta, timezone
+from urllib.parse import unquote, urlparse
 
 import pytest
 import structlog
@@ -92,6 +93,26 @@ def test_build_database_url() -> None:
         "postgresql://foo@127.0.0.1:5433/foo", "otherpass", is_async=True
     )
     assert url == "postgresql+asyncpg://foo:otherpass@127.0.0.1:5433/foo"
+
+    # Test that the username and password are quoted properly.
+    url = _build_database_url(
+        "postgresql://foo%40e.com@127.0.0.1:4444/foo",
+        "pass@word/with stuff",
+        is_async=False,
+    )
+    assert url == (
+        "postgresql://foo%40e.com:pass%40word%2Fwith%20stuff@127.0.0.1:4444"
+        "/foo"
+    )
+    parsed_url = urlparse(url)
+    assert parsed_url.username
+    assert parsed_url.password
+
+    # urlparse does not undo quoting in the components of netloc.
+    assert unquote(parsed_url.username) == "foo@e.com"
+    assert unquote(parsed_url.password) == "pass@word/with stuff"
+    assert parsed_url.hostname == "127.0.0.1"
+    assert parsed_url.port == 4444
 
 
 @pytest.mark.asyncio
