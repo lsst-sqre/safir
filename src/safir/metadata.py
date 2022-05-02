@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import sys
 from email.message import Message
 from importlib.metadata import metadata
 from typing import Optional, cast
@@ -66,7 +67,10 @@ def get_metadata(*, package_name: str, application_name: str) -> Metadata:
     project_urls, Source code
         Used as the ``respository_url``.
     """
-    pkg_metadata: Message = cast(Message, metadata(package_name))
+    if sys.version_info >= (3, 10):
+        pkg_metadata = cast(Message, metadata(package_name))
+    else:
+        pkg_metadata = metadata(package_name)
     return Metadata(
         name=application_name,
         version=pkg_metadata.get("Version", "0.0.0"),
