@@ -3,20 +3,22 @@
 
 from __future__ import annotations
 
+import sys
+from email.message import Message
 from importlib.metadata import metadata
-from typing import TYPE_CHECKING
+from typing import cast
 
 import pytest
 
 from safir.metadata import get_metadata, get_project_url
 
-if TYPE_CHECKING:
-    from email.message import Message
-
 
 @pytest.fixture(scope="session")
 def safir_metadata() -> Message:
-    return metadata("safir")
+    if sys.version_info >= (3, 10):
+        return cast(Message, metadata("safir"))
+    else:
+        return metadata("safir")
 
 
 def test_get_project_url(safir_metadata: Message) -> None:
