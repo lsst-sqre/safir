@@ -5,7 +5,7 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
-3.0.3 (unreleased)
+3.0.3 (2022-05-16)
 ==================
 
 - Correctly handle the possibility that ``request.client`` is ``None``.
