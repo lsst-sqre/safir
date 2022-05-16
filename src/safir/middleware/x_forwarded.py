@@ -87,7 +87,10 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         # Update the request's understanding of the client IP.  This uses an
         # undocumented interface; hopefully it will keep working.
-        request.scope["client"] = (client, request.client.port)
+        if request.client:
+            request.scope["client"] = (client, request.client.port)
+        else:
+            request.scope["client"] = (client, None)
 
         # Ideally this should take the scheme corresponding to the entry in
         # X-Forwarded-For that was chosen, but some proxies (the Kubernetes

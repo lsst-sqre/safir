@@ -25,6 +25,7 @@ async def test_ok() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
+        assert request.client
         assert request.client.host == "10.10.10.10"
         assert request.state.forwarded_host == "foo.example.com"
         assert request.url == "https://foo.example.com/"
@@ -49,6 +50,7 @@ async def test_defaults() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
+        assert request.client
         assert request.client.host == "192.168.0.1"
         assert request.state.forwarded_host == "foo.example.com"
         assert request.url == "http://example.com/"
@@ -73,6 +75,7 @@ async def test_no_forwards() -> None:
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
         assert not request.state.forwarded_host
+        assert request.client
         assert request.client.host == "127.0.0.1"
         assert request.url == "http://example.com/"
         return {}
@@ -88,6 +91,7 @@ async def test_all_filtered() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
+        assert request.client
         assert request.client.host == "10.10.10.10"
         assert request.state.forwarded_host == "foo.example.com"
         assert request.url == "https://example.com/"
@@ -111,6 +115,7 @@ async def test_one_proto() -> None:
 
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
+        assert request.client
         assert request.client.host == "10.10.10.10"
         assert request.state.forwarded_host == "foo.example.com"
         assert request.url == "https://example.com/"
@@ -135,6 +140,7 @@ async def test_no_proto_or_host() -> None:
     @app.get("/")
     async def handler(request: Request) -> Dict[str, str]:
         assert not request.state.forwarded_host
+        assert request.client
         assert request.client.host == "10.10.10.10"
         assert request.url == "http://example.com/"
         return {}

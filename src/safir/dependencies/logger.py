@@ -52,8 +52,9 @@ class LoggerDependency:
         request_data = {
             "requestMethod": request.method,
             "requestUrl": str(request.url),
-            "remoteIp": request.client.host,
         }
+        if request.client:
+            request_data["remoteIp"] = request.client.host
         user_agent = request.headers.get("User-Agent")
         if user_agent:
             request_data["userAgent"] = user_agent
