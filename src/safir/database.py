@@ -132,6 +132,7 @@ def create_database_engine(
     password: Optional[str],
     *,
     isolation_level: Optional[_IsolationLevel] = None,
+    pool_pre_ping: bool = False,
 ) -> AsyncEngine:
     """Create a new async database engine.
 
@@ -144,6 +145,10 @@ def create_database_engine(
     isolation_level : `str`, optional
         If specified, sets a non-default isolation level for the database
         engine.
+    pool_pre_ping : `bool`, optional
+        If set to `True`, test each connection from the pool before using it
+        for a new session.  This means a database query is run each time a
+        session is created.
 
     Returns
     -------
@@ -159,10 +164,15 @@ def create_database_engine(
     url = _build_database_url(url, password, is_async=True)
     if isolation_level:
         return create_async_engine(
-            url, future=True, isolation_level=isolation_level
+            url,
+            future=True,
+            isolation_level=isolation_level,
+            pool_pre_ping=pool_pre_ping,
         )
     else:
-        return create_async_engine(url, future=True)
+        return create_async_engine(
+            url, future=True, pool_pre_ping=pool_pre_ping
+        )
 
 
 async def create_async_session(

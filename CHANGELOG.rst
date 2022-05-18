@@ -5,6 +5,13 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+3.1.0 (unreleased)
+==================
+
+- Add ``pool_pre_ping`` argument to ``create_database_engine``.
+  If set, this is passed down to SQLAlchemy to enable testing of the database connection each time a connection is checked out of the connection pool.
+  This may be useful to work around TCP connection timeouts between an application and the database.
+
 3.0.3 (2022-05-16)
 ==================
 
