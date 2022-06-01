@@ -31,6 +31,9 @@ API reference
 .. automodapi:: safir.models
    :include-all-objects:
 
+.. automodapi:: safir.middleware.ivoa
+   :include-all-objects:
+
 .. automodapi:: safir.middleware.x_forwarded
    :include-all-objects:
 

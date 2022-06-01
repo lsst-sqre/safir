@@ -5,6 +5,11 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+3.1.0 (2022-06-01)
+==================
+
+- Add new FastAPI middleware ``CaseInsensitiveQueryMiddleware`` to aid in implementing the IVOA protocol requirement that the keys of query parameters be case-isensitive.
+
 3.0.3 (2022-05-16)
 ==================
 

@@ -38,6 +38,7 @@ Guides
    kubernetes
    logging
    x-forwarded
+   ivoa
 
 API
 ===
