@@ -343,7 +343,7 @@ class ArqQueue(metaclass=abc.ABCMeta):
         ------
         JobNotFound
             Raised if the job is not found in the queue.
-        ResultUnavailable
+        JobResultUnavailable
             Raised if the job's result is unavailable for any reason.
         """
         raise NotImplementedError
