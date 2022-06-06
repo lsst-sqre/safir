@@ -73,6 +73,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "sqlalchemy": ("https://docs.sqlalchemy.org/en/latest/", None),
     "structlog": ("https://www.structlog.org/en/stable/", None),
+    "arq": ("https://arq-docs.helpmanual.io", None),
 }
 
 intersphinx_timeout = 10.0  # seconds
@@ -95,6 +96,7 @@ nitpick_ignore = [
     ("py:class", "starlette.middleware.base.BaseHTTPMiddleware"),
     ("py:class", "starlette.requests.Request"),
     ("py:class", "starlette.responses.Response"),
+    ("py:obj", "JobMetadata.id"),
 ]
 
 # Linkcheck builder ==========================================================

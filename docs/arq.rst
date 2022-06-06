@@ -14,6 +14,8 @@ For real-world examples of how this dependency, and arq-based distributed queues
 Quick start
 ===========
 
+.. _arq-dependency-setup:
+
 Dependency set up and configuration
 -----------------------------------
 
@@ -167,7 +169,7 @@ To run a worker, you run your application's Docker image with the ``arq`` comman
 Using the arq dependency in endpoint handlers
 ---------------------------------------------
 
-The arq dependency provides your FastAPI endpoint handlers with an `ArqQueue` client that you can use to add jobs to the queue, and get metadata and results (if available) from the queue:
+The arq dependency provides your FastAPI endpoint handlers with an `ArqQueue` client that you can use to add jobs (`ArqQueue.enqueue`) to the queue, and get metadata (`ArqQueue.get_job_metadata`) and results (`ArqQueue.get_job_result`) from the queue:
 
 .. code-block:: python
 
@@ -213,3 +215,70 @@ The arq dependency provides your FastAPI endpoint handlers with an `ArqQueue` cl
         return response
 
 For information on the metadata available from jobs, see `JobMetadata` and `JobResult`.
+
+Testing applications with an arq queue
+======================================
+
+Unit testing an application with a running distributed queue is difficult since three components (two instances of the application and a redis database) must coordinate.
+A better unit testing approach is to test the front-end application separately from the worker functions.
+To help you do this, the arq dependency allows you to run a mocked version of an arq queue.
+With the mocked client, your front-end application can run the three basic client methods as normal: `ArqQueue.enqueue`, `ArqQueue.get_job_metadata`, and `ArqQueue.get_job_result`).
+This mocked client is a subclass of `ArqQueue` called `MockArqQueue`.
+
+Configuring the test mode
+-------------------------
+
+You get a `MockArqQueue` from the `arq_dependency` by passing a `ArqMode.test` value to the ``mode`` argument of `ArqDependency.initialize` in your application's start up (see :ref:`arq-dependency-setup`).
+As the above example shows, you can make this an environment variable configuration, and then set the arq mode in your tox settings.
+
+Interacting with the queue state
+--------------------------------
+
+Your tests can add jobs and get job metadata or results using the normal code paths.
+Since queue jobs never run, your test code needs to manually change the status of jobs and set job results.
+You can do this by manually calling `safir.dependencies.arq.arq_dependency` instance from your test (a `MockArqQueue`) and using the `MockArqQueue.set_in_progress` and `MockArqQueue.set_complete` methods.
+
+This example adapted from Noteburst shows how this works:
+
+.. code-block:: python
+
+    from safir.dependencies.arq import MockArqQueue, arq_dependency
+
+
+    @pytest.mark.asyncio
+    async def test_post_nbexec(
+        client: AsyncClient, sample_ipynb: str, sample_ipynb_executed: str
+    ) -> None:
+        arq_queue = await arq_dependency()
+        assert isinstance(arq_queue, MockArqQueue)
+
+        response = await client.post(
+            "/noteburst/v1/notebooks/",
+            json={
+                "ipynb": sample_ipynb,
+                "kernel_name": "LSST",
+            },
+        )
+        assert response.status_code == 202
+        data = response.json()
+        assert data["status"] == "queued"
+        job_url = response.headers["Location"]
+        job_id = data["job_id"]
+
+        # Toggle the job to in-progress; the status should update
+        await arq_queue.set_in_progress(job_id)
+
+        response = await client.get(job_url)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "in_progress"
+
+        # Toggle the job to complete
+        await arq_queue.set_complete(job_id, result=sample_ipynb_executed)
+
+        response = await client.get(job_url)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "complete"
+        assert data["success"] is True
+        assert data["ipynb"] == sample_ipynb_executed
