@@ -7,6 +7,7 @@ import safir
 
 rst_epilog = """
 
+.. _arq: https://arq-docs.helpmanual.io
 .. _FastAPI: https://fastapi.tiangolo.com/
 .. _mypy: http://www.mypy-lang.org
 .. _pre-commit: https://pre-commit.com
