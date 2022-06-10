@@ -4,9 +4,9 @@
 Using the arq Redis queue dependency
 ####################################
 
-Distributed queues allow your applications to decouple intensive and slow processing tasks from your user-facing endpoint handlers.
+Distributed queues allow your application to decouple slow-running processing tasks from your user-facing endpoint handlers.
 arq_ is a simple distributed queue library with an asyncio API that uses Redis to store both queue metadata and results.
-To simplify integrating arq_ into your FastAPI application and test suites, Safir provides a endpoint handler dependency, in the `safir.dependencies.arq` module, that provides an arq_ client to your endpoint handling functions.
+To simplify integrating arq_ into your FastAPI application and test suites, Safir provides an endpoint handler dependency (`safir.dependencies.arq`) that provides an arq_ client.
 
 For information on using arq in general, see the `arq documentation <https://arq-docs.helpmanual.io>`_.
 For real-world examples of how this dependency, and arq-based distributed queues in general are used in FastAPI apps, see our `Times Square <https://github.com/lsst-sqre/times-square>`__ and `Noteburst <https://github.com/lsst-sqre/noteburst>`__ applications.
@@ -19,7 +19,7 @@ Quick start
 Dependency set up and configuration
 -----------------------------------
 
-In your application's setup module, typically :file:`main.py`, you need to initialize `ArqDependency` during the FastAPI start up event:
+In your application's FastAPI setup module, typically :file:`main.py`, you need to initialize `ArqDependency` during the start up event:
 
 .. code-block:: python
 
@@ -90,7 +90,7 @@ A convenient pattern is to co-locate the worker inside a ``worker`` sub-package:
    │           │   └── function_b.py
    │           ├── main.py
 
-The ``src.yourapp.worker.main.py`` module looks like:
+The :file:`src/yourapp/worker/main.py` module looks like:
 
 .. code-block:: python
 
@@ -108,7 +108,7 @@ The ``src.yourapp.worker.main.py`` module looks like:
 
 
     async def startup(ctx: Dict[Any, Any]) -> None:
-        """Runs during working start-up to set up the worker context."""
+        """Runs during worker start-up to set up the worker context."""
         configure_logging(
             profile=config.profile,
             log_level=config.log_level,
@@ -119,17 +119,15 @@ The ``src.yourapp.worker.main.py`` module looks like:
         instance_key = uuid.uuid4().hex
         logger = logger.bind(worker_instance=instance_key)
 
-        logger.info("Starting up worker")
-
         http_client = httpx.AsyncClient()
         ctx["http_client"] = http_client
 
         ctx["logger"] = logger
-        logger.info("Start up complete")
+        logger.info("Worker start up complete")
 
 
     async def shutdown(ctx: Dict[Any, Any]) -> None:
-        """Runs during worker shut-down to resources."""
+        """Runs during worker shutdown to cleanup resources."""
         if "logger" in ctx.keys():
             logger = ctx["logger"]
         else:
