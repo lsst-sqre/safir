@@ -10,13 +10,8 @@ from asgi_lifespan import LifespanManager
 from fastapi import Depends, FastAPI, HTTPException
 from httpx import AsyncClient
 
-from safir.dependencies.arq import (
-    ArqMode,
-    JobNotFound,
-    JobResultUnavailable,
-    MockArqQueue,
-    arq_dependency,
-)
+from safir.arq import ArqMode, JobNotFound, JobResultUnavailable, MockArqQueue
+from safir.dependencies.arq import arq_dependency
 
 
 @pytest.mark.asyncio

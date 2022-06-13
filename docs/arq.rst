@@ -1,12 +1,12 @@
-.. currentmodule:: safir.dependencies.arq
+.. currentmodule:: safir.arq
 
-####################################
-Using the arq Redis queue dependency
-####################################
+###############################################
+Using the arq Redis queue client and dependency
+###############################################
 
 Distributed queues allow your application to decouple slow-running processing tasks from your user-facing endpoint handlers.
 arq_ is a simple distributed queue library with an asyncio API that uses Redis to store both queue metadata and results.
-To simplify integrating arq_ into your FastAPI application and test suites, Safir provides an endpoint handler dependency (`safir.dependencies.arq`) that provides an arq_ client.
+To simplify integrating arq_ into your FastAPI application and test suites, Safir both an arq client (`~safir.arq.ArqQueue`) with a drop-in mock for testing and an endpoint handler dependency (`safir.dependencies.arq`) that provides an arq_ client.
 
 For information on using arq in general, see the `arq documentation <https://arq-docs.helpmanual.io>`_.
 For real-world examples of how this dependency, and arq-based distributed queues in general are used in FastAPI apps, see our `Times Square <https://github.com/lsst-sqre/times-square>`__ and `Noteburst <https://github.com/lsst-sqre/noteburst>`__ applications.
@@ -19,12 +19,12 @@ Quick start
 Dependency set up and configuration
 -----------------------------------
 
-In your application's FastAPI setup module, typically :file:`main.py`, you need to initialize `ArqDependency` during the start up event:
+In your application's FastAPI setup module, typically :file:`main.py`, you need to initialize `safir.dependencies.arq.ArqDependency` during the start up event:
 
 .. code-block:: python
 
     from fastapi import Depends, FastAPI
-    from safir.dependencies.arq import arq_dependency, ArqMode, ArqQueue
+    from safir.dependencies.arq import arq_dependency
 
     app = FastAPI()
 
@@ -35,7 +35,7 @@ In your application's FastAPI setup module, typically :file:`main.py`, you need 
             mode=config.arq_mode, redis_settings=config.arq_redis_settings
         )
 
-The ``mode`` parameter for `ArqDependency.initialize` takes `str` values of either ``"production"`` or ``"test"`` (see `ArqMode`). The ``"production"`` mode configures a real arq queue backed by Redis, whereas ``"test"`` configures a mock version of the arq queue that does not use Redis.
+The ``mode`` parameter for `safir.dependencies.arq.ArqDependency.initialize` takes `ArqMode` enum values of either ``"production"`` or ``"test"``. The ``"production"`` mode configures a real arq_ queue backed by Redis, whereas ``"test"`` configures a mock version of the arq_ queue.
 
 Running under the regular ``"production"`` mode, you need to provide a `arq.connections.RedisSettings` instance.
 If your app uses a configuration system like ``pydantic.BaseSettings``, this example ``Config`` class shows how to create a `~arq.connections.RedisSettings` object from a regular Redis URI:
@@ -46,7 +46,7 @@ If your app uses a configuration system like ``pydantic.BaseSettings``, this exa
 
     from arq.connections import RedisSettings
     from pydantic import BaseSettings, Field, RedisDsn
-    from safir.dependencies.arq import ArqMode
+    from safir.arq import ArqMode
 
 
     class Config(BaseSettings):
@@ -167,9 +167,14 @@ To run a worker, you run your application's Docker image with the ``arq`` comman
 Using the arq dependency in endpoint handlers
 ---------------------------------------------
 
-The arq dependency provides your FastAPI endpoint handlers with an `ArqQueue` client that you can use to add jobs (`ArqQueue.enqueue`) to the queue, and get metadata (`ArqQueue.get_job_metadata`) and results (`ArqQueue.get_job_result`) from the queue:
+The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI endpoint handlers with an `ArqQueue` client that you can use to add jobs (`ArqQueue.enqueue`) to the queue, and get metadata (`ArqQueue.get_job_metadata`) and results (`ArqQueue.get_job_result`) from the queue:
 
 .. code-block:: python
+
+    from fastapi import Depends, HTTPException
+    from safir.arq import ArqQueue
+    from safir.dependencies.arq import arq_dependency
+
 
     @app.post("/jobs")
     async def post_job(
@@ -226,7 +231,7 @@ This mocked client is a subclass of `ArqQueue` called `MockArqQueue`.
 Configuring the test mode
 -------------------------
 
-You get a `MockArqQueue` from the `arq_dependency` by passing a `ArqMode.test` value to the ``mode`` argument of `ArqDependency.initialize` in your application's start up (see :ref:`arq-dependency-setup`).
+You get a `MockArqQueue` from the `safir.dependencies.arq.arq_dependency` instance by passing a `ArqMode.test` value to the ``mode`` argument of `safir.dependencies.arq.ArqDependency.initialize` in your application's start up (see :ref:`arq-dependency-setup`).
 As the above example shows, you can make this an environment variable configuration, and then set the arq mode in your tox settings.
 
 Interacting with the queue state
@@ -234,13 +239,14 @@ Interacting with the queue state
 
 Your tests can add jobs and get job metadata or results using the normal code paths.
 Since queue jobs never run, your test code needs to manually change the status of jobs and set job results.
-You can do this by manually calling `safir.dependencies.arq.arq_dependency` instance from your test (a `MockArqQueue`) and using the `MockArqQueue.set_in_progress` and `MockArqQueue.set_complete` methods.
+You can do this by manually calling the `safir.dependencies.arq.arq_dependency` instance from your test (a `MockArqQueue`) and using the `MockArqQueue.set_in_progress` and `MockArqQueue.set_complete` methods.
 
 This example adapted from Noteburst shows how this works:
 
 .. code-block:: python
 
-    from safir.dependencies.arq import MockArqQueue, arq_dependency
+    from safir.arq import MockArqQueue
+    from safir.dependencies.arq import arq_dependency
 
 
     @pytest.mark.asyncio

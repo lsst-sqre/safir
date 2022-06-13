@@ -5,6 +5,9 @@ API reference
 .. automodapi:: safir
    :include-all-objects:
 
+.. automodapi:: safir.arq
+   :include-all-objects:
+
 .. automodapi:: safir.database
 
 .. automodapi:: safir.dependencies.arq
