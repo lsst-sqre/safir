@@ -372,13 +372,6 @@ class RedisArqQueue(ArqQueue):
         )
         return cls(pool)
 
-    @property
-    def default_queue_name(self) -> str:
-        """Name of the default queue, if the ``_queue_name`` parameter is
-        no set in method calls.
-        """
-        return self._default_queue_name
-
     async def enqueue(
         self,
         task_name: str,
