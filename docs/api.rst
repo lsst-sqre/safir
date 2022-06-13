@@ -5,7 +5,13 @@ API reference
 .. automodapi:: safir
    :include-all-objects:
 
+.. automodapi:: safir.arq
+   :include-all-objects:
+
 .. automodapi:: safir.database
+
+.. automodapi:: safir.dependencies.arq
+   :include-all-objects:
 
 .. automodapi:: safir.dependencies.db_session
    :include-all-objects:

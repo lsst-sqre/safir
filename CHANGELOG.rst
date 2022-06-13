@@ -5,6 +5,13 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+3.2.0 (2022-05-13)
+==================
+
+- New support for `arq <https://arq-docs.helpmanual.io>`__, the Redis-based asyncio distributed queue package.
+  The ``safir.arq`` module provides an arq client and metadata/result data classes with a mock implementation for testing.
+  The FastAPI dependency, ``safir.dependencies.arq.arq_dependency``, provides a convenient way to use the arq client from HTTP handlers.
+
 3.1.0 (2022-06-01)
 ==================
 

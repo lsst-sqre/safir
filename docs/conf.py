@@ -7,6 +7,7 @@ import safir
 
 rst_epilog = """
 
+.. _arq: https://arq-docs.helpmanual.io
 .. _FastAPI: https://fastapi.tiangolo.com/
 .. _mypy: http://www.mypy-lang.org
 .. _pre-commit: https://pre-commit.com
@@ -72,6 +73,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "sqlalchemy": ("https://docs.sqlalchemy.org/en/latest/", None),
     "structlog": ("https://www.structlog.org/en/stable/", None),
+    "arq": ("https://arq-docs.helpmanual.io", None),
 }
 
 intersphinx_timeout = 10.0  # seconds
@@ -94,6 +96,7 @@ nitpick_ignore = [
     ("py:class", "starlette.middleware.base.BaseHTTPMiddleware"),
     ("py:class", "starlette.requests.Request"),
     ("py:class", "starlette.responses.Response"),
+    ("py:obj", "JobMetadata.id"),
 ]
 
 # Linkcheck builder ==========================================================

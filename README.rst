@@ -23,6 +23,7 @@ Features
 - Middleware for attaching request context to the logger to include a request UUID, method, and route in all log messages.
 - Process ``X-Forwarded-*`` headers to determine the source IP and related information of the request.
 - Gather and structure standard metadata about your application.
+- Operate a distributed Redis job queue with arq_ using convenient clients, testing mocks, and a FastAPI dependency.
 
 Developing Safir
 ================
@@ -40,3 +41,4 @@ For details, see https://safir.lsst.io/dev/development.html.
 .. _Roundtable: https://roundtable.lsst.io
 .. _FastAPI: https://fastapi.tiangolo.com/
 .. _fastapi_safir_app: https://github.com/lsst/templates/tree/master/project_templates/fastapi_safir_app
+.. _arq: https://arq-docs.helpmanual.io

@@ -32,6 +32,7 @@ Guides
 .. toctree::
    :maxdepth: 2
 
+   arq
    database
    http-client
    gafaelfawr
