@@ -17,6 +17,7 @@ from arq.constants import default_queue_name as arq_default_queue_name
 from arq.jobs import Job, JobStatus
 
 __all__ = [
+    "ArqJobError",
     "JobNotQueued",
     "JobNotFound",
     "JobResultUnavailable",
@@ -29,16 +30,47 @@ __all__ = [
 ]
 
 
-class JobNotQueued(Exception):
+class ArqJobError(Exception):
+    """A base class for errors related to arq jobs.
+
+    Attributes
+    ----------
+    job_id : `str`, optional
+        The job ID, or `None` if the job ID is not known in this context.
+    """
+
+    def __init__(self, message: str, job_id: Optional[str]) -> None:
+        super().__init__(message)
+        self._job_id = job_id
+
+    @property
+    def job_id(self) -> Optional[str]:
+        """The job ID, or `None` if the job ID is not known in this context."""
+        return self._job_id
+
+
+class JobNotQueued(ArqJobError):
     """The job was not successfully queued."""
 
+    def __init__(self, job_id: Optional[str]) -> None:
+        super().__init__(
+            f"Job was not queued because it already exists. id={job_id}",
+            job_id,
+        )
 
-class JobNotFound(Exception):
+
+class JobNotFound(ArqJobError):
     """A job cannot be found."""
 
+    def __init__(self, job_id: str) -> None:
+        super().__init__(f"Job could not be found. id={job_id}", job_id)
 
-class JobResultUnavailable(Exception):
+
+class JobResultUnavailable(ArqJobError):
     """The job's result is unavailable."""
+
+    def __init__(self, job_id: str) -> None:
+        super().__init__(f"Job result could not be found. id={job_id}", job_id)
 
 
 class ArqMode(str, Enum):
@@ -126,11 +158,11 @@ class JobMetadata:
         """
         job_info = await job.info()
         if job_info is None:
-            raise JobNotFound
+            raise JobNotFound(job.job_id)
 
         job_status = await job.status()
         if job_status == JobStatus.not_found:
-            raise JobNotFound
+            raise JobNotFound(job.job_id)
 
         return cls(
             id=job.job_id,
@@ -205,19 +237,21 @@ class JobResult(JobMetadata):
         ------
         JobNotFound
             Raised if the job is not found
+        JobResultUnavailable
+            Raised if the job result is not available.
         """
         job_info = await job.info()
         if job_info is None:
-            raise JobNotFound
+            raise JobNotFound(job.job_id)
 
         job_status = await job.status()
         if job_status == JobStatus.not_found:
-            raise JobNotFound
+            raise JobNotFound(job.job_id)
 
         # Result may be none if the job isn't finished
         result_info = await job.result_info()
         if result_info is None:
-            raise JobResultUnavailable
+            raise JobResultUnavailable(job.job_id)
 
         return cls(
             id=job.job_id,
@@ -388,7 +422,8 @@ class RedisArqQueue(ArqQueue):
         if job:
             return await JobMetadata.from_job(job)
         else:
-            raise JobNotQueued
+            # TODO if implementing hard-coded job IDs, set as an argument
+            raise JobNotQueued(None)
 
     def _get_job(self, job_id: str, queue_name: Optional[str] = None) -> Job:
         return Job(
@@ -454,7 +489,7 @@ class MockArqQueue(ArqQueue):
         try:
             return self._job_metadata[queue_name][job_id]
         except KeyError:
-            raise JobNotFound
+            raise JobNotFound(job_id)
 
     async def get_job_result(
         self, job_id: str, queue_name: Optional[str] = None
@@ -463,7 +498,7 @@ class MockArqQueue(ArqQueue):
         try:
             return self._job_results[queue_name][job_id]
         except KeyError:
-            raise JobResultUnavailable
+            raise JobResultUnavailable(job_id)
 
     async def set_in_progress(
         self, job_id: str, queue_name: Optional[str] = None

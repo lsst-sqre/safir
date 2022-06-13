@@ -67,8 +67,8 @@ async def test_arq_dependency_mock() -> None:
             job_result = await arq_queue.get_job_result(
                 job_id, queue_name=queue_name
             )
-        except (JobNotFound, JobResultUnavailable):
-            raise HTTPException(status_code=404)
+        except (JobNotFound, JobResultUnavailable) as e:
+            raise HTTPException(status_code=404, detail=str(e))
         return {
             "job_id": job_result.id,
             "job_status": job_result.status,
@@ -89,8 +89,8 @@ async def test_arq_dependency_mock() -> None:
         """Toggle a job to in-progress, for testing."""
         try:
             await arq_queue.set_in_progress(job_id, queue_name=queue_name)
-        except JobNotFound:
-            raise HTTPException(status_code=404)
+        except JobNotFound as e:
+            raise HTTPException(status_code=404, detail=str(e))
 
     @app.post("/jobs/{job_id}/complete")
     async def post_job_complete(
@@ -105,8 +105,8 @@ async def test_arq_dependency_mock() -> None:
             await arq_queue.set_complete(
                 job_id, result=result, success=success, queue_name=queue_name
             )
-        except JobNotFound:
-            raise HTTPException(status_code=404)
+        except JobNotFound as e:
+            raise HTTPException(status_code=404, detail=str(e))
 
     @app.on_event("startup")
     async def startup() -> None:
@@ -126,7 +126,6 @@ async def test_arq_dependency_mock() -> None:
 
             r = await c.get(f"/jobs/{job_id}")
             assert r.status_code == 200
-            # assert data["job_args"] == ["hello"]
             assert data["job_kwargs"] == {"a_number": 42}
 
             # Wrong queue name
@@ -136,6 +135,10 @@ async def test_arq_dependency_mock() -> None:
             # Result should not be available
             r = await c.get(f"/results/{job_id}")
             assert r.status_code == 404
+            data = r.json()
+            assert data["detail"] == (
+                f"Job result could not be found. id={job_id}"
+            )
 
             # Set to in-progress
             r = await c.post(f"/jobs/{job_id}/inprogress")
