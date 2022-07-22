@@ -62,21 +62,27 @@ Each handler that wants to use the logger requests it as a FastAPI dependency.
 
 This dependency creates a request-specific logger for each request with bound context fields:
 
-``method``
-    The HTTP method (such as GET, POST, DELETE).
+``httpRequest``
+    A nested dictionary of information about the incoming request.
+    This follows the format that Google's Cloud Logging system expects.
+    It has the following keys:
 
-``path``
-    The path of the request.
+    ``requestMethod``
+        The HTTP method (such as GET, POST, DELETE).
 
-``remote``
-    The IP address of the client that sent the request.
+    ``requestUrl``
+        The requested URL.
+
+    ``remoteIp``
+        The IP address of the client.
+        Use :ref:`XForwardedMiddleware <x-forwarded>` to log more accurate information for applications behind a Kubernetes ingress.
+
+    ``userAgent``
+        The ``User-Agent`` header of the HTTP request, if present.
 
 ``request_id``
     The request ID is a UUID.
     Use it to collect all messages generated from a given request.
-
-``user_agent``
-    The value of the ``User-Agent`` header, which can assist with debugging.
 
 The log message will look something like:
 
@@ -84,14 +90,16 @@ The log message will look something like:
 
    {
      "event": "My message",
-     "level": "info",
+     "httpRequest": {
+       "requestMethod": "GET",
+       "requestUrl": "https://example.com/exampleapp",
+       "remoteIp": "192.168.1.1",
+       "userAgent": "some-user-agent/1.0"
+     },
      "logger": "myapp",
-     "method": "GET",
-     "path": "/exampleapp/",
-     "remote": "192.168.1.1",
-     "request_id": "62983174-5c51-46ad-b451-d774562783b9",
+     "request_id": "d8fc02cf-40ac-4d35-bb59-1f0dd9ddedf6",
+     "severity": "info",
      "somekey": 42,
-     "user_agent": "some-user-agent/1.0"
    }
 
 Authenticated routes
@@ -127,13 +135,15 @@ This generates log messages:
    {
      "answer": 42,
      "event": "Message 1",
-     "level": "info",
+     "httpRequest": {
+       "requestMethod": "GET",
+       "requestUrl": "https://example.com/exampleapp",
+       "remoteIp": "192.168.1.1",
+       "userAgent": "some-user-agent/1.0"
+     },
      "logger": "myapp",
-     "method": "GET",
-     "path": "/exampleapp/",
-     "remote": "192.168.1.1",
-     "request_id": "62983174-5c51-46ad-b451-d774562783b9",
-     "user_agent": "some-user-agent/1.0"
+     "request_id": "d8fc02cf-40ac-4d35-bb59-1f0dd9ddedf6",
+     "severity": "info",
    }
 
 .. code-block:: json
@@ -141,13 +151,15 @@ This generates log messages:
    {
      "answer": 42,
      "event": "Message 2",
-     "level": "info",
+     "httpRequest": {
+       "requestMethod": "GET",
+       "requestUrl": "https://example.com/exampleapp",
+       "remoteIp": "192.168.1.1",
+       "userAgent": "some-user-agent/1.0"
+     },
      "logger": "myapp",
-     "method": "GET",
-     "path": "/exampleapp/",
-     "remote": "192.168.1.1",
-     "request_id": "62983174-5c51-46ad-b451-d774562783b9",
-     "user_agent": "some-user-agent/1.0"
+     "request_id": "d8fc02cf-40ac-4d35-bb59-1f0dd9ddedf6",
+     "severity": "info",
    }
 
 Because `~structlog.BoundLogger.bind` returns a new logger, you'll need to pass this logger to any functions that your handler calls.
