@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import asyncio
 from functools import wraps
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar
 
 T = TypeVar("T")
 
 __all__ = ["run_with_asyncio"]
 
 
-def run_with_asyncio(f: Callable[..., Awaitable[T]]) -> Callable[..., T]:
+def run_with_asyncio(
+    f: Callable[..., Coroutine[Any, Any, T]]
+) -> Callable[..., T]:
     """Run the decorated function with `asyncio.run`.
 
     Intended to be used as a decorator around an async function that needs to
