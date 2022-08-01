@@ -5,7 +5,7 @@ repos:
       - id: check-yaml
       - id: check-toml
 
-  - repo: https://github.com/pycqa/isort
+  - repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
       - id: isort
@@ -24,7 +24,7 @@ repos:
         additional_dependencies: [black==22.3.0]
         args: [-l, '79', -t, py39]
 
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 4.0.1
+  - repo: https://github.com/PyCQA/flake8
+    rev: 5.0.2
     hooks:
       - id: flake8
