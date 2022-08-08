@@ -5,6 +5,11 @@ Change log
 .. Headline template:
    X.Y.Z (YYYY-MM-DD)
 
+3.3.0 (unreleased)
+==================
+
+- Support the newer project metadata structure and URL naming used by ``pyproject.toml``-only packages in ``safir.metadata.get_metadata``.
+
 3.2.0 (2022-05-13)
 ==================
 
