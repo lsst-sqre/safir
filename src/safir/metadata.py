@@ -54,12 +54,23 @@ def get_metadata(*, package_name: str, application_name: str) -> Metadata:
     Notes
     -----
     ``get_metadata`` integrates extensively with your package's metadata.
-    Typically this metadata is either set in the ``setup.cfg`` or ``setup.py``
-    file (for setuptools-based applications):
+    Typically this metadata is set in ``pyproject.toml``, ``setup.cfg``,
+    ``setup.py`` file (for setuptools-based applications).  The
+    ``pyproject.toml`` fields used are:
 
     version
         Used as the version metadata. This may be set automatically with
         ``setuptools_scm``.
+    description
+        Use as the ``description`` metadata.
+    project.urls, Homepage
+        Used as the ``documentation_url`` metadata.
+    project.urls, Source
+        Used as the ``respository_url``.
+
+    Packages using ``setup.cfg`` or ``setup.py`` get the last three items of
+    metadata from different sources:
+
     summary
         Use as the ``description`` metadata.
     url
@@ -71,12 +82,24 @@ def get_metadata(*, package_name: str, application_name: str) -> Metadata:
         pkg_metadata = cast(Message, metadata(package_name))
     else:
         pkg_metadata = metadata(package_name)
+
+    # Newer packages that use pyproject.toml only do not use the Home-page
+    # field (setuptools in pyproject.toml mode does not support it) and use
+    # different names for the project URLs.  Attempt those names first and
+    # fall back to the older names.
+    repository_url = get_project_url(pkg_metadata, "Source")
+    if not repository_url:
+        repository_url = get_project_url(pkg_metadata, "Source code")
+    documentation_url = get_project_url(pkg_metadata, "Homepage")
+    if not documentation_url:
+        documentation_url = pkg_metadata.get("Home-page", None)
+
     return Metadata(
         name=application_name,
         version=pkg_metadata.get("Version", "0.0.0"),
         description=pkg_metadata.get("Summary", None),
-        repository_url=get_project_url(pkg_metadata, "Source code"),
-        documentation_url=pkg_metadata.get("Home-page", None),
+        repository_url=repository_url,
+        documentation_url=documentation_url,
     )
 
 
@@ -89,7 +112,20 @@ def get_project_url(meta: Message, label: str) -> Optional[str]:
         The package metadata, as returned by the
         ``importlib.metadata.metadata`` function.
     label : `str`
-        The URL's label. Consider the follow snippet of a ``setup.cfg`` file:
+        The URL's label. Consider the follow snippet of a ``pyproject.toml``
+        file:
+
+        .. code-block:: toml
+
+           [project.urls]
+           Homepage = "https://safir.lsst.io/"
+           Source = "https://github.com/lsst-sqre/safir"
+
+        To get the ``https://github.com/lsst-sqre/safir`` URL, the label is
+        ``Source``.
+
+        Packages using ``setup.cfg`` use a different syntax but a similar
+        approach.
 
         .. code-block:: ini
 
@@ -110,7 +146,7 @@ def get_project_url(meta: Message, label: str) -> Optional[str]:
     --------
     >>> from importlib_metadata import metadata
     >>> meta = metadata("safir")
-    >>> get_project_url(meta, "Source code")
+    >>> get_project_url(meta, "Source")
     'https://github.com/lsst-sqre/safir'
     """
     prefix = f"{label}, "
