@@ -1,19 +1,10 @@
 """Manage an async database session."""
 
-from typing import TYPE_CHECKING, AsyncIterator, Optional
+from typing import AsyncIterator, Optional
 
 from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
 from ..database import create_async_session, create_database_engine
-
-# _IsolationLevel is defined in the SQLAlchemy type stubs as a long list of
-# Literal options, which is not type-compatible with str.  Use this hack to
-# use the correct list for type checking, but not for regular execution when
-# the type stubs will not be loaded.
-if TYPE_CHECKING:
-    from sqlalchemy.engine.create import _IsolationLevel
-else:
-    _IsolationLevel = str
 
 __all__ = ["DatabaseSessionDependency", "db_session_dependency"]
 
@@ -77,7 +68,7 @@ class DatabaseSessionDependency:
         url: str,
         password: Optional[str],
         *,
-        isolation_level: Optional[_IsolationLevel] = None,
+        isolation_level: Optional[str] = None,
     ) -> None:
         """Initialize the session dependency.
 

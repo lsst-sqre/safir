@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Optional, overload
+from typing import Optional, overload
 from urllib.parse import quote, urlparse
 
 from sqlalchemy import create_engine
@@ -20,15 +20,6 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.schema import MetaData
 from structlog.stdlib import BoundLogger
-
-# _IsolationLevel is defined in the SQLAlchemy type stubs as a long list of
-# Literal options, which is not type-compatible with str.  Use this hack to
-# use the correct list for type checking, but not for regular execution when
-# the type stubs will not be loaded.
-if TYPE_CHECKING:
-    from sqlalchemy.engine.create import _IsolationLevel
-else:
-    _IsolationLevel = str
 
 __all__ = [
     "DatabaseInitializationError",
@@ -131,7 +122,7 @@ def create_database_engine(
     url: str,
     password: Optional[str],
     *,
-    isolation_level: Optional[_IsolationLevel] = None,
+    isolation_level: Optional[str] = None,
 ) -> AsyncEngine:
     """Create a new async database engine.
 
@@ -231,7 +222,7 @@ def create_sync_session(
     password: Optional[str],
     logger: Optional[BoundLogger] = None,
     *,
-    isolation_level: Optional[_IsolationLevel] = None,
+    isolation_level: Optional[str] = None,
     statement: Optional[Select] = None,
 ) -> scoped_session:
     """Create a new sync database session.
