@@ -23,7 +23,7 @@ def safir_metadata() -> Message:
 
 def test_get_project_url(safir_metadata: Message) -> None:
     """Test the get_project_url function using Safir's own metadata."""
-    source_url = get_project_url(safir_metadata, "Source code")
+    source_url = get_project_url(safir_metadata, "Source")
     assert source_url == "https://github.com/lsst-sqre/safir"
 
 
