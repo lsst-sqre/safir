@@ -3,7 +3,7 @@
 name = "safir"
 description = "The Rubin Observatory SQuaRE framework for FastAPI services."
 license = {file = "LICENSE"}
-readme= "README.rst"
+readme= "README.md"
 keywords = [
     "rubin",
     "lsst",
