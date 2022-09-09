@@ -49,11 +49,9 @@ dev = [
     "respx",
     "sqlalchemy[mypy]",
     # documentation
-    "documenteer",
-    "lsst-sphinx-bootstrap-theme",
-    "sphinx!=5.1.0",
-    "sphinx-automodapi",
-    "sphinx-prompt",
+    "documenteer[guide]>=0.7.0b1",
+    "sphinx_click",
+    "sphinxcontrib-autoprogram",
 ]
 kubernetes = [
     "kubernetes_asyncio"
