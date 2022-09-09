@@ -5,41 +5,18 @@ Safir
 Safir is the SQuaRE Framework for Roundtable
 ============================================
 
-Roundtable_ is the SQuaRE application and bot deployment platform, hosted on Kubernetes with Argo CD.
-Safir is a Python package that lets you develop Roundtable bots, based on the `FastAPI`_ asyncio web framework.
+Safir is Rubin Observatory's library for building FastAPI_ services for the Rubin Science Platform (Phalanx_) and Roundtable_ Kubernetes clusters.
+Safir is developed, maintained, and field tested by the SQuaRE team.
 
-Safir is developed on GitHub at https://github.com/lsst-sqre/safir.
+Safir is developed on GitHub at https://github.com/lsst-sqre/safir and is available on PyPI_.
 
-Getting started
-===============
-
-.. toctree::
-   :maxdepth: 1
-
-   changelog
-
-Tutorials
-=========
+User guide
+==========
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
-   set-up-from-template
-
-Guides
-======
-
-.. toctree::
-   :maxdepth: 2
-
-   arq
-   database
-   http-client
-   gafaelfawr
-   kubernetes
-   logging
-   x-forwarded
-   ivoa
+   user-guide/index
 
 API
 ===
@@ -49,20 +26,16 @@ API
 
    api
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   changelog
+
 Development guide
 =================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   dev/development
-   dev/release
-
-Indices
-=======
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-.. * :ref:`glossary`
+   dev/index

@@ -4,6 +4,7 @@
 .. _pre-commit: https://pre-commit.com
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _Roundtable: https://roundtable.lsst.io
+.. _Phalanx: https://phalanx.lsst.io
 .. _fastapi_safir_app: https://github.com/lsst/templates/tree/master/project_templates/fastapi_safir_app
 .. _structlog: http://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
@@ -13,3 +14,4 @@
 .. _asyncpg: https://magicstack.github.io/asyncpg/current/
 .. _Click: https://click.palletsprojects.com/
 .. _Uvicorn: https://www.uvicorn.org/
+.. _PyPI: https://pypi.org/project/safir/
