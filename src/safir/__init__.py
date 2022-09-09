@@ -1,4 +1,6 @@
-"""Safir is the SQuaRE framework for Roundtable bots."""
+"""Safir is the Rubin Observatory's library for building FastAPI services
+for the Rubin Science Platform.
+"""
 
 __all__ = ["__version__", "version_info"]
 
