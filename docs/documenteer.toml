@@ -6,9 +6,6 @@ copyright = "2020-2022 Association of Universities for Research in Astronomy, In
 package = "safir"
 
 [sphinx]
-extensions = [
-    "sphinx_click.ext",
-]
 rst_epilog_file = "_rst_epilog.rst"
 nitpicky = true
 nitpick_ignore_regex = [
