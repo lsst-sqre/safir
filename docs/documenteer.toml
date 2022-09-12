@@ -1,0 +1,26 @@
+[project]
+title = "Safir"
+copyright = "2020-2022 Association of Universities for Research in Astronomy, Inc. (AURA)"
+
+[project.python]
+package = "safir"
+
+[sphinx]
+rst_epilog_file = "_rst_epilog.rst"
+nitpicky = true
+nitpick_ignore_regex = [
+    ['py:.*', 'fastapi.*'],
+    ['py:.*', 'kubernetes_asyncio.*'],
+    ['py:.*', 'httpx.*'],
+    ['py:.*', 'pydantic.*'],
+    ['py:.*', 'starlette.*'],
+]
+nitpick_ignore = [
+    ["py:obj", "JobMetadata.id"],
+]
+
+[sphinx.intersphinx.projects]
+python = "https://docs.python.org/3/"
+sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
+structlog = "https://www.structlog.org/en/stable/"
+arq = "https://arq-docs.helpmanual.io"

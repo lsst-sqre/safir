@@ -1,10 +1,80 @@
+[project]
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+name = "safir"
+description = "The Rubin Observatory SQuaRE framework for FastAPI services."
+license = {file = "LICENSE"}
+readme= "README.md"
+keywords = [
+    "rubin",
+    "lsst",
+]
+# https://pypi.org/classifiers/
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Typing :: Typed",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "fastapi",
+    "httpx>=0.20.0",
+    "pydantic",
+    "starlette",
+    "structlog>=21.2.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+db = [
+    "asyncpg",
+    "sqlalchemy[asyncio]",
+]
+dev = [
+    "asgi-lifespan",
+    "coverage[toml]",
+    "flake8",
+    "mypy",
+    "pre-commit",
+    "psycopg2",
+    "pytest",
+    "pytest-asyncio",
+    "respx",
+    "sqlalchemy[mypy]",
+    # documentation
+    "documenteer[guide]>=0.7.0b2",
+]
+kubernetes = [
+    "kubernetes_asyncio"
+]
+arq = [
+    "arq>=0.23"
+]
+
+[[project.authors]]
+name = "Association of Universities for Research in Astronomy, Inc. (AURA)"
+email = "sqre-admin@lists.lsst.org"
+
+[project.urls]
+Homepage = "https://safir.lsst.io"
+Source = "https://github.com/lsst-sqre/safir"
+"Change log" = "https://safir.lsst.io/changelog.html"
+"Issue tracker" = "https://github.com/lsst-sqre/safir/issues"
+
 [build-system]
 requires = [
-  "setuptools>=42",
-  "wheel",
-  "setuptools_scm[toml]>=3.4"
+    "setuptools>=61",
+    "wheel",
+    "setuptools_scm[toml]>=6.2"
 ]
-build-backend = 'setuptools.build_meta'
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 
@@ -59,4 +129,16 @@ asyncio_mode = "strict"
 python_files = [
     "tests/*.py",
     "tests/*/*.py"
+]
+
+[tool.mypy]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+plugins = [
+    "sqlalchemy.ext.mypy.plugin"
 ]

@@ -16,6 +16,21 @@ name: Python CI
   pull_request: {}
 
 jobs:
+
+  lint:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.0
+
   test:
 
     runs-on: ubuntu-latest
@@ -30,30 +45,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Run tox
+        uses: lsst-sqre/run-tox@v1
         with:
           python-version: ${{ matrix.python }}
-          cache: "pip"
-          cache-dependency-path: "setup.cfg"
-
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.0
-
-      - name: Install tox
-        run: pip install tox tox-docker
-
-      - name: Cache tox environments
-        id: cache-tox
-        uses: actions/cache@v3
-        with:
-          path: .tox
-          # setup.cfg and pyproject.toml have versioning info that would
-          # impact the tox environment.
-          key: tox-${{ matrix.python }}-${{ hashFiles('pyproject.toml', 'setup.cfg') }}
-
-      - name: Run tox
-        run: tox -e py,typing  # run tox using Python in path
+          tox-envs: "py,typing"
+          tox-plugins: "tox-docker"
 
   docs:
 
@@ -61,32 +58,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
-          cache: "pip"
-          cache-dependency-path: "setup.cfg"
+          fetch-depth: 0 # full history for setuptools_scm
 
       - name: Install Graphviz
         run: sudo apt-get install graphviz
 
-      - name: Install tox and LTD Conveyor
-        run: pip install tox ltd-conveyor
-
       - name: Run tox
-        run: tox -e docs
+        uses: lsst-sqre/run-tox@v1
+        with:
+          python-version: "3.10"
+          tox-envs: "docs,docs-linkcheck"
 
       # Only attempt documentation uploads for tagged releases and pull
       # requests from ticket branches in the same repository.  This avoids
       # version clutter in the docs and failures when a PR doesn't have access
       # to secrets.
       - name: Upload to LSST the Docs
-        env:
-          LTD_USERNAME: travis
-          LTD_PASSWORD: ${{ secrets.LTD_PASSWORD }}
-        run: ltd upload --product safir --gh --dir docs/_build/html
+        uses: lsst-sqre/ltd-upload@v1
+        with:
+          project: "safir"
+          dir: "docs/_build/html"
+          username: ${{ secrets.LTD_USERNAME }}
+          password: ${{ secrets.LTD_PASSWORD }}
         if: >
           github.event_name != 'pull_request'
           || startsWith(github.head_ref, 'tickets/')
@@ -94,28 +88,16 @@ jobs:
   pypi:
 
     runs-on: ubuntu-latest
-    needs: [test, docs]
-    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, test, docs]
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
-          cache: "pip"
-          cache-dependency-path: "setup.cfg"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade setuptools wheel twine
+          fetch-depth: 0 # full history for setuptools_scm
 
       - name: Build and publish
-        env:
-          TWINE_USERNAME: "__token__"
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          python setup.py sdist bdist_wheel
-          twine upload dist/*
+        uses: lsst-sqre/build-and-publish-to-pypi@v1
+        with:
+          pypi-token: ${{ secrets.PYPI_SQRE_ADMIN }}
+          python-version: "3.10"
+          upload: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
