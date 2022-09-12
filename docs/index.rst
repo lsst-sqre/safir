@@ -2,9 +2,6 @@
 Safir
 #####
 
-Safir is the SQuaRE Framework for Roundtable
-============================================
-
 Safir is Rubin Observatory's library for building FastAPI_ services for the Rubin Science Platform (Phalanx_) and Roundtable_ Kubernetes clusters.
 Safir is developed, maintained, and field tested by the SQuaRE team.
 
