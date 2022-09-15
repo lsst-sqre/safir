@@ -36,6 +36,25 @@ To configure logging, run the `safir.logging.configure_logging` function in appl
 
    See the `~safir.logging.configure_logging` for details about the parameters.
 
+Including uvicorn logs
+----------------------
+
+Uvicorn_ is normally used to run FastAPI web applications.
+It logs messages about its own operations, and logs each request to the underlying web application.
+By default, those logs use a separate logging profile and do not honor structlog configuration settings such as whether to log messages in JSON.
+
+For consistency, you may want to route Uvicorn log messages through structlog.
+Safir provides the `safir.logging.configure_uvicorn_logging` function to modify the Uvicorn logging configuration to do so:
+
+.. code-block:: python
+
+   configure_uvicorn_logging(config.log_level)
+
+This should be called after `~safir.logging.configure_logging`.
+To ensure that logging is reconfigured before Uvicorn logs its first message, it should be called either during import time of the module that provides the FastAPI application or during execution of a callable that constructs the FastAPI application
+
+When `~safir.logging.configure_uvicorn_logging` is called, it will also add a log processor that parses the Uvicorn access log messages and adds structlog context in the format expected by Google's Cloud Logging system.
+
 .. _logging-in-handlers:
 
 Logging in request handlers
