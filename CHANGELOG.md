@@ -5,7 +5,7 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 3.3.0 (unreleased)
+## 3.3.0 (2022-09-15)
 
 - Add new function `safir.logging.configure_uvicorn_logging` that routes Uvicorn logging through structlog for consistent formatting.
   It also adds context to Uvicorn logs in the format recognized by Google's Cloud Logging.
