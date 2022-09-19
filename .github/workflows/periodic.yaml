@@ -37,6 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install Graphviz
+        run: sudo apt-get install graphviz
+
       - name: Build docs in tox
         uses: lsst-sqre/run-tox@v1
         with:
