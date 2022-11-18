@@ -31,7 +31,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
     Parameters
     ----------
-    proxies : List[`ipaddress._BaseNetwork`], optional
+    proxies
         The networks of the trusted proxies.  If not specified, defaults to
         the empty list, which means only the immediately upstream proxy will
         be trusted.
@@ -55,14 +55,14 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : ``fastapi.Request``
+        request
             The incoming request.
-        call_next : `typing.Callable`
+        call_next
             The next step in the processing stack.
 
         Returns
         -------
-        response : ``fastapi.Response``
+        ``fastapi.Response``
             The response with additional information about proxy headers.
         """
         forwarded_for = list(reversed(self._get_forwarded_for(request)))
@@ -113,12 +113,12 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : ``fastapi.Request``
+        request
             The incoming request.
 
         Returns
         -------
-        forwarded_for : List[``ipaddress._BaseAddress``]
+        list of ipaddress._BaseAddress
             The list of addresses found in the header.  If there are multiple
             ``X-Forwarded-For`` headers, we don't know which one is correct,
             so act as if there are no headers.
@@ -137,12 +137,12 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : ``fastapi.Request``
+        request
             The incoming request.
 
         Returns
         -------
-        forwarded_host : `str`
+        str
             The value of the ``X-Forwarded-Host`` header, if present and if
             there is only one header.  If there are multiple
             ``X-Forwarded-Host`` headers, we don't know which one is correct,
@@ -158,12 +158,12 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         Parameters
         ----------
-        request : ``fastapi.Request``
+        request
             The incoming request.
 
         Returns
         -------
-        forwarded_proto : List[`str`]
+        list of str
             The list of schemes found in the header.  If there are multiple
             ``X-Forwarded-Proto`` headers, we don't know which one is correct,
             so act as if there are no headers.

@@ -28,7 +28,7 @@ class ArqDependency:
 
         Parameters
         ----------
-        mode : `safir.arq.ArqMode`
+        mode
             The mode to operate the queue dependency in. With
             `safir.arq.ArqMode.production`, this method initializes a
             Redis-based arq queue and the dependency creates a
@@ -37,7 +37,7 @@ class ArqDependency:
             With `safir.arq.ArqMode.test`, this method instead initializes an
             in-memory mocked version of arq that you use with the
             `safir.arq.MockArqQueue` client.
-        redis_settings : `arq.connections.RedisSettings`
+        redis_settings
             The arq Redis settings, required when the ``mode`` is
             `safir.arq.ArqMode.production`. See arq's
             `~arq.connections.RedisSettings` documentation for details on

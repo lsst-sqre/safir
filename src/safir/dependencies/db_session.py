@@ -45,7 +45,7 @@ class DatabaseSessionDependency:
 
         Returns
         -------
-        session : `sqlalchemy.ext.asyncio.AsyncSession`
+        sqlalchemy.ext.asyncio.AsyncSession
             The newly-created session.
         """
         assert self._session, "db_session_dependency not initialized"
@@ -74,11 +74,11 @@ class DatabaseSessionDependency:
 
         Parameters
         ----------
-        url : `str`
+        url
             Database connection URL, not including the password.
-        password : `str` or `None`
+        password
             Database connection password.
-        isolation_level : `str`, optional
+        isolation_level
             If specified, sets a non-default isolation level for the database
             engine.
         """
@@ -100,7 +100,7 @@ class DatabaseSessionDependency:
 
         Parameters
         ----------
-        engine : `sqlalchemy.ext.asyncio.AsyncEngine`
+        engine
             Database engine to use for all sessions.
         """
         self._override_engine = engine

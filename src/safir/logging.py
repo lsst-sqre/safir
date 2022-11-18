@@ -70,18 +70,18 @@ def add_log_severity(
 
     Parameters
     ----------
-    logger : `logging.Logger`
+    logger
         The wrapped logger object.
-    method_name : `str`
+    method_name
         The name of the wrapped method (``warning`` or ``error``, for
         example).
-    event_dict : `structlog.types.EventDict`
+    event_dict
         Current context and current event. This parameter is also modified in
         place, matching the normal behavior of structlog processors.
 
     Returns
     -------
-    event_dict : `structlog.types.EventDict`
+    `structlog.types.EventDict`
         The modified `~structlog.types.EventDict` with the added key.
     """
     severity = add_log_level(logger, method_name, {})["level"]
@@ -100,10 +100,10 @@ def configure_logging(
 
     Parameters
     ----------
-    name : `str`
+    name
         Name of the logger, which is typically the name of your application's
         root namespace.
-    profile : `Profile`, optional
+    profile
         The name of the application profile:
 
         development
@@ -111,14 +111,12 @@ def configure_logging(
         production
             Log messages are formatted as JSON objects.
 
-        May be given as a `Profile` enum value (preferred) or a string. The
-        default is ``Profile.production``.
-    log_level : `LogLevel`, optional
+        May be given as a `Profile` enum value (preferred) or a string.
+    log_level
         The Python log level. May be given as a `LogLevel` enum (preferred)
-        or a case-insensitive string. The default is ``LogLevel.INFO``.
-    add_timestamp : `bool`
-        Whether to add an ISO-format timestamp to each log message.  The
-        default is `False`.
+        or a case-insensitive string.
+    add_timestamp
+        Whether to add an ISO-format timestamp to each log message.
 
     Notes
     -----
@@ -219,18 +217,18 @@ def _process_uvicorn_access_log(
 
     Parameters
     ----------
-    logger : `logging.Logger`
+    logger
         The wrapped logger object.
-    method_name : `str`
+    method_name
         The name of the wrapped method (``warning`` or ``error``, for
         example).
-    event_dict : `structlog.types.EventDict`
+    event_dict
         Current context and current event. This parameter is also modified in
         place, matching the normal behavior of structlog processors.
 
     Returns
     -------
-    event_dict : `structlog.types.EventDict`
+    EventDict
         The modified `~structlog.types.EventDict` with the added key.
     """
     match = _UVICORN_ACCESS_REGEX.match(event_dict["event"])
@@ -260,9 +258,9 @@ def configure_uvicorn_logging(
 
     Parameters
     ----------
-    log_level : `LogLevel`, optional
+    log_level
         The Python log level. May be given as a `LogLevel` enum (preferred)
-        or a case-insensitive string. The default is ``LogLevel.INFO``.
+        or a case-insensitive string.
 
     Notes
     -----

@@ -21,6 +21,11 @@ def run_with_asyncio(
     `asyncio.run` when invoked.  The caller must not already be inside an
     asyncio task.
 
+    Parameters
+    ----------
+    f
+        The function to wrap.
+
     Examples
     --------
     An application that uses Safir and `Click`_ may use the following Click

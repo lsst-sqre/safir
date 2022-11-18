@@ -38,16 +38,16 @@ def get_metadata(*, package_name: str, application_name: str) -> Metadata:
 
     Parameters
     ----------
-    pacakge_name : `str`
+    pacakge_name
         The name of the package (Python namespace). This name is used to look
         up metadata about the package.
-    application_name : `str`
+    application_name
         The value to return as the application name (the ``name`` metadata
         field).
 
     Returns
     -------
-    metadata : `Metadata`
+    Metadata
         The package metadata as a Pydantic model, suitable for returning as
         the result of a FastAPI route.
 
@@ -108,10 +108,10 @@ def get_project_url(meta: Message, label: str) -> Optional[str]:
 
     Parameters
     ----------
-    meta : `email.message.Message`
+    meta
         The package metadata, as returned by the
         ``importlib.metadata.metadata`` function.
-    label : `str`
+    label
         The URL's label. Consider the follow snippet of a ``pyproject.toml``
         file:
 
@@ -139,7 +139,7 @@ def get_project_url(meta: Message, label: str) -> Optional[str]:
 
     Returns
     -------
-    url : `str` or `None`
+    str or None
         The URL. If the label is not found, the function returns `None`.
 
     Examples

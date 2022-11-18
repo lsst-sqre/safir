@@ -43,16 +43,16 @@ def _build_database_url(
 
     Parameters
     ----------
-    url : `str`
+    url
         Database connection URL, not including the password.
-    password : `str` or `None`
+    password
         Database connection password.
-    is_async : `bool`
+    is_async
         Whether the resulting URL should be async or not.
 
     Returns
     -------
-    url : `str`
+    url
         The URL including the password.
 
     Raises
@@ -91,7 +91,19 @@ def datetime_from_db(time: None) -> None:
 
 
 def datetime_from_db(time: Optional[datetime]) -> Optional[datetime]:
-    """Add the UTC time zone to a naive datetime from the database."""
+    """Add the UTC time zone to a naive datetime from the database.
+
+    Parameters
+    ----------
+    time
+        The naive datetime from the database, or `None`
+
+    Returns
+    -------
+    datetime.datetime or None
+        `None` if the input was none, otherwise a timezone-aware version of
+        the same `~datetime.datetime` in the UTC timezone.
+    """
     if not time:
         return None
     if time.tzinfo not in (None, timezone.utc):
@@ -110,7 +122,21 @@ def datetime_to_db(time: None) -> None:
 
 
 def datetime_to_db(time: Optional[datetime]) -> Optional[datetime]:
-    """Strip time zone for storing a datetime in the database."""
+    """Strip time zone for storing a datetime in the database.
+
+    Parameters
+    ----------
+    time
+        The timezone-aware `~datetime.datetime` in the UTC time zone, or
+        `None`.
+
+    Returns
+    -------
+    datetime.datetime or None
+        `None` if the input was `None`, otherwise the same
+        `~datetime.datetime` but timezone-naive and thus suitable for storing
+        in a SQL database.
+    """
     if not time:
         return None
     if time.tzinfo != timezone.utc:
@@ -128,17 +154,17 @@ def create_database_engine(
 
     Parameters
     ----------
-    url : `str`
+    url
         Database connection URL, not including the password.
-    password : `str` or `None`
+    password
         Database connection password.
-    isolation_level : `str`, optional
+    isolation_level
         If specified, sets a non-default isolation level for the database
         engine.
 
     Returns
     -------
-    engine : `sqlalchemy.ext.asyncio.AsyncEngine`
+    sqlalchemy.ext.asyncio.AsyncEngine
         Newly-created database engine.  When done with the engine, the caller
         must call ``await engine.dispose()``.
 
@@ -170,18 +196,18 @@ async def create_async_session(
 
     Parameters
     ----------
-    engine : `sqlalchemy.ext.asyncio.AsyncEngine`
+    engine
         Database engine to use for the session.
-    logger : ``structlog.stdlib.BoundLogger``, optional
+    logger
         Logger for reporting errors.  Used only if a statement is provided.
-    statement : `sqlalchemy.sql.expression.Select`, optional
+    statement
         If provided, statement to run to check database connectivity.  This
         will be modified with ``limit(1)`` before execution.  If not provided,
         database connectivity will not be checked.
 
     Returns
     -------
-    session : `sqlalchemy.ext.asyncio.async_scoped_session`
+    sqlalchemy.ext.asyncio.async_scoped_session
         The database session proxy.  This is an asyncio scoped session that is
         scoped to the current task, which means that it will materialize new
         AsyncSession objects for each asyncio task (and thus each web
@@ -233,23 +259,23 @@ def create_sync_session(
 
     Parameters
     ----------
-    url : `str`
+    url
         Database connection URL, not including the password.
-    password : `str` or `None`
+    password
         Database connection password.
-    logger : ``structlog.stdlib.BoundLogger``, optional
+    logger
         Logger for reporting errors.  Used only if a statement is provided.
-    isolation_level : `str`, optional
+    isolation_level
         If specified, sets a non-default isolation level for the database
         engine.
-    statement : `sqlalchemy.sql.expression.Select`, optional
+    statement
         If provided, statement to run to check database connectivity.  This
         will be modified with ``limit(1)`` before execution.  If not provided,
         database connectivity will not be checked.
 
     Returns
     -------
-    session : `sqlalchemy.orm.scoping.scoped_session`
+    sqlalchemy.orm.scoping.scoped_session
         The database session proxy.  This manages a separate session per
         thread and therefore should be thread-safe.
 
@@ -303,20 +329,19 @@ async def initialize_database(
 
     Parameters
     ----------
-    engine : `sqlalchemy.ext.asyncio.AsyncEngine`
+    engine
         Database engine to use.  Create with `create_database_engine`.
-    logger : ``structlog.stdlib.BoundLogger``
+    logger
         Logger used to report problems
-    schema : `sqlalchemy.sql.schema.MetaData`
+    schema
         Metadata for the database schema.  Generally this will be
         ``Base.metadata`` where ``Base`` is the declarative base used as the
         base class for all ORM table definitions.  The caller must ensure that
         all table definitions have been imported by Python before calling this
         function, or parts of the schema will be missing.
-    reset : `bool`, optional
+    reset
         If set to `True`, drop all tables and reprovision the database.
-        Useful when running tests with an external database.  Default is
-        `False`.
+        Useful when running tests with an external database.
 
     Raises
     ------
