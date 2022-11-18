@@ -6,13 +6,16 @@ import logging
 import logging.config
 import re
 import sys
-from typing import Any, List, Optional
+from enum import Enum
+from typing import Any, List, Optional, Union
 
 import structlog
 from structlog.stdlib import add_log_level
 from structlog.types import EventDict
 
 __all__ = [
+    "LogLevel",
+    "Profile",
     "add_log_severity",
     "configure_logging",
     "configure_uvicorn_logging",
@@ -32,6 +35,26 @@ Only one configured logger is supported. Additional calls to
 
 _UVICORN_ACCESS_REGEX = re.compile(r'^[0-9.]+:[0-9]+ - "([^"]+)" ([0-9]+)$')
 """Regex to parse Uvicorn access logs."""
+
+
+class Profile(Enum):
+    """Logging profile for the application."""
+
+    production = "production"
+    """Log messages in JSON."""
+
+    development = "development"
+    """Log messages in a format intended for human readability."""
+
+
+class LogLevel(Enum):
+    """Python logging level."""
+
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
 
 
 def add_log_severity(
@@ -69,8 +92,8 @@ def add_log_severity(
 def configure_logging(
     *,
     name: str,
-    profile: str = "production",
-    log_level: str = "info",
+    profile: Union[Profile, str] = Profile.production,
+    log_level: Union[LogLevel, str] = LogLevel.INFO,
     add_timestamp: bool = False,
 ) -> None:
     """Configure logging and structlog.
@@ -80,7 +103,7 @@ def configure_logging(
     name : `str`
         Name of the logger, which is typically the name of your application's
         root namespace.
-    profile : `str`, optional
+    profile : `Profile`, optional
         The name of the application profile:
 
         development
@@ -88,16 +111,11 @@ def configure_logging(
         production
             Log messages are formatted as JSON objects.
 
-        The default is ``production``.
-    log_level : `str`, optional
-        The log level, in string form (case-insensitive):
-
-        - ``DEBUG``
-        - ``INFO``
-        - ``WARNINGS``
-        - ``ERROR``
-
-        The default is ``INFO``.
+        May be given as a `Profile` enum value (preferred) or a string. The
+        default is ``Profile.production``.
+    log_level : `LogLevel`, optional
+        The Python log level. May be given as a `LogLevel` enum (preferred)
+        or a case-insensitive string. The default is ``LogLevel.INFO``.
     add_timestamp : `bool`
         Whether to add an ISO-format timestamp to each log message.  The
         default is `False`.
@@ -139,12 +157,17 @@ def configure_logging(
        logger = structlog.get_logger("mybot")
        logger.info("Hello world")
     """
+    if not isinstance(log_level, LogLevel):
+        log_level = LogLevel[log_level.upper()]
+    if not isinstance(profile, Profile):
+        profile = Profile[profile]
+
     stream_handler = logging.StreamHandler(stream=sys.stdout)
     stream_handler.setFormatter(logging.Formatter("%(message)s"))
     logger = logging.getLogger(name)
     logger.handlers = []
     logger.addHandler(stream_handler)
-    logger.setLevel(log_level.upper())
+    logger.setLevel(log_level.value)
 
     processors: List[Any] = [
         structlog.stdlib.filter_by_level,
@@ -159,7 +182,7 @@ def configure_logging(
             structlog.processors.UnicodeDecoder(),
         ]
     )
-    if profile == "production":
+    if profile == Profile.production:
         # JSON-formatted logging
         processors.append(add_log_severity)
         processors.append(structlog.processors.format_exc_info)
@@ -225,7 +248,9 @@ def _process_uvicorn_access_log(
     return event_dict
 
 
-def configure_uvicorn_logging(loglevel: str = "info") -> None:
+def configure_uvicorn_logging(
+    log_level: Union[LogLevel, str] = LogLevel.INFO,
+) -> None:
     """Set up logging.
 
     This configures Uvicorn to use structlog for output formatting and
@@ -235,15 +260,9 @@ def configure_uvicorn_logging(loglevel: str = "info") -> None:
 
     Parameters
     ----------
-    loglevel : `str`
-        The log level for Uvicorn logs, in string form (case-insensitive):
-
-        - ``DEBUG``
-        - ``INFO``
-        - ``WARNINGS``
-        - ``ERROR``
-
-        The default is ``INFO``.
+    log_level : `LogLevel`, optional
+        The Python log level. May be given as a `LogLevel` enum (preferred)
+        or a case-insensitive string. The default is ``LogLevel.INFO``.
 
     Notes
     -----
@@ -253,6 +272,9 @@ def configure_uvicorn_logging(loglevel: str = "info") -> None:
     will run. This ensures the logging setup is complete before Uvicorn logs
     its first message.
     """
+    if not isinstance(log_level, LogLevel):
+        log_level = LogLevel[log_level.upper()]
+
     processors = [
         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
         structlog.processors.JSONRenderer(),
@@ -278,12 +300,12 @@ def configure_uvicorn_logging(loglevel: str = "info") -> None:
             },
             "handlers": {
                 "uvicorn.access": {
-                    "level": loglevel.upper(),
+                    "level": log_level.value,
                     "class": "logging.StreamHandler",
                     "formatter": "json-access",
                 },
                 "uvicorn.default": {
-                    "level": loglevel.upper(),
+                    "level": log_level.value,
                     "class": "logging.StreamHandler",
                     "formatter": "json",
                 },
@@ -291,12 +313,12 @@ def configure_uvicorn_logging(loglevel: str = "info") -> None:
             "loggers": {
                 "uvicorn.error": {
                     "handlers": ["uvicorn.default"],
-                    "level": loglevel.upper(),
+                    "level": log_level.value,
                     "propagate": False,
                 },
                 "uvicorn.access": {
                     "handlers": ["uvicorn.access"],
-                    "level": loglevel.upper(),
+                    "level": log_level.value,
                     "propagate": False,
                 },
             },

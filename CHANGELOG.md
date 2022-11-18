@@ -5,6 +5,12 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
+## 3.4.0 (unreleased)
+
+- `safir.logging.configure_logging` and `safir.logging.configure_uvicorn_logging` now accept `Profile` and `LogLevel` enums in addition to strings for the `profile` and `log_level` parameters.
+  The new enums are preferred.
+  Support for enums was added in preparation for changing the FastAPI template to use `pydantic.BaseSettings` for its `Configuration` class and validate the values of the `profile` and `log_level` configuration parameters.
+
 ## 3.3.0 (2022-09-15)
 
 - Add new function `safir.logging.configure_uvicorn_logging` that routes Uvicorn logging through structlog for consistent formatting.

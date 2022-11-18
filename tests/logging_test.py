@@ -12,7 +12,7 @@ from unittest.mock import ANY
 import structlog
 
 from safir import logging as safir_logging
-from safir.logging import configure_logging
+from safir.logging import LogLevel, Profile, configure_logging
 
 if TYPE_CHECKING:
     from _pytest.capture import CaptureFixture
@@ -31,7 +31,9 @@ def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
     """Test that development-mode logging is key-value formatted."""
     caplog.set_level(logging.INFO)
 
-    configure_logging(name="myapp", profile="development", log_level="info")
+    configure_logging(
+        name="myapp", profile=Profile.development, log_level=LogLevel.INFO
+    )
     assert safir_logging.logger_name == "myapp"
 
     logger = structlog.get_logger("myapp")
@@ -82,7 +84,9 @@ def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
     """Test that production-mode logging is JSON formatted."""
     caplog.set_level(logging.INFO)
 
-    configure_logging(name="myapp", profile="production", log_level="info")
+    configure_logging(
+        name="myapp", profile=Profile.production, log_level=LogLevel.INFO
+    )
 
     logger = structlog.get_logger("myapp")
     logger = logger.bind(answer=42)
@@ -132,7 +136,7 @@ def test_configure_logging_level(caplog: LogCaptureFixture) -> None:
     """Test that the logging level is set."""
     caplog.set_level(logging.DEBUG)
 
-    configure_logging(name="myapp", log_level="info")
+    configure_logging(name="myapp", log_level=LogLevel.INFO)
     logger = structlog.get_logger("myapp")
 
     logger.info("INFO message")
@@ -157,7 +161,9 @@ def test_duplicate_handlers(capsys: CaptureFixture[str]) -> None:
 
 def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
     """Test that exceptions are properly logged in the development logger."""
-    configure_logging(name="myapp", profile="development", log_level="info")
+    configure_logging(
+        name="myapp", profile=Profile.development, log_level=LogLevel.INFO
+    )
     logger = structlog.get_logger("myapp")
 
     try:
@@ -173,7 +179,9 @@ def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
 
 def test_production_exception_logging(caplog: LogCaptureFixture) -> None:
     """Test that exceptions are properly logged in the production logger."""
-    configure_logging(name="myapp", profile="production", log_level="info")
+    configure_logging(
+        name="myapp", profile=Profile.production, log_level=LogLevel.INFO
+    )
     logger = structlog.get_logger("myapp")
 
     try:
