@@ -10,6 +10,10 @@ X.Y.Z (YYYY-MM-DD)
 - `safir.logging.configure_logging` and `safir.logging.configure_uvicorn_logging` now accept `Profile` and `LogLevel` enums in addition to strings for the `profile` and `log_level` parameters.
   The new enums are preferred.
   Support for enums was added in preparation for changing the FastAPI template to use `pydantic.BaseSettings` for its `Configuration` class and validate the values of the `profile` and `log_level` configuration parameters.
+- Add new function `safir.pydantic.normalize_datetime`, which can be used as a Pydantic validator for `datetime` fields.
+  It also allows seconds since epoch as input, and ensures that the resulting `datetime` field in the model is timezone-aware and in UTC.
+- Add new function `safir.pydantic.to_camel_case`, which can be used as a Pydantic alias generator when a model needs to accept attributes with camel-case names.
+- Add new function `safir.pydantic.validate_exactly_one_of`, which can be used as a model validator to ensure that exactly one of a list of fields was set to a value other than `None`.
 
 ## 3.3.0 (2022-09-15)
 
