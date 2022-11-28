@@ -57,13 +57,13 @@ class MockKubernetesApi:
 
         Parameters
         ----------
-        kind : `str`
+        kind
             The Kubernetes kind, such as ``Secret`` or ``Pod``.  This is
             case-sensitive.
 
         Returns
         -------
-        objects : List[`typing.Any`]
+        list of Any
             All objects of that kind found in the mock, sorted by namespace
             and then name.
         """
@@ -310,7 +310,7 @@ def patch_kubernetes() -> Iterator[MockKubernetesApi]:
 
     Returns
     -------
-    mock_kubernetes : `MockKubernetesApi`
+    MockKubernetesApi
         The mock Kubernetes API object.
 
     Notes

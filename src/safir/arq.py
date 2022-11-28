@@ -35,7 +35,7 @@ class ArqJobError(Exception):
 
     Attributes
     ----------
-    job_id : `str`, optional
+    job_id
         The job ID, or `None` if the job ID is not known in this context.
     """
 
@@ -91,17 +91,17 @@ class JobMetadata:
 
     Attributes
     ----------
-    id : str
+    id
         The `arq.jobs.Job` identifier
-    name: str
+    name
         The task name.
-    args: Any
+    args
         The positional arguments to the task function.
-    kwargs: Any
+    kwargs
         The keyword arguments to the task function.
-    enqueue_time: datetime.datetime
+    enqueue_time
         Time when the job was added to the queue.
-    status: str
+    status
         Status of the job.
 
         States are defined by the `arq.jobs.JobStatus` enumeration:
@@ -112,7 +112,7 @@ class JobMetadata:
         - ``in_progress`` (actively being run by a worker)
         - ``complete`` (result is available)
         - ``not_found`` (the job cannot be found)
-    queue_name: str
+    queue_name
         Name of the queue this job belongs to.
     """
 
@@ -183,17 +183,17 @@ class JobResult(JobMetadata):
 
     Attributes
     ----------
-    id : str
+    id
         The `~arq.jobs.Job` identifier
-    name: str
+    name
         The task name.
-    args: Any
+    args
         The positional arguments to the task function.
-    kwargs: Any
+    kwargs
         The keyword arguments to the task function.
-    enqueue_time: datetime.datetime
+    enqueue_time
         Time when the job was added to the queue.
-    status: str
+    status
         Status of the job.
 
         States are defined by the `arq.jobs.JobStatus` enumeration:
@@ -204,14 +204,14 @@ class JobResult(JobMetadata):
         - ``in_progress`` (actively being run by a worker)
         - ``complete`` (result is available)
         - ``not_found`` (the job cannot be found)
-    start_time: datetime.datetime
+    start_time
         Time when the job started.
-    finish_time: datetime.datetime
+    finish_time
         Time when the job finished.
-    success: bool
+    success
         `True` if the job returned without an exception, `False` if an
         exception was raised.
-    result: Any
+    result
         The job's result.
     """
 
@@ -305,11 +305,11 @@ class ArqQueue(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        task_name : `str`
+        task_name
             The function name to run.
         *args
             Positional arguments for the task function.
-        _queue_name : `str`
+        _queue_name
             Name of the queue.
         **kwargs
             Keyword arguments passed to the task function.
@@ -334,15 +334,15 @@ class ArqQueue(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        job_id : `str`
+        job_id
             The job's identifier. This is the same as the `JobMetadata.id`
             attribute, provided when initially adding a job to the queue.
-        queue_name : `str`, optional
+        queue_name
             Name of the queue.
 
         Returns
         -------
-        `JobMetadata`
+        JobMetadata
             Metadata about the queued job.
 
         Raises
@@ -360,15 +360,15 @@ class ArqQueue(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        job_id : `str`
+        job_id
             The job's identifier. This is the same as the `JobMetadata.id`
             attribute, provided when initially adding a job to the queue.
-        queue_name : `str`, optional
+        queue_name
             Name of the queue.
 
         Returns
         -------
-        `JobResult`
+        JobResult
             The job's result, along with metadata about the queued job.
 
         Raises

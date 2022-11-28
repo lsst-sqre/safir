@@ -40,7 +40,7 @@ class LoggerDependency:
 
         Returns
         -------
-        logger : `structlog.stdlib.BoundLogger`
+        structlog.stdlib.BoundLogger
             The bound logger.
         """
         if not self.logger:
