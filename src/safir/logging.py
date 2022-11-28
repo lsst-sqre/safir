@@ -81,8 +81,8 @@ def add_log_severity(
 
     Returns
     -------
-    `structlog.types.EventDict`
-        The modified `~structlog.types.EventDict` with the added key.
+    ``structlog.types.EventDict``
+        The modified ``structlog.types.EventDict`` with the added key.
     """
     severity = add_log_level(logger, method_name, {})["level"]
     event_dict["severity"] = severity
