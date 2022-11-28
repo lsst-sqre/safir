@@ -96,7 +96,7 @@ def datetime_from_db(time: Optional[datetime]) -> Optional[datetime]:
     Parameters
     ----------
     time
-        The naive datetime from the database, or `None`
+        The naive datetime from the database, or `None`.
 
     Returns
     -------
