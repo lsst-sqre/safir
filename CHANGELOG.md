@@ -14,6 +14,8 @@ X.Y.Z (YYYY-MM-DD)
   It also allows seconds since epoch as input, and ensures that the resulting `datetime` field in the model is timezone-aware and in UTC.
 - Add new function `safir.pydantic.to_camel_case`, which can be used as a Pydantic alias generator when a model needs to accept attributes with camel-case names.
 - Add new function `safir.pydantic.validate_exactly_one_of`, which can be used as a model validator to ensure that exactly one of a list of fields was set to a value other than `None`.
+- In `safir.testing.kubernetes.patch_kubernetes`, correctly apply a spec to the mock of `kubernetes_asyncio.client.ApiClient`.
+  Due to an ordering bug in previous versions, the spec was previously a mock object that didn't apply any constraints.
 
 ## 3.3.0 (2022-09-15)
 
