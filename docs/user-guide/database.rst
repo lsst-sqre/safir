@@ -312,7 +312,9 @@ For example:
        engine = create_database_engine(
            config.database_url, config.database_password
        )
-       await initialize_database(engine, logger, schema=Base.metadata, reset=True)
+       await initialize_database(
+           engine, logger, schema=Base.metadata, reset=True
+       )
        await engine.dispose()
        async with LifespanManager(main.app):
            yield main.app
@@ -351,7 +353,9 @@ To get a new async database connection, use code like the following:
    from .config import config
 
 
-   engine = create_database_engine(config.database_url, config.database_password)
+   engine = create_database_engine(
+       config.database_url, config.database_password
+   )
    session = await create_async_session(engine)
 
    # ... use the session here ...
@@ -424,7 +428,10 @@ As with :ref:`async database sessions <probing-db-connection>`, you can pass a `
    logger = structlog.get_logger(config.logger_name)
    stmt = select(User)
    session = create_sync_session(
-       config.database_url, config.database_password, logger, statement=stmt
+       config.database_url,
+       config.database_password,
+       logger,
+       statement=stmt,
    )
 
 Applications that use `~safir.database.create_sync_session` must declare a dependency on `psycopg2 <https://pypi.org/project/psycopg2/>`__ in their pip dependencies.

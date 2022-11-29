@@ -43,5 +43,8 @@ API reference
 .. automodapi:: safir.middleware.x_forwarded
    :include-all-objects:
 
+.. automodapi:: safir.pydantic
+   :include-all-objects:
+
 .. automodapi:: safir.testing.kubernetes
    :include-all-objects:

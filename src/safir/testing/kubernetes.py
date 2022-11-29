@@ -353,9 +353,10 @@ def patch_kubernetes() -> Iterator[MockKubernetesApi]:
             mock_class = patcher.start()
             mock_class.return_value = mock_api
             patchers.append(patcher)
+        mock_api_client = Mock(spec=client.ApiClient)
+        mock_api_client.close = AsyncMock()
         with patch.object(client, "ApiClient") as mock_client:
-            mock_client.return_value = Mock(spec=client.ApiClient)
-            mock_client.return_value.close = AsyncMock()
+            mock_client.return_value = mock_api_client
             os.environ["KUBERNETES_PORT"] = "tcp://10.0.0.1:443"
             yield mock_api
             del os.environ["KUBERNETES_PORT"]

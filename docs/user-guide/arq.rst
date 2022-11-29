@@ -64,7 +64,9 @@ If your app uses a configuration system like ``pydantic.BaseSettings``, this exa
             redis_settings = RedisSettings(
                 host=url_parts.hostname or "localhost",
                 port=url_parts.port or 6379,
-                database=int(url_parts.path.lstrip("/")) if url_parts.path else 0,
+                database=int(url_parts.path.lstrip("/"))
+                if url_parts.path
+                else 0,
             )
             return redis_settings
 

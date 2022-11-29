@@ -18,7 +18,9 @@ To get that username, use the `~safir.dependencies.gafaelfawr.auth_dependency` F
 
 
    @app.get("/route")
-   async def get_rounte(user: str = Depends(auth_dependency)) -> Dict[str, str]:
+   async def get_rounte(
+       user: str = Depends(auth_dependency),
+   ) -> Dict[str, str]:
        # Route implementation using user.
        return {"some": "data"}
 

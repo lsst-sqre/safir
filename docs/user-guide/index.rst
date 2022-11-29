@@ -22,3 +22,4 @@ User guide
    x-forwarded
    ivoa
    kubernetes
+   pydantic
