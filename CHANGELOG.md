@@ -5,7 +5,7 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 3.4.0 (unreleased)
+## 3.4.0 (2022-11-29)
 
 - `safir.logging.configure_logging` and `safir.logging.configure_uvicorn_logging` now accept `Profile` and `LogLevel` enums in addition to strings for the `profile` and `log_level` parameters.
   The new enums are preferred.
