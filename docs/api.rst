@@ -8,6 +8,9 @@ API reference
 .. automodapi:: safir.arq
    :include-all-objects:
 
+.. automodapi:: safir.asyncio
+   :include-all-objects:
+
 .. automodapi:: safir.database
 
 .. automodapi:: safir.dependencies.arq
