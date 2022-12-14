@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional, Union
+from typing import AbstractSet, Any, Callable, Dict, Mapping, Optional, Union
 
 from pydantic import BaseModel
+
+# From Pydantic internals, so copy them here so that we can use them.  See the
+# comment in CamelCaseModel about better ways to copy type signatures from
+# Pydantic without duplicating code, possible in Python 3.10.
+AbstractSetIntStr = AbstractSet[Union[int, str]]
+MappingIntStrAny = Mapping[Union[int, str], Any]
 
 __all__ = [
     "CamelCaseModel",
@@ -108,12 +114,77 @@ class CamelCaseModel(BaseModel):
 
     This is a convenience class identical to `~pydantic.BaseModel` except with
     an alias generator configured so that it can be initialized with either
-    camel-case or snake-case keys. See `to_camel_case` for more details.
+    camel-case or snake-case keys. Model exports with ``dict`` or ``json``
+    also default to exporting in camel-case.
     """
 
     class Config:
         alias_generator = to_camel_case
         allow_population_by_field_name = True
+
+    # A better solution for typing that wouldn't require copying the arguments
+    # from Pydantic and therefore would be more future-proof would be to use
+    # ParamSpec plus a decorator to copy the signature from the overridden
+    # method. ParamSpec requires Python 3.10 and Safir currently supports
+    # versions as old as Python 3.8, so that approach isn't yet usable.
+
+    def dict(
+        self,
+        *,
+        include: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
+        exclude: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
+        by_alias: bool = True,
+        skip_defaults: Optional[bool] = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+    ) -> Dict[str, Any]:
+        """Export the model as a dictionary.
+
+        Overridden to change the default of ``by_alias`` from `False` to
+        `True`, so that by default the exported dictionary uses camel-case.
+        """
+        return super().dict(
+            include=include,
+            exclude=exclude,
+            by_alias=by_alias,
+            skip_defaults=skip_defaults,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+        )
+
+    def json(
+        self,
+        *,
+        include: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
+        exclude: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
+        by_alias: bool = True,
+        skip_defaults: Optional[bool] = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        encoder: Optional[Callable[[Any], Any]] = None,
+        models_as_dict: bool = True,
+        **dumps_kwargs: Any,
+    ) -> str:
+        """Export the model as JSON.
+
+        Overridden to change the default of ``by_alias`` from `False` to
+        `True`, so that by default the exported dictionary uses camel-case.
+        """
+        return super().json(
+            include=include,
+            exclude=exclude,
+            by_alias=by_alias,
+            skip_defaults=skip_defaults,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            encoder=encoder,
+            models_as_dict=models_as_dict,
+            **dumps_kwargs,
+        )
 
 
 def validate_exactly_one_of(
