@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from safir.pydantic import (
+    CamelCaseModel,
     normalize_datetime,
     to_camel_case,
     validate_exactly_one_of,
@@ -35,6 +36,27 @@ def test_to_camel_case() -> None:
     assert to_camel_case("minimum_lifetime") == "minimumLifetime"
     assert to_camel_case("replace_403") == "replace403"
     assert to_camel_case("foo_bar_baz") == "fooBarBaz"
+
+
+def test_camel_case_model() -> None:
+    class TestModel(CamelCaseModel):
+        minimum_lifetime: int
+        replace_403: bool
+        foo_bar_baz: str
+
+    data = TestModel.parse_obj(
+        {"minimumLifetime": 10, "replace403": False, "fooBarBaz": "something"}
+    )
+    assert data.minimum_lifetime == 10
+    assert not data.replace_403
+    assert data.foo_bar_baz == "something"
+
+    data = TestModel.parse_obj(
+        {"minimum_lifetime": 20, "replace_403": True, "foo_bar_baz": "else"}
+    )
+    assert data.minimum_lifetime == 20
+    assert data.replace_403
+    assert data.foo_bar_baz == "else"
 
 
 def test_validate_exactly_one_of() -> None:

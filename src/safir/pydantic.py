@@ -5,7 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Union
 
+from pydantic import BaseModel
+
 __all__ = [
+    "CamelCaseModel",
     "normalize_datetime",
     "to_camel_case",
     "validate_exactly_one_of",
@@ -92,13 +95,25 @@ def to_camel_case(string: str) -> str:
                allow_population_by_field_name = True
 
     This must be added to every class that uses ``snake_case`` for an
-    attribute and that needs to be initialized from ``camelCase``. If there
-    are a lot of those classes, consider making a derivative class of
-    `~pydantic.BaseModel` that sets these configuration options, and having
-    all of your model classes inherit from it.
+    attribute and that needs to be initialized from ``camelCase``.
+    Alternately, inherit from `~safir.pydantic.CamelCaseModel`, which is
+    derived from `pydantic.BaseModel` with those settings added.
     """
     components = string.split("_")
     return components[0] + "".join(c.title() for c in components[1:])
+
+
+class CamelCaseModel(BaseModel):
+    """`pydantic.BaseModel` configured to accept camel-case input.
+
+    This is a convenience class identical to `~pydantic.BaseModel` except with
+    an alias generator configured so that it can be initialized with either
+    camel-case or snake-case keys. See `to_camel_case` for more details.
+    """
+
+    class Config:
+        alias_generator = to_camel_case
+        allow_population_by_field_name = True
 
 
 def validate_exactly_one_of(
