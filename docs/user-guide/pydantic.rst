@@ -52,10 +52,11 @@ To use it, add a configuration block to any Pydantic model that has snake-case a
            allow_population_by_field_name = True
 
 By default, only the generated aliases (so, in this case, only the camel-case form of the attribute, ``someField``) are supported.
-The additional setting ``allow_population_by_field_name``, tells Pydantic to allow either ``some_field`` or ``soemField`` in the input.
+The additional setting ``allow_population_by_field_name``, tells Pydantic to allow either ``some_field`` or ``someField`` in the input.
 
-Adding this configuration can be tedious if you have a lot of models.
-In that case, consider making a subclass of `~pydantic.BaseModel` with this ``Config`` subclass, and having all of your models that need to support camel-case inherit from that class.
+As a convenience, you can instead inherit from `~safir.pydantic.CamelCaseModel`, which is a derived class of `~pydantic.BaseModel` with those settings added.
+This is somewhat less obvious when reading the classes and thus less self-documenting, but is less tedious if you have numerous models that need to support camel-case.
+`~safir.pydantic.CamelCaseModel` also overrides ``dict`` and ``json`` to change the default of ``by_alias`` to `True` so that this model exports in camel-case by default.
 
 Requiring exactly one of a list of attributes
 =============================================

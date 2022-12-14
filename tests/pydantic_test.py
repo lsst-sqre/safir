@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from safir.pydantic import (
+    CamelCaseModel,
     normalize_datetime,
     to_camel_case,
     validate_exactly_one_of,
@@ -35,6 +37,39 @@ def test_to_camel_case() -> None:
     assert to_camel_case("minimum_lifetime") == "minimumLifetime"
     assert to_camel_case("replace_403") == "replace403"
     assert to_camel_case("foo_bar_baz") == "fooBarBaz"
+
+
+def test_camel_case_model() -> None:
+    class TestModel(CamelCaseModel):
+        minimum_lifetime: int
+        replace_403: bool
+        foo_bar_baz: str
+
+    camel = {
+        "minimumLifetime": 10,
+        "replace403": False,
+        "fooBarBaz": "something",
+    }
+    snake = {
+        "minimum_lifetime": 10,
+        "replace_403": False,
+        "foo_bar_baz": "something",
+    }
+    data = TestModel.parse_obj(camel)
+    assert data.minimum_lifetime == 10
+    assert not data.replace_403
+    assert data.foo_bar_baz == "something"
+    assert data.dict() == camel
+    assert data.dict(by_alias=False) == snake
+    assert data.json() == json.dumps(camel)
+    assert data.json(by_alias=False) == json.dumps(snake)
+
+    snake_data = TestModel.parse_obj(snake)
+    assert data.minimum_lifetime == 10
+    assert not data.replace_403
+    assert data.foo_bar_baz == "something"
+    assert snake_data.dict() == data.dict()
+    assert snake_data.json() == data.json()
 
 
 def test_validate_exactly_one_of() -> None:
