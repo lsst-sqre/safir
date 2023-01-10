@@ -23,3 +23,4 @@ User guide
    ivoa
    kubernetes
    pydantic
+   gcs

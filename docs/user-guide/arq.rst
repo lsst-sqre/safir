@@ -50,7 +50,6 @@ If your app uses a configuration system like ``pydantic.BaseSettings``, this exa
 
 
     class Config(BaseSettings):
-
         arq_queue_url: RedisDsn = Field(
             "redis://localhost:6379/1", env="APP_ARQ_QUEUE_URL"
         )

@@ -34,6 +34,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+arq = [
+    "arq>=0.23"
+]
 db = [
     "asyncpg",
     "sqlalchemy[asyncio]",
@@ -52,11 +55,12 @@ dev = [
     # documentation
     "documenteer[guide]>=0.7.0b2",
 ]
+gcs = [
+    "google-auth",
+    "google-cloud-storage"
+]
 kubernetes = [
     "kubernetes_asyncio"
-]
-arq = [
-    "arq>=0.23"
 ]
 
 [[project.authors]]
