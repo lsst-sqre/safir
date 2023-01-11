@@ -8,6 +8,35 @@ It provides both a sync and async API and works well with `workload identity <ht
 Google Cloud Storage support in Safir is optional.
 To use it, depend on ``safir[gcs]``.
 
+Generating signed URLs
+======================
+
+The preferred way to generate signed URLs for Google Cloud Storage objects is to use workload identity for the running pod, assign it a Kubernetes service account bound to a Google Cloud service account, and set appropriate permissions on that Google Cloud service account.
+
+The credentials provided by workload identity cannot be used to sign URLs directly.
+Instead, one first has to get impersonation credentials for the same service account, and then use those to sign the URL.
+`safir.gcs.SignedURLService` automates this process.
+
+To use this class, the workload identity of the running pod must have ``roles/iam.serviceAccountTokenCreator`` for a Google service account, and that service account must have appropriate GCS permissions for the object for which one wants to create a signed URL.
+Then, do the following:
+
+.. code-block:: python
+
+   from datetime import timedelta
+
+   from safir.gcs import SignedURLService
+
+
+   url_service = SignedURLService(timedelta(hours=1), "service-account")
+   url = url_service.signed_url("s3://bucket/path/to/file", "application/fits")
+
+The first parameter to the constructor is the lifetime of signed URLs, and the second is the name of the Google Cloud service account that will be used to sign the URLs.
+This should be the one for which the workload identity has impersonation permissions.
+(Generally, this should be the same service account to which the workload identity is bound.)
+
+The path to the Google Cloud Storage object for which to create a signed URL must be an S3 URL.
+The second argument to `~safir.gcs.SignedURLService.signed_url` is the MIME type of the underlying object, which will be encoded in the signed URL.
+
 Testing with mock Google Cloud Storage
 ======================================
 
