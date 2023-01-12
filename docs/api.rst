@@ -28,6 +28,9 @@ API reference
 .. automodapi:: safir.dependencies.logger
    :include-all-objects:
 
+.. automodapi:: safir.gcs
+   :include-all-objects:
+
 .. automodapi:: safir.kubernetes
    :include-all-objects:
 
@@ -47,6 +50,9 @@ API reference
    :include-all-objects:
 
 .. automodapi:: safir.pydantic
+   :include-all-objects:
+
+.. automodapi:: safir.testing.gcs
    :include-all-objects:
 
 .. automodapi:: safir.testing.kubernetes

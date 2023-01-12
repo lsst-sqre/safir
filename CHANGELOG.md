@@ -5,8 +5,12 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 3.5.0 (unreleased)
+## 3.5.0 (2023-01-12)
 
+- Add new helper class `safir.gcs.SignedURLService` to generate signed URLs to Google Cloud Storage objects using workload identity.
+  To use this class, depend on `safir[gcs]`.
+- Add the `safir.testing.gcs` module, which can be used to mock the Google Cloud Storage API for testing.
+  To use this module, depend on `safir[gcs]`.
 - Add new helper class `safir.pydantic.CamelCaseModel`, which is identical to `pydantic.BaseModel` except with configuration added to accept camel-case keys using the `safir.pydantic.to_camel_case` alias generator and overrides of `dict` and `json` to export in camel-case by default.
 
 ## 3.4.0 (2022-11-29)
