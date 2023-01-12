@@ -22,12 +22,12 @@ class SignedURLService:
 
     Parameters
     ----------
-    lifetime
-        Lifetime of the generated signed URLs.
     service_account
         The service account to use to sign the URLs.  The workload identity
         must have access to generate service account tokens for that service
         account.
+    lifetime
+        Lifetime of the generated signed URLs.
 
     Notes
     -----
@@ -41,7 +41,9 @@ class SignedURLService:
     additional details on how this works.
     """
 
-    def __init__(self, lifetime: timedelta, service_account: str) -> None:
+    def __init__(
+        self, service_account: str, lifetime: timedelta = timedelta(hours=1)
+    ) -> None:
         self._lifetime = lifetime
         self._service_account = service_account
         self._gcs = storage.Client()

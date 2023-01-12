@@ -27,12 +27,15 @@ Then, do the following:
    from safir.gcs import SignedURLService
 
 
-   url_service = SignedURLService(timedelta(hours=1), "service-account")
+   url_service = SignedURLService("service-account")
    url = url_service.signed_url("s3://bucket/path/to/file", "application/fits")
 
-The first parameter to the constructor is the lifetime of signed URLs, and the second is the name of the Google Cloud service account that will be used to sign the URLs.
+The argument to the constructor is the name of the Google Cloud service account that will be used to sign the URLs.
 This should be the one for which the workload identity has impersonation permissions.
 (Generally, this should be the same service account to which the workload identity is bound.)
+
+Optionally, you can specify the lifetime of the signed URLs as a second argument, which should be a `datetime.timedelta`.
+If not given, the default is one hour.
 
 The path to the Google Cloud Storage object for which to create a signed URL must be an S3 URL.
 The second argument to `~safir.gcs.SignedURLService.signed_url` is the MIME type of the underlying object, which will be encoded in the signed URL.
