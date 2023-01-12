@@ -28,3 +28,8 @@ def mock_gcs_file() -> Iterator[MockStorageClient]:
         expected_expiration=timedelta(hours=1),
         bucket_name="some-bucket",
     )
+
+
+@pytest.fixture
+def mock_gcs_minimal() -> Iterator[MockStorageClient]:
+    yield from patch_google_storage()

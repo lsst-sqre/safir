@@ -31,7 +31,9 @@ class MockBlob(Mock):
         will produce an assertion failure.
     """
 
-    def __init__(self, name: str, expected_expiration: timedelta) -> None:
+    def __init__(
+        self, name: str, expected_expiration: Optional[timedelta] = None
+    ) -> None:
         super().__init__(spec=storage.blob.Blob)
         self.name = name
         self._expected_expiration = expected_expiration
@@ -53,7 +55,7 @@ class MockBlob(Mock):
             Must be ``v4``.
         expiration
             Must match the ``expected_expiration`` argument to the
-            constructor.
+            constructor if it was given.
         method
             Must be ``GET``.
         response_type
@@ -68,7 +70,8 @@ class MockBlob(Mock):
             the name of the blob.
         """
         assert version == "v4"
-        assert expiration == self._expected_expiration
+        if self._expected_expiration:
+            assert expiration == self._expected_expiration
         assert method == "GET"
         return f"https://example.com/{self.name}"
 
@@ -98,7 +101,10 @@ class MockFileBlob(MockBlob):
     """
 
     def __init__(
-        self, name: str, path: Path, expected_expiration: timedelta
+        self,
+        name: str,
+        path: Path,
+        expected_expiration: Optional[timedelta] = None,
     ) -> None:
         super().__init__(name, expected_expiration)
         self._path = path
@@ -176,7 +182,7 @@ class MockBucket(Mock):
     def __init__(
         self,
         bucket_name: str,
-        expected_expiration: timedelta,
+        expected_expiration: Optional[timedelta] = None,
         path: Optional[Path] = None,
     ) -> None:
         super().__init__(spec=storage.bucket.Bucket)
@@ -227,7 +233,7 @@ class MockStorageClient(Mock):
 
     def __init__(
         self,
-        expected_expiration: timedelta,
+        expected_expiration: Optional[timedelta] = None,
         path: Optional[Path] = None,
         bucket_name: Optional[str] = None,
     ) -> None:
@@ -258,7 +264,7 @@ class MockStorageClient(Mock):
 
 def patch_google_storage(
     *,
-    expected_expiration: timedelta,
+    expected_expiration: Optional[timedelta] = None,
     path: Optional[Path] = None,
     bucket_name: Optional[str] = None,
 ) -> Iterator[MockStorageClient]:

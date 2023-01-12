@@ -94,3 +94,24 @@ def test_mock_files(mock_gcs_file: MockStorageClient) -> None:
     # Test a nonexistent file.
     blob = bucket.blob("does-not-exist")
     assert not blob.exists()
+
+
+def test_mock_minimal(mock_gcs_minimal: MockStorageClient) -> None:
+    """Minimal configuration, which doesn't check lifetime or bucket name."""
+    client = storage.Client()
+    bucket = client.bucket("some-bucket")
+
+    # It doesn't matter what bucket name we choose, since we didn't request
+    # verification.
+    bucket = client.bucket("other-bucket")
+
+    # It doesn't matter what expiration we specify on signed URLs.
+    blob = bucket.blob("a-file")
+    signed_url = blob.generate_signed_url(
+        version="v4", expiration=timedelta(minutes=1), method="GET"
+    )
+    assert signed_url == "https://example.com/a-file"
+    signed_url = blob.generate_signed_url(
+        version="v4", expiration=timedelta(hours=1), method="GET"
+    )
+    assert signed_url == "https://example.com/a-file"
