@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+from io import BufferedReader
+from pathlib import Path
 from typing import Any, Iterator, Optional
 from unittest.mock import Mock, patch
 
@@ -71,6 +73,92 @@ class MockBlob(Mock):
         return f"https://example.com/{self.name}"
 
 
+class MockFileBlob(MockBlob):
+    """Mock version of ``google.cloud.storage.blob.Blob`` for a file.
+
+    Parameters
+    ----------
+    name
+        Name of the blob.
+    path
+        Path to the file for this blob.
+    expected_expiration
+        The expiration that should be requested in a call to
+        ``generate_signed_url`` on an underlying blob.  A non-matching call
+        will produce an assertion failure.
+
+    Attributes
+    ----------
+    size : `int`
+        Size of the underlying file.
+    updated : `datetime.datetime`
+        When the underlying file was last updated.
+    etag : `str`
+        Etag value for the file (taken from its inode number).
+    """
+
+    def __init__(
+        self, name: str, path: Path, expected_expiration: timedelta
+    ) -> None:
+        super().__init__(name, expected_expiration)
+        self._path = path
+        self._exists = path.exists()
+        if self._exists:
+            self.size = self._path.stat().st_size
+            mtime = self._path.stat().st_mtime
+            self.updated = datetime.fromtimestamp(mtime, tz=timezone.utc)
+            self.etag = str(self._path.stat().st_ino)
+
+    def download_as_bytes(self) -> bytes:
+        """Get contents of the blob.
+
+        Returns
+        -------
+        bytes
+            Contents of the underlying file.
+        """
+        return self._path.read_bytes()
+
+    def exists(self) -> bool:
+        """Whether the underlying file exists.
+
+        Returns
+        -------
+        bool
+            `True` if it does, `False` otherwise.
+        """
+        return self._exists
+
+    def open(self, mode: str) -> BufferedReader:
+        """Open the file.
+
+        Parameters
+        ----------
+        mode
+            Mode with which to open it (must be ``rb`` or an assertion failure
+            is raised).
+
+        Returns
+        -------
+        BufferedReader
+            Stream representing the file.
+
+        Raises
+        ------
+        AssertionFailure
+            Unexpected mode argument.
+        """
+        assert mode == "rb"
+        return self._path.open("rb")
+
+    def reload(self) -> None:
+        """Reload the metadata for the file.
+
+        This does nothing in the mock.
+        """
+        pass
+
+
 class MockBucket(Mock):
     """Mock version of ``google.cloud.storage.bucket.Bucket``.
 
@@ -80,13 +168,20 @@ class MockBucket(Mock):
         The expiration that should be requested in a call to
         ``generate_signed_url`` on an underlying blob.  A non-matching call
         will produce an assertion failure.
+    path
+        Root of the file path for blobs, if given.  If not given, a simpler
+        mock blob will be used that only supports ``generate_signed_url``.
     """
 
     def __init__(
-        self, bucket_name: str, expected_expiration: timedelta
+        self,
+        bucket_name: str,
+        expected_expiration: timedelta,
+        path: Optional[Path] = None,
     ) -> None:
         super().__init__(spec=storage.bucket.Bucket)
         self._expected_expiration = expected_expiration
+        self._path = path
 
     def blob(self, blob_name: str) -> MockBlob:
         """Retrieve a mock blob.
@@ -101,7 +196,12 @@ class MockBucket(Mock):
         MockBlob
             The mock blob.
         """
-        return MockBlob(blob_name, self._expected_expiration)
+        if self._path:
+            return MockFileBlob(
+                blob_name, self._path / blob_name, self._expected_expiration
+            )
+        else:
+            return MockBlob(blob_name, self._expected_expiration)
 
 
 class MockStorageClient(Mock):
@@ -117,6 +217,9 @@ class MockStorageClient(Mock):
         The expiration that should be requested in a call to
         ``generate_signed_url`` on an underlying blob.  A non-matching call
         will produce an assertion failure.
+    path
+        Root of the file path for blobs, if given.  If not given, a simpler
+        mock blob will be used that only supports ``generate_signed_url``.
     bucket_name
         If set, all requests for a bucket with a name other than the one
         provided will produce assertion failures.
@@ -125,11 +228,13 @@ class MockStorageClient(Mock):
     def __init__(
         self,
         expected_expiration: timedelta,
+        path: Optional[Path] = None,
         bucket_name: Optional[str] = None,
     ) -> None:
         super().__init__(spec=storage.Client)
         self._bucket_name = bucket_name
         self._expected_expiration = expected_expiration
+        self._path = path
 
     def bucket(self, bucket_name: str) -> MockBucket:
         """Retrieve a mock bucket.
@@ -148,11 +253,14 @@ class MockStorageClient(Mock):
         """
         if self._bucket_name:
             assert bucket_name == self._bucket_name
-        return MockBucket(bucket_name, self._expected_expiration)
+        return MockBucket(bucket_name, self._expected_expiration, self._path)
 
 
 def patch_google_storage(
-    *, expected_expiration: timedelta, bucket_name: Optional[str] = None
+    *,
+    expected_expiration: timedelta,
+    path: Optional[Path] = None,
+    bucket_name: Optional[str] = None,
 ) -> Iterator[MockStorageClient]:
     """Replace the Google Cloud Storage API with a mock class.
 
@@ -162,21 +270,24 @@ def patch_google_storage(
     value of the signed URL will be :samp:`https://example.com/{blob}` where
     *blob* is the name of the blob.
 
-    Yields
-    ------
-    MockStorageClient
-        The mock Google Cloud Storage API client (although this is rarely
-        needed by the caller).
-
     Parameters
     ----------
     expected_expiration
         The expiration that should be requested in a call to
         ``generate_signed_url`` on an underlying blob.  A non-matching call
         will produce an assertion failure.
+    path
+        Root of the file path for blobs, if given.  If not given, a simpler
+        mock blob will be used that only supports ``generate_signed_url``.
     bucket_name
         If set, all requests for a bucket with a name other than the one
         provided will produce assertion failures.
+
+    Yields
+    ------
+    MockStorageClient
+        The mock Google Cloud Storage API client (although this is rarely
+        needed by the caller).
 
     Notes
     -----
@@ -214,7 +325,7 @@ def patch_google_storage(
                bucket_name="some-bucket",
            )
     """
-    mock_gcs = MockStorageClient(expected_expiration, bucket_name)
+    mock_gcs = MockStorageClient(expected_expiration, path, bucket_name)
     with patch("google.auth.impersonated_credentials.Credentials"):
         with patch("google.auth.default", return_value=(None, None)):
             with patch("google.cloud.storage.Client", return_value=mock_gcs):

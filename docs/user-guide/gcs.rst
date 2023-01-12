@@ -41,7 +41,11 @@ Testing with mock Google Cloud Storage
 ======================================
 
 The `safir.testing.gcs` module provides a limited, mock Google Cloud Storage (GCS) API suitable for testing.
-This mock provides just enough functionality to allow retrieving a bucket, retrieving a blob from the bucket, and creating a signed URL for the blob.
+By default, this mock provides just enough functionality to allow retrieving a bucket, retrieving a blob from the bucket, and creating a signed URL for the blob.
+If a path to a tree of files is given, it can also mock some other blob attributes and methods based on the underlying files.
+
+Testing signed URLs
+-------------------
 
 Applications that want to run tests with the mock GCS API should define a fixture (in ``conftest.py``) as follows:
 
@@ -80,3 +84,27 @@ Instead, use:
    from google.cloud import storage
 
 and then use, for example, ``storage.Client``.
+
+Testing with a tree of files
+----------------------------
+
+To mock additional blob attributes and methods, point the test fixture at a tree of files with the ``path`` parameter.
+
+.. code-block:: python
+   :emphasize-lines: 1, 7
+
+   from pathlib import Path
+
+
+   @pytest.fixture
+   def mock_gcs() -> Iterator[MockStorageClient]:
+       yield from patch_gcs(
+           path=Path(__file__).parent / "data" / "files",
+           expected_expiration=timedelta(hours=1),
+           bucket_name="some-bucket",
+       )
+
+The resulting blobs will then correspond to the files on disk and will support the additional attributes ``size``, ``updated``, and ``etag``, and the additional methods ``download_as_bytes``, ``exists``, ``open``, and ``reload`` (which does nothing).
+The Etag value of the blob will be the string version of its inode number.
+
+Mock signed URLs will continue to work exactly the same as when a path is not provided.
