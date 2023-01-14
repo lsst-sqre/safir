@@ -5,6 +5,8 @@ Utilities for Pydantic models
 Several validation and configuration problems arise frequently with Pydantic models.
 Safir offers some utility functions to assist in solving them.
 
+.. _pydantic-datetime:
+
 Normalizing datetime fields
 ===========================
 
@@ -31,6 +33,16 @@ Here's an example of how to use it:
        )(normalize_datetime)
 
 Multiple attributes can be listed as the initial arguments of `~pydantic.validator` if there are multiple fields that need to be checked.
+
+This validator accepts all of the input formats that Pydantic accepts.
+This includes some ambiguous formats, such as an ISO 8601 date without time zone information.
+All such dates are given a consistent interpretation as UTC, but the results may be surprising if the caller expected local time.
+In some cases, it may be desirable to restrict input to one unambiguous format.
+
+This can be done by using `~safir.pydantic.normalize_isodatetime` as the validator instead.
+This function only accepts ``YYYY-MM-DDTHH:MM[:SS]Z`` as the input format.
+The ``Z`` time zone prefix indicating UTC is mandatory.
+It is called the same way as `~safir.pydantic.normalize_datetime`.
 
 Accepting camel-case attributes
 ===============================

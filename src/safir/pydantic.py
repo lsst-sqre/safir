@@ -16,6 +16,7 @@ MappingIntStrAny = Mapping[Union[int, str], Any]
 __all__ = [
     "CamelCaseModel",
     "normalize_datetime",
+    "normalize_isodatetime",
     "to_camel_case",
     "validate_exactly_one_of",
 ]
@@ -68,6 +69,55 @@ def normalize_datetime(
         return v.astimezone(timezone.utc)
     else:
         return v.replace(tzinfo=timezone.utc)
+
+
+def normalize_isodatetime(v: Optional[str]) -> Optional[datetime]:
+    """Pydantic validator for datetime fields in ISO format.
+
+    This validator requires the ISO 8601 date and time format with ``Z`` as
+    the time zone (``YYYY-MM-DDTHH:MM:SSZ``).  This format is compatible with
+    Kubernetes and the ISO UWS standard and is the same format produced by
+    `safir.datetime.isodatetime`.  It should be used when the ambiguous
+    formats supported by Pydantic by default (such as dates and times without
+    time zone information) shouldn't be allowed.
+
+    Parameters
+    ----------
+    v
+        The field representing a `~datetime.datetime`.
+
+    Returns
+    -------
+    datetime.datetime or None
+        The timezone-aware `~datetime.datetime` or `None` if the input was
+        `None`.
+
+    Examples
+    --------
+    Here is a partial model that uses this function as a validator.
+
+    .. code-block:: python
+
+       class Info(BaseModel):
+           last_used: Optional[datetime] = Field(
+               None,
+               title="Last used",
+               description="Date and time last used",
+               example="2023-01-25T15:44:34Z",
+           )
+
+           _normalize_last_used = validator(
+               "last_used", allow_reuse=True, pre=True
+           )(normalize_datetime)
+    """
+    if v is None:
+        return None
+    if not isinstance(v, str) or not v.endswith("Z"):
+        raise ValueError("Must be a string in YYYY-MM-DDTHH:MM[:SS]Z format")
+    try:
+        return datetime.fromisoformat(v[:-1] + "+00:00")
+    except Exception as e:
+        raise ValueError(f"Invalid date {v}: {str(e)}") from e
 
 
 def to_camel_case(string: str) -> str:

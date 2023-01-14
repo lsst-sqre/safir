@@ -10,6 +10,7 @@ import pytest
 from safir.pydantic import (
     CamelCaseModel,
     normalize_datetime,
+    normalize_isodatetime,
     to_camel_case,
     validate_exactly_one_of,
 )
@@ -30,6 +31,25 @@ def test_normalize_datetime() -> None:
     aware_date = normalize_datetime(naive_date)
     assert aware_date == naive_date.replace(tzinfo=timezone.utc)
     assert aware_date.tzinfo == timezone.utc
+
+
+def test_normalize_isodatetime() -> None:
+    assert normalize_isodatetime(None) is None
+
+    date = datetime.fromisoformat("2023-01-25T15:44:34+00:00")
+    assert date == normalize_isodatetime("2023-01-25T15:44:34Z")
+
+    date = datetime.fromisoformat("2023-01-25T15:44:00+00:00")
+    assert date == normalize_isodatetime("2023-01-25T15:44Z")
+
+    with pytest.raises(ValueError):
+        normalize_isodatetime("2023-01-25T15:44:00+00:00")
+
+    with pytest.raises(ValueError):
+        normalize_isodatetime(1668814932)  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError):
+        normalize_isodatetime("next thursday")
 
 
 def test_to_camel_case() -> None:

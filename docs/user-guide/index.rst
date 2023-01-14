@@ -25,3 +25,4 @@ User guide
    pydantic
    gcs
    fastapi-errors
+   datetime
