@@ -17,7 +17,11 @@ similar to this:
        raise HTTPException(
            status_code=status.HTTP_404_NOT_FOUND,
            detail=[
-               {"loc": ["path", "foo"], "msg": msg, "type": "invalid_foo"},
+               {
+                   "loc": [ErrorLocation.path, "foo"],
+                   "msg": msg,
+                   "type": "invalid_foo",
+               },
            ],
        )
 
@@ -31,11 +35,29 @@ generate good documentation.
 # Examples and notes kept in the module docstring because they're not
 # appropriate for the API documentation generated for a service.
 
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-__all__ = ["ErrorDetail", "ErrorModel"]
+__all__ = [
+    "ErrorDetail",
+    "ErrorLocation",
+    "ErrorModel",
+]
+
+
+class ErrorLocation(str, Enum):
+    """Possible locations for an error.
+
+    The first element of ``loc`` in `ErrorDetail` should be chosen from one of
+    these values.
+    """
+
+    body = "body"
+    header = "header"
+    path = "path"
+    query = "query"
 
 
 class ErrorDetail(BaseModel):
