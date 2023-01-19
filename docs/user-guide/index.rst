@@ -24,3 +24,4 @@ User guide
    kubernetes
    pydantic
    gcs
+   fastapi-errors

@@ -1,39 +1,11 @@
 """Standard models for FastAPI applications.
 
-Examples
---------
-To reference the `ErrorModel` model when returning an error message, use code
-similar to this:
-
-.. code-block:: python
-
-   @router.get(
-       "/route/{foo}",
-       ...,
-       responses={404: {"description": "Not found", "model": ErrorModel}},
-   )
-   async def route(foo: str) -> None:
-       ...
-       raise HTTPException(
-           status_code=status.HTTP_404_NOT_FOUND,
-           detail=[
-               {
-                   "loc": [ErrorLocation.path, "foo"],
-                   "msg": msg,
-                   "type": "invalid_foo",
-               },
-           ],
-       )
-
 Notes
 -----
 FastAPI does not appear to export its error response model in a usable form,
 so define a copy of it so that we can reference it in API definitions to
 generate good documentation.
 """
-
-# Examples and notes kept in the module docstring because they're not
-# appropriate for the API documentation generated for a service.
 
 from enum import Enum
 from typing import List, Optional
