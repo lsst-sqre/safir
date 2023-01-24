@@ -5,6 +5,11 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
+## 3.6.0 (unreleased)
+
+- Add a `safir.models.ErrorLocation` enum holding valid values for the first element of the `loc` array in `safir.models.ErrorModel`.
+  Due to limitations in Python typing, `loc` is not type-checked against this enum, but it may be useful to applications constructing FastAPI-compatible error messages.
+
 ## 3.5.0 (2023-01-12)
 
 - Add new helper class `safir.gcs.SignedURLService` to generate signed URLs to Google Cloud Storage objects using workload identity.
