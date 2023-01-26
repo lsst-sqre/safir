@@ -108,7 +108,7 @@ def normalize_isodatetime(v: Optional[str]) -> Optional[datetime]:
 
            _normalize_last_used = validator(
                "last_used", allow_reuse=True, pre=True
-           )(normalize_datetime)
+           )(normalize_isodatetime)
     """
     if v is None:
         return None
