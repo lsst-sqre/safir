@@ -177,6 +177,8 @@ This will open a transaction, commit the transaction at the end of the block, an
    Due to an as-yet-unexplained interaction with FastAPI 0.74 and later, managing the transaction inside the database session dependency does not work.
    Calling ``await session.commit()`` there, either explicitly or implicitly via a context manager, immediately fails by raising ``asyncio.CancelledError`` and the transaction is not committed or closed.
 
+.. _database-datetime:
+
 Handling datetimes in database tables
 =====================================
 

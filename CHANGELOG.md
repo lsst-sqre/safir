@@ -9,6 +9,9 @@ X.Y.Z (YYYY-MM-DD)
 
 - Add a `safir.models.ErrorLocation` enum holding valid values for the first element of the `loc` array in `safir.models.ErrorModel`.
   Due to limitations in Python typing, `loc` is not type-checked against this enum, but it may be useful to applications constructing FastAPI-compatible error messages.
+- Add `safir.datetime.current_datetime` to get a normalized `datetime` object representing the current date and time.
+- Add `safir.datetime.isodatetime` and `safir.datetime.parse_isodatetime` to convert to and from the most useful form of ISO 8601 dates, used by both Kubernetes and the IVOA UWS standard.
+  Also add `safir.pydantic.normalize_isodatetime` to accept only that same format as input to a Pydantic model with a `datetime` field.
 
 ## 3.5.0 (2023-01-12)
 

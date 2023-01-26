@@ -13,6 +13,8 @@ API reference
 
 .. automodapi:: safir.database
 
+.. automodapi:: safir.datetime
+
 .. automodapi:: safir.dependencies.arq
    :include-all-objects:
 
