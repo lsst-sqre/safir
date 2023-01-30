@@ -55,12 +55,12 @@ async def test_session() -> None:
             session.add(User(username="foo"))
 
     @app.get("/list")
-    async def list(
+    async def get_list(
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> List[str]:
         async with session.begin():
             result = await session.scalars(select(User.username))
-            return result.all()
+            return list(result.all())
 
     async with AsyncClient(app=app, base_url="https://example.com") as client:
         r = await client.get("/list")

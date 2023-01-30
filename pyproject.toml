@@ -39,7 +39,7 @@ arq = [
 ]
 db = [
     "asyncpg",
-    "sqlalchemy[asyncio]",
+    "sqlalchemy[asyncio]>=1.4.18",
 ]
 dev = [
     "asgi-lifespan",
