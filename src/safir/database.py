@@ -12,8 +12,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
-    AsyncSession,
     async_scoped_session,
+    async_sessionmaker,
     create_async_engine,
 )
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -214,7 +214,7 @@ async def create_async_session(
         request).  ``await session.remove()`` should be called when the caller
         is done with the session.
     """
-    factory = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
     session = async_scoped_session(factory, scopefunc=asyncio.current_task)
 
     # If no statement was provided, just return the async_scoped_session.
