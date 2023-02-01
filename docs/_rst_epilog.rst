@@ -5,7 +5,7 @@
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _Roundtable: https://roundtable.lsst.io
 .. _Phalanx: https://phalanx.lsst.io
-.. _fastapi_safir_app: https://github.com/lsst/templates/tree/master/project_templates/fastapi_safir_app
+.. _fastapi_safir_app: https://github.com/lsst/templates/tree/main/project_templates/fastapi_safir_app
 .. _structlog: http://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
 .. _tox: https://tox.readthedocs.io/en/latest/

@@ -106,33 +106,36 @@ The build documentation is located in the :file:`docs/_build/html` directory.
 Updating the change log
 =======================
 
-Each pull request should update the change log (:file:`CHANGELOG.rst`).
-Add a description of new features and fixes as list items under a section at the top of the change log called "Unreleased:"
+Each pull request should update the change log (:file:`CHANGELOG.md`).
+Add a description of new features and fixes as list items under a section at the top of the change log, using ``unreleased`` for the date portion.
+The version number for that heading should be chosen or updated based on the semver_ rules.
 
-.. code-block:: rst
+.. _semver: https://semver.org/
 
-   Unreleased
-   ----------
+.. code-block:: markdown
 
-   - Description of the feature or fix.
+   ## X.Y.Z (unreleased)
 
-If the next version is known (because Safir's master branch is being prepared for a new major or minor version), the section may contain that version information:
-
-.. code-block:: rst
-
-   X.Y.0 (unreleased)
-   ------------------
+   ### Subheading (see below)
 
    - Description of the feature or fix.
+
+All changelog entries should be divided into sections (each starting with ``###``) chosen from the following:
+
+- **Backward-incompatible changes** (also increase the major version except in unusual cases)
+- **New features** (also increase the minor version except in unusual cases)
+- **Bug fixes**
+- **Other changes** (which are mostly new features that are not significant enough to call attention to, such as logging formatting changes or updates to the documentation)
 
 If the exact version and release date is known (:doc:`because a release is being prepared <release>`), the section header is formatted as:
 
-.. code-block:: rst
+.. code-block:: markdown
 
-   X.Y.0 (YYYY-MM-DD)
-   ------------------
+   ## X.Y.Z (YYYY-MM-DD)
 
-   - Description of the feature or fix.
+Each entry in the change log should be on one line without line breaks, even though this violates the normal rule of putting a newline after each sentence.
+This allows the whole change log entry to be copied and pasted into the GitHub release page when creating a release.
+Unfortunately, GitHub Markdown preserves line breaks after sentences as hard line breaks when rendering the description of a release.
 
 .. _style-guide:
 
