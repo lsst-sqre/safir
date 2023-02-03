@@ -5,7 +5,7 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 3.6.0 (unreleased)
+## 3.6.0 (2023-02-03)
 
 ### New features
 
@@ -75,7 +75,7 @@ X.Y.Z (YYYY-MM-DD)
 
 ### Backward-incompatible changes
 
-- `XForwardedMiddleware` no longer sets ``forwarded_proto` in the request state and instead directly updates the request scope so that subsequent handlers and middleware believe the request scheme is that given by an `X-Forwarded-Proto` header. This fixes the scheme returned by other request methods and attributes such as `url_for` in cases where the service is behind an ingress that terminates TLS.
+- `XForwardedMiddleware` no longer sets `forwarded_proto` in the request state and instead directly updates the request scope so that subsequent handlers and middleware believe the request scheme is that given by an `X-Forwarded-Proto` header. This fixes the scheme returned by other request methods and attributes such as `url_for` in cases where the service is behind an ingress that terminates TLS.
 
 ### New features
 
