@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.schema import CreateSchema
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.schema import MetaData
 from structlog.stdlib import BoundLogger
@@ -354,6 +355,8 @@ async def initialize_database(
     for _ in range(5):
         try:
             async with engine.begin() as conn:
+                if schema.schema is not None:
+                    await conn.execute(CreateSchema(schema.schema, True))
                 if reset:
                     await conn.run_sync(schema.drop_all)
                 await conn.run_sync(schema.create_all)
