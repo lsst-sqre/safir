@@ -5,6 +5,17 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
+## 3.7.0 (unreleased)
+
+### New features
+
+- Add a `safir.testing.uvicorn.spawn_uvicorn` helper function to spawn an ASGI app under an external Uvicorn process. Normally, ASGI apps should be tested by passing the app directly to an `httpx.AsyncClient`, but in some cases (such as Selenium testing) the app needs to listen to regular HTTP requests.
+
+### Bug fixes
+
+- After `safir.logging.configure_uvicorn_logging` was called, exception tracebacks were no longer expanded. Add the missing processor to the logging stack.
+- In `safir.logging.configure_uvicorn_logging`, send the access log to standard output instead of combining it with all other messages on standard error.
+
 ## 3.6.0 (2023-02-03)
 
 ### New features
@@ -149,7 +160,7 @@ Included in this release is:
 - A FastAPI dependency to provide a structlog logger as configured by the `safir.logging` package, replacing the aiohttp middleware.
 - A FastAPI dependency to provide a global `httpx.AsyncClient`, replacing the middleware that provided an aiohttp client.
 - Starlette (FastAPI) middleware to parse `X-Forwarded-*` headers and update request information accordingly.
-- `safir.metadata.get_metadata` now returns a [Pydantic](https://pydantic-docs.helpmanual.io/) model.
+- `safir.metadata.get_metadata` now returns a [Pydantic](https://docs.pydantic.dev/) model.
 
 As of this release, Safir only supports Python 3.8 or later.
 

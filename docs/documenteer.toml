@@ -26,3 +26,8 @@ python = "https://docs.python.org/3/"
 sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
 structlog = "https://www.structlog.org/en/stable/"
 arq = "https://arq-docs.helpmanual.io"
+
+[sphinx.linkcheck]
+ignore = [
+    '^https://github\.com/lsst-sqre/safir/issues/new'
+]

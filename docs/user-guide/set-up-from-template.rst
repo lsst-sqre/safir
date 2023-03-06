@@ -1,3 +1,5 @@
+.. _create-from-template:
+
 #################################
 Creating an app from the template
 #################################
@@ -99,7 +101,7 @@ You can format the code and by running tox_:
 6. Push to GitHub
 =================
 
-Now `create your application's repository on GitHub <https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-new-repository>`__ and push to it.
+Now `create your application's repository on GitHub <https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository>`__ and push to it.
 
 7. Configure Docker Hub credentials
 ===================================
@@ -107,7 +109,7 @@ Now `create your application's repository on GitHub <https://help.github.com/en/
 The first push to GitHub will fail.
 That's because the Docker build step doesn't credentials for Docker Hub.
 
-To set those credentials, follow GitHub's help page `Creating and storing encrypted secrets <https://help.github.com/en/actions/configuring-and-managing-workflows/creating-and-storing-encrypted-secrets>`__.
+To set those credentials, follow GitHub's help page `Creating and storing encrypted secrets <https://docs.github.com/en/actions/security-guides/encrypted-secrets>`__.
 The variables are:
 
 ``DOCKER_USERNAME``
@@ -117,7 +119,7 @@ The variables are:
     A Docker Hub Personal Access Token associated with ``DOCKER_USERNAME``.
     `Create a dedicated token <https://docs.docker.com/docker-hub/access-tokens/>`__ specifically for your project's GitHub Actions workflow.
 
-After setting these secrets, re-run the GitHub Action by `re-running the workflow job from the GitHub Actions UI <https://help.github.com/en/actions/configuring-and-managing-workflows/managing-a-workflow-run>`__ or by pushing a new commit to GitHub.
+After setting these secrets, re-run the GitHub Action by `re-running the workflow job from the GitHub Actions UI <https://docs.github.com/en/actions/managing-workflow-runs/re-running-workflows-and-jobs>`__ or by pushing a new commit to GitHub.
 
 8. Try the local test commands
 ==============================

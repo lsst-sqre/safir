@@ -26,3 +26,4 @@ User guide
    gcs
    fastapi-errors
    datetime
+   uvicorn
