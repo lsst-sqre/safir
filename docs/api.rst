@@ -59,3 +59,5 @@ API reference
 
 .. automodapi:: safir.testing.kubernetes
    :include-all-objects:
+
+.. automodapi:: safir.testing.uvicorn

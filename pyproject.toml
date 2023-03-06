@@ -52,6 +52,7 @@ dev = [
     "pytest-asyncio",
     "respx",
     "sqlalchemy[mypy]",
+    "uvicorn",
     # documentation
     "documenteer[guide]>=0.7.0b2",
 ]

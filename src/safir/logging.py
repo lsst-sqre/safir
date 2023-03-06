@@ -254,7 +254,9 @@ def configure_uvicorn_logging(
     This configures Uvicorn to use structlog for output formatting and
     installs a custom processor to parse its access log messages into
     additional log context that matches the format of Google log messages.
-    This helps Google's Cloud Logging system understand the logs.
+    This helps Google's Cloud Logging system understand the logs. Access logs
+    are sent to standard output and all other logs are sent to standard
+    error.
 
     Parameters
     ----------
@@ -264,17 +266,17 @@ def configure_uvicorn_logging(
 
     Notes
     -----
-    This method should normally be called after `configure_logging` during
-    FastAPI app creation. It should be called during Python module import or
-    inside the function that creates and returns the FastAPI app that Uvicorn
-    will run. This ensures the logging setup is complete before Uvicorn logs
-    its first message.
+    This method should normally be called during FastAPI app creation, either
+    during Python module import or inside the function that creates and
+    returns the FastAPI app that Uvicorn will run. This ensures the logging
+    setup is complete before Uvicorn logs its first message.
     """
     if not isinstance(log_level, LogLevel):
         log_level = LogLevel[log_level.upper()]
 
     processors = [
         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+        structlog.processors.format_exc_info,
         structlog.processors.JSONRenderer(),
     ]
     logging.config.dictConfig(
@@ -301,6 +303,7 @@ def configure_uvicorn_logging(
                     "level": log_level.value,
                     "class": "logging.StreamHandler",
                     "formatter": "json-access",
+                    "stream": "ext://sys.stdout",
                 },
                 "uvicorn.default": {
                     "level": log_level.value,

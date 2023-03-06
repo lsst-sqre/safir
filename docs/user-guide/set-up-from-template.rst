@@ -1,3 +1,5 @@
+.. _create-from-template:
+
 #################################
 Creating an app from the template
 #################################

@@ -5,6 +5,17 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
+## 3.7.0 (unreleased)
+
+### New features
+
+- Add a `safir.testing.uvicorn.spawn_uvicorn` helper function to spawn an ASGI app under an external Uvicorn process. Normally, ASGI apps should be tested by passing the app directly to an `httpx.AsyncClient`, but in some cases (such as Selenium testing) the app needs to listen to regular HTTP requests.
+
+### Bug fixes
+
+- After `safir.logging.configure_uvicorn_logging` was called, exception tracebacks were no longer expanded. Add the missing processor to the logging stack.
+- In `safir.logging.configure_uvicorn_logging`, send the access log to standard output instead of combining it with all other messages on standard error.
+
 ## 3.6.0 (2023-02-03)
 
 ### New features
