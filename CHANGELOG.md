@@ -5,11 +5,12 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 3.7.0 (unreleased)
+## 3.7.0 (2023-03-06)
 
 ### New features
 
 - Add a `safir.testing.uvicorn.spawn_uvicorn` helper function to spawn an ASGI app under an external Uvicorn process. Normally, ASGI apps should be tested by passing the app directly to an `httpx.AsyncClient`, but in some cases (such as Selenium testing) the app needs to listen to regular HTTP requests.
+- `safir.database.initialize_database` now creates a non-default schema if the underlying SQLAlchemy model declares one.
 
 ### Bug fixes
 
