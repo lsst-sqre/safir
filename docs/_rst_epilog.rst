@@ -1,14 +1,14 @@
 .. _arq: https://arq-docs.helpmanual.io
 .. _FastAPI: https://fastapi.tiangolo.com/
-.. _mypy: http://www.mypy-lang.org
+.. _mypy: https://www.mypy-lang.org
 .. _pre-commit: https://pre-commit.com
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _Roundtable: https://roundtable.lsst.io
 .. _Phalanx: https://phalanx.lsst.io
 .. _fastapi_safir_app: https://github.com/lsst/templates/tree/main/project_templates/fastapi_safir_app
-.. _structlog: http://www.structlog.org/en/stable/
+.. _structlog: https://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
-.. _tox: https://tox.readthedocs.io/en/latest/
+.. _tox: https://tox.wiki/en/latest/
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
 .. _SQLAlchemy: https://www.sqlalchemy.org/
 .. _asyncpg: https://magicstack.github.io/asyncpg/current/
