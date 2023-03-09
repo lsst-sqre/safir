@@ -54,10 +54,14 @@ API reference
 .. automodapi:: safir.pydantic
    :include-all-objects:
 
+.. automodapi:: safir.slack
+
 .. automodapi:: safir.testing.gcs
    :include-all-objects:
 
 .. automodapi:: safir.testing.kubernetes
    :include-all-objects:
+
+.. automodapi:: safir.testing.slack
 
 .. automodapi:: safir.testing.uvicorn

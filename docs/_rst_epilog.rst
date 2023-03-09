@@ -15,3 +15,4 @@
 .. _Click: https://click.palletsprojects.com/
 .. _Uvicorn: https://www.uvicorn.org/
 .. _PyPI: https://pypi.org/project/safir/
+.. _respx: https://lundberg.github.io/respx/

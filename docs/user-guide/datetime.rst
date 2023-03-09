@@ -22,11 +22,11 @@ Getting the current date and time
 
 To get the current date and time as a `~datetime.datetime` object, use `safir.datetime.current_datetime`.
 
-In addition to ensuring that the returned object is time zone aware and uses the UTC time zone, this function sets milliseconds to zero.
+In addition to ensuring that the returned object is time zone aware and uses the UTC time zone, this function sets microseconds to zero by default.
 This is useful for database-based applications, since databases may or may not store milliseconds or, worse, accept non-zero milliseconds and then silently discard them.
-Mixing `~datetime.datetime` objects with and without milliseconds can lead to confusing bugs, which using this function consistently can avoid.
+Mixing `~datetime.datetime` objects with and without microseconds can lead to confusing bugs, which using this function consistently can avoid.
 
-If milliseconds are needed for a particular application, this helper function is not suitable.
+If microseconds are needed for a particular use (presumably one where the timestamps will never be stored in a database), pass ``microseconds=True`` as an argument.
 
 Date and time serialization
 ===========================
@@ -64,3 +64,15 @@ To use this format as the serialized representation of any `~datetime.datetime` 
            json_encoders = {datetime: lambda v: isodatetime(v)}
 
 Also see the Pydantic validation function `safir.pydantic.normalize_isodatetime`, discussed further at :ref:`pydantic-datetime`.
+
+Formatting datetimes for logging
+================================
+
+While the ISO 8601 format is recommended for dates that need to be read by both computers and humans, it is not ideal for humans.
+The ``T`` in the middle and the trailing ``Z`` can make it look cluttered, and some timestamps (such as for error events) benefit from the precision of milliseconds.
+
+Safir therefore also provides `safir.datetime.format_datetime_for_logging`, which formats a `~datetime.datetime` object as ``YYYY-MM-DD HH:MM:SS[.sss]``, where the milliseconds are included only if the `~datetime.datetime` object has non-zero microseconds.
+(That last rule avoids adding spurious ``.000`` strings to every formatted timestamp when the program only tracks times to second precision, such as when `~safir.datetime.current_datetime` is used.)
+
+As the name of the function indicates, this function should only be used when formatting dates for logging and other human display.
+Dates that may need to be parsed again by another program should use `~safir.datetime.isodatetime` instead.
