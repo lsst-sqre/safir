@@ -122,6 +122,14 @@ class SlackMessage(BaseModel):
     Slack users will be honored and expanded by Slack.
     """
 
+    verbatim: bool = False
+    """Whether the main part of the message should be marked verbatim.
+
+    Verbatim messages in Slack don't expand channel references or create user
+    notifications. These are expanded in the main message by default, but this
+    can be set to `True` to disable that behavior.
+    """
+
     fields: List[SlackField] = []
     """Short key/value fields to include in the message (at most 10)."""
 
@@ -154,7 +162,14 @@ class SlackMessage(BaseModel):
         ]
         message = _truncate_string_at_end(self.message.strip(), 3000)
         blocks: list[dict[str, Any]] = [
-            {"type": "section", "text": {"type": "mrkdwn", "text": message}}
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": message,
+                    "verbatim": self.verbatim,
+                },
+            }
         ]
         if fields:
             blocks.append({"type": "section", "fields": fields})
@@ -215,7 +230,7 @@ class SlackException(Exception):
         ]
         if self.user:
             fields.append(SlackField(heading="User", text=self.user))
-        return SlackMessage(message=str(self), fields=fields)
+        return SlackMessage(message=str(self), verbatim=True, fields=fields)
 
 
 class SlackIgnoredException(Exception):
@@ -300,6 +315,7 @@ class SlackClient:
         error = f"{name}: {str(exc)}"
         message = SlackMessage(
             message=f"Uncaught {name} exception in {self._application}",
+            verbatim=True,
             fields=[SlackField(heading="Failed at", text=date)],
             attachments=[SlackAttachment(heading="Exception", code=error)],
         )

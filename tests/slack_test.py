@@ -41,6 +41,7 @@ def test_message() -> None:
                 "text": {
                     "type": "mrkdwn",
                     "text": "This is some *Slack message*",
+                    "verbatim": False,
                 },
             },
             {
@@ -85,12 +86,16 @@ def test_message() -> None:
         ],
     }
 
-    message = SlackMessage(message="Single line message")
+    message = SlackMessage(message="Single line message", verbatim=True)
     assert message.to_slack() == {
         "blocks": [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Single line message"},
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Single line message",
+                    "verbatim": True,
+                },
             }
         ]
     }
@@ -103,7 +108,11 @@ def test_message() -> None:
         "blocks": [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Message with one `field`"},
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Message with one `field`",
+                    "verbatim": False,
+                },
             },
             {
                 "type": "section",
@@ -215,7 +224,11 @@ async def test_post(mock_slack: MockSlack) -> None:
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Some random message"},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Some random message",
+                        "verbatim": False,
+                    },
                 }
             ]
         }
@@ -237,6 +250,7 @@ async def test_post_exception(mock_slack: MockSlack) -> None:
                     "text": {
                         "type": "mrkdwn",
                         "text": "Error in App: Some exception message",
+                        "verbatim": True,
                     },
                 },
                 {
@@ -275,6 +289,7 @@ async def test_post_exception(mock_slack: MockSlack) -> None:
                     "text": {
                         "type": "mrkdwn",
                         "text": "Error in App: Blah blah blah",
+                        "verbatim": True,
                     },
                 },
                 {
@@ -347,6 +362,7 @@ async def test_route_handler(mock_slack: MockSlack) -> None:
                     "text": {
                         "type": "mrkdwn",
                         "text": "Uncaught ValueError exception in App",
+                        "verbatim": True,
                     },
                 },
                 {

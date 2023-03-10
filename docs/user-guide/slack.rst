@@ -52,6 +52,9 @@ Both fields and attachments can have either text, which is formatted in mrkdwn t
 If truncation is needed, text fields are truncated at the bottom and code blocks are truncated at the top.
 (The code block truncation behavior is because JupyterLab failure messages have the most useful information at the bottom.)
 
+All text fields except the main message are marked as verbatim from Slack's perspective, which means that channel and user references will not turn into links or notifications.
+The main message is not verbatim by default, so channel and user references will work as normal in Slack, but can be marked as such by passing ``verbatim=True`` into the constructor.
+
 Here's an example of constructing a message:
 
 .. code-block:: python
