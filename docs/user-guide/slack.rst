@@ -176,3 +176,39 @@ These exceptions have default handlers and are therefore not uncaught exceptions
 If your application has additional exceptions for which you are installing exception handlers, those exceptions should inherit from `~safir.slack.SlackIgnoredException`.
 This exception class has no behavior and can be safely used as an additional parent class with other base classes.
 It flags the exception for this route class so that it will not be reported to Slack.
+
+Testing code that uses a Slack webhook
+======================================
+
+The `safir.testing.slack` module provides a simple mock of a Slack webhook that accumulates every message sent to it.
+
+To use it, first define a fixture:
+
+.. code-block:: python
+
+   import pytest
+   import respx
+   from safir.testing.slack import MockSlack, mock_slack_webhook
+
+
+   @pytest.fixture
+   def mock_slack(respx_mock: respx.Router) -> MockSlack:
+       return mock_slack_webhook(config.slack_webhook, respx_mock)
+
+Replace ``config.slack_webhook`` with whatever webhook configuration your application uses.
+
+Then, in a test, use a pattern like the following:
+
+.. code-block:: python
+
+   import pytest
+   from httpx import AsyncClient
+   from safir.testing.slack import MockSlack
+
+
+   @pytest.mark.asyncio
+   def test_something(client: AsyncClient, mock_slack: MockSlack) -> None:
+       # Do something with client that generates Slack messages.
+       assert mock_slack.messages == [{...}, {...}]
+
+The ``url`` attribute of the `~safir.testing.slack.MockSlack` object contains the URL it was configured to mock, in case a test needs convenient access to it.
