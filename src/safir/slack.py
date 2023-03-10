@@ -55,6 +55,9 @@ class SlackField(BaseModel):
     classes that need to impose different maximum lengths.
     """
 
+    class Config:
+        validate_assignment = True
+
     @root_validator
     def _validate_content(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure only one of ``text`` or ``code`` is set."""
@@ -144,6 +147,9 @@ class SlackMessage(BaseModel):
 
     attachments: List[SlackAttachment] = []
     """Longer sections to include as attachments."""
+
+    class Config:
+        validate_assignment = True
 
     @validator("message")
     def _validate_message(cls, v: str) -> str:
@@ -307,7 +313,9 @@ class SlackClient:
         exc
             The exception to report.
         """
-        await self.post(exc.to_slack())
+        message = exc.to_slack()
+        message.message = f"Error in {self._application}: {message.message}"
+        await self.post(message)
 
     async def post_uncaught_exception(self, exc: Exception) -> None:
         """Post an alert to Slack about an uncaught webapp exception.

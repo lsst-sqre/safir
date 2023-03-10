@@ -153,6 +153,12 @@ def test_field_truncation() -> None:
     length = int((2001 - len("*Else*\n```\n... truncated ...\n\n```")) / 8)
     assert field.code == ("... truncated ...\n" + "abcdefg\n" * length).strip()
 
+    # Also validate on assignment, since sometimes we want to replace the text
+    # and still want truncation.
+    field.code = "a" * 2000
+    length = 2000 - len("*Else*\n```\n... truncated ...\n\n```")
+    assert field.code == "... truncated ...\n" + "a" * length
+
 
 def test_attachment_truncation() -> None:
     """Test truncating attachments at Slack limits."""
@@ -172,6 +178,12 @@ def test_attachment_truncation() -> None:
     length = int((3001 - len("*Else*\n```\n... truncated ...\n\n```")) / 6)
     assert att.code == ("... truncated ...\n" + "abcde\n" * length).strip()
 
+    # Also validate on assignment, since sometimes we want to replace the text
+    # and still want truncation.
+    att.code = "a" * 3000
+    length = 3000 - len("*Else*\n```\n... truncated ...\n\n```")
+    assert att.code == "... truncated ...\n" + "a" * length
+
 
 def test_message_truncation() -> None:
     """Text truncating the main part of a Slack message."""
@@ -180,6 +192,12 @@ def test_message_truncation() -> None:
     message = SlackMessage(message="a" * 3001)
     length = 3000 - len("\n... truncated ...")
     assert message.message == "a" * length + "\n... truncated ..."
+
+    # Also validate on assignment, since sometimes we want to replace the text
+    # and still want truncation.
+    message.message = "abcde\n" * 501
+    length = int((3001 - len("\n... truncated ...")) / 6)
+    assert message.message == "abcde\n" * length + "... truncated ..."
 
 
 @pytest.mark.asyncio
@@ -214,7 +232,7 @@ async def test_post_exception(mock_slack: MockSlack) -> None:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Some exception message",
+                        "text": "Error in App: Some exception message",
                     },
                 },
                 {
@@ -250,7 +268,10 @@ async def test_post_exception(mock_slack: MockSlack) -> None:
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Blah blah blah"},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Error in App: Blah blah blah",
+                    },
                 },
                 {
                     "type": "section",
