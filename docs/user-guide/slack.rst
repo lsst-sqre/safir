@@ -131,6 +131,10 @@ For example:
            message.fields.append(SlackField(heading="Data", text=self.data))
            return message
 
+.. warning::
+
+   The full exception message (although not the traceback) is sent to Slack, so it should not contain any sensitive information, security keys, or similar data.
+
 .. _slack-uncaught-exceptions:
 
 Reporting uncaught exceptions to Slack
@@ -175,6 +179,12 @@ Then, use this as a custom class for every FastAPI router whose routes should re
 
 Exceptions inheriting from :exc:`fastapi.HTTPException`, :exc:`fastapi.exceptions.RequestValidationError`, or :exc:`starlette.exceptions.HTTPException` will not be reported.
 These exceptions have default handlers and are therefore not uncaught exceptions.
+
+.. warning::
+
+   The full exception message (although not the traceback) is sent to Slack.
+   Since the exception is by definition unknown, this carries some inherent risk of disclosing security-sensitive data to Slack.
+   If you use this feature, consider making the Slack channel to which the incoming webhook is connected private, and closely review exception handling in any code related to secrets.
 
 If your application has additional exceptions for which you are installing exception handlers, those exceptions should inherit from `~safir.slack.SlackIgnoredException`.
 This exception class has no behavior and can be safely used as an additional parent class with other base classes.

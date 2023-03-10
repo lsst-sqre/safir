@@ -294,6 +294,11 @@ class SlackClient:
     async def post_exception(self, exc: SlackException) -> None:
         """Post an alert to Slack about an exception.
 
+        This method intentionally does not provide a way to include the
+        traceback, since it's hard to ensure that the traceback is entirely
+        free of secrets or other information that should not be disclosed on
+        Slack. Only the exception message is reported.
+
         Parameters
         ----------
         exc
