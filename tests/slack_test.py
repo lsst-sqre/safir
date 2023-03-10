@@ -139,65 +139,69 @@ def test_field_truncation() -> None:
     """Test truncating fields at Slack limits."""
     field = SlackField(heading="Something", text="a" * 2000)
     length = 2000 - len("*Something*\n\n... truncated ...")
-    assert field.text == "a" * length + "\n... truncated ..."
+    assert field.to_slack()["text"] == (
+        "*Something*\n" + "a" * length + "\n... truncated ..."
+    )
 
     field = SlackField(heading="Something", text="abcdefg\n" * 250)
     length = int((2001 - len("*Something*\n\n... truncated ...")) / 8)
-    assert field.text == "abcdefg\n" * length + "... truncated ..."
+    assert field.to_slack()["text"] == (
+        "*Something*\n" + "abcdefg\n" * length + "... truncated ..."
+    )
 
     field = SlackField(heading="Else", code="a" * 2000)
     length = 2000 - len("*Else*\n```\n... truncated ...\n\n```")
-    assert field.code == "... truncated ...\n" + "a" * length
+    assert field.to_slack()["text"] == (
+        "*Else*\n```\n... truncated ...\n" + "a" * length + "\n```"
+    )
 
     field = SlackField(heading="Else", code="abcdefg\n" * 250)
     length = int((2001 - len("*Else*\n```\n... truncated ...\n\n```")) / 8)
-    assert field.code == ("... truncated ...\n" + "abcdefg\n" * length).strip()
-
-    # Also validate on assignment, since sometimes we want to replace the text
-    # and still want truncation.
-    field.code = "a" * 2000
-    length = 2000 - len("*Else*\n```\n... truncated ...\n\n```")
-    assert field.code == "... truncated ...\n" + "a" * length
+    assert field.to_slack()["text"] == (
+        "*Else*\n```\n... truncated ...\n"
+        + ("abcdefg\n" * length).strip()
+        + "\n```"
+    )
 
 
 def test_attachment_truncation() -> None:
     """Test truncating attachments at Slack limits."""
-    att = SlackAttachment(heading="Something", text="a" * 3000)
+    attachment = SlackAttachment(heading="Something", text="a" * 3000)
     length = 3000 - len("*Something*\n\n... truncated ...")
-    assert att.text == "a" * length + "\n... truncated ..."
+    assert attachment.to_slack()["text"] == (
+        "*Something*\n" + "a" * length + "\n... truncated ..."
+    )
 
-    att = SlackAttachment(heading="Something", text="abcde\n" * 500)
+    attachment = SlackAttachment(heading="Something", text="abcde\n" * 500)
     length = int((3001 - len("*Something*\n\n... truncated ...")) / 6)
-    assert att.text == "abcde\n" * length + "... truncated ..."
+    assert attachment.to_slack()["text"] == (
+        "*Something*\n" + "abcde\n" * length + "... truncated ..."
+    )
 
-    att = SlackAttachment(heading="Else", code="a" * 3000)
+    attachment = SlackAttachment(heading="Else", code="a" * 3000)
     length = 3000 - len("*Else*\n```\n... truncated ...\n\n```")
-    assert att.code == "... truncated ...\n" + "a" * length
+    assert attachment.to_slack()["text"] == (
+        "*Else*\n```\n... truncated ...\n" + "a" * length + "\n```"
+    )
 
-    att = SlackAttachment(heading="Else", code="abcde\n" * 500)
+    attachment = SlackAttachment(heading="Else", code="abcde\n" * 500)
     length = int((3001 - len("*Else*\n```\n... truncated ...\n\n```")) / 6)
-    assert att.code == ("... truncated ...\n" + "abcde\n" * length).strip()
-
-    # Also validate on assignment, since sometimes we want to replace the text
-    # and still want truncation.
-    att.code = "a" * 3000
-    length = 3000 - len("*Else*\n```\n... truncated ...\n\n```")
-    assert att.code == "... truncated ...\n" + "a" * length
+    assert attachment.to_slack()["text"] == (
+        "*Else*\n```\n... truncated ...\n"
+        + ("abcde\n" * length).strip()
+        + "\n```"
+    )
 
 
 def test_message_truncation() -> None:
     """Text truncating the main part of a Slack message."""
     message = SlackMessage(message="a" * 3000)
-    assert message.message == "a" * 3000
+    assert message.to_slack()["blocks"][0]["text"]["text"] == "a" * 3000
     message = SlackMessage(message="a" * 3001)
     length = 3000 - len("\n... truncated ...")
-    assert message.message == "a" * length + "\n... truncated ..."
-
-    # Also validate on assignment, since sometimes we want to replace the text
-    # and still want truncation.
-    message.message = "abcde\n" * 501
-    length = int((3001 - len("\n... truncated ...")) / 6)
-    assert message.message == "abcde\n" * length + "... truncated ..."
+    assert message.to_slack()["blocks"][0]["text"]["text"] == (
+        "a" * length + "\n... truncated ..."
+    )
 
 
 @pytest.mark.asyncio

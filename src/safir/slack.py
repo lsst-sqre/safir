@@ -55,9 +55,6 @@ class SlackField(BaseModel):
     classes that need to impose different maximum lengths.
     """
 
-    class Config:
-        validate_assignment = True
-
     @root_validator
     def _validate_content(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure only one of ``text`` or ``code`` is set."""
@@ -66,28 +63,6 @@ class SlackField(BaseModel):
         if values["text"] is None and values["code"] is None:
             raise ValueError("One of text or code must be given")
         return values
-
-    @validator("text")
-    def _validate_text(
-        cls, v: Optional[str], values: Dict[str, Any]
-    ) -> Optional[str]:
-        """Truncate the text section if needed."""
-        if v is None:
-            return v
-        extra_needed = len(values["heading"]) + 3  # *Heading*\n
-        max_length = cls.max_formatted_length - extra_needed
-        return _truncate_string_at_end(v.strip(), max_length)
-
-    @validator("code")
-    def _validate_code(
-        cls, v: Optional[str], values: Dict[str, Any]
-    ) -> Optional[str]:
-        """Truncate the code section if needed."""
-        if v is None:
-            return v
-        extra_needed = len(values["heading"]) + 3 + 8  # *Heading*\n```\n\n```
-        max_length = cls.max_formatted_length - extra_needed
-        return _truncate_string_at_start(v.strip(), max_length)
 
     def to_slack(self) -> Dict[str, Any]:
         """Convert to a Slack Block Kit block.
@@ -100,12 +75,17 @@ class SlackField(BaseModel):
         """
         heading = f"*{self.heading}*\n"
         if self.code:
-            body = f"```\n{self.code}\n```"
+            extra_needed = len(heading) + 8  # ```\n\n```
+            max_length = self.max_formatted_length - extra_needed
+            code = _truncate_string_at_start(self.code.strip(), max_length)
+            body = f"```\n{code}\n```"
         else:
             if not self.text:
                 # Pydantic validation should make this impossible.
                 raise RuntimeError("SlackField without code or text")
-            body = self.text
+            extra_needed = len(heading)
+            max_length = self.max_formatted_length - extra_needed
+            body = _truncate_string_at_end(self.text.strip(), max_length)
         return {"type": "mrkdwn", "text": heading + body, "verbatim": True}
 
 
@@ -148,14 +128,6 @@ class SlackMessage(BaseModel):
     attachments: List[SlackAttachment] = []
     """Longer sections to include as attachments."""
 
-    class Config:
-        validate_assignment = True
-
-    @validator("message")
-    def _validate_message(cls, v: str) -> str:
-        """Truncate the message if needed."""
-        return _truncate_string_at_end(v.strip(), 3000)
-
     @validator("fields")
     def _validate_fields(cls, v: List[SlackField]) -> List[SlackField]:
         """Check Slack's constraints on fields.
@@ -180,11 +152,9 @@ class SlackMessage(BaseModel):
         attachments = [
             {"type": "section", "text": a.to_slack()} for a in self.attachments
         ]
+        message = _truncate_string_at_end(self.message.strip(), 3000)
         blocks: list[dict[str, Any]] = [
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": self.message},
-            }
+            {"type": "section", "text": {"type": "mrkdwn", "text": message}}
         ]
         if fields:
             blocks.append({"type": "section", "fields": fields})
