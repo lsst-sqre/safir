@@ -9,7 +9,7 @@ import pytest
 import respx
 
 from safir.testing.gcs import MockStorageClient, patch_google_storage
-from safir.testing.slack import MockSlack, mock_slack_webhook
+from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
 
 @pytest.fixture
@@ -20,5 +20,5 @@ def mock_gcs() -> Iterator[MockStorageClient]:
 
 
 @pytest.fixture
-def mock_slack(respx_mock: respx.Router) -> MockSlack:
+def mock_slack(respx_mock: respx.Router) -> MockSlackWebhook:
     return mock_slack_webhook("https://example.com/slack", respx_mock)

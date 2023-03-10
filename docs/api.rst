@@ -54,7 +54,9 @@ API reference
 .. automodapi:: safir.pydantic
    :include-all-objects:
 
-.. automodapi:: safir.slack
+.. automodapi:: safir.slack.blockkit
+
+.. automodapi:: safir.slack.webhook
 
 .. automodapi:: safir.testing.gcs
    :include-all-objects:

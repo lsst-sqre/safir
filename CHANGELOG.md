@@ -9,8 +9,8 @@ X.Y.Z (YYYY-MM-DD)
 
 ### New features
 
-- Add `safir.slack.SlackClient` and accompanying models to post a structured message to Slack via an incoming webhook. Add a `safir.slack.SlackException` base class that can be used to create exceptions with supplemental metadata that can be sent to Slack as a formatted alert.
-- Add a FastAPI route class (`safir.slack.SlackRouteErrorHandler`) that reports all uncaught exceptions to Slack using an incoming webhook.
+- Add `safir.slack.webhook.SlackWebhookClient` and accompanying models to post a structured message to Slack via an incoming webhook. Add a `safir.slack.blockkit.SlackException` base class that can be used to create exceptions with supplemental metadata that can be sent to Slack as a formatted alert.
+- Add a FastAPI route class (`safir.slack.webhook.SlackRouteErrorHandler`) that reports all uncaught exceptions to Slack using an incoming webhook.
 - Add `safir.datetime.format_datetime_for_logging` to convert a `datetime` object into an easily human-readable representation.
 - Add `safir.testing.slack.mock_slack_webhook` and an associated mock class to mock a Slack webhook for testing.
 - Add `microseconds=True` parameter to `safir.datetime.current_datetime` to get a `datetime` object with microseconds filled in. By default, `current_datetime` suppresses the microseconds since databases often cannot store them, but there are some timestamp uses, such as error reporting, that benefit from microseconds and are never stored in databases.

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, overload
 
 __all__ = [
     "current_datetime",
@@ -41,6 +41,16 @@ def current_datetime(*, microseconds: bool = False) -> datetime:
         return result
     else:
         return result.replace(microsecond=0)
+
+
+@overload
+def format_datetime_for_logging(timestamp: datetime) -> str:
+    ...
+
+
+@overload
+def format_datetime_for_logging(timestamp: None) -> None:
+    ...
 
 
 def format_datetime_for_logging(

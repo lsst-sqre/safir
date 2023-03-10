@@ -8,10 +8,10 @@ from typing import Any, Dict, List
 import respx
 from httpx import Request, Response
 
-__all__ = ["MockSlack", "mock_slack_webhook"]
+__all__ = ["MockSlackWebhook", "mock_slack_webhook"]
 
 
-class MockSlack:
+class MockSlackWebhook:
     """Represents a Slack incoming webhook and remembers what was posted.
 
     Attributes
@@ -45,7 +45,9 @@ class MockSlack:
         return Response(201)
 
 
-def mock_slack_webhook(hook_url: str, respx_mock: respx.Router) -> MockSlack:
+def mock_slack_webhook(
+    hook_url: str, respx_mock: respx.Router
+) -> MockSlackWebhook:
     """Set up a mocked Slack server.
 
     Parameters
@@ -57,8 +59,8 @@ def mock_slack_webhook(hook_url: str, respx_mock: respx.Router) -> MockSlack:
 
     Returns
     -------
-    MockSlack
-        The mock Slack API object.
+    MockSlackWebhook
+        The mock Slack webhook API object.
 
     Examples
     --------
@@ -69,11 +71,13 @@ def mock_slack_webhook(hook_url: str, respx_mock: respx.Router) -> MockSlack:
 
        import pytest
        import respx
-       from safir.testing.slack import MockSlack, mock_slack_webhook
+       from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
 
        @pytest.fixture
-       def mock_slack(config: Config, respx_mock: respx.Router) -> MockSlack:
+       def mock_slack(
+           config: Config, respx_mock: respx.Router
+       ) -> MockWebhookSlack:
            return mock_slack_webhook(config.slack_webhook, respx_mock)
 
     This uses respx_ to mock the Slack webhook URL obtained from the
@@ -82,10 +86,12 @@ def mock_slack_webhook(hook_url: str, respx_mock: respx.Router) -> MockSlack:
     .. code-block:: python
 
        @pytest.mark.asyncio
-       def test_something(client: AsyncClient, mock_slack: MockSlack) -> None:
+       def test_something(
+           client: AsyncClient, mock_slack: MockSlackWebhook
+       ) -> None:
            # Do something with client that generates Slack messages.
            assert mock_slack.messages == [{...}, {...}]
     """
-    mock = MockSlack(hook_url)
+    mock = MockSlackWebhook(hook_url)
     respx_mock.post(hook_url).mock(side_effect=mock.post_webhook)
     return mock
