@@ -77,7 +77,7 @@ class SlackField(BaseModel):
         if self.code:
             extra_needed = len(heading) + 8  # ```\n\n```
             max_length = self.max_formatted_length - extra_needed
-            code = _truncate_string_at_start(self.code.strip(), max_length)
+            code = _format_and_truncate_at_start(self.code, max_length)
             body = f"```\n{code}\n```"
         else:
             if not self.text:
@@ -85,7 +85,7 @@ class SlackField(BaseModel):
                 raise RuntimeError("SlackField without code or text")
             extra_needed = len(heading)
             max_length = self.max_formatted_length - extra_needed
-            body = _truncate_string_at_end(self.text.strip(), max_length)
+            body = _format_and_truncate_at_end(self.text, max_length)
         return {"type": "mrkdwn", "text": heading + body, "verbatim": True}
 
 
@@ -160,7 +160,7 @@ class SlackMessage(BaseModel):
         attachments = [
             {"type": "section", "text": a.to_slack()} for a in self.attachments
         ]
-        message = _truncate_string_at_end(self.message.strip(), 3000)
+        message = _format_and_truncate_at_end(self.message, 3000)
         blocks: list[dict[str, Any]] = [
             {
                 "type": "section",
@@ -322,8 +322,8 @@ class SlackClient:
         await self.post(message)
 
 
-def _truncate_string_at_end(string: str, max_length: int) -> str:
-    """Truncate a string at the end.
+def _format_and_truncate_at_end(string: str, max_length: int) -> str:
+    """Format a string for Slack, truncating at the end.
 
     Slack prohibits text blocks longer than a varying number of characters
     depending on where they are in the message. If this constraint is not met,
@@ -340,8 +340,14 @@ def _truncate_string_at_end(string: str, max_length: int) -> str:
     Returns
     -------
     str
-        The truncated string.
+        The truncated string with special characters escaped.
     """
+    string = (
+        string.strip()
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
     if len(string) <= max_length:
         return string
     truncated = "\n... truncated ..."
@@ -352,8 +358,8 @@ def _truncate_string_at_end(string: str, max_length: int) -> str:
         return string[:last_newline] + truncated
 
 
-def _truncate_string_at_start(string: str, max_length: int) -> str:
-    """Truncate a string at the start.
+def _format_and_truncate_at_start(string: str, max_length: int) -> str:
+    """Format a string for Slack, truncating at the start.
 
     Slack prohibits text blocks longer than a varying number of characters
     depending on where they are in the message. If this constraint is not met,
@@ -370,8 +376,14 @@ def _truncate_string_at_start(string: str, max_length: int) -> str:
     Returns
     -------
     str
-        The truncated string.
+        The truncated string with special characters escaped.
     """
+    string = (
+        string.strip()
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
     length = len(string)
     if length <= max_length:
         return string

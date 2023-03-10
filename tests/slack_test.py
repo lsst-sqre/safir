@@ -101,7 +101,7 @@ def test_message() -> None:
     }
 
     message = SlackMessage(
-        message="Message with one `field`",
+        message="Message with <special> & one `field`",
         fields=[SlackField(heading="Something", text="Blah")],
     )
     assert message.to_slack() == {
@@ -110,7 +110,7 @@ def test_message() -> None:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Message with one `field`",
+                    "text": "Message with &lt;special&gt; &amp; one `field`",
                     "verbatim": False,
                 },
             },
