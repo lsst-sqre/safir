@@ -41,7 +41,7 @@ def test_message() -> None:
                 "text": {
                     "type": "mrkdwn",
                     "text": "This is some *Slack message*",
-                    "verbatim": False,
+                    "verbatim": True,
                 },
             },
             {
@@ -86,7 +86,7 @@ def test_message() -> None:
         ],
     }
 
-    message = SlackMessage(message="Single line message", verbatim=True)
+    message = SlackMessage(message="Single line message", verbatim=False)
     assert message.to_slack() == {
         "blocks": [
             {
@@ -94,7 +94,7 @@ def test_message() -> None:
                 "text": {
                     "type": "mrkdwn",
                     "text": "Single line message",
-                    "verbatim": True,
+                    "verbatim": False,
                 },
             }
         ]
@@ -111,7 +111,7 @@ def test_message() -> None:
                 "text": {
                     "type": "mrkdwn",
                     "text": "Message with &lt;special&gt; &amp; one `field`",
-                    "verbatim": False,
+                    "verbatim": True,
                 },
             },
             {
@@ -227,7 +227,7 @@ async def test_post(mock_slack: MockSlack) -> None:
                     "text": {
                         "type": "mrkdwn",
                         "text": "Some random message",
-                        "verbatim": False,
+                        "verbatim": True,
                     },
                 }
             ]

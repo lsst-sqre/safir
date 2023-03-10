@@ -122,12 +122,13 @@ class SlackMessage(BaseModel):
     Slack users will be honored and expanded by Slack.
     """
 
-    verbatim: bool = False
+    verbatim: bool = True
     """Whether the main part of the message should be marked verbatim.
 
     Verbatim messages in Slack don't expand channel references or create user
-    notifications. These are expanded in the main message by default, but this
-    can be set to `True` to disable that behavior.
+    notifications. This is the default, but can be set to `False` to allow
+    any such elements in the message to be recognized by Slack. Do not set
+    this to `False` with untrusted input.
     """
 
     fields: List[SlackField] = []
@@ -230,7 +231,7 @@ class SlackException(Exception):
         ]
         if self.user:
             fields.append(SlackField(heading="User", text=self.user))
-        return SlackMessage(message=str(self), verbatim=True, fields=fields)
+        return SlackMessage(message=str(self), fields=fields)
 
 
 class SlackIgnoredException(Exception):
@@ -315,7 +316,6 @@ class SlackClient:
         error = f"{name}: {str(exc)}"
         message = SlackMessage(
             message=f"Uncaught {name} exception in {self._application}",
-            verbatim=True,
             fields=[SlackField(heading="Failed at", text=date)],
             attachments=[SlackAttachment(heading="Exception", code=error)],
         )
