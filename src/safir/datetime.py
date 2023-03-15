@@ -3,30 +3,89 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, overload
 
 __all__ = [
     "current_datetime",
+    "format_datetime_for_logging",
     "isodatetime",
     "parse_isodatetime",
 ]
 
 
-def current_datetime() -> datetime:
+def current_datetime(*, microseconds: bool = False) -> datetime:
     """Construct a `~datetime.datetime` for the current time.
 
+    It's easy to forget to force all `~datetime.datetime` objects to be time
+    zone aware. This function forces UTC for all objects.
+
     Databases do not always store microseconds in time fields, and having some
-    dates with microseconds and others without them can lead to bugs.  It's
-    also easy to forget to force all `~datetime.datetime` objects to be time
-    zone aware.  This function avoids both problems by forcing UTC and forcing
-    microseconds to 0.
+    dates with microseconds and others without them can lead to bugs, so by
+    default it suppresses the microseconds.
+
+    Parameters
+    ----------
+    microseconds
+        Whether to include microseconds. Consider setting this to `True` when
+        getting timestamps for error reporting, since granular timestamps can
+        help in understanding sequencing.
 
     Returns
     -------
     datetime.datetime
-        The current time forced to UTC and with the microseconds field zeroed.
+        The current time forced to UTC and optionally with the microseconds
+        field zeroed.
     """
-    return datetime.now(tz=timezone.utc).replace(microsecond=0)
+    result = datetime.now(tz=timezone.utc)
+    if microseconds:
+        return result
+    else:
+        return result.replace(microsecond=0)
+
+
+@overload
+def format_datetime_for_logging(timestamp: datetime) -> str:
+    ...
+
+
+@overload
+def format_datetime_for_logging(timestamp: None) -> None:
+    ...
+
+
+def format_datetime_for_logging(
+    timestamp: Optional[datetime],
+) -> Optional[str]:
+    """Format a datetime for logging and human readabilty.
+
+    Parameters
+    ----------
+    timestamp
+        Object to format. Must be in UTC or timezone-naive (in which case it's
+        assumed to be in UTC).
+
+    Returns
+    -------
+    str or None
+        The datetime in format ``YYYY-MM-DD HH:MM:SS[.sss]`` with milliseconds
+        added if and only if the microseconds portion of ``timestamp`` is not
+        0. There will be no ``T`` separator or time zone information.
+
+    Raises
+    ------
+    ValueError
+        Raised if the argument is in a time zone other than UTC.
+    """
+    if timestamp:
+        if timestamp.tzinfo not in (None, timezone.utc):
+            raise ValueError("Datetime {timestamp} not in UTC")
+        if timestamp.microsecond:
+            result = timestamp.isoformat(sep=" ", timespec="milliseconds")
+        else:
+            result = timestamp.isoformat(sep=" ", timespec="seconds")
+        return result.split("+")[0]
+    else:
+        return None
 
 
 def isodatetime(timestamp: datetime) -> str:

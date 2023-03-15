@@ -183,7 +183,7 @@ def test_datetime() -> None:
     with pytest.raises(ValueError):
         datetime_to_db(tz_naive)
 
-    tz_local = datetime.now().astimezone(timezone(timedelta(hours=1)))
+    tz_local = datetime.now(tz=timezone(timedelta(hours=1)))
     with pytest.raises(ValueError):
         datetime_to_db(tz_local)
     with pytest.raises(ValueError):

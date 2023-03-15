@@ -27,3 +27,4 @@ User guide
    fastapi-errors
    datetime
    uvicorn
+   slack-webhook

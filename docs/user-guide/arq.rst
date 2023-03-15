@@ -195,7 +195,9 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
     ) -> Dict[str, Any]:
         """Get metadata about a job."""
         try:
-            job = await arq_queue.get_job_metadata(job_id, queue_name=queue_name)
+            job = await arq_queue.get_job_metadata(
+                job_id, queue_name=queue_name
+            )
         except JobNotFound:
             raise HTTPException(status_code=404)
 
