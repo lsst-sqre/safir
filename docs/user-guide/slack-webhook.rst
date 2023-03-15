@@ -36,7 +36,7 @@ Creating a Slack message
 ------------------------
 
 Then, construct a `~safir.slack.blockkit.SlackMessage` that you want to post.
-This has a main message in Slack's highly-simplified `mrkdwn variant of Markdown <https://api.slack.com/reference/surfaces/formatting>`__, zero or more fields, and zero or more attachments.
+This has a main message in Slack's highly-simplified `mrkdwn variant of Markdown <https://api.slack.com/reference/surfaces/formatting>`__, zero or more fields, zero or more extra blocks, and zero or more attachments.
 
 A field is a heading and a short amount of data (normally a few words or a short line) normally used to hold supplemental information about the message.
 Possible examples are the username of the user that triggered the message, a formatted time when some event happened, or the route that was being accessed.
@@ -44,16 +44,28 @@ Fields will be formatted in two columns in the order given, left to right and th
 Text in fields is limited to 2000 characters (after formatting) and will be truncated if it is longer, but normally should be much shorter than this.
 A message may have at most 10 fields.
 
-An attachment is a larger amount of data added to the bottom of the message.
-Slack will automatically shorten long attachments and add a "See more" option to expand them.
-Attachments are limited to 3000 characters (after formatting).
+Longer additional data should go into an additional block.
+Those blocks will be displayed in one column below the fields and main message.
+Text in those fields is limited to 3000 characters (after formatting) and will be truncated if it is longer.
 
-Both fields and attachments can have either text, which is formatted in mrkdwn the same as the main message, or code, which is formatted in a code block.
+Attachments are additional blocks added after the message.
+Slack will automatically shorten long attachments and add a "See more" option to expand them.
+Attachments are also limited to 3000 characters (after formatting).
+
+.. warning::
+
+   Slack has declared attachments "legacy" and has warned that their behavior may change in the future to make them less visible.
+   However, attachments are the only current supported way to collapse long fields by default with a "See more" option.
+   Only use attachments if you need that Slack functionality; otherwise, use blocks.
+
+Both fields and blocks can have either text, which is formatted in mrkdwn the same as the main message, or code, which is formatted in a code block.
 If truncation is needed, text fields are truncated at the bottom and code blocks are truncated at the top.
 (The code block truncation behavior is because JupyterLab failure messages have the most useful information at the bottom.)
 
 All text fields except the main message are marked as verbatim from Slack's perspective, which means that channel and user references will not turn into links or notifications.
-The main message is not verbatim by default, so channel and user references will work as normal in Slack, but can be marked as such by passing ``verbatim=True`` into the constructor.
+The main message is also verbatim by default, but this can be disabled by passing ``verbatim=False``
+If it is disabled, so channel and user references will work as normal in Slack.
+``verbatim=False`` should only be used when the message comes from trusted sources, not from user input.
 
 Here's an example of constructing a message:
 
@@ -61,8 +73,9 @@ Here's an example of constructing a message:
 
    from safir.datetime import current_datetime, format_datetime_for_logging
    from safir.slack.blockkit import (
-       SlackCodeAttachment,
+       SlackCodeBlock,
        SlackCodeField,
+       SlackTextBlock,
        SlackTextField,
        SlackMessage,
    )
@@ -75,9 +88,8 @@ Here's an example of constructing a message:
            SlackTextField(heading="Timestamp", text=now),
            SlackCodeField(heading="Code", code="some code"),
        ],
-       attachments=[
-           SlackCodeAttachment(heading="Errors", code="some long error")
-       ],
+       blocks=[SlackTextBlock(heading="Log", text="some longer log data")],
+       attachments=[SlackCodeBlock(heading="Errors", code="some long error")],
    )
 
 Posting the message to Slack
@@ -222,6 +234,7 @@ To use it, first define a fixture:
        return mock_slack_webhook(config.slack_webhook, respx_mock)
 
 Replace ``config.slack_webhook`` with whatever webhook configuration your application uses.
+You will need to add ``respx`` as a dev dependency of your application.
 
 Then, in a test, use a pattern like the following:
 

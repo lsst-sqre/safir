@@ -11,18 +11,18 @@ from pydantic import BaseModel, validator
 from safir.datetime import current_datetime, format_datetime_for_logging
 
 __all__ = [
-    "SlackBaseAttachment",
+    "SlackBaseBlock",
     "SlackBaseField",
-    "SlackCodeAttachment",
+    "SlackCodeBlock",
     "SlackCodeField",
     "SlackException",
     "SlackMessage",
-    "SlackTextAttachment",
+    "SlackTextBlock",
     "SlackTextField",
 ]
 
 
-class SlackBaseField(BaseModel, metaclass=ABCMeta):
+class SlackBaseBlock(BaseModel, metaclass=ABCMeta):
     """Base class for any Slack Block Kit block."""
 
     @abstractmethod
@@ -37,12 +37,11 @@ class SlackBaseField(BaseModel, metaclass=ABCMeta):
         """
 
 
-class SlackTextField(SlackBaseField):
+class SlackTextBlock(SlackBaseBlock):
     """A component of a Slack message with a heading and a text body.
 
-    Intended for use in the ``fields`` portion of a Block Kit message. If the
-    formatted output is longer than 2000 characters, it will be truncated to
-    avoid the strict upper limit imposed by Slack.
+    If the formatted output is longer than 3000 characters, it will be
+    truncated to avoid the strict uppper limit imposed by Slack.
     """
 
     heading: str
@@ -55,11 +54,11 @@ class SlackTextField(SlackBaseField):
     users will not be treated as special.
     """
 
-    max_formatted_length: ClassVar[int] = 2000
+    max_formatted_length: ClassVar[int] = 3000
     """Maximum length of formatted output, imposed by Slack.
 
-    Used internally for validation and intended to be overridden by child
-    classes that need to impose different maximum lengths.
+    Intended to be overridden by child classes that need to impose different
+    maximum lengths.
     """
 
     def to_slack(self) -> Dict[str, Any]:
@@ -77,12 +76,11 @@ class SlackTextField(SlackBaseField):
         return {"type": "mrkdwn", "text": heading + body, "verbatim": True}
 
 
-class SlackCodeField(SlackBaseField):
+class SlackCodeBlock(SlackBaseBlock):
     """A component of a Slack message with a heading and a code block.
 
-    Intended for use in the ``fields`` portion of a Block Kit message. If the
-    formatted output is longer than 2000 characters, it will be truncated to
-    avoid the strict upper limit imposed by Slack.
+    If the formatted output is longer than 3000 characters, it will be
+    truncated to avoid the strict upper limit imposed by Slack.
     """
 
     heading: str
@@ -91,11 +89,11 @@ class SlackCodeField(SlackBaseField):
     code: str
     """Text of the field as a code block."""
 
-    max_formatted_length: ClassVar[int] = 2000
+    max_formatted_length: ClassVar[int] = 3000
     """Maximum length of formatted output, imposed by Slack.
 
-    Used internally for validation and intended to be overridden by child
-    classes that need to impose different maximum lengths.
+    Intended to be overridden by child classes that need to impose different
+    maximum lengths.
     """
 
     def to_slack(self) -> Dict[str, Any]:
@@ -115,51 +113,28 @@ class SlackCodeField(SlackBaseField):
         return {"type": "mrkdwn", "text": text, "verbatim": True}
 
 
-class SlackBaseAttachment(SlackBaseField):
-    """Base class for attachment Slack Block Kit blocks.
+class SlackBaseField(SlackBaseBlock):
+    """Base class for Slack Block Kit blocks for the ``fields`` section."""
 
-    Notes
-    -----
-    This is used only for type checking and doesn't add any behavior.
+    max_formatted_length = 2000
+
+
+class SlackTextField(SlackTextBlock, SlackBaseField):
+    """One field in a Slack message with a heading and text body.
+
+    Intended for use in the ``fields`` portion of a Block Kit message. If the
+    formatted output is longer than 2000 characters, it will be truncated to
+    avoid the strict upper limit imposed by Slack.
     """
 
 
-class SlackTextAttachment(SlackTextField, SlackBaseAttachment):
+class SlackCodeField(SlackCodeBlock, SlackBaseField):
     """An attachment in a Slack message with a heading and text body.
 
-    Intended for use in the ``attachments`` portion of a Block Kit message. If
-    the formatted output is longer than 3000 characters, it will be truncated
+    Intended for use in the ``fields`` portion of a Block Kit message. If
+    the formatted output is longer than 2000 characters, it will be truncated
     to avoid the strict upper limit imposed by Slack.
-
-    Notes
-    -----
-    Slack has marked attachments as legacy and warns that future changes may
-    reduce their visibility or utility. Unfortunately, there is no other way
-    to attach possibly-long text where Slack will hide long content by default
-    but allow the user to expand it. We therefore continue to use attachments
-    for long text for want of a better alternative.
     """
-
-    max_formatted_length = 3000
-
-
-class SlackCodeAttachment(SlackCodeField, SlackBaseAttachment):
-    """An attachment in a Slack message with a heading and text body.
-
-    Intended for use in the ``attachments`` portion of a Block Kit message. If
-    the formatted output is longer than 3000 characters, it will be truncated
-    to avoid the strict upper limit imposed by Slack.
-
-    Notes
-    -----
-    Slack has marked attachments as legacy and warns that future changes may
-    reduce their visibility or utility. Unfortunately, there is no other way
-    to attach possibly-long text where Slack will hide long content by default
-    but allow the user to expand it. We therefore continue to use attachments
-    for long code blocks for want of a better alternative.
-    """
-
-    max_formatted_length = 3000
 
 
 class SlackMessage(BaseModel):
@@ -169,20 +144,18 @@ class SlackMessage(BaseModel):
 
     All fields in ``fields`` will be shown below that message, formatted in
     two columns. Order of ``fields`` is preserved; they will be laid out left
-    to right and then top to bottom in the order given. Then, attachments will
-    be added, if any, below the fields.
+    to right and then top to bottom in the order given. Then, ``blocks`` will
+    be added, if any, in one column below the fields. Finally, ``attachments``
+    will be added to the end as attachments, which get somewhat different
+    formatting (for example, long attachments are collapsed by default).
 
     At most ten elements are allowed in ``fields``. They should be used for
     short information, generally a single half-line at most.  Longer
-    information should go into ``attachments``.
+    information should go into ``blocks`` or ``attachments``.
     """
 
     message: str
-    """Main part of the message.
-
-    This does not use ``verbatim``, so any channel references or @-mentions of
-    Slack users will be honored and expanded by Slack.
-    """
+    """Main part of the message."""
 
     verbatim: bool = True
     """Whether the main part of the message should be marked verbatim.
@@ -196,8 +169,20 @@ class SlackMessage(BaseModel):
     fields: List[SlackBaseField] = []
     """Short key/value fields to include in the message (at most 10)."""
 
-    attachments: List[SlackBaseAttachment] = []
-    """Longer sections to include as attachments."""
+    blocks: List[SlackBaseBlock] = []
+    """Additional text blocks to include in the message (after fields)."""
+
+    attachments: List[SlackBaseBlock] = []
+    """Longer sections to include as attachments.
+
+    Notes
+    -----
+    Slack has marked attachments as legacy and warns that future changes may
+    reduce their visibility or utility. Unfortunately, there is no other way
+    to attach possibly-long text where Slack will hide long content by default
+    but allow the user to expand it. We therefore continue to use attachments
+    for long text for want of a better alternative.
+    """
 
     @validator("fields")
     def _validate_fields(cls, v: List[SlackBaseField]) -> List[SlackBaseField]:
@@ -211,9 +196,6 @@ class SlackMessage(BaseModel):
         if len(v) > 10:
             msg = f"Slack does not allow more than 10 fields ({len(v)} seen)"
             raise ValueError(msg)
-        for field in v:
-            if isinstance(field, SlackBaseAttachment):
-                raise ValueError("Attachment included in fields list")
         return v
 
     def to_slack(self) -> Dict[str, Any]:
@@ -225,7 +207,6 @@ class SlackMessage(BaseModel):
             A Slack Block Kit data structure suitable for serializing to
             JSON and sending to Slack.
         """
-        fields = [f.to_slack() for f in self.fields]
         attachments = [
             {"type": "section", "text": a.to_slack()} for a in self.attachments
         ]
@@ -240,12 +221,16 @@ class SlackMessage(BaseModel):
                 },
             }
         ]
+        fields = [f.to_slack() for f in self.fields]
         if fields:
             blocks.append({"type": "section", "fields": fields})
+        blocks.extend(
+            [{"type": "section", "text": b.to_slack()} for b in self.blocks]
+        )
         result: dict[str, Any] = {"blocks": blocks}
         if attachments:
             result["attachments"] = [{"blocks": attachments}]
-        elif fields:
+        elif fields or self.blocks:
             result["blocks"].append({"type": "divider"})
         return result
 

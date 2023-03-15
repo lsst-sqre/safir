@@ -14,7 +14,7 @@ from structlog.stdlib import BoundLogger
 from ..datetime import current_datetime, format_datetime_for_logging
 from ..dependencies.http_client import http_client_dependency
 from .blockkit import (
-    SlackCodeAttachment,
+    SlackCodeBlock,
     SlackException,
     SlackMessage,
     SlackTextField,
@@ -123,9 +123,7 @@ class SlackWebhookClient:
                     SlackTextField(heading="Exception type", text=name),
                     SlackTextField(heading="Failed at", text=date),
                 ],
-                attachments=[
-                    SlackCodeAttachment(heading="Exception", code=error)
-                ],
+                blocks=[SlackCodeBlock(heading="Exception", code=error)],
             )
         await self.post(message)
 

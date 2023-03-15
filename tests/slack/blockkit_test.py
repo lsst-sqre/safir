@@ -6,10 +6,10 @@ import pytest
 from pydantic import ValidationError
 
 from safir.slack.blockkit import (
-    SlackCodeAttachment,
+    SlackCodeBlock,
     SlackCodeField,
     SlackMessage,
-    SlackTextAttachment,
+    SlackTextBlock,
     SlackTextField,
 )
 
@@ -21,9 +21,10 @@ def test_message() -> None:
             SlackTextField(heading="Some text", text="Value of the field   "),
             SlackCodeField(heading="Some code", code="Here is\nthe code\n"),
         ],
+        blocks=[SlackTextBlock(heading="Log", text="Some\nlong\nlog")],
         attachments=[
-            SlackCodeAttachment(heading="Backtrace", code="Some\nbacktrace"),
-            SlackTextAttachment(heading="Essay", text="Blah blah blah"),
+            SlackCodeBlock(heading="Backtrace", code="Some\nbacktrace"),
+            SlackTextBlock(heading="Essay", text="Blah blah blah"),
         ],
     )
     assert message.to_slack() == {
@@ -50,6 +51,14 @@ def test_message() -> None:
                         "verbatim": True,
                     },
                 ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Log*\nSome\nlong\nlog",
+                    "verbatim": True,
+                },
             },
         ],
         "attachments": [
@@ -118,18 +127,69 @@ def test_message() -> None:
         ]
     }
 
+    message = SlackMessage(
+        message="Message with one block",
+        blocks=[SlackTextBlock(heading="Something", text="Blah")],
+    )
+    assert message.to_slack() == {
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Message with one block",
+                    "verbatim": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Something*\nBlah",
+                    "verbatim": True,
+                },
+            },
+            {"type": "divider"},
+        ]
+    }
+
 
 def test_validation() -> None:
-    """Test various errors caught by validation (but not truncation)."""
+    """Test errors caught by validation."""
     fields = [SlackTextField(heading="Something", text="foo")] * 11
     message = SlackMessage(message="Ten fields", fields=fields[:10])
     assert len(message.fields) == 10
     with pytest.raises(ValidationError):
         SlackMessage(message="Eleven fields", fields=fields)
 
-    attachment = SlackTextAttachment(heading="Foo", text="bar")
-    with pytest.raises(ValidationError):
-        SlackMessage(message="blah", fields=[attachment])
+
+def test_block_truncation() -> None:
+    """Test truncating attachments at Slack limits."""
+    block = SlackTextBlock(heading="Something", text="a" * 3000)
+    length = 3000 - len("*Something*\n\n... truncated ...")
+    assert block.to_slack()["text"] == (
+        "*Something*\n" + "a" * length + "\n... truncated ..."
+    )
+
+    block = SlackTextBlock(heading="Something", text="abcde\n" * 500)
+    length = int((3001 - len("*Something*\n\n... truncated ...")) / 6)
+    assert block.to_slack()["text"] == (
+        "*Something*\n" + "abcde\n" * length + "... truncated ..."
+    )
+
+    cblock = SlackCodeBlock(heading="Else", code="a" * 3000)
+    length = 3000 - len("*Else*\n```\n... truncated ...\n\n```")
+    assert cblock.to_slack()["text"] == (
+        "*Else*\n```\n... truncated ...\n" + "a" * length + "\n```"
+    )
+
+    cblock = SlackCodeBlock(heading="Else", code="abcde\n" * 500)
+    length = int((3001 - len("*Else*\n```\n... truncated ...\n\n```")) / 6)
+    assert cblock.to_slack()["text"] == (
+        "*Else*\n```\n... truncated ...\n"
+        + ("abcde\n" * length).strip()
+        + "\n```"
+    )
 
 
 def test_field_truncation() -> None:
@@ -157,35 +217,6 @@ def test_field_truncation() -> None:
     assert cfield.to_slack()["text"] == (
         "*Else*\n```\n... truncated ...\n"
         + ("abcdefg\n" * length).strip()
-        + "\n```"
-    )
-
-
-def test_attachment_truncation() -> None:
-    """Test truncating attachments at Slack limits."""
-    attachment = SlackTextAttachment(heading="Something", text="a" * 3000)
-    length = 3000 - len("*Something*\n\n... truncated ...")
-    assert attachment.to_slack()["text"] == (
-        "*Something*\n" + "a" * length + "\n... truncated ..."
-    )
-
-    attachment = SlackTextAttachment(heading="Something", text="abcde\n" * 500)
-    length = int((3001 - len("*Something*\n\n... truncated ...")) / 6)
-    assert attachment.to_slack()["text"] == (
-        "*Something*\n" + "abcde\n" * length + "... truncated ..."
-    )
-
-    cattachment = SlackCodeAttachment(heading="Else", code="a" * 3000)
-    length = 3000 - len("*Else*\n```\n... truncated ...\n\n```")
-    assert cattachment.to_slack()["text"] == (
-        "*Else*\n```\n... truncated ...\n" + "a" * length + "\n```"
-    )
-
-    cattachment = SlackCodeAttachment(heading="Else", code="abcde\n" * 500)
-    length = int((3001 - len("*Else*\n```\n... truncated ...\n\n```")) / 6)
-    assert cattachment.to_slack()["text"] == (
-        "*Else*\n```\n... truncated ...\n"
-        + ("abcde\n" * length).strip()
         + "\n```"
     )
 

@@ -207,23 +207,17 @@ async def test_route_handler(mock_slack: MockSlackWebhook) -> None:
                         {"type": "mrkdwn", "text": ANY, "verbatim": True},
                     ],
                 },
-            ],
-            "attachments": [
                 {
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": (
-                                    "*Exception*\n```\n"
-                                    "ValueError: Test exception\n```"
-                                ),
-                                "verbatim": True,
-                            },
-                        }
-                    ]
-                }
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": (
+                            "*Exception*\n```\nValueError: Test exception\n```"
+                        ),
+                        "verbatim": True,
+                    },
+                },
+                {"type": "divider"},
             ],
         },
         {
