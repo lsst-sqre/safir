@@ -54,6 +54,10 @@ API reference
 .. automodapi:: safir.pydantic
    :include-all-objects:
 
+.. automodapi:: safir.pydanticredis
+   :include-all-objects:
+   :inherited-members:
+
 .. automodapi:: safir.slack.blockkit
 
 .. automodapi:: safir.slack.webhook
