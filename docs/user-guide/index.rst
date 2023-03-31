@@ -23,6 +23,7 @@ User guide
    ivoa
    kubernetes
    pydantic
+   pydantic-redis
    gcs
    fastapi-errors
    datetime
