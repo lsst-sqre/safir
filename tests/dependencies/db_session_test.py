@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import List
 
 import pytest
 import structlog
@@ -57,7 +56,7 @@ async def test_session() -> None:
     @app.get("/list")
     async def get_list(
         session: async_scoped_session = Depends(db_session_dependency),
-    ) -> List[str]:
+    ) -> list[str]:
         async with session.begin():
             result = await session.scalars(select(User.username))
             return list(result.all())

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
 from urllib.parse import urlparse
 
 import google.auth
@@ -49,7 +48,7 @@ class SignedURLService:
         self._gcs = storage.Client()
         self._credentials, _ = google.auth.default()
 
-    def signed_url(self, uri: str, mime_type: Optional[str]) -> str:
+    def signed_url(self, uri: str, mime_type: str | None) -> str:
         """Generate signed URL for a given storage object.
 
         Parameters

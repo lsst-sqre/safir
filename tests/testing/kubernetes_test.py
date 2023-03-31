@@ -6,7 +6,7 @@ the basic calls work.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import ANY
 
 import pytest
@@ -25,7 +25,7 @@ async def test_initialize(mock_kubernetes: MockKubernetesApi) -> None:
 
 @pytest.mark.asyncio
 async def test_mock(mock_kubernetes: MockKubernetesApi) -> None:
-    custom: Dict[str, Any] = {
+    custom: dict[str, Any] = {
         "apiVersion": "gafaelfawr.lsst.io/v1alpha1",
         "kind": "GafaelfawrServiceToken",
         "metadata": {

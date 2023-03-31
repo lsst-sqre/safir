@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import timedelta
-from typing import Iterator
 
 import pytest
 import respx

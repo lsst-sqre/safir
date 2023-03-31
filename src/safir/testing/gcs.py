@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from io import BufferedReader
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 from google.cloud import storage

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import pytest
 from arq.constants import default_queue_name
@@ -22,7 +22,7 @@ async def test_arq_dependency_mock() -> None:
     @app.post("/")
     async def post_job(
         arq_queue: MockArqQueue = Depends(arq_dependency),
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a job."""
         job = await arq_queue.enqueue("test_task", "hello", a_number=42)
         return {
@@ -39,7 +39,7 @@ async def test_arq_dependency_mock() -> None:
         job_id: str,
         queue_name: Optional[str] = None,
         arq_queue: MockArqQueue = Depends(arq_dependency),
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get metadata about a job."""
         try:
             job = await arq_queue.get_job_metadata(
@@ -61,7 +61,7 @@ async def test_arq_dependency_mock() -> None:
         job_id: str,
         queue_name: Optional[str] = None,
         arq_queue: MockArqQueue = Depends(arq_dependency),
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get the results for a job."""
         try:
             job_result = await arq_queue.get_job_result(

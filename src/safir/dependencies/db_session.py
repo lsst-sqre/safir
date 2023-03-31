@@ -1,6 +1,7 @@
 """Manage an async database session."""
 
-from typing import AsyncIterator, Optional
+from collections.abc import AsyncIterator
+from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
@@ -66,7 +67,7 @@ class DatabaseSessionDependency:
     async def initialize(
         self,
         url: str,
-        password: Optional[str],
+        password: str | None,
         *,
         isolation_level: Optional[str] = None,
     ) -> None:

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict
-
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
@@ -23,7 +21,7 @@ async def test_case_insensitive() -> None:
     app = build_app()
 
     @app.get("/")
-    async def handler(param: str) -> Dict[str, str]:
+    async def handler(param: str) -> dict[str, str]:
         return {"param": param}
 
     async with AsyncClient(app=app, base_url="https://example.com") as client:

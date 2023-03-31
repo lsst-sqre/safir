@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Dict
 from unittest.mock import ANY
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 from fastapi import Depends, FastAPI
 from httpx import AsyncClient
 from structlog.stdlib import BoundLogger
@@ -14,9 +14,6 @@ from structlog.stdlib import BoundLogger
 from safir.dependencies.logger import logger_dependency
 from safir.logging import configure_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
-
-if TYPE_CHECKING:
-    from _pytest.logging import LogCaptureFixture
 
 
 @pytest.mark.asyncio
@@ -28,7 +25,7 @@ async def test_logger(caplog: LogCaptureFixture) -> None:
     @app.get("/")
     async def handler(
         logger: BoundLogger = Depends(logger_dependency),
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         logger.info("something", param="value")
         return {}
 
@@ -65,7 +62,7 @@ async def test_logger_xforwarded(caplog: LogCaptureFixture) -> None:
     @app.get("/")
     async def handler(
         logger: BoundLogger = Depends(logger_dependency),
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         logger.info("something", param="value")
         return {}
 

@@ -296,7 +296,7 @@ For example:
 
 .. code-block:: python
 
-   from typing import AsyncIterator
+   from collections.abc import AsyncIterator
 
    import pytest_asyncio
    from asgi_lifespan import LifespanManager

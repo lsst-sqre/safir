@@ -38,7 +38,7 @@ class DatabaseInitializationError(Exception):
 
 
 def _build_database_url(
-    url: str, password: Optional[str], *, is_async: bool
+    url: str, password: str | None, *, is_async: bool
 ) -> str:
     """Build the authenticated URL for the database.
 
@@ -91,7 +91,7 @@ def datetime_from_db(time: None) -> None:
     ...
 
 
-def datetime_from_db(time: Optional[datetime]) -> Optional[datetime]:
+def datetime_from_db(time: datetime | None) -> datetime | None:
     """Add the UTC time zone to a naive datetime from the database.
 
     Parameters
@@ -122,7 +122,7 @@ def datetime_to_db(time: None) -> None:
     ...
 
 
-def datetime_to_db(time: Optional[datetime]) -> Optional[datetime]:
+def datetime_to_db(time: datetime | None) -> datetime | None:
     """Strip time zone for storing a datetime in the database.
 
     Parameters
@@ -147,7 +147,7 @@ def datetime_to_db(time: Optional[datetime]) -> Optional[datetime]:
 
 def create_database_engine(
     url: str,
-    password: Optional[str],
+    password: str | None,
     *,
     isolation_level: Optional[str] = None,
 ) -> AsyncEngine:
@@ -246,7 +246,7 @@ async def create_async_session(
 
 def create_sync_session(
     url: str,
-    password: Optional[str],
+    password: str | None,
     logger: Optional[BoundLogger] = None,
     *,
     isolation_level: Optional[str] = None,

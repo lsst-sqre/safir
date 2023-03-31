@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional, overload
+from typing import overload
 
 __all__ = [
     "current_datetime",
@@ -53,9 +53,7 @@ def format_datetime_for_logging(timestamp: None) -> None:
     ...
 
 
-def format_datetime_for_logging(
-    timestamp: Optional[datetime],
-) -> Optional[str]:
+def format_datetime_for_logging(timestamp: datetime | None) -> str | None:
     """Format a datetime for logging and human readabilty.
 
     Parameters
@@ -113,7 +111,7 @@ def isodatetime(timestamp: datetime) -> str:
     return timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def parse_isodatetime(time_string: str) -> Optional[datetime]:
+def parse_isodatetime(time_string: str) -> datetime | None:
     """Parse a string in a standard ISO date format.
 
     Parameters

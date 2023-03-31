@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from ipaddress import _BaseAddress, _BaseNetwork, ip_address
-from typing import Awaitable, Callable, List, Optional
+from typing import Optional
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -38,7 +39,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
     """
 
     def __init__(
-        self, app: FastAPI, *, proxies: Optional[List[_BaseNetwork]] = None
+        self, app: FastAPI, *, proxies: Optional[list[_BaseNetwork]] = None
     ) -> None:
         super().__init__(app)
         if proxies:
@@ -108,7 +109,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
-    def _get_forwarded_for(self, request: Request) -> List[_BaseAddress]:
+    def _get_forwarded_for(self, request: Request) -> list[_BaseAddress]:
         """Retrieve the ``X-Forwarded-For`` entries from the request.
 
         Parameters
@@ -132,7 +133,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
             if addr
         ]
 
-    def _get_forwarded_host(self, request: Request) -> Optional[str]:
+    def _get_forwarded_host(self, request: Request) -> str | None:
         """Retrieve the ``X-Forwarded-Host`` header.
 
         Parameters
@@ -153,7 +154,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
             return None
         return forwarded_host[0].strip()
 
-    def _get_forwarded_proto(self, request: Request) -> List[str]:
+    def _get_forwarded_proto(self, request: Request) -> list[str]:
         """Retrieve the ``X-Forwarded-Proto`` entries from the request.
 
         Parameters

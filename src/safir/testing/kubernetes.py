@@ -6,7 +6,8 @@ import copy
 import os
 import re
 import uuid
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from collections.abc import Callable, Iterator
+from typing import Any, Optional
 from unittest.mock import AsyncMock, Mock, patch
 
 from kubernetes_asyncio import client, config
@@ -49,10 +50,10 @@ class MockKubernetesApi:
 
     def __init__(self) -> None:
         self.error_callback: Optional[Callable[..., None]] = None
-        self.objects: Dict[str, Dict[str, Dict[str, Any]]] = {}
-        self.custom_kinds: Dict[str, str] = {}
+        self.objects: dict[str, dict[str, dict[str, Any]]] = {}
+        self.custom_kinds: dict[str, str] = {}
 
-    def get_all_objects_for_test(self, kind: str) -> List[Any]:
+    def get_all_objects_for_test(self, kind: str) -> list[Any]:
         """Return all objects of a given kind sorted by namespace and name.
 
         Parameters
@@ -124,7 +125,7 @@ class MockKubernetesApi:
         version: str,
         namespace: str,
         plural: str,
-        body: Dict[str, Any],
+        body: dict[str, Any],
     ) -> None:
         self._maybe_error(
             "create_namespaced_custom_object",
@@ -151,7 +152,7 @@ class MockKubernetesApi:
         namespace: str,
         plural: str,
         name: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self._maybe_error(
             "get_namespaced_custom_object",
             group,
@@ -164,7 +165,7 @@ class MockKubernetesApi:
 
     async def list_cluster_custom_object(
         self, group: str, version: str, plural: str
-    ) -> Dict[str, List[Dict[str, Any]]]:
+    ) -> dict[str, list[dict[str, Any]]]:
         self._maybe_error("list_cluster_custom_object", group, version, plural)
         key = f"{group}/{version}/{plural}"
         results = []
@@ -180,8 +181,8 @@ class MockKubernetesApi:
         namespace: str,
         plural: str,
         name: str,
-        body: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        body: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         self._maybe_error(
             "patch_namespaced_custom_object_status",
             group,
@@ -206,7 +207,7 @@ class MockKubernetesApi:
         namespace: str,
         plural: str,
         name: str,
-        body: Dict[str, Any],
+        body: dict[str, Any],
     ) -> None:
         self._maybe_error(
             "replace_namespaced_custom_object",
@@ -278,7 +279,7 @@ class MockKubernetesApi:
         self._store_object(namespace, "Secret", secret.metadata.name, secret)
 
     async def patch_namespaced_secret(
-        self, name: str, namespace: str, body: List[Dict[str, Any]]
+        self, name: str, namespace: str, body: list[dict[str, Any]]
     ) -> V1Secret:
         self._maybe_error("patch_namespaced_secret", name, namespace)
         obj = copy.deepcopy(self._get_object(namespace, "Secret", name))

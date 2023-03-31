@@ -17,7 +17,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 __all__ = [
     "ServerNotListeningError",
@@ -84,7 +84,7 @@ def spawn_uvicorn(
     factory: Optional[str] = None,
     capture: bool = False,
     timeout: float = 5.0,
-    env: Optional[Dict[str, str]] = None,
+    env: Optional[dict[str, str]] = None,
 ) -> UvicornProcess:
     """Spawn an ASGI app as a separate Uvicorn process.
 

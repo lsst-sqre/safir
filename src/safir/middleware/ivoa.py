@@ -1,6 +1,6 @@
 """Middleware for IVOA services."""
 
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 from urllib.parse import urlencode
 
 from fastapi import Request, Response
