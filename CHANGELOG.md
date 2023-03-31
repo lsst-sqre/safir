@@ -5,6 +5,12 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
+## 4.0.0 (unreleased)
+
+### Backwards-incompatible changes
+
+- Safir now requires a minimum Python version of 3.11.
+
 ## 3.8.0 (2023-03-15)
 
 ### New features
