@@ -6,9 +6,9 @@ that they can be exercised in tests of the test support infrastructure.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Optional
 
 from pydantic import BaseModel, validator
 
@@ -33,7 +33,7 @@ class SlackBaseBlock(BaseModel, metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def to_slack(self) -> Dict[str, Any]:
+    def to_slack(self) -> dict[str, Any]:
         """Convert to a Slack Block Kit block.
 
         Returns
@@ -61,7 +61,7 @@ class SlackTextBlock(SlackBaseBlock):
     users will not be treated as special.
     """
 
-    def to_slack(self) -> Dict[str, Any]:
+    def to_slack(self) -> dict[str, Any]:
         """Convert to a Slack Block Kit block.
 
         Returns
@@ -89,7 +89,7 @@ class SlackCodeBlock(SlackBaseBlock):
     code: str
     """Text of the field as a code block."""
 
-    def to_slack(self) -> Dict[str, Any]:
+    def to_slack(self) -> dict[str, Any]:
         """Convert to a Slack Block Kit block.
 
         Returns
@@ -159,13 +159,13 @@ class SlackMessage(BaseModel):
     this to `False` with untrusted input.
     """
 
-    fields: List[SlackBaseField] = []
+    fields: list[SlackBaseField] = []
     """Short key/value fields to include in the message (at most 10)."""
 
-    blocks: List[SlackBaseBlock] = []
+    blocks: list[SlackBaseBlock] = []
     """Additional text blocks to include in the message (after fields)."""
 
-    attachments: List[SlackBaseBlock] = []
+    attachments: list[SlackBaseBlock] = []
     """Longer sections to include as attachments.
 
     Notes
@@ -178,7 +178,7 @@ class SlackMessage(BaseModel):
     """
 
     @validator("fields")
-    def _validate_fields(cls, v: List[SlackBaseField]) -> List[SlackBaseField]:
+    def _validate_fields(cls, v: list[SlackBaseField]) -> list[SlackBaseField]:
         """Check constraints on fields.
 
         Slack imposes a maximum of 10 items in a ``fields`` array. Also ensure
@@ -191,7 +191,7 @@ class SlackMessage(BaseModel):
             raise ValueError(msg)
         return v
 
-    def to_slack(self) -> Dict[str, Any]:
+    def to_slack(self) -> dict[str, Any]:
         """Convert to a Slack Block Kit message.
 
         Returns
@@ -271,7 +271,7 @@ class SlackException(Exception):
             Slack message suitable for posting with `SlackClient`.
         """
         failed_at = format_datetime_for_logging(self.failed_at)
-        fields: List[SlackBaseField] = [
+        fields: list[SlackBaseField] = [
             SlackTextField(heading="Exception type", text=type(self).__name__),
             SlackTextField(heading="Failed at", text=failed_at),
         ]

@@ -54,11 +54,10 @@ Applications that want to run tests with the mock GCS API should define a fixtur
 
 .. code-block:: python
 
+   from collections.abc import Iterator
    from datetime import timedelta
-   from typing import Iterator
 
    import pytest
-
    from safir.testing.gcs import MockStorageClient, patch_google_storage
 
 

@@ -98,7 +98,7 @@ The :file:`src/yourapp/worker/main.py` module looks like:
     from __future__ import annotations
 
     import uuid
-    from typing import Any, Dict
+    from typing import Any
 
     import httpx
     import structlog
@@ -108,7 +108,7 @@ The :file:`src/yourapp/worker/main.py` module looks like:
     from .functions import function_a, function_b
 
 
-    async def startup(ctx: Dict[Any, Any]) -> None:
+    async def startup(ctx: dict[Any, Any]) -> None:
         """Runs during worker start-up to set up the worker context."""
         configure_logging(
             profile=config.profile,
@@ -127,7 +127,7 @@ The :file:`src/yourapp/worker/main.py` module looks like:
         logger.info("Worker start up complete")
 
 
-    async def shutdown(ctx: Dict[Any, Any]) -> None:
+    async def shutdown(ctx: dict[Any, Any]) -> None:
         """Runs during worker shutdown to cleanup resources."""
         if "logger" in ctx.keys():
             logger = ctx["logger"]
@@ -172,6 +172,8 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
 
 .. code-block:: python
 
+    from typing import Any
+
     from fastapi import Depends, HTTPException
     from safir.arq import ArqQueue
     from safir.dependencies.arq import arq_dependency
@@ -182,7 +184,7 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
         arq_queue: ArqQueue = Depends(arq_dependency),
         a: str = "hello",
         b: int = 42,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a job."""
         job = await arq_queue.enqueue("test_task", a, a_number=b)
         return {"job_id": job.id}
@@ -192,7 +194,7 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
     async def get_job(
         job_id: str,
         arq_queue: ArqQueue = Depends(arq_dependency),
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get metadata about a job."""
         try:
             job = await arq_queue.get_job_metadata(

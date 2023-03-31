@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import AbstractSet, Any, Callable, Dict, Mapping, Optional, Union
+from typing import Any, ParamSpec, TypeVar
 
 from pydantic import BaseModel
 
-# From Pydantic internals, so copy them here so that we can use them.  See the
-# comment in CamelCaseModel about better ways to copy type signatures from
-# Pydantic without duplicating code, possible in Python 3.10.
-AbstractSetIntStr = AbstractSet[Union[int, str]]
-MappingIntStrAny = Mapping[Union[int, str], Any]
+P = ParamSpec("P")
+T = TypeVar("T")
 
 __all__ = [
     "CamelCaseModel",
@@ -22,9 +20,7 @@ __all__ = [
 ]
 
 
-def normalize_datetime(
-    v: Optional[Union[int, datetime]]
-) -> Optional[datetime]:
+def normalize_datetime(v: int | datetime | None) -> datetime | None:
     """Pydantic validator for datetime fields.
 
     Supports `~datetime.datetime` fields given in either any format supported
@@ -71,7 +67,7 @@ def normalize_datetime(
         return v.replace(tzinfo=timezone.utc)
 
 
-def normalize_isodatetime(v: Optional[str]) -> Optional[datetime]:
+def normalize_isodatetime(v: str | None) -> datetime | None:
     """Pydantic validator for datetime fields in ISO format.
 
     This validator requires the ISO 8601 date and time format with ``Z`` as
@@ -159,6 +155,28 @@ def to_camel_case(string: str) -> str:
     return components[0] + "".join(c.title() for c in components[1:])
 
 
+def _copy_type(
+    parent: Callable[P, T]
+) -> Callable[[Callable[..., T]], Callable[P, T]]:
+    """Copy the type of a parent method.
+
+    Used to avoid duplicating the prototype of `pydantic.BaseModel.dict` and
+    `pydantic.BaseModel.json` when overriding them in `CamelCaseModel`.
+
+    Parameters
+    ----------
+    parent
+        Method from which to copy a type signature.
+
+    Returns
+    -------
+    Callable
+        Decorator that will replace the type signature of a function with the
+        type signature of its parent.
+    """
+    return lambda x: x
+
+
 class CamelCaseModel(BaseModel):
     """`pydantic.BaseModel` configured to accept camel-case input.
 
@@ -172,74 +190,32 @@ class CamelCaseModel(BaseModel):
         alias_generator = to_camel_case
         allow_population_by_field_name = True
 
-    # A better solution for typing that wouldn't require copying the arguments
-    # from Pydantic and therefore would be more future-proof would be to use
-    # ParamSpec plus a decorator to copy the signature from the overridden
-    # method. ParamSpec requires Python 3.10 and Safir currently supports
-    # versions as old as Python 3.8, so that approach isn't yet usable.
-
-    def dict(
-        self,
-        *,
-        include: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
-        exclude: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
-        by_alias: bool = True,
-        skip_defaults: Optional[bool] = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = False,
-    ) -> Dict[str, Any]:
+    @_copy_type(BaseModel.dict)
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
         """Export the model as a dictionary.
 
         Overridden to change the default of ``by_alias`` from `False` to
         `True`, so that by default the exported dictionary uses camel-case.
         """
-        return super().dict(
-            include=include,
-            exclude=exclude,
-            by_alias=by_alias,
-            skip_defaults=skip_defaults,
-            exclude_unset=exclude_unset,
-            exclude_defaults=exclude_defaults,
-            exclude_none=exclude_none,
-        )
+        if "by_alias" not in kwargs:
+            kwargs["by_alias"] = True
+        return super().dict(**kwargs)
 
-    def json(
-        self,
-        *,
-        include: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
-        exclude: Optional[Union[AbstractSetIntStr, MappingIntStrAny]] = None,
-        by_alias: bool = True,
-        skip_defaults: Optional[bool] = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = False,
-        encoder: Optional[Callable[[Any], Any]] = None,
-        models_as_dict: bool = True,
-        **dumps_kwargs: Any,
-    ) -> str:
+    @_copy_type(BaseModel.json)
+    def json(self, **kwargs: Any) -> str:
         """Export the model as JSON.
 
         Overridden to change the default of ``by_alias`` from `False` to
         `True`, so that by default the exported dictionary uses camel-case.
         """
-        return super().json(
-            include=include,
-            exclude=exclude,
-            by_alias=by_alias,
-            skip_defaults=skip_defaults,
-            exclude_unset=exclude_unset,
-            exclude_defaults=exclude_defaults,
-            exclude_none=exclude_none,
-            encoder=encoder,
-            models_as_dict=models_as_dict,
-            **dumps_kwargs,
-        )
+        if "by_alias" not in kwargs:
+            kwargs["by_alias"] = True
+        return super().json(**kwargs)
 
 
 def validate_exactly_one_of(
     *settings: str,
-) -> Callable[[Any, Dict[str, Any]], Any]:
+) -> Callable[[Any, dict[str, Any]], Any]:
     """Generate a validator imposing a one and only one constraint.
 
     Sometimes, models have a set of attributes of which one and only one may
@@ -287,7 +263,7 @@ def validate_exactly_one_of(
     else:
         options = ", ".join(settings[:-1]) + ", and " + settings[-1]
 
-    def validator(v: Any, values: Dict[str, Any]) -> Any:
+    def validator(v: Any, values: dict[str, Any]) -> Any:
         seen = v is not None
         for setting in settings:
             if setting in values and values[setting] is not None:

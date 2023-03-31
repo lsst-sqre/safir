@@ -40,10 +40,9 @@ Applications that want to run tests with the mock Kubernetes API should define a
 
 .. code-block:: python
 
-   from typing import Iterator
+   from collections.abc import Iterator
 
    import pytest
-
    from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 
 

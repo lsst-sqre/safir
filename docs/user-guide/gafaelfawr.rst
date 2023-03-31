@@ -54,7 +54,7 @@ This is most easily done by defining a fixture, as follows.
 
 .. code-block:: python
 
-   from typing import AsyncIterator
+   from collections.abc import AsyncIterator
 
    import pytest_asyncio
    from fastapi import FastAPI

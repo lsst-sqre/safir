@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 import pytest
 from pydantic import ValidationError
 
@@ -159,7 +157,7 @@ def test_message() -> None:
 
 def test_validation() -> None:
     """Test errors caught by validation."""
-    fields: List[SlackBaseField] = [
+    fields: list[SlackBaseField] = [
         SlackTextField(heading="Something", text="foo")
     ] * 11
     message = SlackMessage(message="Ten fields", fields=fields[:10])

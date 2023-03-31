@@ -8,7 +8,7 @@ generate good documentation.
 """
 
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -35,7 +35,7 @@ class ErrorLocation(str, Enum):
 class ErrorDetail(BaseModel):
     """The detail of the error message."""
 
-    loc: Optional[List[str]] = Field(
+    loc: Optional[list[str]] = Field(
         None, title="Location", example=["area", "field"]
     )
 
@@ -47,4 +47,4 @@ class ErrorDetail(BaseModel):
 class ErrorModel(BaseModel):
     """A structured API error message."""
 
-    detail: List[ErrorDetail] = Field(..., title="Detail")
+    detail: list[ErrorDetail] = Field(..., title="Detail")

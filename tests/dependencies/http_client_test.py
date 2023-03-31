@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 import pytest
 import respx
 from asgi_lifespan import LifespanManager
@@ -14,7 +12,7 @@ from safir.dependencies.http_client import http_client_dependency
 
 
 @pytest.fixture
-def non_mocked_hosts() -> List[str]:
+def non_mocked_hosts() -> list[str]:
     return ["example.com"]
 
 
@@ -26,7 +24,7 @@ async def test_http_client(respx_mock: respx.Router) -> None:
     @app.get("/")
     async def handler(
         http_client: AsyncClient = Depends(http_client_dependency),
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         assert isinstance(http_client, AsyncClient)
         await http_client.get("https://www.google.com")
         return {}

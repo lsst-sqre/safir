@@ -22,7 +22,7 @@ class ArqDependency:
         self._arq_queue: Optional[ArqQueue] = None
 
     async def initialize(
-        self, *, mode: ArqMode, redis_settings: Optional[RedisSettings]
+        self, *, mode: ArqMode, redis_settings: RedisSettings | None
     ) -> None:
         """Initialize the dependency (call during the FastAPI start-up event).
 

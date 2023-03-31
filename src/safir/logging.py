@@ -7,7 +7,7 @@ import logging.config
 import re
 import sys
 from enum import Enum
-from typing import Any, List, Optional, Union
+from typing import Any, Optional
 
 import structlog
 from structlog.stdlib import add_log_level
@@ -92,8 +92,8 @@ def add_log_severity(
 def configure_logging(
     *,
     name: str,
-    profile: Union[Profile, str] = Profile.production,
-    log_level: Union[LogLevel, str] = LogLevel.INFO,
+    profile: Profile | str = Profile.production,
+    log_level: LogLevel | str = LogLevel.INFO,
     add_timestamp: bool = False,
 ) -> None:
     """Configure logging and structlog.
@@ -167,7 +167,7 @@ def configure_logging(
     logger.addHandler(stream_handler)
     logger.setLevel(log_level.value)
 
-    processors: List[Any] = [
+    processors: list[Any] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.PositionalArgumentsFormatter(),
@@ -247,7 +247,7 @@ def _process_uvicorn_access_log(
 
 
 def configure_uvicorn_logging(
-    log_level: Union[LogLevel, str] = LogLevel.INFO,
+    log_level: LogLevel | str = LogLevel.INFO,
 ) -> None:
     """Set up logging.
 

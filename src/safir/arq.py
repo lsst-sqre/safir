@@ -9,7 +9,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional, Self
 
 from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings
@@ -39,12 +39,12 @@ class ArqJobError(Exception):
         The job ID, or `None` if the job ID is not known in this context.
     """
 
-    def __init__(self, message: str, job_id: Optional[str]) -> None:
+    def __init__(self, message: str, job_id: str | None) -> None:
         super().__init__(message)
         self._job_id = job_id
 
     @property
-    def job_id(self) -> Optional[str]:
+    def job_id(self) -> str | None:
         """The job ID, or `None` if the job ID is not known in this context."""
         return self._job_id
 
@@ -52,7 +52,7 @@ class ArqJobError(Exception):
 class JobNotQueued(ArqJobError):
     """The job was not successfully queued."""
 
-    def __init__(self, job_id: Optional[str]) -> None:
+    def __init__(self, job_id: str | None) -> None:
         super().__init__(
             f"Job was not queued because it already exists. id={job_id}",
             job_id,
@@ -122,10 +122,10 @@ class JobMetadata:
     name: str
     """The task name."""
 
-    args: Tuple[Any, ...]
+    args: tuple[Any, ...]
     """The positional arguments to the task function."""
 
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
     """The keyword arguments to the task function."""
 
     enqueue_time: datetime
@@ -148,7 +148,7 @@ class JobMetadata:
     """Name of the queue this job belongs to."""
 
     @classmethod
-    async def from_job(cls, job: Job) -> JobMetadata:
+    async def from_job(cls, job: Job) -> Self:
         """Initialize JobMetadata from an arq Job.
 
         Raises
@@ -230,7 +230,7 @@ class JobResult(JobMetadata):
     """The job's result."""
 
     @classmethod
-    async def from_job(cls, job: Job) -> JobResult:
+    async def from_job(cls, job: Job) -> Self:
         """Initialize the `JobResult` from an arq `~arq.jobs.Job`.
 
         Raises
@@ -399,7 +399,7 @@ class RedisArqQueue(ArqQueue):
         redis_settings: RedisSettings,
         *,
         default_queue_name: str = arq_default_queue_name,
-    ) -> RedisArqQueue:
+    ) -> Self:
         """Initialize a RedisArqQueue from Redis settings."""
         pool = await create_pool(
             redis_settings, default_queue_name=default_queue_name
@@ -452,14 +452,14 @@ class MockArqQueue(ArqQueue):
         self, *, default_queue_name: str = arq_default_queue_name
     ) -> None:
         super().__init__(default_queue_name=default_queue_name)
-        self._job_metadata: Dict[str, Dict[str, JobMetadata]] = {
+        self._job_metadata: dict[str, dict[str, JobMetadata]] = {
             self.default_queue_name: {}
         }
-        self._job_results: Dict[str, Dict[str, JobResult]] = {
+        self._job_results: dict[str, dict[str, JobResult]] = {
             self.default_queue_name: {}
         }
 
-    def _resolve_queue_name(self, queue_name: Optional[str]) -> str:
+    def _resolve_queue_name(self, queue_name: str | None) -> str:
         return queue_name or self.default_queue_name
 
     async def enqueue(
