@@ -34,11 +34,21 @@ class PydanticRedisStorage(Generic[S]):
         The class of object being stored (a Pydantic model).
     redis
         A Redis client configured to talk to the backend store.
+    key_prefix
+        A prefix to prepend to all Redis keys. Setting a prefix ensures that
+        all objects stored through this class share the same redis key
+        prefix. This is useful if multiple storage classes share the same
+        Redis database. The keys that you use to store objects (e.g. the
+        `store` method) and the key you get back from the `scan` method do
+        not include this prefix.
     """
 
-    def __init__(self, *, datatype: type[S], redis: redis.Redis) -> None:
+    def __init__(
+        self, *, datatype: type[S], redis: redis.Redis, key_prefix: str = ""
+    ) -> None:
         self._datatype = datatype
         self._redis = redis
+        self._key_prefix = key_prefix
 
     async def delete(self, key: str) -> bool:
         """Delete a stored object.
@@ -53,7 +63,7 @@ class PydanticRedisStorage(Generic[S]):
         bool
             `True` if the key was found and deleted, `False` otherwise.
         """
-        count = await self._redis.delete(key)
+        count = await self._redis.delete(self._prefix_key(key))
         return count > 0
 
     async def delete_all(self, pattern: str) -> None:
@@ -64,7 +74,7 @@ class PydanticRedisStorage(Generic[S]):
         pattern
             Glob pattern matching the keys to purge, such as ``oidc:*``.
         """
-        async for key in self._redis.scan_iter(pattern):
+        async for key in self._redis.scan_iter(self._prefix_key(pattern)):
             await self._redis.delete(key)
 
     async def get(self, key: str) -> S | None:
@@ -87,7 +97,7 @@ class PydanticRedisStorage(Generic[S]):
             Raised if the stored object could not be decrypted or
             deserialized.
         """
-        data = await self._redis.get(key)
+        data = await self._redis.get(self._prefix_key(key))
         if not data:
             return None
 
@@ -111,8 +121,10 @@ class PydanticRedisStorage(Generic[S]):
         str
             Each key matching that pattern.
         """
-        async for key in self._redis.scan_iter(match=pattern):
-            yield key.decode()
+        async for key in self._redis.scan_iter(
+            match=self._prefix_key(pattern)
+        ):
+            yield key.decode().removeprefix(self._key_prefix)
 
     async def store(
         self, key: str, obj: S, lifetime: Optional[int] = None
@@ -131,7 +143,11 @@ class PydanticRedisStorage(Generic[S]):
             `None` if the object should not expire.
         """
         data = self._serialize(obj)
-        await self._redis.set(key, data, ex=lifetime)
+        await self._redis.set(self._prefix_key(key), data, ex=lifetime)
+
+    def _prefix_key(self, key: str) -> str:
+        """Compute the full Redis key, given the key prefix."""
+        return f"{self._key_prefix}{key}"
 
     def _serialize(self, obj: S) -> bytes:
         """Serialize a Pydantic object to bytes that can be stored by Redis.
@@ -176,6 +192,13 @@ class EncryptedPydanticRedisStorage(PydanticRedisStorage[S]):
     encryption_key
         Encryption key. Must be a `~cryptography.fernet.Fernet` key. Generate
         a key with ``Fernet.generate_key().decode()``.
+    key_prefix
+        A prefix to prepend to all Redis keys. Setting a prefix ensures that
+        all objects stored through this class share the same redis key
+        prefix. This is useful if multiple storage classes share the same
+        Redis database. The keys that you use to store objects (e.g. the
+        `store` method) and the key you get back from the `scan` method do
+        not include this prefix.
     """
 
     def __init__(
@@ -184,8 +207,9 @@ class EncryptedPydanticRedisStorage(PydanticRedisStorage[S]):
         datatype: type[S],
         redis: redis.Redis,
         encryption_key: str,
+        key_prefix: str = "",
     ) -> None:
-        super().__init__(datatype=datatype, redis=redis)
+        super().__init__(datatype=datatype, redis=redis, key_prefix=key_prefix)
         self._fernet = Fernet(encryption_key.encode())
 
     def _serialize(self, obj: S) -> bytes:

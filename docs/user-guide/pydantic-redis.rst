@@ -96,3 +96,39 @@ Then pass the key's value to `~safir.pydanticredis.EncryptedPydanticRedisStorage
    )
 
 Once set up, you can interact with this storage class exactly like `~safir.pydanticredis.PydanticRedisStorage`, except that all data is encrypted in Redis.
+
+Multi-tentant storage with key prefixes
+=======================================
+
+`~safir.pydanticredis.PydanticRedisStorage` and `~safir.pydanticredis.EncryptedPydanticRedisStorage` both allow you to specify a prefix string that is automatically applied to the keys of an objects stored through that class.
+Once set, your application does not need to worry about consistently using this prefix.
+
+A common use case for a key prefix is if multiple stores share the same Redis database.
+Each `~safir.pydanticredis.PydanticRedisStorage` instance works with a specific Pydantic model type, so if your application needs to store multiple types of objects in Redis, you can use multiple instances of `~safir.pydanticredis.PydanticRedisStorage` with different key prefixes.
+
+.. code-block:: python
+
+   class PetModel(BaseModel):
+       id: int
+       name: str
+       age: int
+
+
+   class CustomerModel(BaseModel):
+       id: int
+       name: str
+       email: str
+
+
+   redis_client = redis.Redis(config.redis_url)
+
+   pet_store = PydanticRedisStorage(
+       datatype=PetModel,
+       redis=redis_client,
+       key_prefix="pet:",
+   )
+   customer_store = PydanticRedisStorage(
+       datatype=CustomerModel,
+       redis=redis_client,
+       key_prefix="customer:",
+   )
