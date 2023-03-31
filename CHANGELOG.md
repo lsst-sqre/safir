@@ -11,6 +11,12 @@ X.Y.Z (YYYY-MM-DD)
 
 - Safir now requires a minimum Python version of 3.11.
 
+### New features
+
+- The new `safir.redis.PydanticRedisStorage` class enables you to store Pydantic model objects in Redis.
+  A `safir.redis.EncryptedPydanticRedisStorage` class also encrypts data in Redis.
+  To use the `safir.redis` module, install Safir with the `redis` extra (i.e., `pip install safir[redis]`).
+
 ## 3.8.0 (2023-03-15)
 
 ### New features
