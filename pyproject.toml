@@ -134,6 +134,9 @@ skip = ["docs/conf.py"]
 asyncio_mode = "strict"
 filterwarnings = [
     "ignore:'cgi' is deprecated:DeprecationWarning:google.cloud.storage.blob",
+    # Google modules call a deprecated pkg_resources API.
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
+    "ignore:.*pkg_resources\\.declare_namespace:DeprecationWarning",
 ]
 python_files = [
     "tests/*.py",
