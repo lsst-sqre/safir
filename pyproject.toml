@@ -150,7 +150,14 @@ plugins = [
     "pydantic.mypy",
     "sqlalchemy.ext.mypy.plugin",
 ]
+show_error_codes = true
 strict_equality = true
 warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true

@@ -25,6 +25,13 @@ __all__ = [
 class SlackBaseBlock(BaseModel, metaclass=ABCMeta):
     """Base class for any Slack Block Kit block."""
 
+    max_formatted_length: ClassVar[int] = 3000
+    """Maximum length of formatted output, imposed by Slack.
+
+    Intended to be overridden by child classes that need to impose different
+    maximum lengths.
+    """
+
     @abstractmethod
     def to_slack(self) -> Dict[str, Any]:
         """Convert to a Slack Block Kit block.
@@ -52,13 +59,6 @@ class SlackTextBlock(SlackBaseBlock):
 
     This is always marked as vertabim, so channel mentions or @-mentions of
     users will not be treated as special.
-    """
-
-    max_formatted_length: ClassVar[int] = 3000
-    """Maximum length of formatted output, imposed by Slack.
-
-    Intended to be overridden by child classes that need to impose different
-    maximum lengths.
     """
 
     def to_slack(self) -> Dict[str, Any]:
@@ -89,13 +89,6 @@ class SlackCodeBlock(SlackBaseBlock):
     code: str
     """Text of the field as a code block."""
 
-    max_formatted_length: ClassVar[int] = 3000
-    """Maximum length of formatted output, imposed by Slack.
-
-    Intended to be overridden by child classes that need to impose different
-    maximum lengths.
-    """
-
     def to_slack(self) -> Dict[str, Any]:
         """Convert to a Slack Block Kit block.
 
@@ -116,7 +109,7 @@ class SlackCodeBlock(SlackBaseBlock):
 class SlackBaseField(SlackBaseBlock):
     """Base class for Slack Block Kit blocks for the ``fields`` section."""
 
-    max_formatted_length = 2000
+    max_formatted_length: ClassVar[int] = 2000
 
 
 class SlackTextField(SlackTextBlock, SlackBaseField):
@@ -278,7 +271,7 @@ class SlackException(Exception):
             Slack message suitable for posting with `SlackClient`.
         """
         failed_at = format_datetime_for_logging(self.failed_at)
-        fields = [
+        fields: List[SlackBaseField] = [
             SlackTextField(heading="Exception type", text=type(self).__name__),
             SlackTextField(heading="Failed at", text=failed_at),
         ]

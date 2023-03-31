@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import List
+
 import pytest
 from pydantic import ValidationError
 
 from safir.slack.blockkit import (
+    SlackBaseField,
     SlackCodeBlock,
     SlackCodeField,
     SlackMessage,
@@ -156,7 +159,9 @@ def test_message() -> None:
 
 def test_validation() -> None:
     """Test errors caught by validation."""
-    fields = [SlackTextField(heading="Something", text="foo")] * 11
+    fields: List[SlackBaseField] = [
+        SlackTextField(heading="Something", text="foo")
+    ] * 11
     message = SlackMessage(message="Ten fields", fields=fields[:10])
     assert len(message.fields) == 10
     with pytest.raises(ValidationError):
