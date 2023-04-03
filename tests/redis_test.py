@@ -7,7 +7,12 @@ import redis.asyncio as redis
 from cryptography.fernet import Fernet
 from pydantic import BaseModel, Field
 
-from safir.redis import EncryptedPydanticRedisStorage, PydanticRedisStorage
+from safir.redis import (
+    DeserializeError,
+    EncryptedPydanticRedisStorage,
+    PydanticRedisStorage,
+)
+from safir.slack.blockkit import SlackTextField
 
 
 class DemoModel(BaseModel):
@@ -116,3 +121,41 @@ async def test_multiple_stores(redis_client: redis.Redis) -> None:
     # Pet emma should be gone, but customer emma should still be there.
     assert await pet_store.delete("emma") is False
     assert await customer_store.delete("emma") is True
+
+
+@pytest.mark.asyncio
+async def test_deserialization_error(redis_client: redis.Redis) -> None:
+    """Test that deserialization errors are caught."""
+    storage = PydanticRedisStorage(datatype=DemoModel, redis=redis_client)
+    await storage._redis.set("key", b"not a valid model")
+    with pytest.raises(
+        DeserializeError, match="^Cannot deserialize data for key key"
+    ) as e:
+        await storage.get("key")
+    slack_message = e.value.to_slack()
+    assert slack_message.fields[-1] == SlackTextField(
+        heading="Key", text="key"
+    )
+    await storage.delete_all("*")
+
+
+@pytest.mark.asyncio
+async def test_deserialization_error_with_key_prefix(
+    redis_client: redis.Redis,
+) -> None:
+    """Test that deserialization errors are presented correctly when a key
+    prefix is used.
+    """
+    storage = PydanticRedisStorage(
+        datatype=DemoModel, redis=redis_client, key_prefix="test:"
+    )
+    await storage._redis.set("test:key", b"not a valid model")
+    with pytest.raises(
+        DeserializeError, match="^Cannot deserialize data for key test:key"
+    ) as e:
+        await storage.get("key")
+    slack_message = e.value.to_slack()
+    assert slack_message.fields[-1] == SlackTextField(
+        heading="Key", text="test:key"
+    )
+    await storage.delete_all("*")
