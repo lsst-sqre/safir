@@ -79,6 +79,31 @@ Note that `~safir.database.initialize_database` returns a `~sqlalchemy.ext.async
 This can be used to perform any further application-specific database initialization that is required, such as adding default table entries.
 Put any such code before the ``await engine.dispose()`` call.
 
+Using non-default PostgreSQL schemas
+------------------------------------
+
+Occasionally it's convenient for multiple applications to share the same database but use separate collections of tables.
+PostgreSQL supports serving multiple schemas (in the sense of a namespace of tables) from the same database, and SQLAlchemy supports specifying the PostgreSQL schema for a given collection of tables.
+
+The normal way to do this in SQLAlchemy is to modify the `~sqlalchemy.orm.DeclarativeBase` subclass used by the table definitions to specify a non-default schema.
+For example:
+
+.. code-block:: python
+
+   from sqlalchemy import MetaData
+   from sqlalchemy.orm import DeclarativeBase
+
+   from ..config import config
+
+
+   class Base(DeclarativeBase):
+       metadata = MetaData(schema=config.database_schema)
+
+If ``config.database_schema`` is `None`, the default schema will be used; otherwise, SQLAlchemy will use the specified schema instead of the default one.
+
+Safir supports this in database initialization by creating a non-default schema if one is set.
+If the ``schema`` attribute is set (via code like the above) on the SQLAlchemy metadata passed to the ``schema`` parameter of `~safir.database.initialize_database`, it will create that schema in the PostgreSQL database if it does not already exist.
+
 Running database initialization on pod startup
 ----------------------------------------------
 
