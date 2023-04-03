@@ -27,6 +27,7 @@ nitpick_ignore = [
 [sphinx.intersphinx.projects]
 arq = "https://arq-docs.helpmanual.io"
 cryptography = "https://cryptography.io/en/latest/"
+gidgethub = "https://gidgethub.readthedocs.io/en/latest/"
 python = "https://docs.python.org/3/"
 redis = "https://redis-py.readthedocs.io/en/stable/"
 structlog = "https://www.structlog.org/en/stable/"

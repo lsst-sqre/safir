@@ -38,6 +38,9 @@ API reference
 .. automodapi:: safir.gcs
    :include-all-objects:
 
+.. automodapi:: safir.github
+   :include-all-objects:
+
 .. automodapi:: safir.kubernetes
    :include-all-objects:
 
