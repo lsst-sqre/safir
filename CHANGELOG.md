@@ -17,6 +17,10 @@ X.Y.Z (YYYY-MM-DD)
   A `safir.redis.EncryptedPydanticRedisStorage` class also encrypts data in Redis.
   To use the `safir.redis` module, install Safir with the `redis` extra (i.e., `pip install safir[redis]`).
 
+### Bug fixes
+
+- Stop adding the `X-Auth-Request-User` header to the OpenAPI schema for routes that use `auth_dependency` or `auth_logger_dependency`.
+
 ## 3.8.0 (2023-03-15)
 
 ### New features
