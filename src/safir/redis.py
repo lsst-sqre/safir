@@ -1,4 +1,4 @@
-"""Storage for Pydantic models in Redis."""
+"""Redis database support."""
 
 from __future__ import annotations
 

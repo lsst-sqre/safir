@@ -204,7 +204,7 @@ This release has no significant difference from 0.2.0. The version bump is to in
 ### New features
 
 - The first release of Safir featuring:
-  
+
   - `safir.http` for adding an `aiohttp.ClientSession` to your application.
   - `safir.logging` for configuring structlog loggers.
   - `safir.metadata` helps your gather and structure metadata about your application for publishing on metadata endpoints.

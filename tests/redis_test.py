@@ -1,4 +1,4 @@
-"""Tests for the safir.pydanticredis module."""
+"""Tests for the safir.redis module."""
 
 from __future__ import annotations
 
@@ -7,10 +7,7 @@ import redis.asyncio as redis
 from cryptography.fernet import Fernet
 from pydantic import BaseModel, Field
 
-from safir.pydanticredis import (
-    EncryptedPydanticRedisStorage,
-    PydanticRedisStorage,
-)
+from safir.redis import EncryptedPydanticRedisStorage, PydanticRedisStorage
 
 
 class DemoModel(BaseModel):

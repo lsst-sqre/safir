@@ -54,7 +54,7 @@ API reference
 .. automodapi:: safir.pydantic
    :include-all-objects:
 
-.. automodapi:: safir.pydanticredis
+.. automodapi:: safir.redis
    :include-all-objects:
    :inherited-members:
 

@@ -2,9 +2,9 @@
 Storing Pydantic objects in Redis
 #################################
 
-Safir provides a `~safir.pydanticredis.PydanticRedisStorage` class that can conveniently store Pydantic objects in Redis.
+Safir provides a `~safir.redis.PydanticRedisStorage` class that can conveniently store Pydantic objects in Redis.
 The advantage of using Pydantic models with Redis is that data usage is validated during developed and validated at runtime.
-Safir also provides a subclass, `~safir.pydanticredis.EncryptedPydanticRedisStorage`, that encrypts data before storing it in Redis.
+Safir also provides a subclass, `~safir.redis.EncryptedPydanticRedisStorage`, that encrypts data before storing it in Redis.
 
 Basic usage
 ===========
@@ -20,7 +20,7 @@ Here is a basic set up:
 
    import redis.asyncio as redis
    from pydantic import BaseModel, Field
-   from safir.pydanticredis import PydanticRedisStorage
+   from safir.redis import PydanticRedisStorage
 
 
    class MyModel(BaseModel):
@@ -31,7 +31,7 @@ Here is a basic set up:
    redis_client = redis.Redis("redis://localhost:6379/0")
    mymodel_storage = PydanticRedisStorage(MyModel, redis_client)
 
-Use the `~safir.pydanticredis.PydanticRedisStorage.store` method to store a Pydantic object in Redis with a specific key:
+Use the `~safir.redis.PydanticRedisStorage.store` method to store a Pydantic object in Redis with a specific key:
 
 .. code-block:: python
 
@@ -46,7 +46,7 @@ You can get objects back by their key:
    assert drew.id == 1
    assert drew.name == "Drew"
 
-You can scan for all keys that match a pattern with the `~safir.pydanticredis.PydanticRedisStorage.scan` method:
+You can scan for all keys that match a pattern with the `~safir.redis.PydanticRedisStorage.scan` method:
 
 .. code-block:: python
 
@@ -54,13 +54,13 @@ You can scan for all keys that match a pattern with the `~safir.pydanticredis.Py
        m = await mymodel_storage.get(key)
        print(m)
 
-You can also delete objects by key using the `~safir.pydanticredis.PydanticRedisStorage.delete` method:
+You can also delete objects by key using the `~safir.redis.PydanticRedisStorage.delete` method:
 
 .. code-block:: python
 
    await mymodel_storage.delete("people:1")
 
-It's also possible to delete all objects at once with keys that match a pattern using the `~safir.pydanticredis.PydanticRedisStorage.delete_all` method:
+It's also possible to delete all objects at once with keys that match a pattern using the `~safir.redis.PydanticRedisStorage.delete_all` method:
 
 .. code-block:: python
 
@@ -69,10 +69,10 @@ It's also possible to delete all objects at once with keys that match a pattern 
 Encrypting data with EncryptedPydanticRedisStorage
 ==================================================
 
-`~safir.pydanticredis.EncryptedPydanticRedisStorage` is a subclass of `~safir.pydanticredis.PydanticRedisStorage` that encrypts data before storing it in Redis.
+`~safir.redis.EncryptedPydanticRedisStorage` is a subclass of `~safir.redis.PydanticRedisStorage` that encrypts data before storing it in Redis.
 It also decrypts data after retrieving it from Redis (assuming the key is correct).
 
-To use `~safir.pydanticredis.EncryptedPydanticRedisStorage` you must provide a Fernet key.
+To use `~safir.redis.EncryptedPydanticRedisStorage` you must provide a Fernet key.
 A convenient way to generate a Fernet key is with the `cryptography.fernet.Fernet.generate_key` function from the `cryptography`_ Python package:
 
 .. code-block:: python
@@ -82,11 +82,11 @@ A convenient way to generate a Fernet key is with the `cryptography.fernet.Ferne
    print(Fernet.generate_key().decode())
 
 Conventionally, you'll store this key in a persistent secret store, such as 1Password or Vault (see the `Phalanx documentation <https://phalanx.lsst.io/developers/add-a-onepassword-secret.html>`__) and then make this key available to your application through an environment variable to your configuration class.
-Then pass the key's value to `~safir.pydanticredis.EncryptedPydanticRedisStorage` with the ``encryption_key`` parameter:
+Then pass the key's value to `~safir.redis.EncryptedPydanticRedisStorage` with the ``encryption_key`` parameter:
 
 .. code-block:: python
 
-   from safir.pydanticredis import EncryptedPydanticRedisStorage
+   from safir.redis import EncryptedPydanticRedisStorage
 
    redis_client = redis.Redis(config.redis_url)
    mymodel_storage = EncryptedPydanticRedisStorage(
@@ -95,16 +95,16 @@ Then pass the key's value to `~safir.pydanticredis.EncryptedPydanticRedisStorage
        encryption_key=config.encryption_key,
    )
 
-Once set up, you can interact with this storage class exactly like `~safir.pydanticredis.PydanticRedisStorage`, except that all data is encrypted in Redis.
+Once set up, you can interact with this storage class exactly like `~safir.redis.PydanticRedisStorage`, except that all data is encrypted in Redis.
 
 Multi-tentant storage with key prefixes
 =======================================
 
-`~safir.pydanticredis.PydanticRedisStorage` and `~safir.pydanticredis.EncryptedPydanticRedisStorage` both allow you to specify a prefix string that is automatically applied to the keys of an objects stored through that class.
+`~safir.redis.PydanticRedisStorage` and `~safir.redis.EncryptedPydanticRedisStorage` both allow you to specify a prefix string that is automatically applied to the keys of an objects stored through that class.
 Once set, your application does not need to worry about consistently using this prefix.
 
 A common use case for a key prefix is if multiple stores share the same Redis database.
-Each `~safir.pydanticredis.PydanticRedisStorage` instance works with a specific Pydantic model type, so if your application needs to store multiple types of objects in Redis, you can use multiple instances of `~safir.pydanticredis.PydanticRedisStorage` with different key prefixes.
+Each `~safir.redis.PydanticRedisStorage` instance works with a specific Pydantic model type, so if your application needs to store multiple types of objects in Redis, you can use multiple instances of `~safir.redis.PydanticRedisStorage` with different key prefixes.
 
 .. code-block:: python
 
