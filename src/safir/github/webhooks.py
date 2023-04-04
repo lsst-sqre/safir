@@ -251,7 +251,7 @@ class GitHubPullRequestEventModel(BaseModel):
         description="Information about the GitHub App installation."
     )
 
-    action: GitHubAppInstallationEventAction = Field(
+    action: GitHubPullRequestEventAction = Field(
         description="The action that was performed.",
     )
 
