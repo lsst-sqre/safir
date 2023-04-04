@@ -20,13 +20,17 @@ nitpick_ignore = [
     ['py:class', 'unittest.mock.Base'],
     ['py:class', 'unittest.mock.CallableMixin'],
     ["py:obj", "JobMetadata.id"],
+    ["py:class", "pydantic.BaseModel"],
+    ["py:class", "BaseModel"],
 ]
 
 [sphinx.intersphinx.projects]
-python = "https://docs.python.org/3/"
-sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
-structlog = "https://www.structlog.org/en/stable/"
 arq = "https://arq-docs.helpmanual.io"
+cryptography = "https://cryptography.io/en/latest/"
+python = "https://docs.python.org/3/"
+redis = "https://redis-py.readthedocs.io/en/stable/"
+structlog = "https://www.structlog.org/en/stable/"
+sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
 
 [sphinx.linkcheck]
 ignore = [

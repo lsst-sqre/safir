@@ -1,4 +1,5 @@
 .. _arq: https://arq-docs.helpmanual.io
+.. _cryptography: https://cryptography.io/en/latest/
 .. _FastAPI: https://fastapi.tiangolo.com/
 .. _mypy: https://www.mypy-lang.org
 .. _pre-commit: https://pre-commit.com
@@ -15,4 +16,5 @@
 .. _Click: https://click.palletsprojects.com/
 .. _Uvicorn: https://www.uvicorn.org/
 .. _PyPI: https://pypi.org/project/safir/
+.. _redis-py: https://redis.readthedocs.io/en/stable/
 .. _respx: https://lundberg.github.io/respx/
