@@ -30,7 +30,7 @@ __all__ = [
 
 
 class GitHubRepoOwnerModel(BaseModel):
-    """A Pydantic model for the "owner" field found in repository objects.
+    """A Pydantic model for the ``owner`` field found in repository objects.
 
     https://docs.github.com/en/rest/repos/repos#get-a-repository
     """
@@ -45,7 +45,7 @@ class GitHubRepoOwnerModel(BaseModel):
 
 
 class GitHubUserModel(BaseModel):
-    """A Pydantic model for the "user" field found in GitHub API resources.
+    """A Pydantic model for the ``user`` field found in GitHub API resources.
 
     This contains brief (public) info about a user.
     """
@@ -142,7 +142,7 @@ class GitHubPullRequestModel(BaseModel):
     """A Pydantic model for a GitHub Pull Request.
 
     This is also the ``pull_request`` field inside the
-    GitHubPullRequestEventModel.
+    `~safir.github.webhooks.GitHubPullRequestEventModel`.
 
     https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
     """
@@ -165,7 +165,7 @@ class GitHubPullRequestModel(BaseModel):
 
 
 class GitHubBranchCommitModel(BaseModel):
-    """A Pydantic model for the commit field found in GitHubBranchModel."""
+    """A Pydantic model for the commit field found in `GitHubBranchModel`."""
 
     sha: str = Field(description="Git commit SHA.")
 
@@ -246,7 +246,7 @@ class GitHubCheckSuiteConclusion(str, Enum):
 
 class GitHubCheckSuiteModel(BaseModel):
     """A Pydantic model for the ``check_suite`` field in a ``check_suite``
-    webhook (``GitHubCheckSuiteRequestModel``).
+    webhook (`~safir.github.webhooks.GitHubCheckSuiteEventModel`).
     """
 
     id: str = Field(description="Identifier for this check run.")
@@ -263,9 +263,13 @@ class GitHubCheckSuiteModel(BaseModel):
         description="GitHub API URL for the check suite resource."
     )
 
-    status: GitHubCheckSuiteStatus
+    status: GitHubCheckSuiteStatus = Field(
+        description="The status of the check suite."
+    )
 
-    conclusion: GitHubCheckSuiteConclusion | None
+    conclusion: GitHubCheckSuiteConclusion | None = Field(
+        description="The conclusion of the check suite."
+    )
 
 
 class GitHubCheckRunStatus(str, Enum):
@@ -315,8 +319,8 @@ class GitHubCheckRunOutput(BaseModel):
 
 
 class GitHubCheckRunPrInfoModel(BaseModel):
-    """A Pydantic model of the "pull_requsts[]" items in a check run
-    GitHub API model.
+    """A Pydantic model of the ``pull_requests[]`` items in a check run
+    GitHub API model (`GitHubCheckRunModel`).
 
     https://docs.github.com/en/rest/checks/runs#get-a-check-run
     """
@@ -326,10 +330,10 @@ class GitHubCheckRunPrInfoModel(BaseModel):
 
 class GitHubCheckRunModel(BaseModel):
     """A Pydantic model for the "check_run" field in a check_run webhook
-    payload (``GitHubCheckRunPayloadModel``).
+    payload (`~safir.github.webhooks.GitHubCheckRunEventModel`).
     """
 
-    id: str = Field(title="ID", description="Identifier for this check run")
+    id: str = Field(description="Identifier for this check run.")
 
     external_id: str | None = Field(
         description="Identifier set by the check runner."
@@ -354,12 +358,15 @@ class GitHubCheckRunModel(BaseModel):
 
     html_url: HttpUrl = Field(description="URL of the check run webpage.")
 
-    check_suite: GitHubCheckSuiteId
+    check_suite: GitHubCheckSuiteId = Field(
+        description="Brief information about the check suite."
+    )
 
     output: GitHubCheckRunOutput | None = Field(
         None, title="Output", description="Check run output, if available."
     )
 
     pull_requests: list[GitHubCheckRunPrInfoModel] = Field(
-        default_factory=list
+        default_factory=list,
+        description="List of pull requests associated with this check run.",
     )
