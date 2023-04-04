@@ -23,6 +23,9 @@ nitpick_ignore = [
     ["py:class", "pydantic.BaseModel"],
     ["py:class", "BaseModel"],
 ]
+extensions = [
+    "sphinxcontrib.autodoc_pydantic",
+]
 
 [sphinx.intersphinx.projects]
 arq = "https://arq-docs.helpmanual.io"

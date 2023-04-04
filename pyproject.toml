@@ -55,6 +55,7 @@ dev = [
     "uvicorn",
     # documentation
     "documenteer[guide]>=0.7.0b2",
+    "autodoc_pydantic",
 ]
 gcs = [
     "google-auth",
