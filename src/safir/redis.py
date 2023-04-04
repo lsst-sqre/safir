@@ -5,7 +5,13 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Generic, Optional, TypeVar
 
-import redis.asyncio as redis
+try:
+    import redis.asyncio as redis
+except ImportError:
+    raise ImportError(
+        "The safir.redis module requires the redis extra. "
+        "Install it with `pip install safir[redis]`."
+    )
 from cryptography.fernet import Fernet
 from pydantic import BaseModel
 

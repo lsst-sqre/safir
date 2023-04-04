@@ -6,6 +6,10 @@ Safir provides a `~safir.redis.PydanticRedisStorage` class that can conveniently
 The advantage of using Pydantic models with Redis is that data usage is validated during developed and validated at runtime.
 Safir also provides a subclass, `~safir.redis.EncryptedPydanticRedisStorage`, that encrypts data before storing it in Redis.
 
+.. important::
+
+   To use `safir.redis`, you must install Safir with its ``redis`` extra: that is, ``safir[redis]``.
+
 Basic usage
 ===========
 
