@@ -20,8 +20,6 @@ nitpick_ignore = [
     ['py:class', 'unittest.mock.Base'],
     ['py:class', 'unittest.mock.CallableMixin'],
     ["py:obj", "JobMetadata.id"],
-    ["py:class", "safir.pydanticredis.S"],
-    ["py:obj", "safir.pydanticredis.S"],
     ["py:class", "pydantic.BaseModel"],
     ["py:class", "BaseModel"],
 ]

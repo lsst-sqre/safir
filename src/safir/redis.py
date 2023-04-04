@@ -20,8 +20,8 @@ from .slack.blockkit import SlackException, SlackMessage, SlackTextField
 __all__ = [
     "PydanticRedisStorage",
     "EncryptedPydanticRedisStorage",
-    "S",
     "DeserializeError",
+    "S",
 ]
 
 
@@ -40,7 +40,7 @@ class DeserializeError(SlackException):
         return message
 
 
-#: Type variable for the type of object being stored.
+#: Type variable of Pydantic object being stored in `PydanticRedisStorage`.
 S = TypeVar("S", bound="BaseModel")
 
 
