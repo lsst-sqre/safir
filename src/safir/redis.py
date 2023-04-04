@@ -15,7 +15,12 @@ except ImportError:
 from cryptography.fernet import Fernet
 from pydantic import BaseModel
 
-from .slack.blockkit import SlackException, SlackMessage, SlackTextField
+from .slack.blockkit import (
+    SlackCodeBlock,
+    SlackException,
+    SlackMessage,
+    SlackTextField,
+)
 
 __all__ = [
     "PydanticRedisStorage",
@@ -28,15 +33,26 @@ __all__ = [
 class DeserializeError(SlackException):
     """Raised when a stored Pydantic object in Redis cannot be decoded (and
     possibly decrypted) or deserialized.
+
+    Parameters
+    ----------
+    msg
+        A description of the error.
+    key
+        The key of the object that could not be deserialized.
+    error
+        The exception's message from the deserialization attempt.
     """
 
-    def __init__(self, msg: str, key: str) -> None:
+    def __init__(self, msg: str, key: str, error: str) -> None:
         super().__init__(msg)
         self.key = key
+        self.error = error
 
     def to_slack(self) -> SlackMessage:
         message = super().to_slack()
         message.fields.append(SlackTextField(heading="Key", text=self.key))
+        message.blocks.append(SlackCodeBlock(heading="Error", code=self.error))
         return message
 
 
@@ -125,8 +141,8 @@ class PydanticRedisStorage(Generic[S]):
             return self._deserialize(data)
         except Exception as e:
             error = f"{type(e).__name__}: {str(e)}"
-            msg = f"Cannot deserialize data for key {full_key}: {error}"
-            raise DeserializeError(msg, key=full_key) from e
+            msg = f"Cannot deserialize data for key {full_key}:"
+            raise DeserializeError(msg, key=full_key, error=error) from e
 
     async def scan(self, pattern: str) -> AsyncIterator[str]:
         """Scan Redis for a given key pattern, returning each key.
