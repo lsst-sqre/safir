@@ -11,6 +11,14 @@ Safir provides a `safir.github` subpackage that makes it easier to build GitHub 
 - Pydantic models for GitHub v3 REST API resources (`safir.github.models`).
 - Pydantic models for GitHub webhook payloads (`safir.github.webhooks`).
 
+Guides
+======
+
+.. toctree::
+   :titlesonly:
+
+   create-a-github-client
+
 Reference
 =========
 
