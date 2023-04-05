@@ -33,3 +33,9 @@ GitHub events
      - `~safir.github.webhooks.GitHubPullRequestEventModel`
    * - `push <https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#push>`__
      - `~safir.github.webhooks.GitHubPushEventModel`
+
+Related documentation
+=====================
+
+- :doc:`api-resources`
+- :doc:`handling-webhooks`

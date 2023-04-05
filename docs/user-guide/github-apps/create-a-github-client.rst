@@ -124,3 +124,9 @@ Where possible, you can also parse the response data into Pydantic models (see :
    repository = GitHubRepositoryModel.parse_obj(response)
 
 For more information on using Gidgethub, see the `Gidgethub documentation <https://gidgethub.readthedocs.io/en/latest/>`__.
+
+Related documentation
+=====================
+
+- :doc:`api-resources`
+- :doc:`handling-webhooks`

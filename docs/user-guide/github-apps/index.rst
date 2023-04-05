@@ -18,6 +18,7 @@ Guides
    :titlesonly:
 
    create-a-github-client
+   handling-webhooks
 
 Reference
 =========

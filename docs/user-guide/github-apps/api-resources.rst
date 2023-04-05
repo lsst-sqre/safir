@@ -36,3 +36,9 @@ Response resources
      - `~safir.github.models.GitHubBlobModel`
    * - `GET /repos/{owner}/{repo}/pulls/{pull_number} <https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request>`__
      - `~safir.github.models.GitHubPullRequestModel`
+
+Related documentation
+=====================
+
+- :doc:`webhook-models`
+- :doc:`create-a-github-client`
