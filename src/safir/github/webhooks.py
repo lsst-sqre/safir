@@ -98,20 +98,22 @@ class GitHubAppInstallationEventAction(str, Enum):
     (`GitHubAppInstallationEventModel`).
     """
 
-    #: Someone installed a GitHub App on a user or organization account.
     created = "created"
+    """Someone installed a GitHub App on a user or organization account."""
 
-    #: Someone uninstalled a GitHub App on a user or organization account.
     deleted = "deleted"
+    """Someone uninstalled a GitHub App on a user or organization account."""
 
-    #: Someone granted new permissions to a GitHub App.
     new_permissions_accepted = "new_permissions_accepted"
+    """Someone granted new permissions to a GitHub App."""
 
-    #: Someone blocked access by a GitHub App to their user or org account.
     suspend = "suspend"
+    """Someone blocked access by a GitHub App to their user or org account."""
 
-    #: Someone unblocked access by a GitHub App to their user or org account.
     unsuspend = "unsuspend"
+    """Someone unblocked access by a GitHub App to their user or org
+    account.
+    """
 
 
 class GitHubAppInstallationEventModel(BaseModel):
@@ -173,68 +175,70 @@ class GitHubPullRequestEventAction(str, Enum):
     (`GitHubPullRequestEventModel`).
     """
 
-    #: A pull request was assigned to a user.
     assigned = "assigned"
+    """A pull request was assigned to a user."""
 
-    #: Auto merge was disabled for a pull request.
     auto_merge_disabled = "auto_merge_disabled"
+    """Auto merge was disabled for a pull request."""
 
-    #: Auto merge was enabled for a pull request.
     auto_merge_enabled = "auto_merge_enabled"
+    """Auto merge was enabled for a pull request."""
 
-    #: A pull request was closed.
     closed = "closed"
+    """A pull request was closed."""
 
-    #: A pull request was converted to a draft.
     converted_to_draft = "converted_to_draft"
+    """A pull request was converted to a draft."""
 
-    #: A pull request was removed from a milestone.
     demilestoned = "demilestoned"
+    """A pull request was removed from a milestone."""
 
-    #: A pull request was removed from the merge queue.
     dequeued = "dequeued"
+    """A pull request was removed from the merge queue."""
 
-    #: The title or body of a pull request was edited.
     edited = "edited"
+    """The title or body of a pull request was edited."""
 
-    #: A label was added to a pull request.
     labeled = "labeled"
+    """A label was added to a pull request."""
 
-    #: Conversation on a pull request was locked.
     locked = "locked"
+    """Conversation on a pull request was locked."""
 
-    #: A pull request was added to a milestone.
     milestoned = "milestoned"
+    """A pull request was added to a milestone."""
 
-    #: A pull request was created.
     opened = "opened"
+    """A pull request was created."""
 
-    #: A draft pull request was marked as ready for review.
     ready_for_review = "ready_for_review"
+    """A draft pull request was marked as ready for review."""
 
-    #: A pull request was reopened.
     reopened = "reopened"
+    """A pull request was reopened."""
 
-    #: A request for review by a person or team was removed from a pull
-    #: request.
     review_request_removed = "review_request_removed"
+    """A request for review by a person or team was removed from a pull
+    request.
+    """
 
-    #: Review by a person or team was requested for a pull request.
     review_requested = "review_requested"
+    """Review by a person or team was requested for a pull request."""
 
-    #: A pull request's head branch was updated. For example, the head branch
-    #: was updated from the base branch or new commits were pushed to the head
-    #: branch.
     synchronize = "synchronize"
+    """A pull request's head branch was updated. For example, the head branch
+    was updated from the base branch or new commits were pushed to the head
+    branch.
+    """
 
-    #: A user was unassigned from a pull request.
     unassigned = "unassigned"
+    """A user was unassigned from a pull request."""
 
-    #: A label was removed from a pull request.
     unlabeled = "unlabeled"
+    """A label was removed from a pull request."""
 
-    #: Conversation on a pull request was unlocked.
     unlocked = "unlocked"
+    """Conversation on a pull request was unlocked."""
 
 
 class GitHubPullRequestEventModel(BaseModel):
@@ -267,15 +271,16 @@ class GitHubCheckSuiteEventAction(str, Enum):
     (`GitHubCheckSuiteEventModel`).
     """
 
-    #: All check runs in a check suite have completed, and a conclusion is
-    #: available.
     completed = "completed"
+    """All check runs in a check suite have completed, and a conclusion is
+    available.
+    """
 
-    #: Someone requested to run a check suite.
     requested = "requested"
+    """Someone requested to run a check suite."""
 
-    #: Someone requested to re-run the check runs in a check suite.
     rerequested = "rerequested"
+    """Someone requested to re-run the check runs in a check suite."""
 
 
 class GitHubCheckSuiteEventModel(BaseModel):
@@ -306,18 +311,19 @@ class GitHubCheckRunEventAction(str, Enum):
     (`GitHubCheckRunEventModel`).
     """
 
-    #: A check run was completed and a conclusion is available.
     completed = "completed"
+    """A check run was completed and a conclusion is available."""
 
-    #: A new check run was created.
     created = "created"
+    """A new check run was created."""
 
-    #: A check run completed, and someone requested a followup action that
-    #: your app provides.
     requested_action = "requested_action"
+    """A check run completed, and someone requested a followup action that
+    your app provides.
+    """
 
-    #: Someone requested to re-run a check run.
     rerequested = "rerequested"
+    """Someone requested to re-run a check run."""
 
 
 class GitHubCheckRunEventModel(BaseModel):

@@ -129,13 +129,16 @@ class GitHubRepositoryModel(BaseModel):
 
 
 class GitHubPullState(str, Enum):
-    """The state of a GitHub PR.
+    """The state of a GitHub pull request (PR).
 
     https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
     """
 
     open = "open"
+    """The PR is open."""
+
     closed = "closed"
+    """The PR is closed."""
 
 
 class GitHubPullRequestModel(BaseModel):
@@ -228,20 +231,42 @@ class GitHubCheckSuiteStatus(str, Enum):
     """The status of a GitHub check suite."""
 
     queued = "queued"
+    """The check suite is queued."""
+
     in_progress = "in_progress"
+    """The check suite is in progress."""
+
     completed = "completed"
+    """The check suite has completed."""
 
 
 class GitHubCheckSuiteConclusion(str, Enum):
     """The conclusion state of a GitHub check suite."""
 
     success = "success"
+    """The check suite has succeeded."""
+
     failure = "failure"
+    """The check suite has failed."""
+
     neutral = "neutral"
+    """The check suite has a neutral outcome, perhaps because the check was
+    skipped.
+    """
+
     cancelled = "cancelled"
+    """The check suite was cancelled."""
+
     timed_out = "timed_out"
+    """The check suite timed out."""
+
     action_required = "action_required"
+    """The check suite requires an action to be taken before it can
+    continue.
+    """
+
     stale = "stale"
+    """The check suite is stale."""
 
 
 class GitHubCheckSuiteModel(BaseModel):
@@ -276,28 +301,53 @@ class GitHubCheckRunStatus(str, Enum):
     """The check run status."""
 
     queued = "queued"
+    """The check run is queued."""
+
     in_progress = "in_progress"
+    """The check run is in progress."""
+
     completed = "completed"
+    """The check run has completed."""
 
 
 class GitHubCheckRunConclusion(str, Enum):
     """The check run conclusion state."""
 
     success = "success"
+    """The check run has succeeded."""
+
     failure = "failure"
+    """The check run has failed."""
+
     neutral = "neutral"
+    """The check run has a neutral outcome, perhaps because the check was
+    skipped.
+    """
+
     cancelled = "cancelled"
+    """The check run was cancelled."""
+
     timed_out = "timed_out"
+    """The check run timed out."""
+
     action_required = "action_required"
+    """The check run requires an action to be taken before it can continue."""
+
     stale = "stale"
+    """The check run is stale."""
 
 
 class GitHubCheckRunAnnotationLevel(str, Enum):
     """The level of a check run output annotation."""
 
     notice = "notice"
+    """A notice annotation."""
+
     warning = "warning"
+    """A warning annotation."""
+
     failure = "failure"
+    """An annotation that indicates a failure."""
 
 
 class GitHubCheckSuiteId(BaseModel):
