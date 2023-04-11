@@ -56,6 +56,12 @@ You'll set up this secret in the GitHub App's settings, and its used to verify t
 
 The ``webhook_router`` is a Gidgethub_ ``Router`` instance that dispatches webhook events to the appropriate handler in your application, as you'll see next.
 
+.. tip::
+
+   Notice how the FastAPI handler sleeps for one second before dispatching the webhook event to the ``webhook_router``.
+   This is based on common advice to wait for the GitHub API to reach consistency before processing the webhook event and making API calls to GitHub based on the new event.
+   You can experiement with delay, move it to other parts of the app (for example, to right before submitting a new requests to GitHub) or drop the delay altogether.
+
 .. _webhook-handler-functions:
 
 Adding a GitHub webhook handler
