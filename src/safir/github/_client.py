@@ -50,12 +50,12 @@ class GitHubAppClientFactory:
 
     def _create_client(
         self, *, oauth_token: Optional[str] = None
-    ) -> gidgethub.httpx.GitHubAPI:
+    ) -> GitHubAPI:
         return GitHubAPI(
             self._http_client, self.app_name, oauth_token=oauth_token
         )
 
-    def create_anonymous_client(self) -> gidgethub.httpx.GitHubAPI:
+    def create_anonymous_client(self) -> GitHubAPI:
         """Create an anonymous client.
 
         Returns
@@ -65,7 +65,7 @@ class GitHubAppClientFactory:
         """
         return self._create_client()
 
-    def create_app_client(self) -> gidgethub.httpx.GitHubAPI:
+    def create_app_client(self) -> GitHubAPI:
         """Create a client authenticated as the GitHub App.
 
         Returns
@@ -77,7 +77,7 @@ class GitHubAppClientFactory:
 
     async def create_installation_client(
         self, installation_id: str
-    ) -> gidgethub.httpx.GitHubAPI:
+    ) -> GitHubAPI:
         """Create a client authenticated as an installation of the GitHub App
         for a specific repository or organization.
 
@@ -105,7 +105,7 @@ class GitHubAppClientFactory:
 
     async def create_installation_client_for_repo(
         self, owner: str, repo: str
-    ) -> gidgethub.httpx.GitHubAPI:
+    ) -> GitHubAPI:
         """Create a client authenticated as an installation of the GitHub App
         for a specific repository or organization.
 
