@@ -215,7 +215,7 @@ class CamelCaseModel(BaseModel):
 
 def validate_exactly_one_of(
     *settings: str,
-) -> Callable[[Any, dict[str, Any]], Any]:
+) -> Callable[[type, dict[str, Any]], dict[str, Any]]:
     """Generate a validator imposing a one and only one constraint.
 
     Sometimes, models have a set of attributes of which one and only one may
@@ -233,7 +233,7 @@ def validate_exactly_one_of(
     Returns
     -------
     Callable
-        The validator.
+        The root validator.
 
     Examples
     --------
@@ -246,7 +246,7 @@ def validate_exactly_one_of(
            bar: Optional[str] = None
            baz: Optional[str] = None
 
-           _validate_options = validator("baz", always=True, allow_reuse=True)(
+           _validate_options = root_validator(allow_reuse=True)(
                validate_exactly_one_of("foo", "bar", "baz")
            )
 
@@ -263,8 +263,8 @@ def validate_exactly_one_of(
     else:
         options = ", ".join(settings[:-1]) + ", and " + settings[-1]
 
-    def validator(v: Any, values: dict[str, Any]) -> Any:
-        seen = v is not None
+    def validator(cls: type, values: dict[str, Any]) -> dict[str, Any]:
+        seen = False
         for setting in settings:
             if setting in values and values[setting] is not None:
                 if seen:
@@ -272,6 +272,6 @@ def validate_exactly_one_of(
                 seen = True
         if not seen:
             raise ValueError(f"one of {options} must be given")
-        return v
+        return values
 
     return validator
