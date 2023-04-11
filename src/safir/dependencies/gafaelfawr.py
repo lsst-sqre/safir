@@ -11,7 +11,9 @@ __all__ = [
 ]
 
 
-async def auth_dependency(x_auth_request_user: str = Header(...)) -> str:
+async def auth_dependency(
+    x_auth_request_user: str = Header(..., include_in_schema=False)
+) -> str:
     """Retrieve authentication information from HTTP headers.
 
     Intended for use with applications protected by Gafaelfawr, this retrieves
