@@ -20,6 +20,7 @@ X.Y.Z (YYYY-MM-DD)
 - The new `safir.redis.PydanticRedisStorage` class enables you to store Pydantic model objects in Redis.
   A `safir.redis.EncryptedPydanticRedisStorage` class also encrypts data in Redis.
   To use the `safir.redis` module, install Safir with the `redis` extra (i.e., `pip install safir[redis]`).
+- Add `safir.slack.webhook.SlackWebException`, which is a child class of `safir.slack.webhook.SlackException` that knows how to capture and report details from an underlying HTTPX exception.
 - Add a `safir.testing.kubernetes.strip_none` helper function that makes it easier to compare Kubernetes objects against expected test data.
 - Add a `get_namespace_objects_for_test` method to the Kubernetes mock to retreive all objects (of any kind) in a namespace.
 - Add a mock for the `list_nodes` Kubernetes API, which returns data set by a call to the new `set_nodes_for_test` method.
@@ -27,13 +28,13 @@ X.Y.Z (YYYY-MM-DD)
 - Add support for namespaced events (the older core API, not the new events API) to the Kubernetes mock. Newly-created pods with the default initial status post an event by default; otherwise, events must be created by calling the mocked `create_namespaced_event` API. The `list_namespaced_event` API supports watches with timeouts.
 - Add rudimentary support for `NetworkPolicy`, `ResourceQuota`, and `Service` objects to the Kubernetes mock.
 
-### Other changes
-
-- The `safir.testing.kubernetes.MockKubernetesApi` mock now has rudimentary API documentation for the Kubernetes APIs that it supports.
-
 ### Bug fixes
 
 - Stop adding the `X-Auth-Request-User` header to the OpenAPI schema for routes that use `auth_dependency` or `auth_logger_dependency`.
+
+### Other changes
+
+- The `safir.testing.kubernetes.MockKubernetesApi` mock now has rudimentary API documentation for the Kubernetes APIs that it supports.
 
 ## 3.8.0 (2023-03-15)
 
@@ -166,7 +167,7 @@ X.Y.Z (YYYY-MM-DD)
 
 ### Bug fixes
 
-- Restore previous `http_client_dependency` behavior by enabling following redirects by default. This adjusts for the change of defaults in httpx 0.20.0.
+- Restore previous `http_client_dependency` behavior by enabling following redirects by default. This adjusts for the change of defaults in HTTPX 0.20.0.
 
 ## 2.1.1 (2021-10-29)
 

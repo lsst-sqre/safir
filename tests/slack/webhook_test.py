@@ -150,7 +150,7 @@ async def test_route_handler(mock_slack: MockSlackWebhook) -> None:
     app = FastAPI()
     app.include_router(router)
 
-    # We need a custom httpx configuration to disable raising server
+    # We need a custom HTTPX configuration to disable raising server
     # exceptions so that we can inspect the resulting error handling.
     transport = ASGITransport(
         app=app,  # type: ignore[arg-type]

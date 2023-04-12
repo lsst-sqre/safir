@@ -12,8 +12,10 @@ API reference
    :include-all-objects:
 
 .. automodapi:: safir.database
+   :include-all-objects:
 
 .. automodapi:: safir.datetime
+   :include-all-objects:
 
 .. automodapi:: safir.dependencies.arq
    :include-all-objects:
@@ -59,8 +61,10 @@ API reference
    :inherited-members:
 
 .. automodapi:: safir.slack.blockkit
+   :include-all-objects:
 
 .. automodapi:: safir.slack.webhook
+   :include-all-objects:
 
 .. automodapi:: safir.testing.gcs
    :include-all-objects:
@@ -69,5 +73,7 @@ API reference
    :include-all-objects:
 
 .. automodapi:: safir.testing.slack
+   :include-all-objects:
 
 .. automodapi:: safir.testing.uvicorn
+   :include-all-objects:

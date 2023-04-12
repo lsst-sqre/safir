@@ -18,3 +18,4 @@
 .. _PyPI: https://pypi.org/project/safir/
 .. _redis-py: https://redis.readthedocs.io/en/stable/
 .. _respx: https://lundberg.github.io/respx/
+.. _HTTPX: https://www.python-httpx.org/

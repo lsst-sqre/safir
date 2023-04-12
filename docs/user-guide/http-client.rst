@@ -1,9 +1,9 @@
 ######################
-Using the httpx client
+Using the HTTPX client
 ######################
 
 Safir helps you manage a single ``httpx.AsyncClient`` for your application.
-Using a single HTTP client improves performance by reusing connections.
+Using a single HTTPX_ client improves performance by reusing connections.
 
 Setting up the httpx.AsyncClient
 ================================

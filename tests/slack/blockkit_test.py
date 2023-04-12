@@ -2,17 +2,26 @@
 
 from __future__ import annotations
 
+from unittest.mock import ANY
+
 import pytest
+import respx
+import structlog
+from httpx import AsyncClient, HTTPError, Response
 from pydantic import ValidationError
 
 from safir.slack.blockkit import (
     SlackBaseField,
     SlackCodeBlock,
     SlackCodeField,
+    SlackException,
     SlackMessage,
     SlackTextBlock,
     SlackTextField,
+    SlackWebException,
 )
+from safir.slack.webhook import SlackWebhookClient
+from safir.testing.slack import MockSlackWebhook
 
 
 def test_message() -> None:
@@ -48,7 +57,7 @@ def test_message() -> None:
                     },
                     {
                         "type": "mrkdwn",
-                        "text": ("*Some code*\n```\nHere is\nthe code\n```"),
+                        "text": "*Some code*\n```\nHere is\nthe code\n```",
                         "verbatim": True,
                     },
                 ],
@@ -69,7 +78,7 @@ def test_message() -> None:
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": ("*Backtrace*\n```\nSome\nbacktrace\n```"),
+                            "text": "*Backtrace*\n```\nSome\nbacktrace\n```",
                             "verbatim": True,
                         },
                     },
@@ -233,3 +242,114 @@ def test_message_truncation() -> None:
     assert message.to_slack()["blocks"][0]["text"]["text"] == (
         "a" * length + "\n... truncated ..."
     )
+
+
+@pytest.mark.asyncio
+async def test_exception(mock_slack: MockSlackWebhook) -> None:
+    logger = structlog.get_logger(__file__)
+    slack = SlackWebhookClient(mock_slack.url, "App", logger)
+
+    class SomeError(SlackException):
+        pass
+
+    try:
+        raise SomeError("Some error", "someuser")
+    except SlackException as e:
+        await slack.post_exception(e)
+
+    assert mock_slack.messages == [
+        {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Error in App: Some error",
+                        "verbatim": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Exception type*\nSomeError",
+                            "verbatim": True,
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": ANY,
+                            "verbatim": True,
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*User*\nsomeuser",
+                            "verbatim": True,
+                        },
+                    ],
+                },
+                {"type": "divider"},
+            ],
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_web_exception(
+    respx_mock: respx.Router, mock_slack: MockSlackWebhook
+) -> None:
+    logger = structlog.get_logger(__file__)
+    slack = SlackWebhookClient(mock_slack.url, "App", logger)
+
+    class SomeError(SlackWebException):
+        pass
+
+    respx_mock.get("https://example.org/").mock(return_value=Response(404))
+    exception = None
+    try:
+        async with AsyncClient() as client:
+            r = await client.get("https://example.org/")
+            r.raise_for_status()
+    except HTTPError as e:
+        exception = SomeError.from_exception(e)
+        assert str(exception) == "Status 404 from GET https://example.org/"
+        await slack.post_exception(exception)
+
+    assert mock_slack.messages == [
+        {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Error in App: " + str(exception),
+                        "verbatim": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Exception type*\nSomeError",
+                            "verbatim": True,
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": ANY,
+                            "verbatim": True,
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*URL*\nGET https://example.org/",
+                        "verbatim": True,
+                    },
+                },
+                {"type": "divider"},
+            ],
+        }
+    ]
