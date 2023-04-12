@@ -10,12 +10,25 @@ X.Y.Z (YYYY-MM-DD)
 ### Backwards-incompatible changes
 
 - Safir now requires a minimum Python version of 3.11.
+- Custom Kubernetes objects are no longer copied before being stored in the Kubernetes mock by `create_namespaced_custom_object`, and no longer automatically get a `metadata.uid` value. This brings handling of custom objects in line with the behavior of other mocked `create_*` and `replace_*` APIs.
+- All objects stored in the Kubernetes mock will be modified to set `api_version`, `kind`, and (where appropriate) `namespace`. If any of those values are set in the object, they are checked for correctness and rejected with `AssertionError` if they don't match the API call and its parameters.
+- The mocked `create_*` Kubernetes APIs now use the name `body` for the parameter containing the API object, instead of using some other name specific to the kind of object. This fixes compatibility with the Python Kubernetes API that this class is mocking.
 
 ### New features
 
 - The new `safir.redis.PydanticRedisStorage` class enables you to store Pydantic model objects in Redis.
   A `safir.redis.EncryptedPydanticRedisStorage` class also encrypts data in Redis.
   To use the `safir.redis` module, install Safir with the `redis` extra (i.e., `pip install safir[redis]`).
+- Add a `safir.testing.kubernetes.strip_none` helper function that makes it easier to compare Kubernetes objects against expected test data.
+- Add a `get_namespace_objects_for_test` method to the Kubernetes mock to retreive all objects (of any kind) in a namespace.
+- Add a mock for the `list_nodes` Kubernetes API, which returns data set by a call to the new `set_nodes_for_test` method.
+- Add optional rudimentary namespace tracking to the Kubernetes mock. Namespaces can be created, deleted (which deletes all objects in the namespace), read, and listed. Explicit namespace creation remains optional; if an object is created in a namespace and that namespace does not exist, one will be implicitly created by the mock.
+- Add support for namespaced events (the older core API, not the new events API) to the Kubernetes mock. Newly-created pods with the default initial status post an event by default; otherwise, events must be created by calling the mocked `create_namespaced_event` API. The `list_namespaced_event` API supports watches with timeouts.
+- Add rudimentary support for `NetworkPolicy`, `ResourceQuota`, and `Service` objects to the Kubernetes mock.
+
+### Other changes
+
+- The `safir.testing.kubernetes.MockKubernetesApi` mock now has rudimentary API documentation for the Kubernetes APIs that it supports.
 
 ### Bug fixes
 

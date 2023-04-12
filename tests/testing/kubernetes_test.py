@@ -1,26 +1,54 @@
 """Tests for the Kubernetes support infrastructure.
 
 These are just basic sanity checks that the mocking is working correctly and
-the basic calls work.
+the basic calls work. There is no attempt to test all of the supported APIs.
 """
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
-from unittest.mock import ANY
 
 import pytest
-from kubernetes_asyncio import config
-from kubernetes_asyncio.client import V1ObjectMeta, V1Secret
+from kubernetes_asyncio.client import (
+    CoreV1Event,
+    V1Container,
+    V1ObjectMeta,
+    V1ObjectReference,
+    V1Pod,
+    V1PodSpec,
+    V1Secret,
+)
+from kubernetes_asyncio.watch import Watch
 
-from safir.kubernetes import initialize_kubernetes
-from safir.testing.kubernetes import MockKubernetesApi
+from safir.testing.kubernetes import MockKubernetesApi, strip_none
 
 
-@pytest.mark.asyncio
-async def test_initialize(mock_kubernetes: MockKubernetesApi) -> None:
-    await initialize_kubernetes()
-    assert config.load_incluster_config.call_count == 1
+def test_strip_none() -> None:
+    pod = V1Pod(
+        metadata=V1ObjectMeta(name="foo"),
+        spec=V1PodSpec(
+            containers=[
+                V1Container(
+                    name="something",
+                    command=["/bin/sleep", "5"],
+                    image="docker.example.com/some/image:latest",
+                )
+            ]
+        ),
+    )
+    assert strip_none(pod.to_dict()) == {
+        "metadata": {"name": "foo"},
+        "spec": {
+            "containers": [
+                {
+                    "name": "something",
+                    "command": ["/bin/sleep", "5"],
+                    "image": "docker.example.com/some/image:latest",
+                }
+            ]
+        },
+    }
 
 
 @pytest.mark.asyncio
@@ -58,9 +86,7 @@ async def test_mock(mock_kubernetes: MockKubernetesApi) -> None:
 
     assert await mock_kubernetes.list_cluster_custom_object(
         "gafaelfawr.lsst.io", "v1alpha1", "gafaelfawrservicetokens"
-    ) == {
-        "items": [{**custom, "metadata": {**custom["metadata"], "uid": ANY}}]
-    }
+    ) == {"items": [custom]}
     assert mock_kubernetes.get_all_objects_for_test("Secret") == [secret]
 
     def error(method: str, *args: Any) -> None:
@@ -78,3 +104,118 @@ async def test_mock(mock_kubernetes: MockKubernetesApi) -> None:
             custom,
         )
     assert str(excinfo.value) == "some exception"
+
+
+async def watch_events(
+    mock_kubernetes: MockKubernetesApi, namespace: str
+) -> list[CoreV1Event]:
+    """Watch events, returning when an event with message ``Done`` is seen."""
+    method = mock_kubernetes.list_namespaced_event
+    watch_args = {
+        "namespace": namespace,
+        "timeout_seconds": 10,  # Just in case, so tests don't hang
+    }
+    async with Watch().stream(method, **watch_args) as stream:
+        seen = []
+        async for event in stream:
+            assert event["type"] == "ADDED"
+            obj = event["raw_object"]
+            seen.append(obj)
+            if obj.get("message") == "Done":
+                return seen
+        return seen
+
+
+@pytest.mark.asyncio
+async def test_mock_events(mock_kubernetes: MockKubernetesApi) -> None:
+    watchers = [
+        asyncio.create_task(watch_events(mock_kubernetes, "stuff")),
+        asyncio.create_task(watch_events(mock_kubernetes, "stuff")),
+        asyncio.create_task(watch_events(mock_kubernetes, "stuff")),
+    ]
+
+    # Creating a pod should by default create an event in that namespace.
+    pod = V1Pod(
+        metadata=V1ObjectMeta(name="foo"),
+        spec=V1PodSpec(
+            containers=[
+                V1Container(
+                    name="something",
+                    command=["/bin/sleep", "5"],
+                    image="docker.example.com/some/image:latest",
+                )
+            ]
+        ),
+    )
+    await mock_kubernetes.create_namespaced_pod("stuff", pod)
+    some_event = CoreV1Event(
+        metadata=V1ObjectMeta(name="some-event"),
+        message="Some event",
+        involved_object=V1ObjectReference(
+            kind="Pod", name="foo", namespace="stuff"
+        ),
+    )
+    await mock_kubernetes.create_namespaced_event("stuff", some_event)
+    done_event = CoreV1Event(
+        metadata=V1ObjectMeta(name="some-event"),
+        message="Done",
+        involved_object=V1ObjectReference(
+            kind="Pod", name="foo", namespace="stuff"
+        ),
+    )
+    await mock_kubernetes.create_namespaced_event("stuff", done_event)
+
+    # All three watches should see the same thing.
+    results = await asyncio.gather(*watchers)
+    assert len(results) == 3
+    assert results[0] == results[1]
+    assert results[0] == results[2]
+    result = results[0]
+    assert result[1] == some_event.to_dict()
+    assert result[2] == done_event.to_dict()
+
+    # The first event should have been the pod running event.
+    assert result[0]["message"] == "Pod foo started"
+    assert result[0]["involved_object"]["kind"] == "Pod"
+    assert result[0]["involved_object"]["name"] == "foo"
+    assert result[0]["involved_object"]["namespace"] == "stuff"
+
+
+@pytest.mark.asyncio
+async def test_pod_status(mock_kubernetes: MockKubernetesApi) -> None:
+    pod = V1Pod(
+        metadata=V1ObjectMeta(name="foo"),
+        spec=V1PodSpec(
+            containers=[
+                V1Container(
+                    name="something",
+                    command=["/bin/sleep", "5"],
+                    image="docker.example.com/some/image:latest",
+                )
+            ]
+        ),
+    )
+    await mock_kubernetes.create_namespaced_pod("stuff", pod)
+    status = await mock_kubernetes.read_namespaced_pod_status("foo", "stuff")
+    assert status.status.phase == "Running"
+    events = await mock_kubernetes.list_namespaced_event("stuff")
+    assert len(events.items) == 1
+
+    mock_kubernetes.initial_pod_phase = "Starting"
+    pod = V1Pod(
+        metadata=V1ObjectMeta(name="foo"),
+        spec=V1PodSpec(
+            containers=[
+                V1Container(
+                    name="something",
+                    command=["/bin/sleep", "5"],
+                    image="docker.example.com/some/image:latest",
+                )
+            ]
+        ),
+    )
+    await mock_kubernetes.create_namespaced_pod("other", pod)
+    status = await mock_kubernetes.read_namespaced_pod_status("foo", "other")
+    assert status.status.phase == "Starting"
+    events = await mock_kubernetes.list_namespaced_event("other")
+    assert events.items == []

@@ -11,6 +11,7 @@ import redis.asyncio as redis
 import respx
 
 from safir.testing.gcs import MockStorageClient, patch_google_storage
+from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
 
@@ -19,6 +20,11 @@ def mock_gcs() -> Iterator[MockStorageClient]:
     yield from patch_google_storage(
         expected_expiration=timedelta(hours=1), bucket_name="some-bucket"
     )
+
+
+@pytest.fixture
+def mock_kubernetes() -> Iterator[MockKubernetesApi]:
+    yield from patch_kubernetes()
 
 
 @pytest.fixture
