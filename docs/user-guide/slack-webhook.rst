@@ -160,6 +160,47 @@ For example:
 
    The full exception message (although not the traceback) is sent to Slack, so it should not contain any sensitive information, security keys, or similar data.
 
+Reporting HTTPX exceptions
+--------------------------
+
+A common source of exceptions in Safir applications are exceptions raised by HTTPX_ while making calls to other web services.
+Safir provides a base class for those exceptions, `~safir.slack.blockkit.SlackWebException`, which behaves the same as `~safir.slack.blockkit.SlackException` but captures additional information from the underlying HTTPX exception.
+
+The advantages of `~safir.slack.blockkit.SlackWebException` over using `~safir.slack.blockkit.SlackException` directly, possibly with the text of the HTTPX exception, are:
+
+- If the exception is due to an error returned by the remote server, the stringification of the exception, and the main Slack message if posted to Slack, always includes the URL, method, and status code.
+  (You therefore will want to override the ``__str__`` method if your URLs may contain secret data that should not be sent in Slack alerts, such as Slack webhook URLs.)
+- The body of any reply is included in the stringification and in a block of the Slack message.
+  (Again, override this behavior if the bodies of error replies may include secrets that should not be sent to Slack.)
+- For other exceptions, the stringification and main Slack message include both the type and the stringification of the underlying exception.
+- Where possible, the URL and method are included in a field in the Slack message.
+
+The normal way to use this class or exception classes derived from it is to call the class method ``from_exception``, passing in the underlying HTTPX exception.
+For example:
+
+.. code-block:: python
+
+   from httpx import AsyncClient, HTTPError
+   from safir.slack.blockkit import SlackWebException
+
+
+   class FooServiceError(SlackWebException):
+       """An error occurred sending a request to the foo service."""
+
+
+   async def do_something(client: AsyncClient) -> None:
+       # ... set up some request to the foo service ...
+       try:
+           r = await client.get(url)
+           r.raise_for_status()
+       except HTTPError as e:
+           raise FooServiceError.from_exception(e) from e
+
+Note the ``from e`` clause when raising the derived exception, which tells Python to include the backtraces from both exceptions.
+Higher-level code may then catch this exception and post it to Slack if desired.
+
+As with `~safir.slack.blockkit.SlackException`, a username may be provided as a second argument to ``from_exception`` or set later by catching the exception, setting its ``user`` attribute, and re-raising it.
+
 .. _slack-uncaught-exceptions:
 
 Reporting uncaught exceptions to a Slack webhook

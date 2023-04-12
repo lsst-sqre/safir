@@ -2,7 +2,7 @@
 Starting an app with Uvicorn for testing
 ########################################
 
-Normally, testing of FastAPI apps should be done by passing the app to ``httpx.AsyncClient`` and using httpx's built-in support for sending requests directly to an ASGI application.
+Normally, testing of FastAPI apps should be done by passing the app to ``httpx.AsyncClient`` and using HTTPX's built-in support for sending requests directly to an ASGI application.
 To do this, use the ``client`` fixture provided by the ``fastapi_safir_app`` template (see :ref:`create-from-template`).
 
 However, in some test scenarios it may be necessary for the app being tested to respond to regular HTTP requests, such as for Selenium_ testing with a browser.

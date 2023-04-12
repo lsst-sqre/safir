@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar, Optional, Self
 
+from httpx import HTTPError, HTTPStatusError, RequestError
 from pydantic import BaseModel, validator
 
 from safir.datetime import current_datetime, format_datetime_for_logging
@@ -19,6 +20,7 @@ __all__ = [
     "SlackMessage",
     "SlackTextBlock",
     "SlackTextField",
+    "SlackWebException",
 ]
 
 
@@ -278,6 +280,117 @@ class SlackException(Exception):
         if self.user:
             fields.append(SlackTextField(heading="User", text=self.user))
         return SlackMessage(message=str(self), fields=fields)
+
+
+class SlackWebException(SlackException):
+    """Parent class of exceptions arising from HTTPX_ failures.
+
+    Captures additional information from any HTTPX_ exception.  Intended to be
+    subclassed.  Subclasses may wish to override the ``to_slack`` method.
+
+    Parameters
+    ----------
+    message
+        Exception string value, which is the default Slack message.
+    failed_at
+        When the exception happened. Omit to use the current time.
+    method
+        Method of request.
+    url
+        URL of the request.
+    user
+        Username on whose behalf the request is being made.
+    status
+        Status code of failure, if any.
+    body
+        Body of failure message, if any.
+    """
+
+    @classmethod
+    def from_exception(
+        cls, exc: HTTPError, user: Optional[str] = None
+    ) -> Self:
+        """Create an exception from an HTTPX_ exception.
+
+        Parameters
+        ----------
+        exc
+            Exception from HTTPX.
+        user
+            User on whose behalf the request is being made, if known.
+
+        Returns
+        -------
+        SlackWebException
+            Newly-constructed exception.
+        """
+        if isinstance(exc, HTTPStatusError):
+            status = exc.response.status_code
+            method = exc.request.method
+            message = f"Status {status} from {method} {exc.request.url}"
+            return cls(
+                message,
+                method=exc.request.method,
+                url=str(exc.request.url),
+                user=user,
+                status=status,
+                body=exc.response.text,
+            )
+        else:
+            message = f"{type(exc).__name__}: {str(exc)}"
+            if isinstance(exc, RequestError):
+                return cls(
+                    message,
+                    method=exc.request.method,
+                    url=str(exc.request.url),
+                    user=user,
+                )
+            else:
+                return cls(message, user=user)
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        failed_at: Optional[datetime] = None,
+        method: Optional[str] = None,
+        url: Optional[str] = None,
+        user: Optional[str] = None,
+        status: Optional[int] = None,
+        body: Optional[str] = None,
+    ) -> None:
+        self.message = message
+        self.method = method
+        self.url = url
+        self.status = status
+        self.body = body
+        super().__init__(message, user, failed_at=failed_at)
+
+    def __str__(self) -> str:
+        result = self.message
+        if self.body:
+            result += f"\nBody:\n{self.body}\n"
+        return result
+
+    def to_slack(self) -> SlackMessage:
+        """Convert to a Slack message for Slack alerting.
+
+        Returns
+        -------
+        SlackMessage
+            Slack message suitable for posting as an alert.
+        """
+        message = super().to_slack()
+        if self.url:
+            if self.method:
+                text = f"{self.method} {self.url}"
+            else:
+                text = self.url
+            message.blocks.append(SlackTextField(heading="URL", text=text))
+        if self.body:
+            block = SlackCodeBlock(heading="Response", code=self.body)
+            message.blocks.append(block)
+        return message
 
 
 def _format_and_truncate_at_end(string: str, max_length: int) -> str:

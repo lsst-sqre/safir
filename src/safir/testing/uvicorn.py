@@ -1,6 +1,6 @@
 """Utiility functions for managing an external Uvicorn test process.
 
-Normally, ASGI apps are tested via the built-in support in httpx for running
+Normally, ASGI apps are tested via the built-in support in HTTPX for running
 an ASGI app directly. However, sometimes the app has to be spawned in a
 separate process so that it can be accessed over HTTP, such as when testing it
 with Selenium or when testing Uvicorn integration. This module provides

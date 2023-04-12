@@ -156,7 +156,7 @@ async def test_no_proto_or_host() -> None:
 async def test_too_many_headers() -> None:
     """Test handling of duplicate headers.
 
-    httpx doesn't allow passing in duplicate headers, so we cannot test end to
+    HTTPX doesn't allow passing in duplicate headers, so we cannot test end to
     end.  Instead, test by generating a mock request and then calling the
     underling middleware functions directly.
     """
