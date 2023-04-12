@@ -10,6 +10,7 @@ X.Y.Z (YYYY-MM-DD)
 ### Backwards-incompatible changes
 
 - Safir now requires a minimum Python version of 3.11.
+- `safir.pydantic.validate_exactly_one_of` is now a Pydantic root validator instead of an individual field validator, which simplifies how it should be called.
 - Custom Kubernetes objects are no longer copied before being stored in the Kubernetes mock by `create_namespaced_custom_object`, and no longer automatically get a `metadata.uid` value. This brings handling of custom objects in line with the behavior of other mocked `create_*` and `replace_*` APIs.
 - All objects stored in the Kubernetes mock will be modified to set `api_version`, `kind`, and (where appropriate) `namespace`. If any of those values are set in the object, they are checked for correctness and rejected with `AssertionError` if they don't match the API call and its parameters.
 - The mocked `create_*` Kubernetes APIs now use the name `body` for the parameter containing the API object, instead of using some other name specific to the kind of object. This fixes compatibility with the Python Kubernetes API that this class is mocking.

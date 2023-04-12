@@ -86,7 +86,7 @@ The intent here is that only one of those two configurations will be present: ei
 However, Pydantic has no native way to express that, and the above model will accept input where neither or both of those attributes are set.
 
 Safir provides a function, `~safir.pydantic.validate_exactly_one_of`, designed for this case.
-It takes a list of fields, of which exactly one must be set, and builds a validation function that checks this property of the model.
+It takes a list of fields, of which exactly one must be set, and builds a root validator function that checks this property of the model.
 
 So, in the above example, the full class would be:
 
@@ -96,12 +96,9 @@ So, in the above example, the full class would be:
        docker: Optional[DockerConfig] = None
        ghcr: Optional[GHCRConfig] = None
 
-       _validate_type = validator("ghcr", always=True, allow_reuse=True)(
+       _validate_type = root_validator(allow_reuse=True)(
            validate_exactly_one_of("docker", "ghcr")
        )
 
 Note the syntax, which is a little odd since it is calling a decorator on the results of a function builder.
-
-The argument to `~pydantic.validator` must always be the last of the possible attributes that may be set, ensuring that any other attributes have been seen when the validator runs.
-``always=True`` must be set to ensure the validator runs regardless of which attribute is set.
 ``allow_reuse=True`` must be set due to limitations in Pydantic.

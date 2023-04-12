@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import pytest
+from pydantic import BaseModel, ValidationError, root_validator
 
 from safir.pydantic import (
     CamelCaseModel,
@@ -93,28 +95,40 @@ def test_camel_case_model() -> None:
 
 
 def test_validate_exactly_one_of() -> None:
-    values = {"foo": 4, "bar": None}
-    validate_exactly_one_of("foo", "bar")(None, values)
+    class Model(BaseModel):
+        foo: Optional[int] = None
+        bar: Optional[int] = None
+        baz: Optional[int] = None
 
-    values = {"foo": 4}
-    validate_exactly_one_of("foo", "bar", "baz")(None, values)
+        _validate_type = root_validator(allow_reuse=True)(
+            validate_exactly_one_of("foo", "bar", "baz")
+        )
 
-    validate_exactly_one_of("foo", "bar")(4, {})
-    validate_exactly_one_of("foo", "bar")(4, {"foo": None})
+    Model.parse_obj({"foo": 4, "bar": None})
+    Model.parse_obj({"baz": 4})
+    Model.parse_obj({"bar": 4})
+    Model.parse_obj({"foo": None, "bar": 4})
 
-    with pytest.raises(ValueError) as excinfo:
-        validate_exactly_one_of("foo", "bar")(3, values)
-    assert "only one of foo and bar may be given" in str(excinfo.value)
-
-    with pytest.raises(ValueError) as excinfo:
-        validate_exactly_one_of("foo", "bar")(None, {})
-    assert "one of foo and bar must be given" in str(excinfo.value)
-
-    values = {"foo": 4, "bar": 3}
-    with pytest.raises(ValueError) as excinfo:
-        validate_exactly_one_of("foo", "bar", "baz")(None, values)
+    with pytest.raises(ValidationError) as excinfo:
+        Model.parse_obj({"foo": 4, "bar": 3, "baz": None})
     assert "only one of foo, bar, and baz may be given" in str(excinfo.value)
 
-    with pytest.raises(ValueError) as excinfo:
-        validate_exactly_one_of("foo", "bar", "baz")(None, {"foo": None})
+    with pytest.raises(ValidationError) as excinfo:
+        Model.parse_obj({"foo": None, "baz": None})
     assert "one of foo, bar, and baz must be given" in str(excinfo.value)
+
+    class TwoModel(BaseModel):
+        foo: Optional[int] = None
+        bar: Optional[int] = None
+
+        _validate_type = root_validator(allow_reuse=True)(
+            validate_exactly_one_of("foo", "bar")
+        )
+
+    with pytest.raises(ValidationError) as excinfo:
+        TwoModel.parse_obj({"foo": 3, "bar": 4})
+    assert "only one of foo and bar may be given" in str(excinfo.value)
+
+    with pytest.raises(ValidationError) as excinfo:
+        TwoModel.parse_obj({})
+    assert "one of foo and bar must be given" in str(excinfo.value)
