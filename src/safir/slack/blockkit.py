@@ -381,6 +381,7 @@ class SlackWebException(SlackException):
             Slack message suitable for posting as an alert.
         """
         message = super().to_slack()
+        message.message = self.message
         if self.url:
             if self.method:
                 text = f"{self.method} {self.url}"
