@@ -20,6 +20,7 @@ X.Y.Z (YYYY-MM-DD)
 - The new `safir.redis.PydanticRedisStorage` class enables you to store Pydantic model objects in Redis.
   A `safir.redis.EncryptedPydanticRedisStorage` class also encrypts data in Redis.
   To use the `safir.redis` module, install Safir with the `redis` extra (i.e., `pip install safir[redis]`).
+- Add `safir.fastapi.ClientRequestError` base class for exceptions and the corresponding exception handler `safir.fastapi.client_request_error_handler`. These may be used together to raise structured exceptions and automatically transform them into structured HTTP errors with the correct HTTP status code and an error body compatible with `safir.models.ErrorModel` and FastAPI's own internally-generated errors.
 - Add `safir.slack.webhook.SlackWebException`, which is a child class of `safir.slack.webhook.SlackException` that knows how to capture and report details from an underlying HTTPX exception.
 - Add a `safir.testing.kubernetes.strip_none` helper function that makes it easier to compare Kubernetes objects against expected test data.
 - Add a `get_namespace_objects_for_test` method to the Kubernetes mock to retreive all objects (of any kind) in a namespace.
