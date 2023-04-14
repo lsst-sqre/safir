@@ -264,6 +264,7 @@ def validate_exactly_one_of(
         options = ", ".join(settings[:-1]) + ", and " + settings[-1]
 
     def validator(cls: type, values: dict[str, Any]) -> dict[str, Any]:
+        """Ensure only one of a list of fields is present and not `None`."""
         seen = False
         for setting in settings:
             if setting in values and values[setting] is not None:
