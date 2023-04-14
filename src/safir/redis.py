@@ -141,7 +141,7 @@ class PydanticRedisStorage(Generic[S]):
             return self._deserialize(data)
         except Exception as e:
             error = f"{type(e).__name__}: {str(e)}"
-            msg = f"Cannot deserialize data for key {full_key}:"
+            msg = f"Cannot deserialize data for key {full_key}"
             raise DeserializeError(msg, key=full_key, error=error) from e
 
     async def scan(self, pattern: str) -> AsyncIterator[str]:
