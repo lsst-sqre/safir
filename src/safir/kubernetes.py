@@ -6,6 +6,8 @@ import os
 
 from kubernetes_asyncio import config
 
+__all__ = ["initialize_kubernetes"]
+
 
 async def initialize_kubernetes() -> None:
     """Load the Kubernetes configuration.
