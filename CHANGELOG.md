@@ -36,6 +36,7 @@ X.Y.Z (YYYY-MM-DD)
 ### Other changes
 
 - The `safir.testing.kubernetes.MockKubernetesApi` mock now has rudimentary API documentation for the Kubernetes APIs that it supports.
+- The documentation for running commands with `tox` has been updated for the new command-line syntax in tox v4.
 
 ## 3.8.0 (2023-03-15)
 

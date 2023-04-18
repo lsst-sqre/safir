@@ -95,7 +95,7 @@ You can format the code and by running tox_:
 
 .. prompt:: bash
 
-   tox -e lint
+   tox run -e lint
    git commit -a
 
 6. Push to GitHub
@@ -137,32 +137,32 @@ An even better, and more robust approach is with tox:
 
 .. prompt:: bash
 
-   tox
+   tox run
 
 Tox runs several test steps, each in their own virtual environment.
 To learn about these test steps:
 
 .. prompt:: bash
 
-   tox -av
+   tox list
 
 For example, to only run mypy to check type annotations:
 
 .. prompt:: bash
 
-   tox -e typing
+   tox run -e typing
 
 Or to only lint the code (and reformat it):
 
 .. prompt:: bash
 
-   tox -e lint
+   tox run -e lint
 
 To run all the default test steps, but in parallel:
 
 .. prompt:: bash
 
-   tox -p auto
+   tox run-parallel -p auto
 
 9. Try the local development server
 ===================================
@@ -171,7 +171,7 @@ In addition to running tests, tox is also configured with a command to spin up a
 
 .. prompt:: bash
 
-   tox -e run
+   tox run -e run
 
 In another shell, send an HTTP GET request to the development server:
 

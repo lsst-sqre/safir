@@ -69,13 +69,13 @@ To test the library, run tox_, which tests the library the same way that the CI 
 
 .. code-block:: sh
 
-   tox
+   tox run
 
 To see a listing of test environments, run:
 
 .. code-block:: sh
 
-   tox -av
+   tox list
 
 tox will start a PostgreSQL container, which is required for some tests.
 
@@ -84,7 +84,7 @@ For example:
 
 .. code-block:: sh
 
-   tox -e py -- tests/database_test.py
+   tox run -e py -- tests/database_test.py
 
 .. _dev-build-docs:
 
@@ -97,7 +97,7 @@ Documentation is built with Sphinx_:
 
 .. code-block:: sh
 
-   tox -e docs
+   tox run -e docs
 
 The build documentation is located in the :file:`docs/_build/html` directory.
 
@@ -148,7 +148,7 @@ Code
 - The code style follows :pep:`8`, though in practice lean on Black and isort to format the code for you.
 
 - Use :pep:`484` type annotations.
-  The ``tox -e typing`` test environment, which runs mypy_, ensures that the project's types are consistent.
+  The ``tox run -e typing`` test environment, which runs mypy_, ensures that the project's types are consistent.
 
 - Write tests for Pytest_.
 
