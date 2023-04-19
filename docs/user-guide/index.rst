@@ -29,3 +29,4 @@ User guide
    datetime
    uvicorn
    slack-webhook
+   github-apps/index

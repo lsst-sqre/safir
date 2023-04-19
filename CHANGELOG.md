@@ -28,6 +28,7 @@ X.Y.Z (YYYY-MM-DD)
 - Add optional rudimentary namespace tracking to the Kubernetes mock. Namespaces can be created, deleted (which deletes all objects in the namespace), read, and listed. Explicit namespace creation remains optional; if an object is created in a namespace and that namespace does not exist, one will be implicitly created by the mock.
 - Add support for namespaced events (the older core API, not the new events API) to the Kubernetes mock. Newly-created pods with the default initial status post an event by default; otherwise, events must be created by calling the mocked `create_namespaced_event` API. The `list_namespaced_event` API supports watches with timeouts.
 - Add rudimentary support for `NetworkPolicy`, `ResourceQuota`, and `Service` objects to the Kubernetes mock.
+- Add a `safir.github` module for writing GitHub integrations with GidgetHub and Pydantic modeling. `safir.github.GitHubAppClientFactory` helps create authenticated clients for GitHub Apps and app installations. `safir.github.models` contains Pydantic models for GitHub v3 REST API resources. `safir.github.webhooks` contains Pydantic models for GitHub webhook payloads.
 
 ### Bug fixes
 

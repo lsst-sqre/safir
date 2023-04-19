@@ -5,6 +5,7 @@
 .. _FastAPI: https://fastapi.tiangolo.com/
 .. _fastapi_safir_app: https://github.com/lsst/templates/tree/main/project_templates/fastapi_safir_app
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
+.. _Gidgethub: https://gidgethub.readthedocs.io/en/latest/
 .. _HTTPX: https://www.python-httpx.org/
 .. _mypy: https://www.mypy-lang.org
 .. _Phalanx: https://phalanx.lsst.io
