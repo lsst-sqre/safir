@@ -5,7 +5,7 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 4.0.0 (unreleased)
+## 4.0.0 (2023-04-19)
 
 ### Backwards-incompatible changes
 
@@ -23,7 +23,7 @@ X.Y.Z (YYYY-MM-DD)
 - Add `safir.fastapi.ClientRequestError` base class for exceptions and the corresponding exception handler `safir.fastapi.client_request_error_handler`. These may be used together to raise structured exceptions and automatically transform them into structured HTTP errors with the correct HTTP status code and an error body compatible with `safir.models.ErrorModel` and FastAPI's own internally-generated errors.
 - Add `safir.slack.webhook.SlackWebException`, which is a child class of `safir.slack.webhook.SlackException` that knows how to capture and report details from an underlying HTTPX exception.
 - Add a `safir.testing.kubernetes.strip_none` helper function that makes it easier to compare Kubernetes objects against expected test data.
-- Add a `get_namespace_objects_for_test` method to the Kubernetes mock to retreive all objects (of any kind) in a namespace.
+- Add a `get_namespace_objects_for_test` method to the Kubernetes mock to retrieve all objects (of any kind) in a namespace.
 - Add a mock for the `list_nodes` Kubernetes API, which returns data set by a call to the new `set_nodes_for_test` method.
 - Add optional rudimentary namespace tracking to the Kubernetes mock. Namespaces can be created, deleted (which deletes all objects in the namespace), read, and listed. Explicit namespace creation remains optional; if an object is created in a namespace and that namespace does not exist, one will be implicitly created by the mock.
 - Add support for namespaced events (the older core API, not the new events API) to the Kubernetes mock. Newly-created pods with the default initial status post an event by default; otherwise, events must be created by calling the mocked `create_namespaced_event` API. The `list_namespaced_event` API supports watches with timeouts.

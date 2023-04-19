@@ -10,7 +10,7 @@ keywords = [
 ]
 # https://pypi.org/classifiers/
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
@@ -129,8 +129,8 @@ exclude = '''
 # Multi-line strings are implicitly treated by black as regular expressions
 
 [tool.isort]
-include_trailing_comma = true
-multi_line_output = 3
+profile = "black"
+line_length = 79
 known_first_party = ["safir", "tests"]
 skip = ["docs/conf.py"]
 
