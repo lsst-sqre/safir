@@ -471,6 +471,31 @@ class MockKubernetesApi:
         self._maybe_error("delete_namespaced_config_map", name, namespace)
         return self._delete_object(namespace, "ConfigMap", name)
 
+    async def read_namespaced_config_map(
+        self, name: str, namespace: str
+    ) -> V1ConfigMap:
+        """Read a config map object.
+
+        Parameters
+        ----------
+        name
+            Name of object.
+        namespace
+            Namespace of object.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1ConfigMap
+            Corresponding object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the config map was not found.
+        """
+        self._maybe_error("read_namespaced_config_map", name, namespace)
+        return self._get_object(namespace, "ConfigMap", name)
+
     # EVENTS API
 
     async def create_namespaced_event(
@@ -899,6 +924,31 @@ class MockKubernetesApi:
         self._update_metadata(body, "v1", "ResourceQuota", namespace)
         name = body.metadata.name
         self._store_object(namespace, "ResourceQuota", name, body)
+
+    async def read_namespaced_resource_quota(
+        self, name: str, namespace: str
+    ) -> V1ResourceQuota:
+        """Read a resource quota object.
+
+        Parameters
+        ----------
+        name
+            Name of object.
+        namespace
+            Namespace of object.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1ResourceQuota
+            Corresponding object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the resource quota was not found.
+        """
+        self._maybe_error("read_namespaced_resource_quota", name, namespace)
+        return self._get_object(namespace, "ResourceQuota", name)
 
     # SECRETS API
 

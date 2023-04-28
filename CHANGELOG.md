@@ -5,6 +5,12 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
+## 4.1.0 (unreleased)
+
+### New features
+
+- Add `read_*` methods for `ConfigMap` and `ResourceQuota` to the mock Kubernetes API for testing.
+
 ## 4.0.0 (2023-04-19)
 
 ### Backwards-incompatible changes
