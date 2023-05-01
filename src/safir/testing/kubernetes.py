@@ -1505,6 +1505,79 @@ class MockKubernetesApi:
         self._update_metadata(body, "v1", "Service", namespace)
         self._store_object(namespace, "Service", body.metadata.name, body)
 
+    # SERVICE API
+
+    async def create_namespaced_service(
+        self, namespace: str, body: V1Service
+    ) -> None:
+        """Create a service object.
+
+        Parameters
+        ----------
+        namespace
+            Namespace in which to create the object.
+        body
+            Object to create.
+
+        Raises
+        ------
+        ApiException
+            Raised with 409 status if the object already exists.
+        """
+        self._maybe_error("create_namespaced_service", namespace, body)
+        self._update_metadata(body, "v1", "Service", namespace)
+        self._store_object(namespace, "Service", body.metadata.name, body)
+
+    async def delete_namespaced_service(
+        self, name: str, namespace: str
+    ) -> V1Status:
+        """Delete a service object.
+
+        Parameters
+        ----------
+        name
+            Name of service to delete.
+        namespace
+            Namespace of service to delete.
+
+        Returns
+        -------
+        V1Status
+            Success status.
+
+        Raises
+        ------
+        ApiException
+            Raised with 404 status if the service was not found.
+        """
+        self._maybe_error("delete_namespaced_service", name, namespace)
+        return self._delete_object(namespace, "Service", name)
+
+    async def read_namespaced_service(
+        self, name: str, namespace: str
+    ) -> V1Service:
+        """Read a service.
+
+        Parameters
+        ----------
+        name
+            Name of service.
+        namespace
+            Namespace of service.
+
+        Returns
+        -------
+        V1Service
+            Requested service.
+
+        Raises
+        ------
+        ApiException
+            Raised with 404 status if the service does not exist.
+        """
+        self._maybe_error("read_namespaced_service", name, namespace)
+        return self._get_object(namespace, "Service", name)
+
     # Internal helper functions.
 
     def _delete_object(self, namespace: str, key: str, name: str) -> V1Status:
