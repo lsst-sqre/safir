@@ -19,6 +19,12 @@ from kubernetes_asyncio.client import (
     CoreV1Event,
     CoreV1EventList,
     V1ConfigMap,
+    V1Ingress,
+    V1IngressStatus,
+    V1Job,
+    V1JobStatus,
+    V1LoadBalancerIngress,
+    V1LoadBalancerStatus,
     V1Namespace,
     V1NamespaceList,
     V1NetworkPolicy,
@@ -257,9 +263,10 @@ class _EventStream:
 class MockKubernetesApi:
     """Mock Kubernetes API for testing.
 
-    This object simulates (with almost everything left out) the ``CoreV1Api``,
-    ``CustomObjectApi``, and ``NetworkingV1Api`` client objects while keeping
-    simple internal state. It is intended to be used as a mock inside tests.
+    This object simulates (with almost everything left out) the ``BatchV1Api``,
+    ``CoreV1Api``, ``CustomObjectApi``, and ``NetworkingV1Api`` client
+    objects while keeping simple internal state. It is intended to be used
+    as a mock inside tests.
 
     Methods ending with ``_for_test`` are outside of the API and are intended
     for use by the test suite.
@@ -742,6 +749,179 @@ class MockKubernetesApi:
         # Return the mock response expected by the Kubernetes API.
         stream = self._event_streams[namespace]["Event"]
         return stream.build_watch_response(resource_version, timeout_seconds)
+
+    # INGRESS API
+
+    async def create_namespaced_ingress(
+        self,
+        namespace: str,
+        body: V1Ingress
+    ) -> None:
+        """Create an ingress object.  This will be given a dummy value
+        for its status.load_balancer.ingress field, so that we can test our
+        check in the k8s storage driver that the Ingress appeared.
+
+        Parameters
+        ----------
+        namespace
+            Namespace in which to create the object.
+        body
+            Object to create.
+
+        Raises
+        ------
+        ApiException
+            Raised with 409 status if the object already exists.
+
+        """
+        self._maybe_error("create_namespaced_ingress", namespace, body)
+        self._update_metadata(
+            body, "networking.k8s.io/v1", "Ingress", namespace
+        )
+        name = body.metadata.name
+        body.status = V1IngressStatus(
+            load_balancer=V1LoadBalancerStatus(
+                ingress=[
+                    V1LoadBalancerIngress(ip="127.0.0.1"),
+                ]
+            )
+        )
+        self._store_object(namespace, "Ingress", name, body)
+
+    async def delete_namespaced_ingress(
+        self, name: str, namespace: str
+    ) -> V1Status:
+        """Delete an ingress object.
+
+        Parameters
+        ----------
+        name
+            Name of ingress to delete.
+        namespace
+            Namespace of ingress to delete.
+
+        Returns
+        -------
+        V1Status
+            Success status.
+
+        Raises
+        ------
+        ApiException
+            Raised with 404 status if the pod was not found.
+        """
+        self._maybe_error("delete_namespaced_ingress", name, namespace)
+        return self._delete_object(namespace, "Ingress", name)
+
+    async def read_namespaced_ingress(
+        self, name: str, namespace: str
+    ) -> V1Ingress:
+        """Read a ingress object.
+
+        Parameters
+        ----------
+        name
+            Name of the ingress.
+        namespace
+            Namespace of the ingress.
+
+        Returns
+        -------
+        V1Ingress
+            Ingress object.
+
+        Raises
+        ------
+        ApiException
+            Raised with 404 status if the ingress was not found.
+        """
+        self._maybe_error("read_namespaced_ingress", name, namespace)
+        return self._get_object(namespace, "Ingress", name)
+
+    # JOB API
+
+    async def create_namespaced_job(self, namespace: str, body: V1Job) -> None:
+        """Create a job object.  This will in turn create a pod object.  That
+        pod object will have its status set to "Running", and then the Job
+        status will have ``active`` set to 1.
+
+        Parameters
+        ----------
+        namespace
+            Namespace in which to create the object.
+        body
+            Object to create.
+
+        Raises
+        ------
+        ApiException
+            Raised with 409 status if the object already exists.
+
+        """
+        self._maybe_error("create_namespaced_job", namespace, body)
+        name = body.metadata.name
+        await self.create_namespaced_pod(
+            namespace,
+            V1Pod(
+                metadata=V1ObjectMeta(name=name),
+            ),
+        )
+        pod = await self.read_namespaced_pod(name, namespace)
+        pod.status.phase = "Running"
+        self._update_metadata(pod, "v1", "Pod", namespace)
+        body.status = V1JobStatus(active=1)
+        self._update_metadata(body, "batch/v1", "Job", namespace)
+        self._store_object(namespace, "Job", name, body)
+
+    async def delete_namespaced_job(
+        self, name: str, namespace: str, propagation_policy: str = "Foreground"
+    ) -> V1Status:
+        """Delete a job object.  Will also delete the pod of the same
+        name.
+
+        Parameters
+        ----------
+        name
+            Name of job to delete.
+        namespace
+            Namespace of job to delete.
+
+        Returns
+        -------
+        V1Status
+            Success status.
+
+        Raises
+        ------
+        ApiException
+            Raised with 404 status if the pod was not found.
+        """
+        self._maybe_error("delete_namespaced_job", name, namespace)
+        await self.delete_namespaced_pod(name, namespace)
+        return self._delete_object(namespace, "Job", name)
+
+    async def read_namespaced_job(self, name: str, namespace: str) -> V1Job:
+        """Read a job object.
+
+        Parameters
+        ----------
+        name
+            Name of the job.
+        namespace
+            Namespace of the job.
+
+        Returns
+        -------
+        V1Job
+            Job object.
+
+        Raises
+        ------
+        ApiException
+            Raised with 404 status if the job was not found.
+        """
+        self._maybe_error("read_namespaced_job", name, namespace)
+        return self._get_object(namespace, "Job", name)
 
     # NAMESPACE API
 
@@ -1505,7 +1685,8 @@ def patch_kubernetes() -> Iterator[MockKubernetesApi]:
     mock_api = MockKubernetesApi()
     with patch.object(config, "load_incluster_config"):
         patchers = []
-        for api in ("CoreV1Api", "CustomObjectsApi", "NetworkingV1Api"):
+        for api in ("BatchV1Api", "CoreV1Api", "CustomObjectsApi",
+                    "NetworkingV1Api"):
             patcher = patch.object(client, api)
             mock_class = patcher.start()
             mock_class.return_value = mock_api
