@@ -427,6 +427,43 @@ class MockKubernetesApi:
         assert namespace == body["metadata"]["namespace"]
         self._store_object(namespace, key, body["metadata"]["name"], body)
 
+    async def delete_namespaced_custom_object(
+        self,
+        group: str,
+        version: str,
+        namespace: str,
+        plural: str,
+        name: str,
+    ) -> Any:
+        """Delete a custom namespaced object.
+
+        Parameters
+        ----------
+        group
+            API group for this custom object.
+        version
+            API version for this custom object.
+        namespace
+            Namespace in which to delete the object.
+        plural
+            API plural for this custom object.
+        name
+            Custom object to delete.
+
+        Returns
+        -------
+        V1Status
+            Success status if object was deleted.
+
+        Raises
+        ------
+        ApiException
+            Raised with 409 status if the object already exists.
+        """
+        key = f"{group}/{version}/{plural}"
+        self._maybe_error("delete_namespaced_custom_object", name, namespace)
+        return self._delete_object(namespace, key, name)
+
     async def get_namespaced_custom_object(
         self,
         group: str,
