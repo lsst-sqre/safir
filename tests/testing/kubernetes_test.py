@@ -7,7 +7,7 @@ the basic calls work. There is no attempt to test all of the supported APIs.
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 from kubernetes_asyncio.client import (
@@ -107,7 +107,10 @@ async def test_mock(mock_kubernetes: MockKubernetesApi) -> None:
 
 
 async def watch_events(
-    mock_kubernetes: MockKubernetesApi, namespace: str
+    mock_kubernetes: MockKubernetesApi,
+    namespace: str,
+    *,
+    resource_version: Optional[str] = None,
 ) -> list[CoreV1Event]:
     """Watch events, returning when an event with message ``Done`` is seen."""
     method = mock_kubernetes.list_namespaced_event
@@ -115,13 +118,15 @@ async def watch_events(
         "namespace": namespace,
         "timeout_seconds": 10,  # Just in case, so tests don't hang
     }
+    if resource_version:
+        watch_args["resource_version"] = resource_version
     async with Watch().stream(method, **watch_args) as stream:
         seen = []
         async for event in stream:
             assert event["type"] == "ADDED"
             obj = event["raw_object"]
             seen.append(obj)
-            if obj.get("message") == "Done":
+            if "Done" in obj.get("message"):
                 return seen
         return seen
 
@@ -133,6 +138,7 @@ async def test_mock_events(mock_kubernetes: MockKubernetesApi) -> None:
         asyncio.create_task(watch_events(mock_kubernetes, "stuff")),
         asyncio.create_task(watch_events(mock_kubernetes, "stuff")),
     ]
+    await asyncio.sleep(0.2)
 
     # Creating a pod should by default create an event in that namespace.
     pod = V1Pod(
@@ -180,6 +186,50 @@ async def test_mock_events(mock_kubernetes: MockKubernetesApi) -> None:
     assert result[0]["involved_object"]["name"] == "foo"
     assert result[0]["involved_object"]["namespace"] == "stuff"
 
+    # Starting with resource version "1" should skip the first event, since
+    # the semantics of a watch are to show any events *after* the provided
+    # resource version.
+    events = await watch_events(mock_kubernetes, "stuff", resource_version="1")
+    assert events == result[1:]
+
+    # Not specifying a resource version should wait for new events but not see
+    # any of the existing events. (Tasks do not start immediately, so we have
+    # to wait after creating the task to ensure that it starts running and
+    # decides what resource version to start waiting at before we post another
+    # event.)
+    watcher = asyncio.create_task(watch_events(mock_kubernetes, "stuff"))
+    await asyncio.sleep(0.1)
+    event = CoreV1Event(
+        metadata=V1ObjectMeta(name="some-event"),
+        message="Done second time",
+        involved_object=V1ObjectReference(
+            kind="Pod", name="foo", namespace="stuff"
+        ),
+    )
+    await mock_kubernetes.create_namespaced_event("stuff", event)
+    events = await watcher
+    assert len(events) == 1
+    assert events[0]["message"] == "Done second time"
+
+
+async def watch_pod_events(
+    mock_kubernetes: MockKubernetesApi, name: str, namespace: str
+) -> list[dict[str, Any]]:
+    """Watch pod events, returning when the pod is deleted."""
+    method = mock_kubernetes.list_namespaced_pod
+    watch_args = {
+        "field_selector": f"metadata.name={name}",
+        "namespace": namespace,
+        "timeout_seconds": 10,  # Just in case, so tests don't hang
+    }
+    async with Watch().stream(method, **watch_args) as stream:
+        seen = []
+        async for event in stream:
+            seen.append(event)
+            if event["type"] == "DELETED":
+                return seen
+        return seen
+
 
 @pytest.mark.asyncio
 async def test_pod_status(mock_kubernetes: MockKubernetesApi) -> None:
@@ -219,3 +269,26 @@ async def test_pod_status(mock_kubernetes: MockKubernetesApi) -> None:
     assert status.status.phase == "Starting"
     events = await mock_kubernetes.list_namespaced_event("other")
     assert events.items == []
+    watchers = [
+        asyncio.create_task(watch_pod_events(mock_kubernetes, "foo", "other")),
+        asyncio.create_task(watch_pod_events(mock_kubernetes, "foo", "other")),
+        asyncio.create_task(watch_pod_events(mock_kubernetes, "foo", "other")),
+    ]
+    await asyncio.sleep(0.1)
+    await mock_kubernetes.patch_namespaced_pod_status(
+        "foo",
+        "other",
+        [{"op": "replace", "path": "/status/phase", "value": "Running"}],
+    )
+    await mock_kubernetes.delete_namespaced_pod("foo", "other")
+
+    # All three watches should see the same thing.
+    results = await asyncio.gather(*watchers)
+    assert len(results) == 3
+    assert results[0] == results[1]
+    assert results[0] == results[2]
+    result = results[0]
+    assert result[0]["type"] == "MODIFIED"
+    assert result[0]["object"]["status"]["phase"] == "Running"
+    assert result[1]["type"] == "DELETED"
+    assert result[1]["object"] == result[0]["object"]

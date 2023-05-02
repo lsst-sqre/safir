@@ -10,10 +10,13 @@ X.Y.Z (YYYY-MM-DD)
 ### New features
 
 - Add `read_*` methods for `ConfigMap` and `ResourceQuota` to the mock Kubernetes API for testing.
+- Add `patch_namespaced_pod_status` to the mock Kubernetes API for testing. Application code is unlikely to call this, but it's useful for test suites.
+- The mock `list_namespaced_pod` Kubernetes API now supports watches (but be aware that all changes must be made through the API).
 
 ### Bug fixes
 
 - Fix concurrency locking when watching namespace events in the Kubernetes testing mock. The previous logic degenerated into busy-waiting rather than correctly waiting on a condition variable.
+- Watches for namespace events using the mock Kubernetes API now start with the next event, not the first stored event, if `resource_version` is not set, aligning behavior with the Kubernetes API.
 
 ## 4.0.0 (2023-04-19)
 
