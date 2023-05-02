@@ -11,6 +11,10 @@ X.Y.Z (YYYY-MM-DD)
 
 - Add `read_*` methods for `ConfigMap` and `ResourceQuota` to the mock Kubernetes API for testing.
 
+### Bug fixes
+
+- Fix concurrency locking when watching namespace events in the Kubernetes testing mock. The previous logic degenerated into busy-waiting rather than correctly waiting on a condition variable.
+
 ## 4.0.0 (2023-04-19)
 
 ### Backwards-incompatible changes
