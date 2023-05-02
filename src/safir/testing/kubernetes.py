@@ -592,7 +592,8 @@ class MockKubernetesApi:
                         yield b""
                         return
                     try:
-                        await asyncio.wait_for(wait_event.wait(), timeout_left)
+                        async with asyncio.timeout(timeout_left):
+                            await wait_event.wait()
                     except TimeoutError:
                         yield b""
                         return
