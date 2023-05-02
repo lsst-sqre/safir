@@ -139,8 +139,8 @@ class MockKubernetesApi:
 
         self._custom_kinds: dict[str, str] = {}
         self._events: defaultdict[str, list[CoreV1Event]] = defaultdict(list)
-        self._new_events: defaultdict[str, asyncio.Event]
-        self._new_events = defaultdict(asyncio.Event)
+        self._new_events: defaultdict[str, list[asyncio.Event]]
+        self._new_events = defaultdict(list)
         self._nodes = V1NodeList(items=[])
         self._objects: dict[str, dict[str, dict[str, Any]]] = {}
 
@@ -516,7 +516,8 @@ class MockKubernetesApi:
         self._update_metadata(body, "v1", "Event", namespace)
         body.metadata.resource_version = str(len(self._events[namespace]))
         self._events[namespace].append(body)
-        self._new_events[namespace].set()
+        for event in self._new_events[namespace]:
+            event.set()
 
     async def list_namespaced_event(
         self,
@@ -577,26 +578,34 @@ class MockKubernetesApi:
         # new events and returns them up to the timeout.
         async def next_event() -> AsyncIterator[bytes]:
             position = int(resource_version)
-            while True:
-                for event in self._events[namespace][position:]:
-                    raw = {"type": "ADDED", "object": event.to_dict()}
-                    yield json.dumps(raw).encode()
-                    position += 1
-                wait_event = self._new_events[namespace]
-                if not timeout:
-                    await wait_event.wait()
-                else:
-                    now = current_datetime()
-                    timeout_left = (timeout - now).total_seconds()
-                    if timeout_left < 0:
-                        yield b""
-                        return
-                    try:
-                        async with asyncio.timeout(timeout_left):
-                            await wait_event.wait()
-                    except TimeoutError:
-                        yield b""
-                        return
+            wait_event = asyncio.Event()
+            self._new_events[namespace].append(wait_event)
+            try:
+                while True:
+                    for event in self._events[namespace][position:]:
+                        raw = {"type": "ADDED", "object": event.to_dict()}
+                        yield json.dumps(raw).encode()
+                        position += 1
+                    if not timeout:
+                        await wait_event.wait()
+                        wait_event.clear()
+                    else:
+                        now = current_datetime()
+                        timeout_left = (timeout - now).total_seconds()
+                        if timeout_left < 0:
+                            yield b""
+                            return
+                        try:
+                            async with asyncio.timeout(timeout_left):
+                                await wait_event.wait()
+                            wait_event.clear()
+                        except TimeoutError:
+                            yield b""
+                            return
+            finally:
+                self._new_events[namespace] = [
+                    e for e in self._new_events[namespace] if e != wait_event
+                ]
 
         event_generator = next_event()
 
