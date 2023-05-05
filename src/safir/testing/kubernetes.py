@@ -1006,8 +1006,9 @@ class MockKubernetesApi:
                     return V1JobList(kind="Job", items=[])
             else:
                 jobs = []
-                for obj in self._objects[namespace]["Job"].values():
-                    jobs.append(obj)
+                if "Job" in self._objects[namespace]:
+                    for obj in self._objects[namespace]["Job"].values():
+                        jobs.append(obj)
                 return V1JobList(kind="Job", items=jobs)
 
         # All watches must not preload content since we're returning raw JSON.
@@ -1339,8 +1340,9 @@ class MockKubernetesApi:
                     return V1PodList(kind="Pod", items=[])
             else:
                 pods = []
-                for obj in self._objects[namespace]["Pod"].values():
-                    pods.append(obj)
+                if "Pod" in self._objects[namespace]:
+                    for obj in self._objects[namespace]["Pod"].values():
+                        pods.append(obj)
                 return V1PodList(kind="Pod", items=pods)
 
         # All watches must not preload content since we're returning raw JSON.
