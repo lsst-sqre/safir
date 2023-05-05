@@ -84,6 +84,175 @@ def strip_none(model: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+class _EventStream:
+    """Holds the data for a stream of watchable events.
+
+    This is an internal implementation detail of the Kubernetes mock. It holds
+    a stream of watchable events and a list of `asyncio.Event` triggers. A
+    watch can register interest in this event stream, in which case its
+    trigger will be notified when anything new is added to the event stream.
+    The events are generic dicts, which will be interpreted by the Kubernetes
+    library differently depending on which underlying API is using this data
+    structure.
+    """
+
+    def __init__(self) -> None:
+        self._events: list[dict[str, Any]] = []
+        self._triggers: list[asyncio.Event] = []
+
+    @property
+    def next_resource_version(self) -> str:
+        """Resource version of the next event.
+
+        This starts with ``1`` to ensure that a resource version of ``0`` is
+        special and means to return all known events, so it must be adjusted
+        when indexing into a list of events.
+        """
+        return str(len(self._events) + 1)
+
+    def add_event(self, event: dict[str, Any]) -> None:
+        """Add a new event and notify all watchers.
+
+        Parameters
+        ----------
+        event
+            New event.
+        """
+        self._events.append(event)
+        for trigger in self._triggers:
+            trigger.set()
+
+    def build_watch_response(
+        self,
+        resource_version: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+        *,
+        field_selector: Optional[str] = None,
+    ) -> Mock:
+        """Construct a response to a watch request.
+
+        Wraps a watch iterator in the appropriate mock to behave as expected
+        when called from ``kubernetes_asyncio``. This simulates an aiohttp
+        response.
+
+        Parameters
+        ----------
+        resource_version
+            Starting resource version for the watch. The resource versions
+            must be the position in the events stream, stringified.
+        timeout_seconds
+            How long to watch. This is total elapsed time, not the time
+            between events. It matches the corresponding parameter in the
+            Kubernetes API. If `None`, watch forever.
+        field_selector
+            Which events to retrieve when performing a watch. If set, it must
+            be set to ``metadata.name=...`` to match a specific object name.
+
+        Returns
+        -------
+        Mock
+            Simulation of an aiohttp response whose ``readline`` method wraps
+            the iterator.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        """
+        generator = self._build_watcher(
+            resource_version, timeout_seconds, field_selector
+        )
+
+        async def readline() -> bytes:
+            return await generator.__anext__()
+
+        response = Mock()
+        response.content.readline = AsyncMock()
+        response.content.readline.side_effect = readline
+        return response
+
+    def _build_watcher(
+        self,
+        resource_version: str | None,
+        timeout_seconds: int | None,
+        field_selector: str | None,
+    ) -> AsyncIterator[bytes]:
+        """Construct a watcher for this event stream.
+
+        Parameters
+        ----------
+        resource_version
+            Starting resource version for the watch. The resource version
+            must be the position in the events stream, stringified. If not
+            given, start after the most recent event.
+        timeout_seconds
+            How long to watch. This is total elapsed time, not the time
+            between events. It matches the corresponding parameter in the
+            Kubernetes API. If `None`, watch forever.
+        field_selector
+            Which events to retrieve when performing a watch. If set, it must
+            be set to ``metadata.name=...`` to match a specific object name.
+
+        Returns
+        -------
+        AsyncIterator
+            An async iterator that will return each new event in the stream,
+            encoded as expected by the Kubernetes API, until the timeout
+            occurs.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        """
+        timeout = None
+        if timeout_seconds is not None:
+            timeout = current_datetime() + timedelta(seconds=timeout_seconds)
+
+        # Parse the field selector, if one was provided.
+        name = None
+        if field_selector:
+            match = re.match(r"metadata\.name=(.*)$", field_selector)
+            assert match and match.group(1)
+            name = match.group(1)
+
+        # Create and register a new trigger.
+        trigger = asyncio.Event()
+        self._triggers.append(trigger)
+
+        # Construct the iterator.
+        async def next_event() -> AsyncIterator[bytes]:
+            if resource_version:
+                position = int(resource_version)
+            else:
+                position = len(self._events)
+            while True:
+                for event in self._events[position:]:
+                    position += 1
+                    if name and event["object"]["metadata"]["name"] != name:
+                        continue
+                    yield json.dumps(event).encode()
+                if not timeout:
+                    await trigger.wait()
+                else:
+                    now = current_datetime()
+                    timeout_left = (timeout - now).total_seconds()
+                    if timeout_left <= 0:
+                        yield b""
+                        break
+                    try:
+                        async with asyncio.timeout(timeout_left):
+                            await trigger.wait()
+                    except TimeoutError:
+                        yield b""
+                        break
+                trigger.clear()
+            self._triggers = [t for t in self._triggers if t != trigger]
+
+        # Return the iterator.
+        return next_event()
+
+
 class MockKubernetesApi:
     """Mock Kubernetes API for testing.
 
@@ -138,11 +307,11 @@ class MockKubernetesApi:
         self.initial_pod_phase = "Running"
 
         self._custom_kinds: dict[str, str] = {}
-        self._events: defaultdict[str, list[CoreV1Event]] = defaultdict(list)
-        self._new_events: defaultdict[str, list[asyncio.Event]]
-        self._new_events = defaultdict(list)
         self._nodes = V1NodeList(items=[])
         self._objects: dict[str, dict[str, dict[str, Any]]] = {}
+        self._events: defaultdict[str, list[CoreV1Event]] = defaultdict(list)
+        self._event_streams: defaultdict[str, dict[str, _EventStream]]
+        self._event_streams = defaultdict(lambda: defaultdict(_EventStream))
 
     def get_all_objects_for_test(self, kind: str) -> list[Any]:
         """Return all objects of a given kind sorted by namespace and name.
@@ -514,17 +683,17 @@ class MockKubernetesApi:
         """
         self._maybe_error("create_namespaced_event", namespace, body)
         self._update_metadata(body, "v1", "Event", namespace)
-        body.metadata.resource_version = str(len(self._events[namespace]))
+        stream = self._event_streams[namespace]["Event"]
+        body.metadata.resource_version = stream.next_resource_version
+        stream.add_event({"type": "ADDED", "object": body.to_dict()})
         self._events[namespace].append(body)
-        for event in self._new_events[namespace]:
-            event.set()
 
     async def list_namespaced_event(
         self,
         namespace: str,
         *,
         field_selector: Optional[str] = None,
-        resource_version: str = "0",
+        resource_version: Optional[str] = None,
         timeout_seconds: Optional[int] = None,
         watch: bool = False,
         _preload_content: bool = True,
@@ -569,56 +738,9 @@ class MockKubernetesApi:
         # This is done by the Kubernetes API Watch object.
         assert not _preload_content
 
-        # When the timeout has expired.
-        timeout = None
-        if timeout_seconds is not None:
-            timeout = current_datetime() + timedelta(seconds=timeout_seconds)
-
-        # Returns all available events for this namespace, and then waits for
-        # new events and returns them up to the timeout.
-        async def next_event() -> AsyncIterator[bytes]:
-            position = int(resource_version)
-            wait_event = asyncio.Event()
-            self._new_events[namespace].append(wait_event)
-            try:
-                while True:
-                    for event in self._events[namespace][position:]:
-                        raw = {"type": "ADDED", "object": event.to_dict()}
-                        yield json.dumps(raw).encode()
-                        position += 1
-                    if not timeout:
-                        await wait_event.wait()
-                        wait_event.clear()
-                    else:
-                        now = current_datetime()
-                        timeout_left = (timeout - now).total_seconds()
-                        if timeout_left < 0:
-                            yield b""
-                            return
-                        try:
-                            async with asyncio.timeout(timeout_left):
-                                await wait_event.wait()
-                            wait_event.clear()
-                        except TimeoutError:
-                            yield b""
-                            return
-            finally:
-                self._new_events[namespace] = [
-                    e for e in self._new_events[namespace] if e != wait_event
-                ]
-
-        event_generator = next_event()
-
-        async def readline() -> bytes:
-            return await event_generator.__anext__()
-
-        # To support the watch interface, we have to simulate a streaming
-        # aiohttp response. Thankfully, the watch only uses a minimal
-        # interface, so we can get away with a simple mock.
-        response = Mock()
-        response.content.readline = AsyncMock()
-        response.content.readline.side_effect = readline
-        return response
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._event_streams[namespace]["Event"]
+        return stream.build_watch_response(resource_version, timeout_seconds)
 
     # NAMESPACE API
 
@@ -779,7 +901,10 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_pod", namespace, body)
         self._update_metadata(body, "v1", "Pod", namespace)
         body.status = V1PodStatus(phase=self.initial_pod_phase)
+        stream = self._event_streams[namespace]["Pod"]
+        body.metadata.resource_version = stream.next_resource_version
         self._store_object(namespace, "Pod", body.metadata.name, body)
+        stream.add_event({"type": "ADDED", "object": body.to_dict()})
         if self.initial_pod_phase == "Running":
             event = CoreV1Event(
                 metadata=V1ObjectMeta(
@@ -815,12 +940,26 @@ class MockKubernetesApi:
             Raised with 404 status if the pod was not found.
         """
         self._maybe_error("delete_namespaced_pod", name, namespace)
-        return self._delete_object(namespace, "Pod", name)
+        pod = self._get_object(namespace, "Pod", name)
+        result = self._delete_object(namespace, "Pod", name)
+        stream = self._event_streams[namespace]["Pod"]
+        stream.add_event({"type": "DELETED", "object": pod.to_dict()})
+        return result
 
     async def list_namespaced_pod(
-        self, namespace: str, *, field_selector: Optional[str] = None
-    ) -> V1PodList:
+        self,
+        namespace: str,
+        *,
+        field_selector: Optional[str] = None,
+        resource_version: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+        watch: bool = False,
+        _preload_content: bool = True,
+        _request_timeout: Optional[int] = None,
+    ) -> V1PodList | Mock:
         """List pod objects in a namespace.
+
+        This does support watches.
 
         Parameters
         ----------
@@ -829,36 +968,100 @@ class MockKubernetesApi:
         field_selector
             Only ``metadata.name=...`` is supported. It is parsed to find the
             pod name and only pods matching that name will be returned.
+        resource_version
+            Where to start in the event stream when performing a watch. If
+            `None`, starts with the next change.
+        timeout_seconds
+            How long to return events for before exiting when performing a
+            watch.
+        watch
+            Whether to act as a watch.
+        _preload_content
+            Verified to be `False` when performing a watch.
+        _request_timeout
+            Ignored, accepted for compatibility with the watch API.
 
         Returns
         -------
-        kubernetes_asyncio.client.V1PodList
-            List of pods in that namespace.
+        kubernetes_asyncio.client.V1PodList or unittest.mock.Mock
+            List of pods in that namespace, when not called as a watch. If
+            called as a watch, returns a mock ``aiohttp.Response`` with a
+            ``readline`` metehod that yields the events.
 
         Raises
         ------
-        kubernetes_asyncio.client.ApiException
-            Raised with 404 status if the namespace does not exist.
         AssertionError
             Some other ``field_selector`` was provided.
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the namespace does not exist.
         """
         self._maybe_error("list_namespaced_pod", namespace, field_selector)
         if namespace not in self._objects:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
-        if field_selector:
-            match = re.match(r"metadata\.name=(.*)$", field_selector)
-            assert match and match.group(1)
-            try:
-                pod = self._get_object(namespace, "Pod", match.group(1))
-                return V1PodList(kind="Pod", items=[pod])
-            except ApiException:
-                return V1PodList(kind="Pod", items=[])
-        else:
-            pods = []
-            for obj in self._objects[namespace]["Pod"].values():
-                pods.append(obj)
-            return V1PodList(kind="Pod", items=pods)
+        if not watch:
+            if field_selector:
+                match = re.match(r"metadata\.name=(.*)$", field_selector)
+                assert match and match.group(1)
+                try:
+                    pod = self._get_object(namespace, "Pod", match.group(1))
+                    return V1PodList(kind="Pod", items=[pod])
+                except ApiException:
+                    return V1PodList(kind="Pod", items=[])
+            else:
+                pods = []
+                for obj in self._objects[namespace]["Pod"].values():
+                    pods.append(obj)
+                return V1PodList(kind="Pod", items=pods)
+
+        # All watches must not preload content since we're returning raw JSON.
+        # This is done by the Kubernetes API Watch object.
+        assert not _preload_content
+
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._event_streams[namespace]["Pod"]
+        return stream.build_watch_response(
+            resource_version, timeout_seconds, field_selector=field_selector
+        )
+
+    async def patch_namespaced_pod_status(
+        self, name: str, namespace: str, body: list[dict[str, Any]]
+    ) -> V1Secret:
+        """Patch the status of a pod object.
+
+        Parameters
+        ----------
+        name
+            Name of pod object.
+        namespace
+            Namespace of secret object.
+        body
+            Patches to apply. Only patches with ``op`` of ``replace`` are
+            supported, and only with ``path`` of ``/status/phase``.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Pod
+            Patched pod object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the secret does not exist.
+        AssertionError
+            Raised if any other type of patch was provided.
+        """
+        self._maybe_error("patch_namespaced_pod", name, namespace)
+        pod = copy.deepcopy(self._get_object(namespace, "Pod", name))
+        for change in body:
+            assert change["op"] == "replace"
+            assert change["path"] == "/status/phase"
+            pod.status.phase = change["value"]
+        stream = self._event_streams[namespace]["Pod"]
+        pod.metadata.resource_version = stream.next_resource_version
+        self._store_object(namespace, "Pod", name, pod, replace=True)
+        stream.add_event({"type": "MODIFIED", "object": pod.to_dict()})
+        return pod
 
     async def read_namespaced_pod(self, name: str, namespace: str) -> V1Pod:
         """Read a pod object.
