@@ -793,8 +793,10 @@ class MockKubernetesApi:
     async def create_namespaced_ingress(
         self, namespace: str, body: V1Ingress
     ) -> None:
-        """Create an ingress object.  This will be given a dummy value
-        for its status.load_balancer.ingress field, so that we can test our
+        """Create an ingress object.
+
+        This will be given a dummy value for its
+        status.load_balancer.ingress field, so that we can test our
         check in the k8s storage driver that the Ingress appeared.
 
         Parameters
@@ -877,9 +879,11 @@ class MockKubernetesApi:
     # JOB API
 
     async def create_namespaced_job(self, namespace: str, body: V1Job) -> None:
-        """Create a job object.  This will in turn create a pod object.  That
-        pod object will have its status set to "Running", and then the Job
-        status will have ``active`` set to 1.
+        """Create a job object.
+
+        This will in turn create a pod object.  If the mock's
+        ``initial_pod_phase`` is ``Running``, then the Job status will
+        have ``active`` set to 1.
 
         Parameters
         ----------
@@ -892,22 +896,18 @@ class MockKubernetesApi:
         ------
         ApiException
             Raised with 409 status if the object already exists.
-
         """
         self._maybe_error("create_namespaced_job", namespace, body)
+        self._update_metadata(body, "batch/v1", "Job", namespace)
         name = body.metadata.name
+        self._store_object(namespace, "Job", name, body)
+        # Pretend to spawn a pod
         await self.create_namespaced_pod(
-            namespace,
-            V1Pod(
-                metadata=V1ObjectMeta(name=name),
-            ),
+            namespace, V1Pod(metadata=V1ObjectMeta(name=name))
         )
         pod = await self.read_namespaced_pod(name, namespace)
-        pod.status.phase = "Running"
-        self._update_metadata(pod, "v1", "Pod", namespace)
-        body.status = V1JobStatus(active=1)
-        self._update_metadata(body, "batch/v1", "Job", namespace)
-        self._store_object(namespace, "Job", name, body)
+        if pod.status.phase == "Running":
+            body.status = V1JobStatus(active=1)
 
     async def delete_namespaced_job(
         self, name: str, namespace: str, propagation_policy: str = "Foreground"
