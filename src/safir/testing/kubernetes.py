@@ -22,6 +22,7 @@ from kubernetes_asyncio.client import (
     V1Ingress,
     V1IngressStatus,
     V1Job,
+    V1JobList,
     V1JobStatus,
     V1LoadBalancerIngress,
     V1LoadBalancerStatus,
@@ -790,9 +791,7 @@ class MockKubernetesApi:
     # INGRESS API
 
     async def create_namespaced_ingress(
-        self,
-        namespace: str,
-        body: V1Ingress
+        self, namespace: str, body: V1Ingress
     ) -> None:
         """Create an ingress object.  This will be given a dummy value
         for its status.load_balancer.ingress field, so that we can test our
@@ -936,6 +935,90 @@ class MockKubernetesApi:
         self._maybe_error("delete_namespaced_job", name, namespace)
         await self.delete_namespaced_pod(name, namespace)
         return self._delete_object(namespace, "Job", name)
+
+    async def list_namespaced_job(
+        self,
+        namespace: str,
+        *,
+        field_selector: Optional[str] = None,
+        resource_version: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+        watch: bool = False,
+        _preload_content: bool = True,
+        _request_timeout: Optional[int] = None,
+    ) -> V1JobList | Mock:
+        """List job objects in a namespace.
+
+        This does support watches.
+
+        Parameters
+        ----------
+        namespace
+            Namespace of jobs to list.
+        field_selector
+            Only ``metadata.name=...`` is supported. It is parsed to find the
+            job name and only jobs matching that name will be returned.
+        resource_version
+            Where to start in the event stream when performing a watch. If
+            `None`, starts with the next change.
+        timeout_seconds
+            How long to return events for before exiting when performing a
+            watch.
+        watch
+            Whether to act as a watch.
+        _preload_content
+            Verified to be `False` when performing a watch.
+        _request_timeout
+            Ignored, accepted for compatibility with the watch API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1JobList or unittest.mock.Mock
+            List of jobs in that namespace, when not called as a watch. If
+            called as a watch, returns a mock ``aiohttp.Response`` with a
+            ``readline`` metehod that yields the events.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the namespace does not exist.
+
+        Notes
+        -----
+
+        We should extend this with a label selector to make it more useful
+        for (eventually) watching instead of polling to retire fileservers.
+        """
+        self._maybe_error("list_namespaced_job", namespace, field_selector)
+        if namespace not in self._objects:
+            msg = f"Namespace {namespace} not found"
+            raise ApiException(status=404, reason=msg)
+        if not watch:
+            if field_selector:
+                match = re.match(r"metadata\.name=(.*)$", field_selector)
+                assert match and match.group(1)
+                try:
+                    job = self._get_object(namespace, "Job", match.group(1))
+                    return V1JobList(kind="Job", items=[job])
+                except ApiException:
+                    return V1JobList(kind="Job", items=[])
+            else:
+                jobs = []
+                for obj in self._objects[namespace]["Job"].values():
+                    jobs.append(obj)
+                return V1JobList(kind="Job", items=jobs)
+
+        # All watches must not preload content since we're returning raw JSON.
+        # This is done by the Kubernetes API Watch object.
+        assert not _preload_content
+
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._event_streams[namespace]["Job"]
+        return stream.build_watch_response(
+            resource_version, timeout_seconds, field_selector=field_selector
+        )
 
     async def read_namespaced_job(self, name: str, namespace: str) -> V1Job:
         """Read a job object.
@@ -1535,29 +1618,6 @@ class MockKubernetesApi:
 
         Raises
         ------
-        kubernetes_asyncio.client.ApiException
-            Raised with 409 status if the object already exists.
-        """
-        self._maybe_error("create_namespaced_service", namespace, body)
-        self._update_metadata(body, "v1", "Service", namespace)
-        self._store_object(namespace, "Service", body.metadata.name, body)
-
-    # SERVICE API
-
-    async def create_namespaced_service(
-        self, namespace: str, body: V1Service
-    ) -> None:
-        """Create a service object.
-
-        Parameters
-        ----------
-        namespace
-            Namespace in which to create the object.
-        body
-            Object to create.
-
-        Raises
-        ------
         ApiException
             Raised with 409 status if the object already exists.
         """
@@ -1795,8 +1855,12 @@ def patch_kubernetes() -> Iterator[MockKubernetesApi]:
     mock_api = MockKubernetesApi()
     with patch.object(config, "load_incluster_config"):
         patchers = []
-        for api in ("BatchV1Api", "CoreV1Api", "CustomObjectsApi",
-                    "NetworkingV1Api"):
+        for api in (
+            "BatchV1Api",
+            "CoreV1Api",
+            "CustomObjectsApi",
+            "NetworkingV1Api",
+        ):
             patcher = patch.object(client, api)
             mock_class = patcher.start()
             mock_class.return_value = mock_api
