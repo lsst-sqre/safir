@@ -322,7 +322,7 @@ class MockKubernetesApi:
     desired behavior, sometimes it isn't; we had to pick one and this is the
     approach we picked.)
 
-    Most APIs do not support watches. The only current exception are
+    Most APIs do not support watches. The only current exceptions are
     `list_namespaced_event` and `list_namespaced_pod`.
 
     Attributes
@@ -915,7 +915,8 @@ class MockKubernetesApi:
     async def create_namespaced_job(self, namespace: str, body: V1Job) -> None:
         """Create a job object.
 
-        This will in turn create a pod object.  If the mock's
+        This will in turn create a pod object.  This pod object will have a
+        label "job-name", which will be set to the job's name.  If the mock's
         ``initial_pod_phase`` is ``Running``, then the Job status will
         have ``active`` set to 1.
 
@@ -936,9 +937,15 @@ class MockKubernetesApi:
         name = body.metadata.name
         self._store_object(namespace, "Job", name, body)
         # Pretend to spawn a pod
-        await self.create_namespaced_pod(
-            namespace, V1Pod(metadata=V1ObjectMeta(name=name))
+        # Use our metadata for spawned pod metadata
+        podmeta = V1ObjectMeta(
+            name=name + "-abcde",  # Repeatable for testing
+            namespace=namespace,
+            labels={}.update(body.metadata.labels),
+            annotations={}.update(body.metadata.annotations),
         )
+        podmeta.labels["job-name"] = name
+        await self.create_namespaced_pod(namespace, V1Pod(metadata=podmeta))
         pod = await self.read_namespaced_pod(name, namespace)
         if pod.status.phase == "Running":
             body.status = V1JobStatus(active=1)
