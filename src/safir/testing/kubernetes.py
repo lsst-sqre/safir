@@ -52,6 +52,24 @@ __all__ = [
 ]
 
 
+def _stringify_selector_dict(selector: dict[str, str]) -> str:
+    """This and the following function transmute selector labels between
+    dicts and strings.  We don't even try to do safe quoting."""
+    sstrings: list[str] = []
+    for key in selector:
+        sstrings.append(f"{key}=={selector[key]}")
+    return ",".join(sstrings)
+
+
+def _dictify_selector_str(selector_str: str) -> dict[str, str]:
+    sstrings = selector_str.split(",")
+    retval: dict[str, str] = {}
+    for sel in sstrings:
+        (key, val) = sel.split("==", 1)
+        retval[key] = val
+    return retval
+
+
 def strip_none(model: dict[str, Any]) -> dict[str, Any]:
     """Strip `None` values from a serialized Kubernetes object.
 
@@ -136,6 +154,7 @@ class _EventStream:
         timeout_seconds: Optional[int] = None,
         *,
         field_selector: Optional[str] = None,
+        label_selector: Optional[str] = None,
     ) -> Mock:
         """Construct a response to a watch request.
 
@@ -168,7 +187,7 @@ class _EventStream:
             Some other ``field_selector`` was provided.
         """
         generator = self._build_watcher(
-            resource_version, timeout_seconds, field_selector
+            resource_version, timeout_seconds, field_selector, label_selector
         )
 
         async def readline() -> bytes:
@@ -184,6 +203,7 @@ class _EventStream:
         resource_version: str | None,
         timeout_seconds: int | None,
         field_selector: str | None,
+        label_selector: str | None,
     ) -> AsyncIterator[bytes]:
         """Construct a watcher for this event stream.
 
@@ -200,6 +220,9 @@ class _EventStream:
         field_selector
             Which events to retrieve when performing a watch. If set, it must
             be set to ``metadata.name=...`` to match a specific object name.
+        label_selector
+            Which events to retrieve when performing a watch.  All
+            labels must match.
 
         Returns
         -------
@@ -223,6 +246,9 @@ class _EventStream:
             match = re.match(r"metadata\.name=(.*)$", field_selector)
             assert match and match.group(1)
             name = match.group(1)
+        label_dict = {}
+        if label_selector:
+            label_dict = _dictify_selector_str(label_selector)
 
         # Create and register a new trigger.
         trigger = asyncio.Event()
@@ -239,6 +265,14 @@ class _EventStream:
                     position += 1
                     if name and event["object"]["metadata"]["name"] != name:
                         continue
+                    if label_dict:
+                        obj_labels = event["object"]["metadata"]["labels"]
+                        for lbl in label_dict:
+                            if (
+                                lbl not in obj_labels
+                                or obj_labels[lbl] != label_dict[lbl]
+                            ):
+                                continue
                     yield json.dumps(event).encode()
                 if not timeout:
                     await trigger.wait()
@@ -288,8 +322,8 @@ class MockKubernetesApi:
     desired behavior, sometimes it isn't; we had to pick one and this is the
     approach we picked.)
 
-    Most APIs do not support watches. The only current exception is
-    `list_namespaced_event`.
+    Most APIs do not support watches. The only current exception are
+    `list_namespaced_event` and `list_namespaced_pod`.
 
     Attributes
     ----------
@@ -1281,6 +1315,7 @@ class MockKubernetesApi:
         namespace: str,
         *,
         field_selector: Optional[str] = None,
+        label_selector: Optional[str] = None,
         resource_version: Optional[str] = None,
         timeout_seconds: Optional[int] = None,
         watch: bool = False,
@@ -1298,6 +1333,8 @@ class MockKubernetesApi:
         field_selector
             Only ``metadata.name=...`` is supported. It is parsed to find the
             pod name and only pods matching that name will be returned.
+        label_selector
+            Only pods with labels matching all of these will be returned.
         resource_version
             Where to start in the event stream when performing a watch. If
             `None`, starts with the next change.
@@ -1329,6 +1366,9 @@ class MockKubernetesApi:
         if namespace not in self._objects:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
+        label_dict = {}
+        if label_selector:
+            label_dict = _dictify_selector_str(label_selector)
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
@@ -1342,6 +1382,14 @@ class MockKubernetesApi:
                 pods = []
                 if "Pod" in self._objects[namespace]:
                     for obj in self._objects[namespace]["Pod"].values():
+                        if label_dict:
+                            pod_labels = obj["metadata"]["labels"]
+                            for lbl in label_dict:
+                                if (
+                                    lbl not in pod_labels
+                                    or label_dict[lbl] != pod_labels[lbl]
+                                ):
+                                    continue
                         pods.append(obj)
                 return V1PodList(kind="Pod", items=pods)
 
@@ -1352,7 +1400,10 @@ class MockKubernetesApi:
         # Return the mock response expected by the Kubernetes API.
         stream = self._event_streams[namespace]["Pod"]
         return stream.build_watch_response(
-            resource_version, timeout_seconds, field_selector=field_selector
+            resource_version,
+            timeout_seconds,
+            field_selector=field_selector,
+            label_selector=label_selector,
         )
 
     async def patch_namespaced_pod_status(
