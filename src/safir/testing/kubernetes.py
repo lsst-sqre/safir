@@ -1400,7 +1400,7 @@ class MockKubernetesApi:
                 if "Pod" in self._objects[namespace]:
                     for obj in self._objects[namespace]["Pod"].values():
                         if label_dict:
-                            pod_labels = obj["metadata"]["labels"]
+                            pod_labels = obj.metadata.labels
                             for lbl in label_dict:
                                 if (
                                     lbl not in pod_labels
