@@ -951,7 +951,7 @@ class MockKubernetesApi:
         await self.create_namespaced_pod(
             namespace, V1Pod(metadata=podmd, spec=template.spec)
         )
-        pod = await self.read_namespaced_pod(name, namespace)
+        pod = await self.read_namespaced_pod(namespace, name=podmd.name)
         if pod.status.phase == "Running":
             body.status = V1JobStatus(active=1)
 
