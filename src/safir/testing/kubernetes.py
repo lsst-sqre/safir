@@ -937,15 +937,20 @@ class MockKubernetesApi:
         name = body.metadata.name
         self._store_object(namespace, "Job", name, body)
         # Pretend to spawn a pod
-        # Use our metadata for spawned pod metadata
-        podmeta = V1ObjectMeta(
-            name=name + "-abcde",  # Repeatable for testing
-            namespace=namespace,
-            labels=body.metadata.labels.copy(),
-            annotations=body.metadata.annotations.copy(),
+        # Use our metadata for spawned pod metadata if we weren't given it.
+        template = body.spec.template
+        podmd = template.metadata
+        if podmd is None:
+            podmd = V1ObjectMeta(
+                namespace=namespace,
+                labels=body.metadata.labels.copy(),
+                annotations=body.metadata.annotations.copy(),
+            )
+        podmd.name = (name + "-abcde",)  # Repeatable for testing
+        podmd.labels["job-name"] = name
+        await self.create_namespaced_pod(
+            namespace, V1Pod(metadata=podmd, spec=template.spec)
         )
-        podmeta.labels["job-name"] = name
-        await self.create_namespaced_pod(namespace, V1Pod(metadata=podmeta))
         pod = await self.read_namespaced_pod(name, namespace)
         if pod.status.phase == "Running":
             body.status = V1JobStatus(active=1)
@@ -953,8 +958,7 @@ class MockKubernetesApi:
     async def delete_namespaced_job(
         self, name: str, namespace: str, propagation_policy: str = "Foreground"
     ) -> V1Status:
-        """Delete a job object.  Will also delete the pod of the same
-        name.
+        """Delete a job object.  Will also propagate to pods.
 
         Parameters
         ----------
@@ -971,10 +975,14 @@ class MockKubernetesApi:
         Raises
         ------
         ApiException
-            Raised with 404 status if the pod was not found.
+            Raised with 404 status if the job was not found.
         """
         self._maybe_error("delete_namespaced_job", name, namespace)
-        await self.delete_namespaced_pod(name, namespace)
+        pods = await self.list_namespaced_pod(
+            namespace, label_selector=f"job-name=={name}"
+        )
+        for pod in pods.items:
+            await self.delete_namespaced_pod(pod.metadata.name, namespace)
         return self._delete_object(namespace, "Job", name)
 
     async def list_namespaced_job(
