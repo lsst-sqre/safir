@@ -5,7 +5,7 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 4.1.0 (unreleased)
+## 4.1.0 (2023-05-08)
 
 ### New features
 
