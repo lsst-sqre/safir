@@ -946,7 +946,7 @@ class MockKubernetesApi:
                 labels=body.metadata.labels.copy(),
                 annotations=body.metadata.annotations.copy(),
             )
-        podmd.name = (name + "-abcde",)  # Repeatable for testing
+        podmd.name = name + "-abcde"  # Repeatable for testing
         podmd.labels["job-name"] = name
         await self.create_namespaced_pod(
             namespace, V1Pod(metadata=podmd, spec=template.spec)
