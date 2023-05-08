@@ -487,12 +487,12 @@ class MockKubernetesApi:
 
         Returns
         -------
-        V1Status
+        kubernetes_asyncio.client.V1Status
             Success status if object was deleted.
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 409 status if the object already exists.
         """
         key = f"{group}/{version}/{plural}"
@@ -842,7 +842,7 @@ class MockKubernetesApi:
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 409 status if the object already exists.
 
         """
@@ -874,12 +874,12 @@ class MockKubernetesApi:
 
         Returns
         -------
-        V1Status
+        kubernetes_asyncio.client.V1Status
             Success status.
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 404 status if the pod was not found.
         """
         self._maybe_error("delete_namespaced_ingress", name, namespace)
@@ -899,12 +899,12 @@ class MockKubernetesApi:
 
         Returns
         -------
-        V1Ingress
+        kubernetes_asyncio.client.V1Ingress
             Ingress object.
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 404 status if the ingress was not found.
         """
         self._maybe_error("read_namespaced_ingress", name, namespace)
@@ -929,7 +929,7 @@ class MockKubernetesApi:
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 409 status if the object already exists.
         """
         self._maybe_error("create_namespaced_job", namespace, body)
@@ -971,12 +971,12 @@ class MockKubernetesApi:
 
         Returns
         -------
-        V1Status
+        kubernetes_asyncio.client.V1Status
             Success status.
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 404 status if the job was not found.
         """
         self._maybe_error("delete_namespaced_job", name, namespace)
@@ -1084,12 +1084,12 @@ class MockKubernetesApi:
 
         Returns
         -------
-        V1Job
+        kubernetes_asyncio.client.V1Job
             Job object.
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 404 status if the job was not found.
         """
         self._maybe_error("read_namespaced_job", name, namespace)
@@ -1688,7 +1688,7 @@ class MockKubernetesApi:
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 409 status if the object already exists.
         """
         self._maybe_error("create_namespaced_service", namespace, body)
@@ -1709,12 +1709,12 @@ class MockKubernetesApi:
 
         Returns
         -------
-        V1Status
+        kubernetes_asyncio.client.V1Status
             Success status.
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 404 status if the service was not found.
         """
         self._maybe_error("delete_namespaced_service", name, namespace)
@@ -1734,12 +1734,12 @@ class MockKubernetesApi:
 
         Returns
         -------
-        V1Service
+        kubernetes_asyncio.client.V1Service
             Requested service.
 
         Raises
         ------
-        ApiException
+        kubernetes_asyncio.client.ApiException
             Raised with 404 status if the service does not exist.
         """
         self._maybe_error("read_namespaced_service", name, namespace)
