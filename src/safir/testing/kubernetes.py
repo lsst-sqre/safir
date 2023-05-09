@@ -910,6 +910,45 @@ class MockKubernetesApi:
         self._maybe_error("read_namespaced_ingress", name, namespace)
         return self._get_object(namespace, "Ingress", name)
 
+    async def patch_namespaced_ingress_status(
+        self, name: str, namespace: str, body: list[dict[str, Any]]
+    ) -> V1Secret:
+        """Patch the status of an ingress object.
+
+        Parameters
+        ----------
+        name
+            Name of ingress object.
+        namespace
+            Namespace of secret object.
+        body
+            Patches to apply. Only patches with ``op`` of ``replace`` are
+            supported, and only with ``path`` of
+            ``/status/load_balancer/ingress``.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Ingress
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the ingress does not exist.
+        AssertionError
+            Raised if any other type of patch was provided.
+        """
+        self._maybe_error("patch_namespaced_ingress", name, namespace)
+        ingress = copy.deepcopy(self._get_object(namespace, "Ingress", name))
+        for change in body:
+            assert change["op"] == "replace"
+            assert change["path"] == "/status/load_balancer/ingress"
+            ingress.status.load_balancer.ingress = change["value"]
+        stream = self._event_streams[namespace]["Ingress"]
+        ingress.metadata.resource_version = stream.next_resource_version
+        self._store_object(namespace, "Ingress", name, ingress, replace=True)
+        stream.add_event({"type": "MODIFIED", "object": ingress.to_dict()})
+        return ingress
+
     # JOB API
 
     async def create_namespaced_job(self, namespace: str, body: V1Job) -> None:
