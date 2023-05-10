@@ -20,6 +20,7 @@ from kubernetes_asyncio.client import (
     CoreV1EventList,
     V1ConfigMap,
     V1Ingress,
+    V1IngressList,
     V1IngressStatus,
     V1Job,
     V1JobList,
@@ -246,6 +247,7 @@ class _EventStream:
             match = re.match(r"metadata\.name=(.*)$", field_selector)
             assert match and match.group(1)
             name = match.group(1)
+        # And for the label selector.
         label_dict = {}
         if label_selector:
             label_dict = _dictify_selector_str(label_selector)
@@ -322,8 +324,9 @@ class MockKubernetesApi:
     desired behavior, sometimes it isn't; we had to pick one and this is the
     approach we picked.)
 
-    Most APIs do not support watches. The only current exceptions are
-    `list_namespaced_event` and `list_namespaced_pod`.
+    Most APIs do not support watches. The current exceptions are
+    `list_namespaced_event`, `list_namespaced_ingress`, `list_namespaced_job`,
+    and `list_namespaced_pod`.
 
     Attributes
     ----------
@@ -883,6 +886,9 @@ class MockKubernetesApi:
             Raised with 404 status if the pod was not found.
         """
         self._maybe_error("delete_namespaced_ingress", name, namespace)
+        ingress = self._get_object(namespace, "Ingress", name)
+        stream = self._event_streams[namespace]["Ingress"]
+        stream.add_event({"type": "DELETED", "object": ingress.to_dict()})
         return self._delete_object(namespace, "Ingress", name)
 
     async def read_namespaced_ingress(
@@ -909,6 +915,94 @@ class MockKubernetesApi:
         """
         self._maybe_error("read_namespaced_ingress", name, namespace)
         return self._get_object(namespace, "Ingress", name)
+
+    async def list_namespaced_ingress(
+        self,
+        namespace: str,
+        *,
+        field_selector: Optional[str] = None,
+        label_selector: Optional[str] = None,
+        resource_version: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+        watch: bool = False,
+        _preload_content: bool = True,
+        _request_timeout: Optional[int] = None,
+    ) -> V1IngressList | Mock:
+        """List ingress objects in a namespace.
+
+        This does support watches.
+
+        Parameters
+        ----------
+        namespace
+            Namespace of ingresss to list.
+        field_selector
+            Only ``metadata.name=...`` is supported. It is parsed to find the
+            ingress name and only ingresss matching that name will be returned.
+        label_selector
+            Which events to retrieve when performing a watch.  All
+            labels must match.
+        resource_version
+            Where to start in the event stream when performing a watch. If
+            `None`, starts with the next change.
+        timeout_seconds
+            How long to return events for before exiting when performing a
+            watch.
+        watch
+            Whether to act as a watch.
+        _preload_content
+            Verified to be `False` when performing a watch.
+        _request_timeout
+            Ignored, accepted for compatibility with the watch API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1IngressList or unittest.mock.Mock
+            List of ingresss in that namespace, when not called as a watch. If
+            called as a watch, returns a mock ``aiohttp.Response`` with a
+            ``readline`` metehod that yields the events.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the namespace does not exist.
+        """
+        self._maybe_error("list_namespaced_ingress", namespace, field_selector)
+        if namespace not in self._objects:
+            msg = f"Namespace {namespace} not found"
+            raise ApiException(status=404, reason=msg)
+        if not watch:
+            if field_selector:
+                match = re.match(r"metadata\.name=(.*)$", field_selector)
+                assert match and match.group(1)
+                try:
+                    ingress = self._get_object(
+                        namespace, "Ingress", match.group(1)
+                    )
+                    return V1IngressList(kind="Ingress", items=[ingress])
+                except ApiException:
+                    return V1IngressList(kind="Ingress", items=[])
+            else:
+                ingresss = []
+                if "Ingress" in self._objects[namespace]:
+                    for obj in self._objects[namespace]["Ingress"].values():
+                        ingresss.append(obj)
+                return V1IngressList(kind="Ingress", items=ingresss)
+
+        # All watches must not preload content since we're returning raw JSON.
+        # This is done by the Kubernetes API Watch object.
+        assert not _preload_content
+
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._event_streams[namespace]["Ingress"]
+        return stream.build_watch_response(
+            resource_version,
+            timeout_seconds,
+            field_selector=field_selector,
+            label_selector=label_selector,
+        )
 
     async def patch_namespaced_ingress_status(
         self, name: str, namespace: str, body: list[dict[str, Any]]
@@ -1019,11 +1113,16 @@ class MockKubernetesApi:
             Raised with 404 status if the job was not found.
         """
         self._maybe_error("delete_namespaced_job", name, namespace)
+        stream = self._event_streams[namespace]["Job"]
         pods = await self.list_namespaced_pod(
             namespace, label_selector=f"job-name=={name}"
         )
+        # This simulates a foreground deletion, where the Job is blocked
+        # from deletion until all its pods are deleted.
         for pod in pods.items:
             await self.delete_namespaced_pod(pod.metadata.name, namespace)
+        job = self._get_object(namespace, "Job", name)
+        stream.add_event({"type": "DELETED", "object": job.to_dict()})
         return self._delete_object(namespace, "Job", name)
 
     async def list_namespaced_job(
@@ -1031,6 +1130,7 @@ class MockKubernetesApi:
         namespace: str,
         *,
         field_selector: Optional[str] = None,
+        label_selector: Optional[str] = None,
         resource_version: Optional[str] = None,
         timeout_seconds: Optional[int] = None,
         watch: bool = False,
@@ -1048,6 +1148,9 @@ class MockKubernetesApi:
         field_selector
             Only ``metadata.name=...`` is supported. It is parsed to find the
             job name and only jobs matching that name will be returned.
+        label_selector
+            Which events to retrieve when performing a watch.  All
+            labels must match.
         resource_version
             Where to start in the event stream when performing a watch. If
             `None`, starts with the next change.
@@ -1074,17 +1177,14 @@ class MockKubernetesApi:
             Some other ``field_selector`` was provided.
         kubernetes_asyncio.client.ApiException
             Raised with 404 status if the namespace does not exist.
-
-        Notes
-        -----
-
-        We should extend this with a label selector to make it more useful
-        for (eventually) watching instead of polling to retire fileservers.
         """
         self._maybe_error("list_namespaced_job", namespace, field_selector)
         if namespace not in self._objects:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
+        label_dict = {}
+        if label_selector:
+            label_dict = _dictify_selector_str(label_selector)
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
@@ -1098,6 +1198,14 @@ class MockKubernetesApi:
                 jobs = []
                 if "Job" in self._objects[namespace]:
                     for obj in self._objects[namespace]["Job"].values():
+                        if label_dict:
+                            job_labels = obj.metadata.labels
+                            for lbl in label_dict:
+                                if (
+                                    lbl not in job_labels
+                                    or label_dict[lbl] != job_labels[lbl]
+                                ):
+                                    continue
                         jobs.append(obj)
                 return V1JobList(kind="Job", items=jobs)
 
@@ -1108,7 +1216,10 @@ class MockKubernetesApi:
         # Return the mock response expected by the Kubernetes API.
         stream = self._event_streams[namespace]["Job"]
         return stream.build_watch_response(
-            resource_version, timeout_seconds, field_selector=field_selector
+            resource_version,
+            timeout_seconds,
+            field_selector=field_selector,
+            label_selector=label_selector,
         )
 
     async def read_namespaced_job(self, name: str, namespace: str) -> V1Job:
