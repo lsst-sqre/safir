@@ -41,6 +41,7 @@ from kubernetes_asyncio.client import (
     V1ResourceQuota,
     V1Secret,
     V1Service,
+    V1ServiceList,
     V1Status,
 )
 
@@ -326,7 +327,7 @@ class MockKubernetesApi:
 
     Most APIs do not support watches. The current exceptions are
     `list_namespaced_event`, `list_namespaced_ingress`, `list_namespaced_job`,
-    and `list_namespaced_pod`.
+    `list_namespaced_pod`, and ``list_namespaced_service``.
 
     Attributes
     ----------
@@ -498,8 +499,8 @@ class MockKubernetesApi:
         kubernetes_asyncio.client.ApiException
             Raised with 409 status if the object already exists.
         """
-        key = f"{group}/{version}/{plural}"
         self._maybe_error("delete_namespaced_custom_object", name, namespace)
+        key = f"{group}/{version}/{plural}"
         return self._delete_object(namespace, key, name)
 
     async def get_namespaced_custom_object(
@@ -1869,6 +1870,94 @@ class MockKubernetesApi:
         """
         self._maybe_error("delete_namespaced_service", name, namespace)
         return self._delete_object(namespace, "Service", name)
+
+    async def list_namespaced_service(
+        self,
+        namespace: str,
+        *,
+        field_selector: Optional[str] = None,
+        label_selector: Optional[str] = None,
+        resource_version: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+        watch: bool = False,
+        _preload_content: bool = True,
+        _request_timeout: Optional[int] = None,
+    ) -> V1ServiceList | Mock:
+        """List service objects in a namespace.
+
+        This does support watches.
+
+        Parameters
+        ----------
+        namespace
+            Namespace of services to list.
+        field_selector
+            Only ``metadata.name=...`` is supported. It is parsed to find the
+            service name and only services matching that name will be returned.
+        label_selector
+            Which events to retrieve when performing a watch.  All
+            labels must match.
+        resource_version
+            Where to start in the event stream when performing a watch. If
+            `None`, starts with the next change.
+        timeout_seconds
+            How long to return events for before exiting when performing a
+            watch.
+        watch
+            Whether to act as a watch.
+        _preload_content
+            Verified to be `False` when performing a watch.
+        _request_timeout
+            Ignored, accepted for compatibility with the watch API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1ServiceList or unittest.mock.Mock
+            List of services in that namespace, when not called as a watch. If
+            called as a watch, returns a mock ``aiohttp.Response`` with a
+            ``readline`` metehod that yields the events.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the namespace does not exist.
+        """
+        self._maybe_error("list_namespaced_service", namespace, field_selector)
+        if namespace not in self._objects:
+            msg = f"Namespace {namespace} not found"
+            raise ApiException(status=404, reason=msg)
+        if not watch:
+            if field_selector:
+                match = re.match(r"metadata\.name=(.*)$", field_selector)
+                assert match and match.group(1)
+                try:
+                    service = self._get_object(
+                        namespace, "Service", match.group(1)
+                    )
+                    return V1ServiceList(kind="Service", items=[service])
+                except ApiException:
+                    return V1ServiceList(kind="Service", items=[])
+            else:
+                services = []
+                if "Service" in self._objects[namespace]:
+                    for obj in self._objects[namespace]["Service"].values():
+                        services.append(obj)
+                return V1ServiceList(kind="Service", items=services)
+
+        # All watches must not preload content since we're returning raw JSON.
+        # This is done by the Kubernetes API Watch object.
+        assert not _preload_content
+
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._event_streams[namespace]["Service"]
+        return stream.build_watch_response(
+            resource_version,
+            timeout_seconds,
+            field_selector=field_selector,
+            label_selector=label_selector,
+        )
 
     async def read_namespaced_service(
         self, name: str, namespace: str
