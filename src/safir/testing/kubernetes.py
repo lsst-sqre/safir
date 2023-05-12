@@ -63,13 +63,32 @@ def _stringify_selector_dict(selector: dict[str, str]) -> str:
     return ",".join(sstrings)
 
 
-def _dictify_selector_str(selector_str: str) -> dict[str, str]:
-    sstrings = selector_str.split(",")
-    retval: dict[str, str] = {}
-    for sel in sstrings:
-        (key, val) = sel.split("==", 1)
-        retval[key] = val
-    return retval
+def _parse_label_selector(label_selector: str) -> dict[str, str]:
+    """Parse a label selector.
+    
+    Only equality is supported (with ``=`` or ``==``).
+    
+    Parameters
+    ----------
+    label_selector
+        Label selector string to parse.
+        
+    Returns
+    -------
+    dict of str to str
+        Dictionary of required labels to their required values.
+        
+    Raises
+    ------
+    AssertionError
+        Raised if the label selector string is not a supported syntax.
+    """
+    result = {}
+    for requirement in label_selector.split(","):
+        match = re.match(r"([^!=]+)==?(.*)", requirement)
+        assert match and match.group(1) and match.group(2)
+        result[match.group(1)] = match.group(2)
+    return result
 
 
 def strip_none(model: dict[str, Any]) -> dict[str, Any]:
@@ -833,9 +852,9 @@ class MockKubernetesApi:
     ) -> None:
         """Create an ingress object.
 
-        This will be given a dummy value for its
-        status.load_balancer.ingress field, so that we can test our
-        check in the k8s storage driver that the Ingress appeared.
+        The ``status.load_balancer.ingress`` field will automatically
+        be set to ``127.0.0.1`` to simulate the status change normally
+        done by the ingress controller.
 
         Parameters
         ----------
@@ -1036,7 +1055,7 @@ class MockKubernetesApi:
         ingress = copy.deepcopy(self._get_object(namespace, "Ingress", name))
         for change in body:
             assert change["op"] == "replace"
-            assert change["path"] == "/status/load_balancer/ingress"
+            assert change["path"] == "/status/loadBalancer/ingress"
             ingress.status.load_balancer.ingress = change["value"]
         stream = self._event_streams[namespace]["Ingress"]
         ingress.metadata.resource_version = stream.next_resource_version
@@ -1049,10 +1068,10 @@ class MockKubernetesApi:
     async def create_namespaced_job(self, namespace: str, body: V1Job) -> None:
         """Create a job object.
 
-        This will in turn create a pod object.  This pod object will have a
-        label "job-name", which will be set to the job's name.  If the mock's
-        ``initial_pod_phase`` is ``Running``, then the Job status will
-        have ``active`` set to 1.
+        A pod corresponding to this job will also be created. The pod will
+        have a label ``job-name`` set to the name of the Job object. If
+        ``initial_pod_phase`` on the mock is set to ``Running``, the
+        ``status.active`` field of the job will be set to 1.
 
         Parameters
         ----------
@@ -1082,19 +1101,17 @@ class MockKubernetesApi:
             )
         podmd.name = name + "-abcde"  # Repeatable for testing
         podmd.labels["job-name"] = name
-        await self.create_namespaced_pod(
-            namespace, V1Pod(metadata=podmd, spec=template.spec)
-        )
-        pod = await self.read_namespaced_pod(
-            name=podmd.name, namespace=namespace
-        )
+        pod = V1Pod(metadata=podmd, spec=template.spec)
+        await self.create_namespaced_pod(namespace, pod)
         if pod.status.phase == "Running":
             body.status = V1JobStatus(active=1)
 
     async def delete_namespaced_job(
         self, name: str, namespace: str, propagation_policy: str = "Foreground"
     ) -> V1Status:
-        """Delete a job object.  Will also propagate to pods.
+        """Delete a job object.
+        
+        Will also propagate to pods.
 
         Parameters
         ----------
