@@ -65,19 +65,19 @@ def _stringify_selector_dict(selector: dict[str, str]) -> str:
 
 def _parse_label_selector(label_selector: str) -> dict[str, str]:
     """Parse a label selector.
-    
+
     Only equality is supported (with ``=`` or ``==``).
-    
+
     Parameters
     ----------
     label_selector
         Label selector string to parse.
-        
+
     Returns
     -------
     dict of str to str
         Dictionary of required labels to their required values.
-        
+
     Raises
     ------
     AssertionError
@@ -270,7 +270,7 @@ class _EventStream:
         # And for the label selector.
         label_dict = {}
         if label_selector:
-            label_dict = _dictify_selector_str(label_selector)
+            label_dict = _parse_label_selector(label_selector)
 
         # Create and register a new trigger.
         trigger = asyncio.Event()
@@ -867,7 +867,6 @@ class MockKubernetesApi:
         ------
         kubernetes_asyncio.client.ApiException
             Raised with 409 status if the object already exists.
-
         """
         self._maybe_error("create_namespaced_ingress", namespace, body)
         self._update_metadata(
@@ -1110,7 +1109,7 @@ class MockKubernetesApi:
         self, name: str, namespace: str, propagation_policy: str = "Foreground"
     ) -> V1Status:
         """Delete a job object.
-        
+
         Will also propagate to pods.
 
         Parameters
@@ -1202,7 +1201,7 @@ class MockKubernetesApi:
             raise ApiException(status=404, reason=msg)
         label_dict = {}
         if label_selector:
-            label_dict = _dictify_selector_str(label_selector)
+            label_dict = _parse_label_selector(label_selector)
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
@@ -1553,7 +1552,7 @@ class MockKubernetesApi:
             raise ApiException(status=404, reason=msg)
         label_dict = {}
         if label_selector:
-            label_dict = _dictify_selector_str(label_selector)
+            label_dict = _parse_label_selector(label_selector)
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
