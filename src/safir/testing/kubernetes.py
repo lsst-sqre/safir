@@ -54,15 +54,6 @@ __all__ = [
 ]
 
 
-def _stringify_selector_dict(selector: dict[str, str]) -> str:
-    """This and the following function transmute selector labels between
-    dicts and strings.  We don't even try to do safe quoting."""
-    sstrings: list[str] = []
-    for key in selector:
-        sstrings.append(f"{key}=={selector[key]}")
-    return ",".join(sstrings)
-
-
 def _parse_label_selector(label_selector: str) -> dict[str, str]:
     """Parse a label selector.
 
@@ -1037,11 +1028,12 @@ class MockKubernetesApi:
         body
             Patches to apply. Only patches with ``op`` of ``replace`` are
             supported, and only with ``path`` of
-            ``/status/load_balancer/ingress``.
+            ``/status/loadBalancer/ingress``.
 
         Returns
         -------
         kubernetes_asyncio.client.V1Ingress
+            Corresponding object.
 
         Raises
         ------
@@ -1068,7 +1060,8 @@ class MockKubernetesApi:
         """Create a job object.
 
         A pod corresponding to this job will also be created. The pod will
-        have a label ``job-name`` set to the name of the Job object. If
+        have a label ``job-name`` set to the name of the Job object. Its
+        name will be the job's name prepended to ``-abcde``. If
         ``initial_pod_phase`` on the mock is set to ``Running``, the
         ``status.active`` field of the job will be set to 1.
 
@@ -1106,7 +1099,7 @@ class MockKubernetesApi:
             body.status = V1JobStatus(active=1)
 
     async def delete_namespaced_job(
-        self, name: str, namespace: str, propagation_policy: str = "Foreground"
+        self, name: str, namespace: str, propagation_policy: str
     ) -> V1Status:
         """Delete a job object.
 
@@ -1129,6 +1122,9 @@ class MockKubernetesApi:
         kubernetes_asyncio.client.ApiException
             Raised with 404 status if the job was not found.
         """
+        assert (
+            propagation_policy == "Foreground"
+        ), "Only 'Foreground' propagation_policy is currently supported"
         self._maybe_error("delete_namespaced_job", name, namespace)
         stream = self._event_streams[namespace]["Job"]
         pods = await self.list_namespaced_pod(
