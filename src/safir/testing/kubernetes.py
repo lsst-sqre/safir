@@ -82,6 +82,41 @@ def _parse_label_selector(label_selector: str) -> dict[str, str]:
     return result
 
 
+def _check_labels(
+    obj_labels: Optional[dict[str, str]], label_selector: Optional[str]
+) -> bool:
+    """Check whether an object's labels match the label selector supplied.
+
+    Parameters
+    ----------
+    obj_labels
+        Kubernetes object labels
+
+    label_selector
+        label selector in string form
+
+    Returns
+    -------
+    bool
+        Did all of the supplied label_selector labels match
+        the object labels?
+    """
+    if label_selector is None or label_selector == "":
+        # Everything matches the absence of a selector.
+        return True
+    if obj_labels is None or not obj_labels:
+        # If there are no labels but a non-empty selector, it doesn't
+        # match.
+        return False
+    labels = _parse_label_selector(label_selector)
+    for lbl in labels:
+        if lbl not in obj_labels or labels[lbl] != obj_labels[lbl]:
+            # Label isn't present or its value isn't right
+            return False
+    # The whole selector is correct.
+    return True
+
+
 def strip_none(model: dict[str, Any]) -> dict[str, Any]:
     """Strip `None` values from a serialized Kubernetes object.
 
@@ -258,10 +293,6 @@ class _EventStream:
             match = re.match(r"metadata\.name=(.*)$", field_selector)
             assert match and match.group(1)
             name = match.group(1)
-        # And for the label selector.
-        label_dict = {}
-        if label_selector:
-            label_dict = _parse_label_selector(label_selector)
 
         # Create and register a new trigger.
         trigger = asyncio.Event()
@@ -278,14 +309,10 @@ class _EventStream:
                     position += 1
                     if name and event["object"]["metadata"]["name"] != name:
                         continue
-                    if label_dict:
-                        obj_labels = event["object"]["metadata"]["labels"]
-                        for lbl in label_dict:
-                            if (
-                                lbl not in obj_labels
-                                or obj_labels[lbl] != label_dict[lbl]
-                            ):
-                                continue
+                    if not _check_labels(
+                        event["object"]["metadata"]["labels"], label_selector
+                    ):
+                        continue
                     yield json.dumps(event).encode()
                 if not timeout:
                     await trigger.wait()
@@ -1546,31 +1573,23 @@ class MockKubernetesApi:
         if namespace not in self._objects:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
-        label_dict = {}
-        if label_selector:
-            label_dict = _parse_label_selector(label_selector)
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
                 assert match and match.group(1)
                 try:
                     pod = self._get_object(namespace, "Pod", match.group(1))
-                    return V1PodList(kind="Pod", items=[pod])
+                    if _check_labels(pod.metadata.labels, label_selector):
+                        return V1PodList(kind="Pod", items=[pod])
+                    return V1PodList(kind="Pod", items=[])
                 except ApiException:
                     return V1PodList(kind="Pod", items=[])
             else:
                 pods = []
                 if "Pod" in self._objects[namespace]:
                     for obj in self._objects[namespace]["Pod"].values():
-                        if label_dict:
-                            pod_labels = obj.metadata.labels
-                            for lbl in label_dict:
-                                if (
-                                    lbl not in pod_labels
-                                    or label_dict[lbl] != pod_labels[lbl]
-                                ):
-                                    continue
-                        pods.append(obj)
+                        if _check_labels(obj.metadata.labels, label_selector):
+                            pods.append(obj)
                 return V1PodList(kind="Pod", items=pods)
 
         # All watches must not preload content since we're returning raw JSON.
