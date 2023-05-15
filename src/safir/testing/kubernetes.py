@@ -21,9 +21,11 @@ from kubernetes_asyncio.client import (
     V1ConfigMap,
     V1Ingress,
     V1IngressList,
+    V1IngressStatus,
     V1Job,
     V1JobList,
     V1JobStatus,
+    V1LoadBalancerStatus,
     V1Namespace,
     V1NamespaceList,
     V1NetworkPolicy,
@@ -868,7 +870,9 @@ class MockKubernetesApi:
         """Create an ingress object.
 
         In real life, it usually takes some time for the Ingress controller
-        to set the ``status.load_balancer.ingress`` field.
+        to set the ``status.load_balancer.ingress`` field.  It appears that
+        status.load_balancer is created when the Ingress is but is empty,
+        so that's what we do too.
 
         Use ``patch_namespaced_ingress_status()`` to update the field to
         indicate that the ingress is ready.
@@ -890,6 +894,9 @@ class MockKubernetesApi:
             body, "networking.k8s.io/v1", "Ingress", namespace
         )
         name = body.metadata.name
+        body.status = V1IngressStatus(
+            load_balancer=V1LoadBalancerStatus(ingress=[])
+        )
         self._store_object(namespace, "Ingress", name, body)
         stream = self._event_streams[namespace]["Ingress"]
         stream.add_event({"type": "ADDED", "object": body.to_dict()})
