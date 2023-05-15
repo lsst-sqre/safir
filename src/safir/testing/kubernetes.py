@@ -21,12 +21,9 @@ from kubernetes_asyncio.client import (
     V1ConfigMap,
     V1Ingress,
     V1IngressList,
-    V1IngressStatus,
     V1Job,
     V1JobList,
     V1JobStatus,
-    V1LoadBalancerIngress,
-    V1LoadBalancerStatus,
     V1Namespace,
     V1NamespaceList,
     V1NetworkPolicy,
@@ -870,9 +867,11 @@ class MockKubernetesApi:
     ) -> None:
         """Create an ingress object.
 
-        The ``status.load_balancer.ingress`` field will automatically
-        be set to ``127.0.0.1`` to simulate the status change normally
-        done by the ingress controller.
+        In real life, it usually takes some time for the Ingress controller
+        to set the ``status.load_balancer.ingress`` field.
+
+        Use ``patch_namespaced_ingress_status()`` to update the field to
+        indicate that the ingress is ready.
 
         Parameters
         ----------
@@ -891,14 +890,9 @@ class MockKubernetesApi:
             body, "networking.k8s.io/v1", "Ingress", namespace
         )
         name = body.metadata.name
-        body.status = V1IngressStatus(
-            load_balancer=V1LoadBalancerStatus(
-                ingress=[
-                    V1LoadBalancerIngress(ip="127.0.0.1"),
-                ]
-            )
-        )
         self._store_object(namespace, "Ingress", name, body)
+        stream = self._event_streams[namespace]["Ingress"]
+        stream.add_event({"type": "ADDED", "object": body.to_dict()})
 
     async def delete_namespaced_ingress(
         self, name: str, namespace: str
@@ -920,7 +914,7 @@ class MockKubernetesApi:
         Raises
         ------
         kubernetes_asyncio.client.ApiException
-            Raised with 404 status if the pod was not found.
+            Raised with 404 status if the ingress was not found.
         """
         self._maybe_error("delete_namespaced_ingress", name, namespace)
         ingress = self._get_object(namespace, "Ingress", name)
@@ -1051,7 +1045,7 @@ class MockKubernetesApi:
         name
             Name of ingress object.
         namespace
-            Namespace of secret object.
+            Namespace of ingress object.
         body
             Patches to apply. Only patches with ``op`` of ``replace`` are
             supported, and only with ``path`` of
