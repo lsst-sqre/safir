@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import Any, ClassVar, Optional, Self
 
-from httpx import HTTPError, HTTPStatusError, RequestError
+from httpx import HTTPError, HTTPStatusError
 from pydantic import BaseModel, validator
 
 from safir.datetime import current_datetime, format_datetime_for_logging
@@ -338,14 +338,22 @@ class SlackWebException(SlackException):
             )
         else:
             message = f"{type(exc).__name__}: {str(exc)}"
-            if isinstance(exc, RequestError):
+
+            # All httpx.HTTPError exceptions have a slot for the request,
+            # initialized to None and then sometimes added by child
+            # constructors or during exception processing. The request
+            # property is a property method that raises RuntimeError if
+            # request has not been set, so we can't just check for None.
+            # Hence this approach of attempting to use the request and falling
+            # back on reporting less data if that raised any exception.
+            try:
                 return cls(
                     message,
                     method=exc.request.method,
                     url=str(exc.request.url),
                     user=user,
                 )
-            else:
+            except Exception:
                 return cls(message, user=user)
 
     def __init__(
@@ -387,7 +395,7 @@ class SlackWebException(SlackException):
                 text = f"{self.method} {self.url}"
             else:
                 text = self.url
-            message.blocks.append(SlackTextField(heading="URL", text=text))
+            message.blocks.append(SlackTextBlock(heading="URL", text=text))
         if self.body:
             block = SlackCodeBlock(heading="Response", code=self.body)
             message.blocks.append(block)
