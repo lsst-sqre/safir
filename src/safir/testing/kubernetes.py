@@ -1026,7 +1026,8 @@ class MockKubernetesApi:
                 ingresss = []
                 if "Ingress" in self._objects[namespace]:
                     for obj in self._objects[namespace]["Ingress"].values():
-                        ingresss.append(obj)
+                        if _check_labels(obj.metadata.labels, label_selector):
+                            ingresss.append(obj)
                 return V1IngressList(kind="Ingress", items=ingresss)
 
         # All watches must not preload content since we're returning raw JSON.
@@ -1228,9 +1229,6 @@ class MockKubernetesApi:
         if namespace not in self._objects:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
-        label_dict = {}
-        if label_selector:
-            label_dict = _parse_label_selector(label_selector)
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
@@ -1244,15 +1242,8 @@ class MockKubernetesApi:
                 jobs = []
                 if "Job" in self._objects[namespace]:
                     for obj in self._objects[namespace]["Job"].values():
-                        if label_dict:
-                            job_labels = obj.metadata.labels
-                            for lbl in label_dict:
-                                if (
-                                    lbl not in job_labels
-                                    or label_dict[lbl] != job_labels[lbl]
-                                ):
-                                    continue
-                        jobs.append(obj)
+                        if _check_labels(obj.metadata.labels, label_selector):
+                            jobs.append(obj)
                 return V1JobList(kind="Job", items=jobs)
 
         # All watches must not preload content since we're returning raw JSON.
@@ -1980,7 +1971,8 @@ class MockKubernetesApi:
                 services = []
                 if "Service" in self._objects[namespace]:
                     for obj in self._objects[namespace]["Service"].values():
-                        services.append(obj)
+                        if _check_labels(obj.metadata.labels, label_selector):
+                            services.append(obj)
                 return V1ServiceList(kind="Service", items=services)
 
         # All watches must not preload content since we're returning raw JSON.
