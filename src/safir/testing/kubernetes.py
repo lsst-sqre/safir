@@ -1110,16 +1110,21 @@ class MockKubernetesApi:
         name = body.metadata.name
         self._store_object(namespace, "Job", name, body)
         # Pretend to spawn a pod
-        # Use our metadata for spawned pod metadata if we weren't given it.
+        # If there is no metadata, create a V1ObjectMeta object with just
+        # namespace, a "generateName" of the job name, and a "job-name"
+        # label, which appears to be what Kubernetes does.
         template = body.spec.template
         podmd = template.metadata
         if podmd is None:
             podmd = V1ObjectMeta(
                 namespace=namespace,
-                labels=body.metadata.labels.copy(),
-                annotations=body.metadata.annotations.copy(),
+                generate_name=f"{name}-",
             )
-        podmd.name = name + "-abcde"  # Repeatable for testing
+        # In real life, the name has five random alphanumeric characters,
+        # but for testing we'd like to know what the spawned pod is going to
+        # be called.  But in real life, if you set "generateName" you can't
+        # also set the pod name.
+        podmd.name = name + "-abcde"
         podmd.labels["job-name"] = name
         pod = V1Pod(metadata=podmd, spec=template.spec)
         await self.create_namespaced_pod(namespace, pod)
