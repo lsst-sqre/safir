@@ -5,6 +5,12 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
+## 4.1.1 (unreleased)
+
+### Bug fixes
+
+- `SlackWebException` now extracts the method and URL of the request from more httpx exceptions, and avoids exceptions when the request information is not present.
+
 ## 4.1.0 (2023-05-08)
 
 ### New features
