@@ -26,6 +26,7 @@ from kubernetes_asyncio.client import (
     V1NodeList,
     V1ObjectMeta,
     V1ObjectReference,
+    V1PersistentVolumeClaim,
     V1Pod,
     V1PodList,
     V1PodStatus,
@@ -875,6 +876,34 @@ class MockKubernetesApi:
         """
         self._maybe_error("list_node")
         return self._nodes
+
+    # PERSISTENTVOLUMECLAIM API
+
+    async def create_namespaced_persistent_volume_claim(
+        self, namespace: str, body: V1PersistentVolumeClaim
+    ) -> None:
+        """Create a persistent volume claim.
+
+        Parameters
+        ----------
+        namespace
+            Namespace in which to create the persistent volume claim.
+        body
+            Persistent volume claim to create.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 409 status if the persistent volume claim already
+            exists.
+        """
+        self._maybe_error(
+            "create_namespaced_persistent_volume_claim", namespace, body
+        )
+        self._update_metadata(body, "v1", "PersistentVolumeClaim", namespace)
+        self._store_object(
+            namespace, "PersistentVolumeClaim", body.metadata.name, body
+        )
 
     # POD API
 
