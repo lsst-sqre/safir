@@ -5,7 +5,11 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 4.1.1 (unreleased)
+## 4.2.0 (unreleased)
+
+### New features
+
+- Add `create_namespaced_persistent_volume_claim` to the mock Kubernetes API for testing.
 
 ### Bug fixes
 
