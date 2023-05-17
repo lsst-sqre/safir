@@ -50,7 +50,9 @@ Finally, create a PR from those changes and merge it before continuing with the 
 2. Tag the release
 ------------------
 
-At the HEAD of the ``main`` branch, create and push a tag with the semantic version:
+Make sure you are on the ``main`` branch of your local checkout and you have updated with the merged PR from the previous step.
+
+Then, create and push a tag with the semantic version:
 
 .. code-block:: sh
 
@@ -63,6 +65,16 @@ In particular, **don't** prefix the tag with ``v``.
 .. _setuptools_scm: https://github.com/pypa/setuptools_scm
 
 The `ci.yaml`_ GitHub Actions workflow uploads the new release to PyPI and documentation to https://safir.lsst.io.
+
+3. Create a GitHub release
+--------------------------
+
+Add a new GitHub release for this version.
+The release title should be the same as the version number.
+
+Paste the contents of the :file:`CHANGELOG.md` entry for this release, without the initial heading specifying the version number and date.
+Adjust the heading depth of the subsections to use ``##`` instead of ``###`` to match the pull request summary.
+Then, press the :guilabel:`Generate release notes` button to include the GitHub-generated summary of pull requests.
 
 .. _backport-release:
 
