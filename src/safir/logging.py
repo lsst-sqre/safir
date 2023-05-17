@@ -121,7 +121,7 @@ def configure_logging(
     Notes
     -----
     This function helps you configure a useful logging set up for your
-    application that's based on `structlog <https://www.structlog.org>`__.
+    application that's based on structlog_.
 
     First, it configures the logger for your application to log to STDOUT.
     Second, it configures the formatting of your log messages through

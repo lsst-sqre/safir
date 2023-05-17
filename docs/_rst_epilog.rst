@@ -10,7 +10,7 @@
 .. _mypy: https://www.mypy-lang.org
 .. _Phalanx: https://phalanx.lsst.io
 .. _pre-commit: https://pre-commit.com
-.. _Pydantic: https://docs.pydantic.dev/
+.. _Pydantic: https://docs.pydantic.dev/latest/
 .. _PyPI: https://pypi.org/project/safir/
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _redis-py: https://redis.readthedocs.io/en/stable/

@@ -10,7 +10,7 @@ To create a Gidgethub client for a GitHub App, Safir provides the `safir.github.
 .. note::
 
    GitHub provides multiple way of building integrations, each with slightly different capabilities and authentication flows.
-   The `GitHubAppClientFactory` is designed to work with `GitHub Apps <https://developer.github.com/apps/building-github-apps/>`__, which are the recommended way of building integrations.
+   The `GitHubAppClientFactory` is designed to work with `GitHub Apps <https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app>`__, which are the recommended way of building integrations.
    GitHub Apps are specifically installed into an organization or user account, and can be granted access to specific repositories.
 
    Another common way of building an integration is as an OAuth app (particularly before the introduction of GitHub Apps).
@@ -21,13 +21,13 @@ To create a Gidgethub client for a GitHub App, Safir provides the `safir.github.
    GitHub Apps generally replace this use case for all but the simplest integrations.
    Note in particular that a GitHub App can be `authenticated on behalf of a user <https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-with-a-github-app-on-behalf-of-a-user>`__.
 
-   For a comparison of the different ways of building integrations, see `GitHub's documentation <https://docs.github.com/en/apps/creating-github-apps/creating-github-apps/about-apps>`__.
+   For a comparison of the different ways of building integrations, see `GitHub's documentation <https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/about-creating-github-apps>`__.
 
 Setting up the factory
 ======================
 
 The `GitHubAppClientFactory` requires information about the GitHub App, which you will normally include in your application's configuration, and an instance of `httpx.AsyncClient`, which your application will typically create with the `~safir.dependencies.http_client.http_client_dependency` dependency (see :doc:`../http-client`).
-For information about creating a GitHub App, retrieving its App ID and generating a private key, see `GitHub's documentation <https://developer.github.com/apps/building-github-apps/creating-a-github-app/>`__.
+For information about creating a GitHub App, retrieving its App ID and generating a private key, see `GitHub's documentation <https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app>`__.
 
 .. code-block:: python
 

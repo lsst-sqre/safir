@@ -4,7 +4,7 @@ All notable changes to Safir will be documented in this file.
 
 Versioning follows [semver](https://semver.org/).
 
-This project uses [scriv](https://scriv.readthedocs.io/) to maintain the change log.
+This project uses [scriv](https://scriv.readthedocs.io/en/stable/) to maintain the change log.
 Changes for the upcoming release can be found in [changelog.d](https://github.com/lsst-sqre/safir/tree/main/changelog.d/).
 
 <!-- scriv-insert-here -->

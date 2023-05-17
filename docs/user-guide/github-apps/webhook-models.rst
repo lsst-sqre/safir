@@ -21,17 +21,17 @@ GitHub events
 
    * - Event
      - Model
-   * - `check_run <https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_run>`__
+   * - `check_run <https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#check_run>`__
      - `~safir.github.webhooks.GitHubCheckRunEventModel`
-   * - `check_suite <https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite>`__
+   * - `check_suite <https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite>`__
      - `~safir.github.webhooks.GitHubCheckSuiteEventModel`
-   * - `installation <https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#installation>`__
+   * - `installation <https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#installation>`__
      - `~safir.github.webhooks.GitHubAppInstallationEventModel`
-   * - `installation_repositories <https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#installation_repositories>`__
+   * - `installation_repositories <https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#installation_repositories>`__
      - `~safir.github.webhooks.GitHubAppInstallationRepositoriesEventModel`
-   * - `pull_request <https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request>`__
+   * - `pull_request <https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request>`__
      - `~safir.github.webhooks.GitHubPullRequestEventModel`
-   * - `push <https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#push>`__
+   * - `push <https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#push>`__
      - `~safir.github.webhooks.GitHubPushEventModel`
 
 Related documentation
