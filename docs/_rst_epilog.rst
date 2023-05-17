@@ -16,6 +16,8 @@
 .. _redis-py: https://redis.readthedocs.io/en/stable/
 .. _respx: https://lundberg.github.io/respx/
 .. _Roundtable: https://roundtable.lsst.io
+.. _scriv: https://scriv.readthedocs.io/en/stable/
+.. _semver: https://semver.org/
 .. _SQLAlchemy: https://www.sqlalchemy.org/
 .. _structlog: https://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
