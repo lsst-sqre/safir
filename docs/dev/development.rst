@@ -106,36 +106,27 @@ The build documentation is located in the :file:`docs/_build/html` directory.
 Updating the change log
 =======================
 
-Each pull request should update the change log (:file:`CHANGELOG.md`).
-Add a description of new features and fixes as list items under a section at the top of the change log, using ``unreleased`` for the date portion.
-The version number for that heading should be chosen or updated based on the semver_ rules.
+Safir uses scriv_ to maintain its change log.
 
-.. _semver: https://semver.org/
+When preparing a pull request, run :command:`scriv create`.
+This will create a change log fragment in :file:`changelog.d`.
+Edit that fragment, removing the sections that do not apply and adding entries fo this pull request.
+You can pass the ``--edit`` flag to :command:`scriv create` to open the created fragment automatically in an editor.
 
-.. code-block:: markdown
+Change log entries use the following sections:
 
-   ## X.Y.Z (unreleased)
-
-   ### Subheading (see below)
-
-   - Description of the feature or fix.
-
-All changelog entries should be divided into sections (each starting with ``###``) chosen from the following:
-
-- **Backward-incompatible changes** (also increase the major version except in unusual cases)
-- **New features** (also increase the minor version except in unusual cases)
+- **Backward-incompatible changes**
+- **New features**
 - **Bug fixes**
-- **Other changes** (which are mostly new features that are not significant enough to call attention to, such as logging formatting changes or updates to the documentation)
+- **Other changes** (for minor, patch-level changes that are not bug fixes, such as logging formatting changes or updates to the documentation)
 
-If the exact version and release date is known (:doc:`because a release is being prepared <release>`), the section header is formatted as:
+These entries will eventually be cut and pasted into the release description for the next release, so the Markdown for the change descriptions should be compatible with GitHub's Markdown conventions for the release description.
+Specifically:
 
-.. code-block:: markdown
-
-   ## X.Y.Z (YYYY-MM-DD)
-
-Each entry in the change log should be on one line without line breaks, even though this violates the normal rule of putting a newline after each sentence.
-This allows the whole change log entry to be copied and pasted into the GitHub release page when creating a release.
-Unfortunately, GitHub Markdown preserves line breaks after sentences as hard line breaks when rendering the description of a release.
+- Each bullet point should be entirely on one line, even if it contains multiple sentences.
+  This is an exception to the normal documentation convention of a newline after each sentence.
+  Unfortunately, GitHub interprets those newlines as hard line breaks, so they would result in an ugly release description.
+- Avoid using too much complex markup, such as nested bullet lists, since the formatting in the GitHub release description may not be what you expect and manually editing it is tedious.
 
 .. _style-guide:
 
