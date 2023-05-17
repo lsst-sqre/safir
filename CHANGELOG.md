@@ -5,11 +5,22 @@ Headline template:
 X.Y.Z (YYYY-MM-DD)
 -->
 
-## 4.2.0 (unreleased)
+## 4.2.1 (2023-05-17)
+
+### Bug fixes
+
+- Fix syntax of literals in the `MockKubernetesApi` docstring.
+
+## 4.2.0 (2023-05-17)
 
 ### New features
 
+- Add create, delete, read, list (with watches), and (limited) patch support for `Ingress` objects to the mock Kubernetes API.
+- Add create, delete, read, and list (with watches) support for `Job` objects to the mock Kuberntes API, and mock the `BatchV1Api`.
+- Add delete, read, and list (with watches) support for `Service` objects to the mock Kubernetes API.
+- Add support for label selectors to `list_namespaced_pod` in the mock Kubernetes API.
 - Add `create_namespaced_persistent_volume_claim` to the mock Kubernetes API for testing.
+- Add support for deleting custom resources to the mock Kubernetes API.
 
 ### Bug fixes
 
