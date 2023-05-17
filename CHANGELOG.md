@@ -9,6 +9,17 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-4.2.2'></a>
+## 4.2.2 (2023-05-17)
+
+### Bug fixes
+
+- Revert the documentation change in 4.2.1 to restore cross-references, since the docs-linkcheck failure appears to be a false positive.
+
+### Other changes
+
+- Safir now uses [scriv](https://scriv.readthedocs.io/en/latest/) to maintain its change log.
+
 ## 4.2.1 (2023-05-17)
 
 ### Bug fixes
