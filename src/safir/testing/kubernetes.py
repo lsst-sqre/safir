@@ -362,8 +362,9 @@ class MockKubernetesApi:
     approach we picked.)
 
     Most APIs do not support watches. The current exceptions are
-    `list_namespaced_event`, `list_namespaced_ingress`, `list_namespaced_job`,
-    `list_namespaced_pod`, and ``list_namespaced_service``.
+    ``list_namespaced_event``, ``list_namespaced_ingress``,
+    ``list_namespaced_job``, ``list_namespaced_pod``, and
+    ``list_namespaced_service``.
 
     Attributes
     ----------
