@@ -13,6 +13,7 @@ import pytest
 from kubernetes_asyncio.client import (
     CoreV1Event,
     V1Container,
+    V1DeleteOptions,
     V1ObjectMeta,
     V1ObjectReference,
     V1Pod,
@@ -280,7 +281,12 @@ async def test_pod_status(mock_kubernetes: MockKubernetesApi) -> None:
         "other",
         [{"op": "replace", "path": "/status/phase", "value": "Running"}],
     )
-    await mock_kubernetes.delete_namespaced_pod("foo", "other")
+    await mock_kubernetes.delete_namespaced_pod(
+        "foo",
+        "other",
+        grace_period_seconds=1,
+        body=V1DeleteOptions(grace_period_seconds=1),
+    )
 
     # All three watches should see the same thing.
     results = await asyncio.gather(*watchers)
