@@ -398,7 +398,7 @@ class SlackWebException(SlackException):
             message.blocks.append(SlackTextBlock(heading="URL", text=text))
         if self.body:
             block = SlackCodeBlock(heading="Response", code=self.body)
-            message.blocks.append(block)
+            message.attachments.append(block)
         return message
 
 
