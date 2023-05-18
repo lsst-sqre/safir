@@ -1197,17 +1197,24 @@ class MockKubernetesApi:
         kubernetes_asyncio.client.ApiException
             Raised with 404 status if the job was not found.
         """
-        assert propagation_policy == "Foreground"
+        if propagation_policy not in ("Foreground", "Background", "Orphan"):
+            msg = f"Invalid propagation_policy {propagation_policy}"
+            raise AssertionError(msg)
         self._maybe_error("delete_namespaced_job", name, namespace)
-        stream = self._event_streams[namespace]["Job"]
+
+        # This simulates a foreground deletion, where the Job is blocked
+        # from deletion until all its pods are deleted. We also use it for
+        # background deletion for the time being, since it should be close
+        # enough.
         pods = await self.list_namespaced_pod(
             namespace, label_selector=f"job-name=={name}"
         )
-        # This simulates a foreground deletion, where the Job is blocked
-        # from deletion until all its pods are deleted.
-        for pod in pods.items:
-            await self.delete_namespaced_pod(pod.metadata.name, namespace)
+        if propagation_policy != "Orphan":
+            for pod in pods.items:
+                await self.delete_namespaced_pod(pod.metadata.name, namespace)
+
         job = self._get_object(namespace, "Job", name)
+        stream = self._event_streams[namespace]["Job"]
         stream.add_event({"type": "DELETED", "object": job.to_dict()})
         return self._delete_object(namespace, "Job", name)
 
