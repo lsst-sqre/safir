@@ -19,6 +19,7 @@ from kubernetes_asyncio.client import (
     CoreV1Event,
     CoreV1EventList,
     V1ConfigMap,
+    V1DeleteOptions,
     V1Ingress,
     V1IngressList,
     V1IngressStatus,
@@ -509,6 +510,9 @@ class MockKubernetesApi:
         namespace: str,
         plural: str,
         name: str,
+        *,
+        grace_period_seconds: int | None = None,
+        body: V1DeleteOptions | None = None,
     ) -> Any:
         """Delete a custom namespaced object.
 
@@ -524,6 +528,10 @@ class MockKubernetesApi:
             API plural for this custom object.
         name
             Custom object to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        body
+            Delete options (currently ignored).
 
         Returns
         -------
@@ -736,7 +744,12 @@ class MockKubernetesApi:
         self._store_object(namespace, "ConfigMap", name, body)
 
     async def delete_namespaced_config_map(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        grace_period_seconds: int | None = None,
+        body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete a ``ConfigMap`` object.
 
@@ -746,6 +759,10 @@ class MockKubernetesApi:
             Name of object.
         namespace
             Namespace of object.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        body
+            Delete options (currently ignored).
 
         Returns
         -------
@@ -902,7 +919,12 @@ class MockKubernetesApi:
         stream.add_event({"type": "ADDED", "object": body.to_dict()})
 
     async def delete_namespaced_ingress(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        grace_period_seconds: int | None = None,
+        body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete an ingress object.
 
@@ -912,6 +934,10 @@ class MockKubernetesApi:
             Name of ingress to delete.
         namespace
             Namespace of ingress to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        body
+            Delete options (currently ignored).
 
         Returns
         -------
@@ -1133,7 +1159,13 @@ class MockKubernetesApi:
             body.status = V1JobStatus(active=1)
 
     async def delete_namespaced_job(
-        self, name: str, namespace: str, propagation_policy: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
+        body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete a job object.
 
@@ -1145,6 +1177,13 @@ class MockKubernetesApi:
             Name of job to delete.
         namespace
             Namespace of job to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Must be ``Foreground`` if
+            specified, and has no effect on the behavior of the mock.
+        body
+            Delete options (currently ignored).
 
         Returns
         -------
@@ -1153,12 +1192,12 @@ class MockKubernetesApi:
 
         Raises
         ------
+        AssertionError
+            Raised if the propagation policy is not ``Foreground``.
         kubernetes_asyncio.client.ApiException
             Raised with 404 status if the job was not found.
         """
-        assert (
-            propagation_policy == "Foreground"
-        ), "Only 'Foreground' propagation_policy is currently supported"
+        assert propagation_policy == "Foreground"
         self._maybe_error("delete_namespaced_job", name, namespace)
         stream = self._event_streams[namespace]["Job"]
         pods = await self.list_namespaced_pod(
@@ -1310,7 +1349,13 @@ class MockKubernetesApi:
             raise ApiException(status=409, reason=msg)
         self._store_object(name, "Namespace", name, body)
 
-    async def delete_namespace(self, name: str) -> None:
+    async def delete_namespace(
+        self,
+        name: str,
+        *,
+        grace_period_seconds: int | None = None,
+        body: V1DeleteOptions | None = None,
+    ) -> None:
         """Delete a namespace.
 
         This also immediately removes all objects in the namespace.
@@ -1319,6 +1364,10 @@ class MockKubernetesApi:
         ----------
         name
             Namespace to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        body
+            Delete options (currently ignored).
 
         Raises
         ------
@@ -1486,7 +1535,12 @@ class MockKubernetesApi:
             await self.create_namespaced_event(namespace, event)
 
     async def delete_namespaced_pod(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        grace_period_seconds: int | None = None,
+        body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete a pod object.
 
@@ -1496,6 +1550,10 @@ class MockKubernetesApi:
             Name of pod to delete.
         namespace
             Namespace of pod to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        body
+            Delete options (currently ignored).
 
         Returns
         -------
@@ -1875,7 +1933,12 @@ class MockKubernetesApi:
         self._store_object(namespace, "Service", body.metadata.name, body)
 
     async def delete_namespaced_service(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        grace_period_seconds: int | None = None,
+        body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete a service object.
 
@@ -1885,6 +1948,10 @@ class MockKubernetesApi:
             Name of service to delete.
         namespace
             Namespace of service to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        body
+            Delete options (currently ignored).
 
         Returns
         -------
