@@ -9,6 +9,18 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-4.3.0'></a>
+## 4.3.0 (2023-05-23)
+
+### New features
+
+- All `delete_*` APIs in the mock Kubernetes API now support `grace_period_seconds` and a `V1DeleteOptions` body. Both are ignored.
+- `delete_namespaced_job` in the mock Kubernetes API now requires `propagation_policy` to be passed as a keyword argument if provided, and does not require it be set. It is validated against the values recognized by Kubernetes, and if set to `Orphan`, pods created by the job are not deleted.
+
+### Bug fixes
+
+- When reporting an error response to Slack using `SlackWebException`, put the response body in an attachment instead of a regular block, since it may be a full HTML error page. An attachment tells Slack to hide long content by default unless the viewer expands it.
+
 <a id='changelog-4.2.2'></a>
 ## 4.2.2 (2023-05-17)
 
