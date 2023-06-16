@@ -38,6 +38,7 @@ The URL path for this endpoint corresponds to the webhook callback URL you set u
    ) -> Response:
        """Process GitHub webhook events."""
        webhook_secret = config.github_webhook_secret.get_secret_value()
+       body = await request.body()
        event = Event.from_http(request.headers, body, secret=webhook_secret)
 
        # Bind the X-GitHub-Delivery header to the logger context; this identifies
