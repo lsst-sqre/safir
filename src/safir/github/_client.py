@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partialmethod
 from typing import Optional
 
 import gidgethub.apps
@@ -73,7 +74,31 @@ class GitHubAppClientFactory:
         gidgethub.httpx.GitHubAPI
             The app client.
         """
-        return self._create_client(oauth_token=self.get_app_jwt())
+        jwt = self.get_app_jwt()
+        client = self._create_client()
+
+        client.getitem = partialmethod(  # type: ignore[assignment]
+            client.getitem, jwt=jwt
+        )
+        # getstatus is an upcoming gidgethub feature
+        # client.getstatus = partialmethod(client.getstatus, jwt=jwt)
+        client.getiter = partialmethod(  # type: ignore[assignment]
+            client.getiter, jwt=jwt
+        )
+        client.post = partialmethod(  # type: ignore[assignment]
+            client.post, jwt=jwt
+        )
+        client.patch = partialmethod(  # type: ignore[assignment]
+            client.patch, jwt=jwt
+        )
+        client.put = partialmethod(  # type: ignore[assignment]
+            client.put, jwt=jwt
+        )
+        client.delete = partialmethod(  # type: ignore[assignment]
+            client.delete, jwt=jwt
+        )
+
+        return client
 
     async def create_installation_client(
         self, installation_id: str
