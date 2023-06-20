@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from functools import partialmethod
-from typing import Optional
+from collections.abc import AsyncGenerator
+from typing import Any
 
+import gidgethub.abc
 import gidgethub.apps
+import gidgethub.sansio
 import httpx
 from gidgethub.httpx import GitHubAPI
+from uritemplate import variable
 
 
 class GitHubAppClientFactory:
@@ -49,9 +52,7 @@ class GitHubAppClientFactory:
             app_id=self.app_id, private_key=self.app_key
         )
 
-    def _create_client(
-        self, *, oauth_token: Optional[str] = None
-    ) -> GitHubAPI:
+    def _create_client(self, *, oauth_token: str | None = None) -> GitHubAPI:
         return GitHubAPI(
             self._http_client, self.app_name, oauth_token=oauth_token
         )
@@ -75,30 +76,9 @@ class GitHubAppClientFactory:
             The app client.
         """
         jwt = self.get_app_jwt()
-        client = self._create_client()
-
-        client.getitem = partialmethod(  # type: ignore[assignment]
-            client.getitem, jwt=jwt
+        return GitHubAppClient(
+            http_client=self._http_client, name=self.app_name, jwt=jwt
         )
-        # getstatus is an upcoming gidgethub feature
-        # client.getstatus = partialmethod(client.getstatus, jwt=jwt)
-        client.getiter = partialmethod(  # type: ignore[assignment]
-            client.getiter, jwt=jwt
-        )
-        client.post = partialmethod(  # type: ignore[assignment]
-            client.post, jwt=jwt
-        )
-        client.patch = partialmethod(  # type: ignore[assignment]
-            client.patch, jwt=jwt
-        )
-        client.put = partialmethod(  # type: ignore[assignment]
-            client.put, jwt=jwt
-        )
-        client.delete = partialmethod(  # type: ignore[assignment]
-            client.delete, jwt=jwt
-        )
-
-        return client
 
     async def create_installation_client(
         self, installation_id: str
@@ -155,3 +135,123 @@ class GitHubAppClientFactory:
         )
         installation_id = installation_data["id"]
         return await self.create_installation_client(installation_id)
+
+
+class GitHubAppClient(GitHubAPI):
+    """A GitHub API client authenticated as a GitHub App.
+
+    Parameters
+    ----------
+    http_client
+        The httpx client.
+    name
+        The GitHub App name. This identifies the app in the user agent string,
+        and is typically the name of the GitHub repository the app is built
+        from (e.g. ``lsst-sqre/times-square``).
+    jwt
+        The JWT token for authenticating as the GitHub App.
+    """
+
+    def __init__(
+        self, *, http_client: httpx.AsyncClient, name: str, jwt: str
+    ) -> None:
+        super().__init__(http_client, name)
+        self._jwt = jwt
+
+    async def app_getitem(
+        self,
+        url: str,
+        url_vars: variable.VariableValueDict | None = None,
+        *,
+        accept: str = gidgethub.sansio.accept_format(),
+    ) -> Any:
+        """Send a GET request for a single item to the specified endpoint,
+        authenticated as the GitHub App.
+
+        Parameters
+        ----------
+        url
+            The templated path of the endpoint.
+        url_vars
+            The variables to substitute into ``url``.
+        accept
+            The ``Accept`` header to send.
+
+        Returns
+        -------
+        Any
+            The response data from the GitHub API.
+        """
+        return super().getitem(
+            url,
+            url_vars,
+            accept=accept,
+            jwt=self._jwt,
+        )
+
+    async def app_getiter(
+        self,
+        url: str,
+        url_vars: variable.VariableValueDict | None = None,
+        *,
+        accept: str = gidgethub.sansio.accept_format(),
+        iterable_key: str | None = gidgethub.abc.ITERABLE_KEY,
+    ) -> AsyncGenerator[Any, None]:
+        """Return an async iterable for all the items at a specified
+        endpoint, authenticated as the GitHub App.
+
+        Parameters
+        ----------
+        url
+            The templated path of the endpoint.
+        url_vars
+            The variables to substitute into ``url``.
+        accept
+            The ``Accept`` header to send.
+
+        Yields
+        ------
+        item
+            Items from the GitHub API response.
+        """
+        return super().getiter(
+            url,
+            url_vars,
+            accept=accept,
+            iterable_key=iterable_key,
+            jwt=self._jwt,
+        )
+
+    async def app_post(
+        self,
+        url: str,
+        url_vars: variable.VariableValueDict | None = None,
+        *,
+        accept: str = gidgethub.sansio.accept_format(),
+        data: dict[str, Any] | None = None,
+        content_type: str = "application/json",
+    ) -> Any:
+        return super().post(
+            url,
+            url_vars,
+            accept=accept,
+            data=data,
+            content_type=content_type,
+            jwt=self._jwt,
+        )
+
+    async def app_patch(
+        self,
+        url: str,
+        url_vars: variable.VariableValueDict | None = None,
+        *,
+        data: Any,
+        accept: str = gidgethub.sansio.accept_format(),
+    ) -> Any:
+        return super().patch(
+            url,
+            url_vars,
+            accept=accept,
+            data=data,
+            jwt=self._jwt,
+        )
