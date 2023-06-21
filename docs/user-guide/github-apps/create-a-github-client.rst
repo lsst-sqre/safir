@@ -51,8 +51,8 @@ For information about creating a GitHub App, retrieving its App ID and generatin
    config = Config()
 
    github_client_factory = GitHubAppClientFactory(
-       app_id=config.github_app_id,
-       private_key=config.github_app_private_key.get_secret_value(),
+       id=config.github_app_id,
+       key=config.github_app_private_key.get_secret_value(),
        name="lsst-sqre/example",
        http_client=http_client,  # from http_client dependency
    )
