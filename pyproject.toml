@@ -26,7 +26,7 @@ dependencies = [
     "fastapi<1",
     "gidgethub<6",
     "httpx>=0.20.0,<1",
-    "pydantic<2",
+    "pydantic<3",
     "starlette<1",
     "structlog>=21.2.0,<24",
 ]
