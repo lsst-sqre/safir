@@ -1,5 +1,5 @@
 # This is a separate run of the Python test suite that doesn't cache the tox
-# environment and runs from a schedule.  The purpose is to test compatibility
+# environment and runs from a schedule. The purpose is to test compatibility
 # with the latest versions of all modules Safir depends on, since Safir (being
 # a library) does not pin its dependencies.
 
@@ -8,6 +8,7 @@ name: Periodic CI
 "on":
   schedule:
     - cron: "0 12 * * 1"
+  workflow_dispatch: {}
 
 jobs:
   test:
@@ -29,6 +30,16 @@ jobs:
           tox-plugins: "tox-docker"
           use-cache: false
 
+      - name: Report status
+        if: always()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
   docs:
     runs-on: ubuntu-latest
 
@@ -45,8 +56,20 @@ jobs:
           tox-envs: "docs,docs-linkcheck"
           use-cache: false
 
+      - name: Report status
+        if: always()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic documentation build for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
   pypi:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [test, docs]
 
     steps:
       - uses: actions/checkout@v3
@@ -54,8 +77,17 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Build and publish
-        uses: lsst-sqre/build-and-publish-to-pypi@v1
+        uses: lsst-sqre/build-and-publish-to-pypi@v2
         with:
-          pypi-token: ""
           python-version: "3.11"
           upload: false
+
+      - name: Report status
+        if: always()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic PyPI test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
