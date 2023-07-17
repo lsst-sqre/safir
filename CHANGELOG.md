@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-4.3.1'></a>
+## 4.3.1 (2023-07-17)
+
+### Bug fixes
+
+- Safir now pins the major version of all of its non-development dependencies. The impetus for this change is to prevent upgrades to Pydantic 2.x until Safir's Pydantic models are ready for that upgrade, but a similar principle applies to other dependencies. These pins will be selectively relaxed once Safir has been confirmed to work with a new major release.
+
 <a id='changelog-4.3.0'></a>
 ## 4.3.0 (2023-05-23)
 
