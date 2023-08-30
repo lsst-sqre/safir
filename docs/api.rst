@@ -11,6 +11,9 @@ API reference
 .. automodapi:: safir.asyncio
    :include-all-objects:
 
+.. automodapi:: safir.click
+   :include-all-objects:
+
 .. automodapi:: safir.database
    :include-all-objects:
 

@@ -30,3 +30,4 @@ User guide
    uvicorn
    slack-webhook
    github-apps/index
+   click
