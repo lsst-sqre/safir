@@ -10,8 +10,8 @@ __all__ = ["display_help"]
 def display_help(
     main: click.Group,
     ctx: click.Context,
-    topic: str | None,
-    subtopic: str | None,
+    topic: str | None = None,
+    subtopic: str | None = None,
 ) -> None:
     """Show help for a Click command.
 
