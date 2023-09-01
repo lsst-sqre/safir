@@ -34,7 +34,7 @@ def mock_slack(respx_mock: respx.Router) -> MockSlackWebhook:
 
 @pytest_asyncio.fixture
 async def redis_client() -> AsyncIterator[redis.Redis]:
-    """A Redis client for testing.
+    """Redis client for testing.
 
     This fixture connects to the Redis server that runs via tox-docker.
     """

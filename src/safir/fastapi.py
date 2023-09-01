@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
@@ -139,8 +139,8 @@ class ClientRequestError(SlackIgnoredException):
     def __init__(
         self,
         message: str,
-        location: Optional[ErrorLocation] = None,
-        field_path: Optional[list[str]] = None,
+        location: ErrorLocation | None = None,
+        field_path: list[str] | None = None,
     ) -> None:
         super().__init__(message)
         self.location = location
@@ -169,7 +169,7 @@ class ClientRequestError(SlackIgnoredException):
         }
         if self.location:
             if self.field_path:
-                result["loc"] = [self.location.value] + self.field_path
+                result["loc"] = [self.location.value, *self.field_path]
             else:
                 result["loc"] = [self.location.value]
         return result

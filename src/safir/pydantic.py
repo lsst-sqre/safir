@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, ParamSpec, TypeVar
 
 from pydantic import BaseModel
@@ -60,11 +60,11 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
     if v is None:
         return v
     elif isinstance(v, int):
-        return datetime.fromtimestamp(v, tz=timezone.utc)
+        return datetime.fromtimestamp(v, tz=UTC)
     elif v.tzinfo and v.tzinfo.utcoffset(v) is not None:
-        return v.astimezone(timezone.utc)
+        return v.astimezone(UTC)
     else:
-        return v.replace(tzinfo=timezone.utc)
+        return v.replace(tzinfo=UTC)
 
 
 def normalize_isodatetime(v: str | None) -> datetime | None:
@@ -113,7 +113,7 @@ def normalize_isodatetime(v: str | None) -> datetime | None:
     try:
         return datetime.fromisoformat(v[:-1] + "+00:00")
     except Exception as e:
-        raise ValueError(f"Invalid date {v}: {str(e)}") from e
+        raise ValueError(f"Invalid date {v}: {e!s}") from e
 
 
 def to_camel_case(string: str) -> str:

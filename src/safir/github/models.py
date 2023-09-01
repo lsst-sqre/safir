@@ -67,8 +67,9 @@ class GitHubUserModel(BaseModel):
 
 
 class GitHubRepositoryModel(BaseModel):
-    """A Pydantic model for the ``repository`` field, often found in webhook
-    payloads.
+    """A Pydantic model for the ``repository`` field.
+
+    This field is often found in webhook payloads.
 
     https://docs.github.com/en/rest/repos/repos#get-a-repository
     """
@@ -270,8 +271,10 @@ class GitHubCheckSuiteConclusion(str, Enum):
 
 
 class GitHubCheckSuiteModel(BaseModel):
-    """A Pydantic model for the ``check_suite`` field in a ``check_suite``
-    webhook (`~safir.github.webhooks.GitHubCheckSuiteEventModel`).
+    """A Pydantic model for the ``check_suite`` field.
+
+    This field is found in a ``check_suite`` webhook
+    (`~safir.github.webhooks.GitHubCheckSuiteEventModel`).
     """
 
     id: str = Field(description="Identifier for this check run.")
@@ -320,9 +323,7 @@ class GitHubCheckRunConclusion(str, Enum):
     """The check run has failed."""
 
     neutral = "neutral"
-    """The check run has a neutral outcome, perhaps because the check was
-    skipped.
-    """
+    """The check run has a neutral outcome, perhaps because it was skipped."""
 
     cancelled = "cancelled"
     """The check run was cancelled."""
@@ -369,8 +370,9 @@ class GitHubCheckRunOutput(BaseModel):
 
 
 class GitHubCheckRunPrInfoModel(BaseModel):
-    """A Pydantic model of the ``pull_requests[]`` items in a check run
-    GitHub API model (`GitHubCheckRunModel`).
+    """A Pydantic model of the ``pull_requests[]`` items.
+
+    These are found in a check run GitHub API model (`GitHubCheckRunModel`).
 
     https://docs.github.com/en/rest/checks/runs#get-a-check-run
     """
@@ -379,8 +381,10 @@ class GitHubCheckRunPrInfoModel(BaseModel):
 
 
 class GitHubCheckRunModel(BaseModel):
-    """A Pydantic model for the "check_run" field in a check_run webhook
-    payload (`~safir.github.webhooks.GitHubCheckRunEventModel`).
+    """A Pydantic model for the ``check_run`` field.
+
+    This is found in a check_run webhook payload
+    (`~safir.github.webhooks.GitHubCheckRunEventModel`).
     """
 
     id: str = Field(description="Identifier for this check run.")

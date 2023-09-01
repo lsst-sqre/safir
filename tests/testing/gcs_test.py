@@ -6,7 +6,7 @@ the basic calls work.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import google.auth
@@ -79,7 +79,7 @@ def test_mock_files(mock_gcs_file: MockStorageClient) -> None:
     assert blob.exists()
     assert blob.size == this_file.stat().st_size
     assert blob.updated == datetime.fromtimestamp(
-        this_file.stat().st_mtime, tz=timezone.utc
+        this_file.stat().st_mtime, tz=UTC
     )
     assert blob.etag == str(this_file.stat().st_ino)
     assert blob.download_as_bytes() == this_file.read_bytes()

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import gidgethub.apps
 import httpx
 from gidgethub.httpx import GitHubAPI
 
 
 class GitHubAppClientFactory:
-    """Factory for creating GitHub App clients authenticated either as an app
-    or as an installation of that app.
+    """Create GitHub App clients.
+
+    Provides a factory for creating GitHub App clients authenticated either as
+    an app or as an installation of that app.
 
     Parameters
     ----------
@@ -48,9 +48,7 @@ class GitHubAppClientFactory:
             app_id=self.app_id, private_key=self.app_key
         )
 
-    def _create_client(
-        self, *, oauth_token: Optional[str] = None
-    ) -> GitHubAPI:
+    def _create_client(self, *, oauth_token: str | None = None) -> GitHubAPI:
         return GitHubAPI(
             self._http_client, self.app_name, oauth_token=oauth_token
         )
@@ -78,8 +76,10 @@ class GitHubAppClientFactory:
     async def create_installation_client(
         self, installation_id: str
     ) -> GitHubAPI:
-        """Create a client authenticated as an installation of the GitHub App
-        for a specific repository or organization.
+        """Create a client for an installation of the GitHub App.
+
+        The resulting client is authenticated as an installation of the GitHub
+        App for a specific repository or organization.
 
         Parameters
         ----------
@@ -106,8 +106,10 @@ class GitHubAppClientFactory:
     async def create_installation_client_for_repo(
         self, owner: str, repo: str
     ) -> GitHubAPI:
-        """Create a client authenticated as an installation of the GitHub App
-        for a specific repository or organization.
+        """Create a client for a repository installation of the GitHub App.
+
+        The resulting client is authenticated as an installation of the GitHub
+        App for a specific repository.
 
         Parameters
         ----------

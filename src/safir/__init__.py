@@ -1,4 +1,6 @@
-"""Safir is the Rubin Observatory's library for building FastAPI services
+"""Support library for the Rubin Science Platform.
+
+Safir is the Rubin Observatory's library for building FastAPI services
 for the Rubin Science Platform.
 """
 

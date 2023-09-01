@@ -31,16 +31,18 @@ __all__ = [
 
 
 class GitHubAppInstallationModel(BaseModel):
-    """A Pydantic model for the ``installation`` field found in webhook
-    payloads for GitHub Apps.
+    """A Pydantic model for the ``installation`` field found.
+
+    This field is found in webhook payloads for GitHub Apps.
     """
 
     id: str = Field(description="The installation ID.")
 
 
 class GitHubPushEventModel(BaseModel):
-    """A Pydantic model for the ``push`` event webhook when a commit or
-    tag is pushed.
+    """A Pydantic model for the ``push`` event webhook.
+
+    This webhook is triggered when a commit or tag is pushed.
 
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#push
     """
@@ -71,8 +73,10 @@ class GitHubPushEventModel(BaseModel):
 
 
 class GitHubAppInstallationEventRepoModel(BaseModel):
-    """A pydantic model for repository objects used by
-    `GitHubAppInstallationRepositoriesEventModel`.
+    """A Pydantic model for repository objects used by installation events.
+
+    See `GitHubAppInstallationRepositoriesEventModel` for where this model is
+    used.
 
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#installation
     """
@@ -94,8 +98,10 @@ class GitHubAppInstallationEventRepoModel(BaseModel):
 
 
 class GitHubAppInstallationEventAction(str, Enum):
-    """The action performed on an GitHub App ``installation`` webhook
-    (`GitHubAppInstallationEventModel`).
+    """The action performed on an GitHub App ``installation`` webhook.
+
+    See `GitHubAppInstallationEventModel` for the model of the event where
+    this model is used.
     """
 
     created = "created"
@@ -136,8 +142,10 @@ class GitHubAppInstallationEventModel(BaseModel):
 
 
 class GitHubAppInstallationRepositoriesEventAction(str, Enum):
-    """The action performed on a GitHub App ``installation_repositories``
-    webhook (`GitHubAppInstallationRepositoriesEventModel`).
+    """A Pydantic model for a ``installation_repositories`` action.
+
+    This model is for the action performed on a ``installation_repositories``
+    GitHub App webhook (`GitHubAppInstallationRepositoriesEventModel`).
     """
 
     #: Someone added a repository to an installation.
@@ -171,8 +179,9 @@ class GitHubAppInstallationRepositoriesEventModel(BaseModel):
 
 
 class GitHubPullRequestEventAction(str, Enum):
-    """The action performed on a GitHub ``pull_request`` webhook
-    (`GitHubPullRequestEventModel`).
+    """The action performed on a GitHub ``pull_request`` webhook.
+
+    See `GitHubPullRequestEventModel` for where this model is used.
     """
 
     assigned = "assigned"
@@ -267,8 +276,9 @@ class GitHubPullRequestEventModel(BaseModel):
 
 
 class GitHubCheckSuiteEventAction(str, Enum):
-    """The action performed in a GitHub ``check_suite`` webhook
-    (`GitHubCheckSuiteEventModel`).
+    """The action performed in a GitHub ``check_suite`` webhook.
+
+    See `GitHubCheckSuiteEventModel` for where this model is used.
     """
 
     completed = "completed"
@@ -307,8 +317,9 @@ class GitHubCheckSuiteEventModel(BaseModel):
 
 
 class GitHubCheckRunEventAction(str, Enum):
-    """The action performed in a GitHub ``check_run`` webhook
-    (`GitHubCheckRunEventModel`).
+    """The action performed in a GitHub ``check_run`` webhook.
+
+    See `GitHubCheckRunEventModel` for where this model is used.
     """
 
     completed = "completed"

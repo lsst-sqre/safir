@@ -1,12 +1,10 @@
-"""Standardized metadata for Roundtable HTTP services.
-"""
+"""Standardized metadata for Roundtable HTTP services."""
 
 from __future__ import annotations
 
-import sys
 from email.message import Message
 from importlib.metadata import metadata
-from typing import Optional, cast
+from typing import cast
 
 from pydantic import BaseModel, Field
 
@@ -20,15 +18,15 @@ class Metadata(BaseModel):
 
     version: str = Field(..., title="Version", example="1.0.0")
 
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None, title="Description", example="string"
     )
 
-    repository_url: Optional[str] = Field(
+    repository_url: str | None = Field(
         None, title="Repository URL", example="https://example.com/"
     )
 
-    documentation_url: Optional[str] = Field(
+    documentation_url: str | None = Field(
         None, title="Documentation URL", example="https://example.com/"
     )
 
@@ -78,10 +76,7 @@ def get_metadata(*, package_name: str, application_name: str) -> Metadata:
     project_urls, Source code
         Used as the ``respository_url``.
     """
-    if sys.version_info >= (3, 10):
-        pkg_metadata = cast(Message, metadata(package_name))
-    else:
-        pkg_metadata = metadata(package_name)
+    pkg_metadata = cast(Message, metadata(package_name))
 
     # Newer packages that use pyproject.toml only do not use the Home-page
     # field (setuptools in pyproject.toml mode does not support it) and use
@@ -103,7 +98,7 @@ def get_metadata(*, package_name: str, application_name: str) -> Metadata:
     )
 
 
-def get_project_url(meta: Message, label: str) -> Optional[str]:
+def get_project_url(meta: Message, label: str) -> str | None:
     """Get a specific URL from a package's ``project_urls`` metadata.
 
     Parameters

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import safir.github.webhooks as webhooks
+from safir.github import webhooks
 from safir.github.models import (
     GitHubCheckRunStatus,
     GitHubCheckSuiteConclusion,

@@ -23,9 +23,7 @@ class DemoModel(BaseModel):
 
 
 async def basic_testing(storage: PydanticRedisStorage[DemoModel]) -> None:
-    """Test basic storage operations for either encrypted or unencrypted
-    storage.
-    """
+    """Test basic storage operations for encrypted and unencrypted storage."""
     await storage.store("mark42", DemoModel(name="Mark", value=42))
     await storage.store("mark13", DemoModel(name="Mark", value=13))
     await storage.store("jon7", DemoModel(name="Jon", value=7))
@@ -143,9 +141,7 @@ async def test_deserialization_error(redis_client: redis.Redis) -> None:
 async def test_deserialization_error_with_key_prefix(
     redis_client: redis.Redis,
 ) -> None:
-    """Test that deserialization errors are presented correctly when a key
-    prefix is used.
-    """
+    """Test deserialization error formatting when a key prefix is used."""
     storage = PydanticRedisStorage(
         datatype=DemoModel, redis=redis_client, key_prefix="test:"
     )

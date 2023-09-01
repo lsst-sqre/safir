@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import overload
 
 __all__ = [
@@ -36,7 +36,7 @@ def current_datetime(*, microseconds: bool = False) -> datetime:
         The current time forced to UTC and optionally with the microseconds
         field zeroed.
     """
-    result = datetime.now(tz=timezone.utc)
+    result = datetime.now(tz=UTC)
     if microseconds:
         return result
     else:
@@ -75,8 +75,8 @@ def format_datetime_for_logging(timestamp: datetime | None) -> str | None:
         Raised if the argument is in a time zone other than UTC.
     """
     if timestamp:
-        if timestamp.tzinfo not in (None, timezone.utc):
-            raise ValueError("Datetime {timestamp} not in UTC")
+        if timestamp.tzinfo not in (None, UTC):
+            raise ValueError(f"datetime {timestamp} not in UTC")
         if timestamp.microsecond:
             result = timestamp.isoformat(sep=" ", timespec="milliseconds")
         else:
@@ -106,8 +106,8 @@ def isodatetime(timestamp: datetime) -> str:
     ValueError
         The provided timestamp was not in UTC.
     """
-    if timestamp.tzinfo not in (None, timezone.utc):
-        raise ValueError("Datetime {timestamp} not in UTC")
+    if timestamp.tzinfo not in (None, UTC):
+        raise ValueError(f"datetime {timestamp} not in UTC")
     return timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 

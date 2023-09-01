@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from arq.constants import default_queue_name
@@ -37,7 +37,7 @@ async def test_arq_dependency_mock() -> None:
     @app.get("/jobs/{job_id}")
     async def get_metadata(
         job_id: str,
-        queue_name: Optional[str] = None,
+        queue_name: str | None = None,
         arq_queue: MockArqQueue = Depends(arq_dependency),
     ) -> dict[str, Any]:
         """Get metadata about a job."""
@@ -45,8 +45,8 @@ async def test_arq_dependency_mock() -> None:
             job = await arq_queue.get_job_metadata(
                 job_id, queue_name=queue_name
             )
-        except JobNotFound:
-            raise HTTPException(status_code=404)
+        except JobNotFound as e:
+            raise HTTPException(status_code=404) from e
         return {
             "job_id": job.id,
             "job_status": job.status,
@@ -59,7 +59,7 @@ async def test_arq_dependency_mock() -> None:
     @app.get("/results/{job_id}")
     async def get_result(
         job_id: str,
-        queue_name: Optional[str] = None,
+        queue_name: str | None = None,
         arq_queue: MockArqQueue = Depends(arq_dependency),
     ) -> dict[str, Any]:
         """Get the results for a job."""
@@ -68,7 +68,7 @@ async def test_arq_dependency_mock() -> None:
                 job_id, queue_name=queue_name
             )
         except (JobNotFound, JobResultUnavailable) as e:
-            raise HTTPException(status_code=404, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from e
         return {
             "job_id": job_result.id,
             "job_status": job_result.status,
@@ -83,20 +83,21 @@ async def test_arq_dependency_mock() -> None:
     @app.post("/jobs/{job_id}/inprogress")
     async def post_job_inprogress(
         job_id: str,
-        queue_name: Optional[str] = None,
+        queue_name: str | None = None,
         arq_queue: MockArqQueue = Depends(arq_dependency),
     ) -> None:
         """Toggle a job to in-progress, for testing."""
         try:
             await arq_queue.set_in_progress(job_id, queue_name=queue_name)
         except JobNotFound as e:
-            raise HTTPException(status_code=404, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from e
 
     @app.post("/jobs/{job_id}/complete")
     async def post_job_complete(
         job_id: str,
-        queue_name: Optional[str] = None,
-        result: Optional[str] = None,
+        *,
+        queue_name: str | None = None,
+        result: str | None = None,
         success: bool = True,
         arq_queue: MockArqQueue = Depends(arq_dependency),
     ) -> None:
@@ -106,7 +107,7 @@ async def test_arq_dependency_mock() -> None:
                 job_id, result=result, success=success, queue_name=queue_name
             )
         except JobNotFound as e:
-            raise HTTPException(status_code=404, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from e
 
     @app.on_event("startup")
     async def startup() -> None:

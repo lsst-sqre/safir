@@ -7,7 +7,7 @@ the basic calls work. There is no attempt to test all of the supported APIs.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from kubernetes_asyncio.client import (
@@ -95,7 +95,7 @@ async def test_mock(mock_kubernetes: MockKubernetesApi) -> None:
         raise ValueError("some exception")
 
     mock_kubernetes.error_callback = error
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match="some exception") as excinfo:
         await mock_kubernetes.replace_namespaced_custom_object(
             "gafaelfawr.lsst.io",
             "v1alpha1",
@@ -111,7 +111,7 @@ async def watch_events(
     mock_kubernetes: MockKubernetesApi,
     namespace: str,
     *,
-    resource_version: Optional[str] = None,
+    resource_version: str | None = None,
 ) -> list[CoreV1Event]:
     """Watch events, returning when an event with message ``Done`` is seen."""
     method = mock_kubernetes.list_namespaced_event

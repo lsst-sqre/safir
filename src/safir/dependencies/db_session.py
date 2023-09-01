@@ -1,7 +1,6 @@
 """Manage an async database session."""
 
 from collections.abc import AsyncIterator
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
@@ -37,9 +36,9 @@ class DatabaseSessionDependency:
     """
 
     def __init__(self) -> None:
-        self._engine: Optional[AsyncEngine] = None
-        self._override_engine: Optional[AsyncEngine] = None
-        self._session: Optional[async_scoped_session] = None
+        self._engine: AsyncEngine | None = None
+        self._override_engine: AsyncEngine | None = None
+        self._session: async_scoped_session | None = None
 
     async def __call__(self) -> AsyncIterator[async_scoped_session]:
         """Return the database session manager.
@@ -49,7 +48,8 @@ class DatabaseSessionDependency:
         sqlalchemy.ext.asyncio.AsyncSession
             The newly-created session.
         """
-        assert self._session, "db_session_dependency not initialized"
+        if not self._session:
+            raise RuntimeError("db_session_dependency not initialized")
         yield self._session
 
         # Following the recommendations in the SQLAlchemy documentation, each
@@ -69,7 +69,7 @@ class DatabaseSessionDependency:
         url: str,
         password: str | None,
         *,
-        isolation_level: Optional[str] = None,
+        isolation_level: str | None = None,
     ) -> None:
         """Initialize the session dependency.
 

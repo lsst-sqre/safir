@@ -7,7 +7,7 @@ import logging.config
 import re
 import sys
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 from structlog.stdlib import add_log_level
@@ -22,7 +22,7 @@ __all__ = [
     "logger_name",
 ]
 
-logger_name: Optional[str] = None
+logger_name: str | None = None
 """Name of the configured global logger.
 
 When `configure_logging` is called, the name of the configured logger is

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from ipaddress import _BaseAddress, _BaseNetwork, ip_address
-from typing import Optional
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -39,7 +38,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
     """
 
     def __init__(
-        self, app: FastAPI, *, proxies: Optional[list[_BaseNetwork]] = None
+        self, app: FastAPI, *, proxies: list[_BaseNetwork] | None = None
     ) -> None:
         super().__init__(app)
         if proxies:
@@ -74,7 +73,7 @@ class XForwardedMiddleware(BaseHTTPMiddleware):
 
         client = None
         for n, ip in enumerate(forwarded_for):
-            if any((ip in network for network in self.proxies)):
+            if any(ip in network for network in self.proxies):
                 continue
             client = str(ip)
             index = n

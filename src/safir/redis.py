@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 try:
     import redis.asyncio as redis
-except ImportError:
+except ImportError as e:
     raise ImportError(
         "The safir.redis module requires the redis extra. "
         "Install it with `pip install safir[redis]`."
-    )
+    ) from e
 from cryptography.fernet import Fernet
 from pydantic import BaseModel
 
@@ -31,7 +31,9 @@ __all__ = [
 
 
 class DeserializeError(SlackException):
-    """Raised when a stored Pydantic object in Redis cannot be decoded (and
+    """Error decoding or deserializing a Pydantic object from Redis.
+
+    Raised when a stored Pydantic object in Redis cannot be decoded (and
     possibly decrypted) or deserialized.
 
     Parameters
@@ -140,7 +142,7 @@ class PydanticRedisStorage(Generic[S]):
         try:
             return self._deserialize(data)
         except Exception as e:
-            error = f"{type(e).__name__}: {str(e)}"
+            error = f"{type(e).__name__}: {e!s}"
             msg = f"Cannot deserialize data for key {full_key}"
             raise DeserializeError(msg, key=full_key, error=error) from e
 
@@ -163,7 +165,7 @@ class PydanticRedisStorage(Generic[S]):
             yield key.decode().removeprefix(self._key_prefix)
 
     async def store(
-        self, key: str, obj: S, lifetime: Optional[int] = None
+        self, key: str, obj: S, lifetime: int | None = None
     ) -> None:
         """Store an object.
 

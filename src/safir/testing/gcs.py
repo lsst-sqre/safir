@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BufferedReader
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import Mock, patch
 
 from google.cloud import storage
@@ -33,7 +33,7 @@ class MockBlob(Mock):
     """
 
     def __init__(
-        self, name: str, expected_expiration: Optional[timedelta] = None
+        self, name: str, expected_expiration: timedelta | None = None
     ) -> None:
         super().__init__(spec=storage.blob.Blob)
         self.name = name
@@ -45,8 +45,8 @@ class MockBlob(Mock):
         version: str,
         expiration: timedelta,
         method: str,
-        response_type: Optional[str] = None,
-        credentials: Optional[Any] = None,
+        response_type: str | None = None,
+        credentials: Any | None = None,
     ) -> str:
         """Generate a mock signed URL for testing.
 
@@ -105,7 +105,7 @@ class MockFileBlob(MockBlob):
         self,
         name: str,
         path: Path,
-        expected_expiration: Optional[timedelta] = None,
+        expected_expiration: timedelta | None = None,
     ) -> None:
         super().__init__(name, expected_expiration)
         self._path = path
@@ -113,7 +113,7 @@ class MockFileBlob(MockBlob):
         if self._exists:
             self.size = self._path.stat().st_size
             mtime = self._path.stat().st_mtime
-            self.updated = datetime.fromtimestamp(mtime, tz=timezone.utc)
+            self.updated = datetime.fromtimestamp(mtime, tz=UTC)
             self.etag = str(self._path.stat().st_ino)
 
     def download_as_bytes(self) -> bytes:
@@ -163,7 +163,6 @@ class MockFileBlob(MockBlob):
 
         This does nothing in the mock.
         """
-        pass
 
 
 class MockBucket(Mock):
@@ -183,8 +182,8 @@ class MockBucket(Mock):
     def __init__(
         self,
         bucket_name: str,
-        expected_expiration: Optional[timedelta] = None,
-        path: Optional[Path] = None,
+        expected_expiration: timedelta | None = None,
+        path: Path | None = None,
     ) -> None:
         super().__init__(spec=storage.bucket.Bucket)
         self._expected_expiration = expected_expiration
@@ -234,9 +233,9 @@ class MockStorageClient(Mock):
 
     def __init__(
         self,
-        expected_expiration: Optional[timedelta] = None,
-        path: Optional[Path] = None,
-        bucket_name: Optional[str] = None,
+        expected_expiration: timedelta | None = None,
+        path: Path | None = None,
+        bucket_name: str | None = None,
     ) -> None:
         super().__init__(spec=storage.Client)
         self._bucket_name = bucket_name
@@ -265,9 +264,9 @@ class MockStorageClient(Mock):
 
 def patch_google_storage(
     *,
-    expected_expiration: Optional[timedelta] = None,
-    path: Optional[Path] = None,
-    bucket_name: Optional[str] = None,
+    expected_expiration: timedelta | None = None,
+    path: Path | None = None,
+    bucket_name: str | None = None,
 ) -> Iterator[MockStorageClient]:
     """Replace the Google Cloud Storage API with a mock class.
 

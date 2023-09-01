@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from urllib.parse import unquote, urlparse
 
 import pytest
@@ -170,7 +170,7 @@ async def test_create_sync_session() -> None:
 
 
 def test_datetime() -> None:
-    tz_aware = datetime.now(tz=timezone.utc)
+    tz_aware = datetime.now(tz=UTC)
     tz_naive = tz_aware.replace(tzinfo=None)
 
     assert datetime_to_db(tz_aware) == tz_naive
@@ -180,11 +180,11 @@ def test_datetime() -> None:
     assert datetime_to_db(None) is None
     assert datetime_from_db(None) is None
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"datetime .* not in UTC"):
         datetime_to_db(tz_naive)
 
     tz_local = datetime.now(tz=timezone(timedelta(hours=1)))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"datetime .* not in UTC"):
         datetime_to_db(tz_local)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"datetime .* not in UTC"):
         datetime_from_db(tz_local)

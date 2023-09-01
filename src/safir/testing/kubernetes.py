@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 from kubernetes_asyncio import client, config
@@ -77,13 +77,15 @@ def _parse_label_selector(label_selector: str) -> dict[str, str]:
     result = {}
     for requirement in label_selector.split(","):
         match = re.match(r"([^!=]+)==?(.*)", requirement)
-        assert match and match.group(1) and match.group(2)
+        assert match
+        assert match.group(1)
+        assert match.group(2)
         result[match.group(1)] = match.group(2)
     return result
 
 
 def _check_labels(
-    obj_labels: Optional[dict[str, str]], label_selector: Optional[str]
+    obj_labels: dict[str, str] | None, label_selector: str | None
 ) -> bool:
     """Check whether an object's labels match the label selector supplied.
 
@@ -144,16 +146,18 @@ def strip_none(model: dict[str, Any]) -> dict[str, Any]:
     for key, value in model.items():
         if value is None:
             continue
+        new_value = value
         if isinstance(value, dict):
-            value = strip_none(value)
+            new_value: Any = strip_none(value)
         elif isinstance(value, list):
             list_result = []
             for item in value:
                 if isinstance(item, dict):
-                    item = strip_none(item)
-                list_result.append(item)
-            value = list_result
-        result[key] = value
+                    list_result.append(strip_none(item))
+                else:
+                    list_result.append(item)
+            new_value = list_result
+        result[key] = new_value
     return result
 
 
@@ -197,11 +201,11 @@ class _EventStream:
 
     def build_watch_response(
         self,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
     ) -> Mock:
         """Construct a response to a watch request.
 
@@ -245,7 +249,7 @@ class _EventStream:
         response.content.readline.side_effect = readline
         return response
 
-    def _build_watcher(
+    def _build_watcher(  # noqa: C901
         self,
         resource_version: str | None,
         timeout_seconds: int | None,
@@ -291,7 +295,8 @@ class _EventStream:
         name = None
         if field_selector:
             match = re.match(r"metadata\.name=(.*)$", field_selector)
-            assert match and match.group(1)
+            assert match
+            assert match.group(1)
             name = match.group(1)
 
         # Create and register a new trigger.
@@ -387,7 +392,7 @@ class MockKubernetesApi:
     """
 
     def __init__(self) -> None:
-        self.error_callback: Optional[Callable[..., None]] = None
+        self.error_callback: Callable[..., None] | None = None
         self.initial_pod_phase = "Running"
 
         self._custom_kinds: dict[str, str] = {}
@@ -417,12 +422,12 @@ class MockKubernetesApi:
         for namespace in sorted(self._objects.keys()):
             if key not in self._objects[namespace]:
                 continue
-            for name, obj in sorted(self._objects[namespace][key].items()):
+            for _name, obj in sorted(self._objects[namespace][key].items()):
                 results.append(obj)
         return results
 
     def get_namespace_objects_for_test(self, namespace: str) -> list[Any]:
-        """Returns all objects in the given namespace.
+        """Return all objects in the given namespace.
 
         Parameters
         ----------
@@ -613,8 +618,8 @@ class MockKubernetesApi:
         self._maybe_error("list_cluster_custom_object", group, version, plural)
         key = f"{group}/{version}/{plural}"
         results = []
-        for namespace in self._objects.keys():
-            for name, obj in self._objects[namespace].get(key, {}).items():
+        for namespace in self._objects:
+            for obj in self._objects[namespace].get(key, {}).values():
                 results.append(obj)
         return {"items": results}
 
@@ -829,12 +834,12 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> CoreV1EventList | Mock:
         """List namespaced events.
 
@@ -984,13 +989,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1IngressList | Mock:
         """List ingress objects in a namespace.
 
@@ -1040,7 +1045,8 @@ class MockKubernetesApi:
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
+                assert match
+                assert match.group(1)
                 try:
                     ingress = self._get_object(
                         namespace, "Ingress", match.group(1)
@@ -1222,13 +1228,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1JobList | Mock:
         """List job objects in a namespace.
 
@@ -1278,7 +1284,8 @@ class MockKubernetesApi:
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
+                assert match
+                assert match.group(1)
                 try:
                     job = self._get_object(namespace, "Job", match.group(1))
                     return V1JobList(kind="Job", items=[job])
@@ -1583,13 +1590,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1PodList | Mock:
         """List pod objects in a namespace.
 
@@ -1638,7 +1645,8 @@ class MockKubernetesApi:
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
+                assert match
+                assert match.group(1)
                 try:
                     pod = self._get_object(namespace, "Pod", match.group(1))
                     if _check_labels(pod.metadata.labels, label_selector):
@@ -1866,7 +1874,7 @@ class MockKubernetesApi:
             elif change["path"] == "/metadata/labels":
                 obj.metadata.labels = change["value"]
             else:
-                assert False, f'unsupported path {change["path"]}'
+                raise AssertionError(f"unsupported path {change['path']}")
         self._store_object(namespace, "Secret", name, obj, replace=True)
 
     async def read_namespaced_secret(
@@ -1977,13 +1985,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1ServiceList | Mock:
         """List service objects in a namespace.
 
@@ -2033,7 +2041,8 @@ class MockKubernetesApi:
         if not watch:
             if field_selector:
                 match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
+                assert match
+                assert match.group(1)
                 try:
                     service = self._get_object(
                         namespace, "Service", match.group(1)
@@ -2131,7 +2140,11 @@ class MockKubernetesApi:
         return self._objects[namespace][key][name]
 
     def _maybe_error(self, method: str, *args: Any) -> None:
-        """Helper function to avoid using class method call syntax."""
+        """Call the error callback if one is registered.
+
+        This is a separate helper function to avoid using class method call
+        syntax.
+        """
         if self.error_callback:
             callback = self.error_callback
             callback(method, *args)
@@ -2142,6 +2155,7 @@ class MockKubernetesApi:
         key: str,
         name: str,
         obj: Any,
+        *,
         replace: bool = False,
     ) -> None:
         """Store an object in internal data structures.
