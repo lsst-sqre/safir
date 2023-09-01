@@ -31,3 +31,4 @@ User guide
    slack-webhook
    github-apps/index
    click
+   asyncio-queue

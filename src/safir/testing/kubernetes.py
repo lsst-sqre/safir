@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import copy
 import json
 import os
@@ -45,7 +44,7 @@ from kubernetes_asyncio.client import (
     V1Status,
 )
 
-from ..datetime import current_datetime
+from ..asyncio import AsyncMultiQueue
 
 __all__ = [
     "MockKubernetesApi",
@@ -166,14 +165,14 @@ class _EventStream:
     a stream of watchable events and a list of `asyncio.Event` triggers. A
     watch can register interest in this event stream, in which case its
     trigger will be notified when anything new is added to the event stream.
+
     The events are generic dicts, which will be interpreted by the Kubernetes
     library differently depending on which underlying API is using this data
     structure.
     """
 
     def __init__(self) -> None:
-        self._events: list[dict[str, Any]] = []
-        self._triggers: list[asyncio.Event] = []
+        self._queue = AsyncMultiQueue[dict[str, Any]]()
 
     @property
     def next_resource_version(self) -> str:
@@ -183,7 +182,7 @@ class _EventStream:
         special and means to return all known events, so it must be adjusted
         when indexing into a list of events.
         """
-        return str(len(self._events) + 1)
+        return str(self._queue.qsize() + 1)
 
     def add_event(self, event: dict[str, Any]) -> None:
         """Add a new event and notify all watchers.
@@ -193,9 +192,7 @@ class _EventStream:
         event
             New event.
         """
-        self._events.append(event)
-        for trigger in self._triggers:
-            trigger.set()
+        self._queue.put(event)
 
     def build_watch_response(
         self,
@@ -247,7 +244,7 @@ class _EventStream:
         response.content.readline.side_effect = readline
         return response
 
-    def _build_watcher(  # noqa: C901
+    def _build_watcher(
         self,
         resource_version: str | None,
         timeout_seconds: int | None,
@@ -287,7 +284,7 @@ class _EventStream:
         """
         timeout = None
         if timeout_seconds is not None:
-            timeout = current_datetime() + timedelta(seconds=timeout_seconds)
+            timeout = timedelta(seconds=timeout_seconds)
 
         # Parse the field selector, if one was provided.
         name = None
@@ -297,42 +294,22 @@ class _EventStream:
             assert match.group(1)
             name = match.group(1)
 
-        # Create and register a new trigger.
-        trigger = asyncio.Event()
-        self._triggers.append(trigger)
-
         # Construct the iterator.
         async def next_event() -> AsyncIterator[bytes]:
             if resource_version:
-                position = int(resource_version)
+                start = int(resource_version)
             else:
-                position = len(self._events)
-            while True:
-                for event in self._events[position:]:
-                    position += 1
+                start = self._queue.qsize()
+            try:
+                async for event in self._queue.aiter_from(start, timeout):
                     if name and event["object"]["metadata"]["name"] != name:
                         continue
-                    if not _check_labels(
-                        event["object"]["metadata"]["labels"], label_selector
-                    ):
+                    labels = event["object"]["metadata"]["labels"]
+                    if not _check_labels(labels, label_selector):
                         continue
                     yield json.dumps(event).encode()
-                if not timeout:
-                    await trigger.wait()
-                else:
-                    now = current_datetime()
-                    timeout_left = (timeout - now).total_seconds()
-                    if timeout_left <= 0:
-                        yield b""
-                        break
-                    try:
-                        async with asyncio.timeout(timeout_left):
-                            await trigger.wait()
-                    except TimeoutError:
-                        yield b""
-                        break
-                trigger.clear()
-            self._triggers = [t for t in self._triggers if t != trigger]
+            except TimeoutError:
+                yield b""
 
         # Return the iterator.
         return next_event()
