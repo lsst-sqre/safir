@@ -93,7 +93,7 @@ For example, to handle the ``push`` event, you would add a handler function like
        logger.info("Received push event", payload=event.data)
 
 The argument to the ``register`` decorator is the name of the GitHub event that the decorated function should handle.
-GitHub provides `a listing of all the events <https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads>`__ that can be handled by a GitHub App.
+GitHub provides `a listing of all the events <https://docs.github.com/en/webhooks/webhook-events-and-payloads>`__ that can be handled by a GitHub App.
 
 Many events have multiple *actions* associated with them.
 For example, a pull request could be opened, closed, or merged, among other possibilities.

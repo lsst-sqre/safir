@@ -273,7 +273,7 @@ Included in this release is:
 - A FastAPI dependency to provide a structlog logger as configured by the `safir.logging` package, replacing the aiohttp middleware.
 - A FastAPI dependency to provide a global `httpx.AsyncClient`, replacing the middleware that provided an aiohttp client.
 - Starlette (FastAPI) middleware to parse `X-Forwarded-*` headers and update request information accordingly.
-- `safir.metadata.get_metadata` now returns a [Pydantic](https://docs.pydantic.dev/) model.
+- `safir.metadata.get_metadata` now returns a [Pydantic](https://docs.pydantic.dev/latest/) model.
 
 As of this release, Safir only supports Python 3.8 or later.
 
