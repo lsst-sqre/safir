@@ -130,12 +130,6 @@ exclude = '''
 # Use single-quoted strings so TOML treats the string like a Python r-string
 # Multi-line strings are implicitly treated by black as regular expressions
 
-[tool.isort]
-profile = "black"
-line_length = 79
-known_first_party = ["safir", "tests"]
-skip = ["docs/conf.py"]
-
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 filterwarnings = [
@@ -170,6 +164,114 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 warn_untyped_fields = true
+
+# The rule used with Ruff configuration is to disable every lint that has
+# legitimate exceptions that are not dodgy code, rather than cluttering code
+# with noqa markers. This is therefore a reiatively relaxed configuration that
+# errs on the side of disabling legitimate lints.
+#
+# Reference for settings: https://beta.ruff.rs/docs/settings/
+# Reference for rules: https://beta.ruff.rs/docs/rules/
+[tool.ruff]
+exclude = [
+    "docs/**",
+]
+line-length = 79
+ignore = [
+    "ANN101",  # self should not have a type annotation
+    "ANN102",  # cls should not have a type annotation
+    "ANN401",  # sometimes Any is the right type
+    "ARG001",  # unused function arguments are often legitimate
+    "ARG002",  # unused method arguments are often legitimate
+    "ARG005",  # unused lambda arguments are often legitimate
+    "BLE001",  # we want to catch and report Exception in background tasks
+    "C414",    # nested sorted is how you sort by multiple keys with reverse
+    "COM812",  # omitting trailing commas allows black autoreformatting
+    "D102",    # sometimes we use docstring inheritence
+    "D104",    # don't see the point of documenting every package
+    "D105",    # our style doesn't require docstrings for magic methods
+    "D106",    # Pydantic uses a nested Config class that doesn't warrant docs
+    "EM101",   # justification (duplicate string in traceback) is silly
+    "EM102",   # justification (duplicate string in traceback) is silly
+    "FBT003",  # positional booleans are normal for Pydantic field defaults
+    "FIX002",  # point of a TODO comment is that we're not ready to fix it
+    "G004",    # forbidding logging f-strings is appealing, but not our style
+    "RET505",  # disagree that omitting else always makes code more readable
+    "PLR0913", # factory pattern uses constructors with many arguments
+    "PLR2004", # too aggressive about magic values
+    "S105",    # good idea but too many false positives on non-passwords
+    "S106",    # good idea but too many false positives on non-passwords
+    "S603",    # not going to manually mark every subprocess call as reviewed
+    "S607",    # using PATH is not a security vulnerability
+    "SIM102",  # sometimes the formatting of nested if statements is clearer
+    "SIM117",  # sometimes nested with contexts are clearer
+    "TCH001",  # we decided to not maintain separate TYPE_CHECKING blocks
+    "TCH002",  # we decided to not maintain separate TYPE_CHECKING blocks
+    "TCH003",  # we decided to not maintain separate TYPE_CHECKING blocks
+    "TD003",   # we don't require issues be created for TODOs
+    "TID252",  # if we're going to use relative imports, use them always
+    "TRY003",  # good general advice but lint is way too aggressive
+
+    # Safir-specific rules.
+    "N818",    # Exception is correct in some cases, others are part of API
+    "PLW0603", # necessary trick for safir.logging
+]
+select = ["ALL"]
+target-version = "py311"
+
+[tool.ruff.per-file-ignores]
+"src/safir/testing/**" = [
+    "S101",    # test support functions are allowed to use assert
+]
+"tests/**" = [
+    "C901",    # tests are allowed to be complex, sometimes that's convenient
+    "D101",    # tests don't need docstrings
+    "D103",    # tests don't need docstrings
+    "PLR0915", # tests are allowed to be long, sometimes that's convenient
+    "PT012",   # way too aggressive about limiting pytest.raises blocks
+    "S101",    # tests should use assert
+    "SLF001",  # tests are allowed to access private members
+]
+
+[tool.ruff.isort]
+known-first-party = ["safir", "tests"]
+split-on-trailing-comma = false
+
+[tool.ruff.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Form",
+    "fastapi.Header",
+    "fastapi.Depends",
+    "fastapi.Path",
+    "fastapi.Query",
+]
+
+# These are too useful as attributes or methods to allow the conflict with the
+# built-in to rule out their use.
+[tool.ruff.flake8-builtins]
+builtins-ignorelist = [
+    "all",
+    "any",
+    "dict",
+    "help",
+    "id",
+    "list",
+    "open",
+    "type",
+]
+
+[tool.ruff.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.ruff.pep8-naming]
+classmethod-decorators = [
+    "pydantic.root_validator",
+    "pydantic.validator",
+]
+
+[tool.ruff.pydocstyle]
+convention = "numpy"
 
 [tool.scriv]
 categories = [
