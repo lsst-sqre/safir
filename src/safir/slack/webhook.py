@@ -153,7 +153,7 @@ class SlackRouteErrorHandler(APIRoute):
     Notes
     -----
     Based on `this StackOverflow question
-    <https://stackoverflow.com/questions/61596911/>`__.
+    <https://stackoverflow.com/questions/61596911/catch-exception-globally-in-fastapi>`__.
     """
 
     _IGNORED_EXCEPTIONS = (

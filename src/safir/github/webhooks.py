@@ -42,7 +42,7 @@ class GitHubPushEventModel(BaseModel):
     """A Pydantic model for the ``push`` event webhook when a commit or
     tag is pushed.
 
-    https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#push
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#push
     """
 
     repository: GitHubRepositoryModel = Field(
@@ -74,7 +74,7 @@ class GitHubAppInstallationEventRepoModel(BaseModel):
     """A pydantic model for repository objects used by
     `GitHubAppInstallationRepositoriesEventModel`.
 
-    https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#installation
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#installation
     """
 
     name: str = Field(
@@ -119,7 +119,7 @@ class GitHubAppInstallationEventAction(str, Enum):
 class GitHubAppInstallationEventModel(BaseModel):
     """A Pydantic model for an ``installation`` webhook.
 
-    https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#installation
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#installation
     """
 
     action: GitHubAppInstallationEventAction = Field(
@@ -150,7 +150,7 @@ class GitHubAppInstallationRepositoriesEventAction(str, Enum):
 class GitHubAppInstallationRepositoriesEventModel(BaseModel):
     """A Pydantic model for a ``installation_repositories`` webhook.
 
-    https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#installation_repositories
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#installation_repositories
     """
 
     action: GitHubAppInstallationRepositoriesEventAction = Field(
@@ -244,7 +244,7 @@ class GitHubPullRequestEventAction(str, Enum):
 class GitHubPullRequestEventModel(BaseModel):
     """A Pydantic model for a ``pull_request`` webhook.
 
-    https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request
     """
 
     repository: GitHubRepositoryModel = Field(
@@ -286,7 +286,7 @@ class GitHubCheckSuiteEventAction(str, Enum):
 class GitHubCheckSuiteEventModel(BaseModel):
     """A Pydantic model for the ``check_suite`` webhook payload.
 
-    https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_suite
     """
 
     action: GitHubCheckSuiteEventAction = Field(
@@ -329,7 +329,7 @@ class GitHubCheckRunEventAction(str, Enum):
 class GitHubCheckRunEventModel(BaseModel):
     """A Pydantic model for the ``check_run`` webhook payload.
 
-    https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#check_run
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
     """
 
     action: GitHubCheckRunEventAction = Field(

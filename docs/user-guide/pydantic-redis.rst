@@ -85,7 +85,7 @@ A convenient way to generate a Fernet key is with the `cryptography.fernet.Ferne
 
    print(Fernet.generate_key().decode())
 
-Conventionally, you'll store this key in a persistent secret store, such as 1Password or Vault (see the `Phalanx documentation <https://phalanx.lsst.io/developers/add-a-onepassword-secret.html>`__) and then make this key available to your application through an environment variable to your configuration class.
+Conventionally, you'll store this key in a persistent secret store, such as 1Password or Vault (see the `Phalanx documentation <https://phalanx.lsst.io/developers/define-secrets.html>`__) and then make this key available to your application through an environment variable to your configuration class.
 Then pass the key's value to `~safir.redis.EncryptedPydanticRedisStorage` with the ``encryption_key`` parameter:
 
 .. code-block:: python
