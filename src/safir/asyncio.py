@@ -7,9 +7,15 @@ from collections.abc import AsyncIterator, Callable, Coroutine
 from datetime import timedelta
 from functools import wraps
 from types import EllipsisType
-from typing import Any, Generic, TypeVar
+from typing import Generic, ParamSpec, TypeVar
 
 from .datetime import current_datetime
+
+#: Parameter spec for functions decorated by `run_with_asyncio`.
+P = ParamSpec("P")
+
+#: Type variable for return type of decorated by `run_with_asyncio`.
+F = TypeVar("F")
 
 #: Type variable of objects being stored in `AsyncMultiQueue`.
 T = TypeVar("T")
@@ -17,6 +23,8 @@ T = TypeVar("T")
 __all__ = [
     "AsyncMultiQueue",
     "AsyncMultiQueueError",
+    "F",
+    "P",
     "run_with_asyncio",
     "T",
 ]
@@ -187,8 +195,8 @@ class AsyncMultiQueue(Generic[T]):
 
 
 def run_with_asyncio(
-    f: Callable[..., Coroutine[Any, Any, T]]
-) -> Callable[..., T]:
+    f: Callable[P, Coroutine[None, None, T]]
+) -> Callable[P, T]:
     """Run the decorated function with `asyncio.run`.
 
     Intended to be used as a decorator around an async function that needs to
@@ -230,7 +238,7 @@ def run_with_asyncio(
     """
 
     @wraps(f)
-    def wrapper(*args: Any, **kwargs: Any) -> T:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         return asyncio.run(f(*args, **kwargs))
 
     return wrapper
