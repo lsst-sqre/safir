@@ -191,6 +191,7 @@ ignore = [
     "D104",    # don't see the point of documenting every package
     "D105",    # our style doesn't require docstrings for magic methods
     "D106",    # Pydantic uses a nested Config class that doesn't warrant docs
+    "D205",    # our documentation style allows a folded first line
     "EM101",   # justification (duplicate string in traceback) is silly
     "EM102",   # justification (duplicate string in traceback) is silly
     "FBT003",  # positional booleans are normal for Pydantic field defaults

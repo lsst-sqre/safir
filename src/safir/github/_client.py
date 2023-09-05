@@ -6,10 +6,8 @@ from gidgethub.httpx import GitHubAPI
 
 
 class GitHubAppClientFactory:
-    """Create GitHub App clients.
-
-    Provides a factory for creating GitHub App clients authenticated either as
-    an app or as an installation of that app.
+    """Factory for creating GitHub App clients authenticated either as an app
+    or as an installation of that app.
 
     Parameters
     ----------
@@ -76,10 +74,8 @@ class GitHubAppClientFactory:
     async def create_installation_client(
         self, installation_id: str
     ) -> GitHubAPI:
-        """Create a client for an installation of the GitHub App.
-
-        The resulting client is authenticated as an installation of the GitHub
-        App for a specific repository or organization.
+        """Create a client authenticated as an installation of the GitHub App
+        for a specific repository or organization.
 
         Parameters
         ----------
@@ -106,10 +102,8 @@ class GitHubAppClientFactory:
     async def create_installation_client_for_repo(
         self, owner: str, repo: str
     ) -> GitHubAPI:
-        """Create a client for a repository installation of the GitHub App.
-
-        The resulting client is authenticated as an installation of the GitHub
-        App for a specific repository.
+        """Create a client authenticated as an installation of the GitHub App
+        for a specific repository or organization.
 
         Parameters
         ----------

@@ -10,11 +10,8 @@ __all__ = ["ArqDependency", "arq_dependency"]
 
 
 class ArqDependency:
-    """FastAPI dependency providing a client for enqueuing tasks.
-
-    This class maintains a singleton Redis client for enqueuing tasks to an
-    arq_ worker pool and provides it to handler methods via the FastAPI
-    dependency interface.
+    """A FastAPI dependency that maintains a Redis client for enqueuing tasks
+    to the worker pool.
     """
 
     def __init__(self) -> None:
@@ -86,4 +83,6 @@ class ArqDependency:
 
 
 arq_dependency = ArqDependency()
-"""Singleton instance of `ArqDependency` as a FastAPI dependency."""
+"""Singleton instance of `ArqDependency` that serves as a FastAPI
+dependency.
+"""

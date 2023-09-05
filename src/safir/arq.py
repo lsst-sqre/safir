@@ -269,9 +269,7 @@ class JobResult(JobMetadata):
 
 
 class ArqQueue(metaclass=abc.ABCMeta):
-    """arq queue interface supporting either Redis or an in-memory repository.
-
-    Provides a common interface for working with an arq queue that can be
+    """A common interface for working with an arq queue that can be
     implemented either with a real Redis backend, or an in-memory repository
     for testing.
 
@@ -290,9 +288,8 @@ class ArqQueue(metaclass=abc.ABCMeta):
 
     @property
     def default_queue_name(self) -> str:
-        """Name of the default queue.
-
-        Used if the ``_queue_name`` parameter is not set in method calls.
+        """Name of the default queue, if the ``_queue_name`` parameter is not
+        set in method calls.
         """
         return self._default_queue_name
 

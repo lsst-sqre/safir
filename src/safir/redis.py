@@ -31,9 +31,7 @@ __all__ = [
 
 
 class DeserializeError(SlackException):
-    """Error decoding or deserializing a Pydantic object from Redis.
-
-    Raised when a stored Pydantic object in Redis cannot be decoded (and
+    """Raised when a stored Pydantic object in Redis cannot be decoded (and
     possibly decrypted) or deserialized.
 
     Parameters
