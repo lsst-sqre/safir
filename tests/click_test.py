@@ -11,7 +11,7 @@ from safir.click import display_help
 def test_display_help() -> None:
     @click.group()
     def main() -> None:
-        """Some command."""
+        """Run some command."""
 
     @main.command()
     @click.argument("topic", default=None, required=False, nargs=1)
@@ -38,7 +38,7 @@ def test_display_help() -> None:
 
     runner = CliRunner()
     result = runner.invoke(main, ["help"], catch_exceptions=False)
-    assert "Some command" in result.output
+    assert "Run some command" in result.output
     result = runner.invoke(main, ["help", "foo"], catch_exceptions=False)
     assert "main foo [OPTIONS]" in result.output
     assert "Run foo" in result.output
