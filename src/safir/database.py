@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime, timezone
-from typing import Optional, overload
+from datetime import UTC, datetime
+from typing import overload
 from urllib.parse import quote, urlparse
 
 from sqlalchemy import create_engine
@@ -107,9 +107,9 @@ def datetime_from_db(time: datetime | None) -> datetime | None:
     """
     if not time:
         return None
-    if time.tzinfo not in (None, timezone.utc):
+    if time.tzinfo not in (None, UTC):
         raise ValueError(f"datetime {time} not in UTC")
-    return time.replace(tzinfo=timezone.utc)
+    return time.replace(tzinfo=UTC)
 
 
 @overload
@@ -140,7 +140,7 @@ def datetime_to_db(time: datetime | None) -> datetime | None:
     """
     if not time:
         return None
-    if time.tzinfo != timezone.utc:
+    if time.tzinfo != UTC:
         raise ValueError(f"datetime {time} not in UTC")
     return time.replace(tzinfo=None)
 
@@ -149,7 +149,7 @@ def create_database_engine(
     url: str,
     password: str | None,
     *,
-    isolation_level: Optional[str] = None,
+    isolation_level: str | None = None,
 ) -> AsyncEngine:
     """Create a new async database engine.
 
@@ -185,9 +185,9 @@ def create_database_engine(
 
 async def create_async_session(
     engine: AsyncEngine,
-    logger: Optional[BoundLogger] = None,
+    logger: BoundLogger | None = None,
     *,
-    statement: Optional[Select] = None,
+    statement: Select | None = None,
 ) -> async_scoped_session:
     """Create a new async database session.
 
@@ -247,10 +247,10 @@ async def create_async_session(
 def create_sync_session(
     url: str,
     password: str | None,
-    logger: Optional[BoundLogger] = None,
+    logger: BoundLogger | None = None,
     *,
-    isolation_level: Optional[str] = None,
-    statement: Optional[Select] = None,
+    isolation_level: str | None = None,
+    statement: Select | None = None,
 ) -> scoped_session:
     """Create a new sync database session.
 

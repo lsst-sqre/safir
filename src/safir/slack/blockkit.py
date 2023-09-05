@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Any, ClassVar, Optional, Self
+from typing import Any, ClassVar, Self
 
 from httpx import HTTPError, HTTPStatusError
 from pydantic import BaseModel, validator
@@ -249,9 +249,9 @@ class SlackException(Exception):
     def __init__(
         self,
         message: str,
-        user: Optional[str] = None,
+        user: str | None = None,
         *,
-        failed_at: Optional[datetime] = None,
+        failed_at: datetime | None = None,
     ) -> None:
         self.user = user
         if failed_at:
@@ -307,9 +307,7 @@ class SlackWebException(SlackException):
     """
 
     @classmethod
-    def from_exception(
-        cls, exc: HTTPError, user: Optional[str] = None
-    ) -> Self:
+    def from_exception(cls, exc: HTTPError, user: str | None = None) -> Self:
         """Create an exception from an HTTPX_ exception.
 
         Parameters
@@ -337,7 +335,7 @@ class SlackWebException(SlackException):
                 body=exc.response.text,
             )
         else:
-            message = f"{type(exc).__name__}: {str(exc)}"
+            message = f"{type(exc).__name__}: {exc!s}"
 
             # All httpx.HTTPError exceptions have a slot for the request,
             # initialized to None and then sometimes added by child
@@ -360,12 +358,12 @@ class SlackWebException(SlackException):
         self,
         message: str,
         *,
-        failed_at: Optional[datetime] = None,
-        method: Optional[str] = None,
-        url: Optional[str] = None,
-        user: Optional[str] = None,
-        status: Optional[int] = None,
-        body: Optional[str] = None,
+        failed_at: datetime | None = None,
+        method: str | None = None,
+        url: str | None = None,
+        user: str | None = None,
+        status: int | None = None,
+        body: str | None = None,
     ) -> None:
         self.message = message
         self.method = method
@@ -391,10 +389,7 @@ class SlackWebException(SlackException):
         message = super().to_slack()
         message.message = self.message
         if self.url:
-            if self.method:
-                text = f"{self.method} {self.url}"
-            else:
-                text = self.url
+            text = f"{self.method} {self.url}" if self.method else self.url
             message.blocks.append(SlackTextBlock(heading="URL", text=text))
         if self.body:
             block = SlackCodeBlock(heading="Response", code=self.body)

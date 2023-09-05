@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from fastapi import HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -111,12 +111,12 @@ class SlackWebhookClient:
         """
         if isinstance(exc, SlackException):
             message = exc.to_slack()
-            msg = f"Uncaught exception in {self._application}: {str(exc)}"
+            msg = f"Uncaught exception in {self._application}: {exc!s}"
             message.message = msg
         else:
             date = format_datetime_for_logging(current_datetime())
             name = type(exc).__name__
-            error = f"{name}: {str(exc)}"
+            error = f"{name}: {exc!s}"
             message = SlackMessage(
                 message=f"Uncaught exception in {self._application}",
                 fields=[
@@ -164,7 +164,7 @@ class SlackRouteErrorHandler(APIRoute):
     )
     """Uncaught exceptions that should not be sent to Slack."""
 
-    _alert_client: ClassVar[Optional[SlackWebhookClient]] = None
+    _alert_client: ClassVar[SlackWebhookClient | None] = None
     """Global Slack alert client used by `SlackRouteErrorHandler`.
 
     Initialize with `initialize`. This object caches the alert confguration

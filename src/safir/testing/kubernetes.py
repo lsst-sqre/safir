@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 from kubernetes_asyncio import client, config
@@ -66,7 +66,7 @@ def _parse_label_selector(label_selector: str) -> dict[str, str]:
 
     Returns
     -------
-    dict of str to str
+    dict of str
         Dictionary of required labels to their required values.
 
     Raises
@@ -77,43 +77,43 @@ def _parse_label_selector(label_selector: str) -> dict[str, str]:
     result = {}
     for requirement in label_selector.split(","):
         match = re.match(r"([^!=]+)==?(.*)", requirement)
-        assert match and match.group(1) and match.group(2)
+        assert match
+        assert match.group(1)
+        assert match.group(2)
         result[match.group(1)] = match.group(2)
     return result
 
 
 def _check_labels(
-    obj_labels: Optional[dict[str, str]], label_selector: Optional[str]
+    obj_labels: dict[str, str] | None, label_selector: str | None
 ) -> bool:
-    """Check whether an object's labels match the label selector supplied.
+    """Check whether an object's labels match a label selector.
 
     Parameters
     ----------
     obj_labels
-        Kubernetes object labels
-
+        Kubernetes object labels.
     label_selector
-        label selector in string form
+        Label selector in string form.
 
     Returns
     -------
     bool
-        Did all of the supplied label_selector labels match
-        the object labels?
+        Whether this object matches the label selector.
     """
-    if label_selector is None or label_selector == "":
-        # Everything matches the absence of a selector.
+    # Everything matches the absence of a selector.
+    if not label_selector:
         return True
-    if obj_labels is None or not obj_labels:
-        # If there are no labels but a non-empty selector, it doesn't
-        # match.
+
+    # If there are no labels but a non-empty selector, it doesn't match.
+    if not obj_labels:
         return False
+
+    # Check that all labels match the labels of the object.
     labels = _parse_label_selector(label_selector)
-    for lbl in labels:
-        if lbl not in obj_labels or labels[lbl] != obj_labels[lbl]:
-            # Label isn't present or its value isn't right
+    for label in labels:
+        if label not in obj_labels or labels[label] != obj_labels[label]:
             return False
-    # The whole selector is correct.
     return True
 
 
@@ -144,16 +144,18 @@ def strip_none(model: dict[str, Any]) -> dict[str, Any]:
     for key, value in model.items():
         if value is None:
             continue
+        new_value = value
         if isinstance(value, dict):
-            value = strip_none(value)
+            new_value = strip_none(value)
         elif isinstance(value, list):
             list_result = []
             for item in value:
                 if isinstance(item, dict):
-                    item = strip_none(item)
-                list_result.append(item)
-            value = list_result
-        result[key] = value
+                    list_result.append(strip_none(item))
+                else:
+                    list_result.append(item)
+            new_value = list_result
+        result[key] = new_value
     return result
 
 
@@ -197,11 +199,11 @@ class _EventStream:
 
     def build_watch_response(
         self,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
     ) -> Mock:
         """Construct a response to a watch request.
 
@@ -245,7 +247,7 @@ class _EventStream:
         response.content.readline.side_effect = readline
         return response
 
-    def _build_watcher(
+    def _build_watcher(  # noqa: C901
         self,
         resource_version: str | None,
         timeout_seconds: int | None,
@@ -291,7 +293,8 @@ class _EventStream:
         name = None
         if field_selector:
             match = re.match(r"metadata\.name=(.*)$", field_selector)
-            assert match and match.group(1)
+            assert match
+            assert match.group(1)
             name = match.group(1)
 
         # Create and register a new trigger.
@@ -387,7 +390,7 @@ class MockKubernetesApi:
     """
 
     def __init__(self) -> None:
-        self.error_callback: Optional[Callable[..., None]] = None
+        self.error_callback: Callable[..., None] | None = None
         self.initial_pod_phase = "Running"
 
         self._custom_kinds: dict[str, str] = {}
@@ -417,12 +420,12 @@ class MockKubernetesApi:
         for namespace in sorted(self._objects.keys()):
             if key not in self._objects[namespace]:
                 continue
-            for name, obj in sorted(self._objects[namespace][key].items()):
+            for _name, obj in sorted(self._objects[namespace][key].items()):
                 results.append(obj)
         return results
 
     def get_namespace_objects_for_test(self, namespace: str) -> list[Any]:
-        """Returns all objects in the given namespace.
+        """Return all objects in the given namespace.
 
         Parameters
         ----------
@@ -612,10 +615,9 @@ class MockKubernetesApi:
         """
         self._maybe_error("list_cluster_custom_object", group, version, plural)
         key = f"{group}/{version}/{plural}"
-        results = []
-        for namespace in self._objects.keys():
-            for name, obj in self._objects[namespace].get(key, {}).items():
-                results.append(obj)
+        results: list[dict[str, Any]] = []
+        for namespace in self._objects:
+            results.extend(self._objects[namespace].get(key, {}).values())
         return {"items": results}
 
     async def patch_namespaced_custom_object_status(
@@ -829,12 +831,12 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> CoreV1EventList | Mock:
         """List namespaced events.
 
@@ -984,13 +986,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1IngressList | Mock:
         """List ingress objects in a namespace.
 
@@ -1038,23 +1040,10 @@ class MockKubernetesApi:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
         if not watch:
-            if field_selector:
-                match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
-                try:
-                    ingress = self._get_object(
-                        namespace, "Ingress", match.group(1)
-                    )
-                    return V1IngressList(kind="Ingress", items=[ingress])
-                except ApiException:
-                    return V1IngressList(kind="Ingress", items=[])
-            else:
-                ingresss = []
-                if "Ingress" in self._objects[namespace]:
-                    for obj in self._objects[namespace]["Ingress"].values():
-                        if _check_labels(obj.metadata.labels, label_selector):
-                            ingresss.append(obj)
-                return V1IngressList(kind="Ingress", items=ingresss)
+            ingresses = self._list_objects(
+                namespace, "Ingress", field_selector, label_selector
+            )
+            return V1IngressList(kind="Ingress", items=ingresses)
 
         # All watches must not preload content since we're returning raw JSON.
         # This is done by the Kubernetes API Watch object.
@@ -1222,13 +1211,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1JobList | Mock:
         """List job objects in a namespace.
 
@@ -1276,21 +1265,10 @@ class MockKubernetesApi:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
         if not watch:
-            if field_selector:
-                match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
-                try:
-                    job = self._get_object(namespace, "Job", match.group(1))
-                    return V1JobList(kind="Job", items=[job])
-                except ApiException:
-                    return V1JobList(kind="Job", items=[])
-            else:
-                jobs = []
-                if "Job" in self._objects[namespace]:
-                    for obj in self._objects[namespace]["Job"].values():
-                        if _check_labels(obj.metadata.labels, label_selector):
-                            jobs.append(obj)
-                return V1JobList(kind="Job", items=jobs)
+            jobs = self._list_objects(
+                namespace, "Job", field_selector, label_selector
+            )
+            return V1PodList(kind="Job", items=jobs)
 
         # All watches must not preload content since we're returning raw JSON.
         # This is done by the Kubernetes API Watch object.
@@ -1427,9 +1405,7 @@ class MockKubernetesApi:
             synthesized namespace objects.
         """
         self._maybe_error("list_namespace")
-        namespaces = []
-        for namespace in self._objects:
-            namespaces.append(await self.read_namespace(namespace))
+        namespaces = [await self.read_namespace(n) for n in self._objects]
         return V1NamespaceList(items=namespaces)
 
     # NETWORKPOLICY API
@@ -1583,13 +1559,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1PodList | Mock:
         """List pod objects in a namespace.
 
@@ -1636,23 +1612,10 @@ class MockKubernetesApi:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
         if not watch:
-            if field_selector:
-                match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
-                try:
-                    pod = self._get_object(namespace, "Pod", match.group(1))
-                    if _check_labels(pod.metadata.labels, label_selector):
-                        return V1PodList(kind="Pod", items=[pod])
-                    return V1PodList(kind="Pod", items=[])
-                except ApiException:
-                    return V1PodList(kind="Pod", items=[])
-            else:
-                pods = []
-                if "Pod" in self._objects[namespace]:
-                    for obj in self._objects[namespace]["Pod"].values():
-                        if _check_labels(obj.metadata.labels, label_selector):
-                            pods.append(obj)
-                return V1PodList(kind="Pod", items=pods)
+            pods = self._list_objects(
+                namespace, "Pod", field_selector, label_selector
+            )
+            return V1PodList(kind="Pod", items=pods)
 
         # All watches must not preload content since we're returning raw JSON.
         # This is done by the Kubernetes API Watch object.
@@ -1866,7 +1829,7 @@ class MockKubernetesApi:
             elif change["path"] == "/metadata/labels":
                 obj.metadata.labels = change["value"]
             else:
-                assert False, f'unsupported path {change["path"]}'
+                raise AssertionError(f"unsupported path {change['path']}")
         self._store_object(namespace, "Secret", name, obj, replace=True)
 
     async def read_namespaced_secret(
@@ -1977,13 +1940,13 @@ class MockKubernetesApi:
         self,
         namespace: str,
         *,
-        field_selector: Optional[str] = None,
-        label_selector: Optional[str] = None,
-        resource_version: Optional[str] = None,
-        timeout_seconds: Optional[int] = None,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: Optional[int] = None,
+        _request_timeout: int | None = None,
     ) -> V1ServiceList | Mock:
         """List service objects in a namespace.
 
@@ -1997,8 +1960,8 @@ class MockKubernetesApi:
             Only ``metadata.name=...`` is supported. It is parsed to find the
             service name and only services matching that name will be returned.
         label_selector
-            Which events to retrieve when performing a watch.  All
-            labels must match.
+            Which matching objects to retrieve by label. All labels must
+            match.
         resource_version
             Where to start in the event stream when performing a watch. If
             `None`, starts with the next change.
@@ -2031,23 +1994,10 @@ class MockKubernetesApi:
             msg = f"Namespace {namespace} not found"
             raise ApiException(status=404, reason=msg)
         if not watch:
-            if field_selector:
-                match = re.match(r"metadata\.name=(.*)$", field_selector)
-                assert match and match.group(1)
-                try:
-                    service = self._get_object(
-                        namespace, "Service", match.group(1)
-                    )
-                    return V1ServiceList(kind="Service", items=[service])
-                except ApiException:
-                    return V1ServiceList(kind="Service", items=[])
-            else:
-                services = []
-                if "Service" in self._objects[namespace]:
-                    for obj in self._objects[namespace]["Service"].values():
-                        if _check_labels(obj.metadata.labels, label_selector):
-                            services.append(obj)
-                return V1ServiceList(kind="Service", items=services)
+            services = self._list_objects(
+                namespace, "Service", field_selector, label_selector
+            )
+            return V1ServiceList(kind="Service", items=services)
 
         # All watches must not preload content since we're returning raw JSON.
         # This is done by the Kubernetes API Watch object.
@@ -2092,6 +2042,15 @@ class MockKubernetesApi:
     def _delete_object(self, namespace: str, key: str, name: str) -> V1Status:
         """Delete an object from internal data structures.
 
+        Parameters
+        ----------
+        namespace
+            Namespace from which to delete an object.
+        key
+            Key under which the object is stored (usually the kind).
+        name
+            Name of the object.
+
         Returns
         -------
         kubernetes_asyncio.client.V1Status
@@ -2112,6 +2071,15 @@ class MockKubernetesApi:
     def _get_object(self, namespace: str, key: str, name: str) -> Any:
         """Retrieve an object from internal data structures.
 
+        Parameters
+        ----------
+        namespace
+            Namespace from which to delete an object.
+        key
+            Key under which the object is stored (usually the kind).
+        name
+            Name of the object.
+
         Returns
         -------
         Any
@@ -2130,8 +2098,67 @@ class MockKubernetesApi:
             raise ApiException(status=404, reason=reason)
         return self._objects[namespace][key][name]
 
+    def _list_objects(
+        self,
+        namespace: str,
+        key: str,
+        field_selector: str | None,
+        label_selector: str | None,
+    ) -> list[Any]:
+        """List objects, possibly with selector restrictions.
+
+        Parameters
+        ----------
+        namespace
+            Namespace in which to list objects.
+        key
+            Key under which the object is stored (usually the kind).
+        field_selector
+            If present, only ``metadata.name=...`` is supported. It is parsed
+            to find the object name and only an object matching that name will
+            be returned.
+        label_selector
+            Which matching objects to retrieve by label. All labels must
+            match.
+
+        Returns
+        -------
+        list
+            List of matching objects.
+        """
+        if key not in self._objects[namespace]:
+            return []
+
+        # If there is a field selector, only name selectors are supported and
+        # we should retrieve the object by name.
+        if field_selector:
+            match = re.match(r"metadata\.name=(.*)$", field_selector)
+            if not match or not match.group(1):
+                msg = f"Field selector {field_selector} not supported"
+                raise ValueError(msg)
+            try:
+                obj = self._get_object(namespace, key, match.group(1))
+                if _check_labels(obj.metadata.labels, label_selector):
+                    return [obj]
+                else:
+                    return []
+            except ApiException:
+                return []
+
+        # Otherwise, construct the list of all objects matching the label
+        # selector.
+        return [
+            o
+            for o in self._objects[namespace][key].values()
+            if _check_labels(o.metadata.labels, label_selector)
+        ]
+
     def _maybe_error(self, method: str, *args: Any) -> None:
-        """Helper function to avoid using class method call syntax."""
+        """Call the error callback if one is registered.
+
+        This is a separate helper function to avoid using class method call
+        syntax.
+        """
         if self.error_callback:
             callback = self.error_callback
             callback(method, *args)
@@ -2142,6 +2169,7 @@ class MockKubernetesApi:
         key: str,
         name: str,
         obj: Any,
+        *,
         replace: bool = False,
     ) -> None:
         """Store an object in internal data structures.

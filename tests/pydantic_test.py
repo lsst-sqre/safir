@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from pydantic import BaseModel, ValidationError, root_validator
@@ -21,18 +20,18 @@ from safir.pydantic import (
 def test_normalize_datetime() -> None:
     assert normalize_datetime(None) is None
 
-    date = datetime.fromtimestamp(1668814932, tz=timezone.utc)
+    date = datetime.fromtimestamp(1668814932, tz=UTC)
     assert normalize_datetime(1668814932) == date
 
     mst_zone = timezone(-timedelta(hours=7))
     mst_date = datetime.now(tz=mst_zone)
-    utc_date = mst_date.astimezone(timezone.utc)
+    utc_date = mst_date.astimezone(UTC)
     assert normalize_datetime(mst_date) == utc_date
 
-    naive_date = datetime.utcnow()
+    naive_date = datetime.utcnow()  # noqa: DTZ003
     aware_date = normalize_datetime(naive_date)
-    assert aware_date == naive_date.replace(tzinfo=timezone.utc)
-    assert aware_date.tzinfo == timezone.utc
+    assert aware_date == naive_date.replace(tzinfo=UTC)
+    assert aware_date.tzinfo == UTC
 
 
 def test_normalize_isodatetime() -> None:
@@ -44,13 +43,13 @@ def test_normalize_isodatetime() -> None:
     date = datetime.fromisoformat("2023-01-25T15:44:00+00:00")
     assert date == normalize_isodatetime("2023-01-25T15:44Z")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Must be a string in .* format"):
         normalize_isodatetime("2023-01-25T15:44:00+00:00")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Must be a string in .* format"):
         normalize_isodatetime(1668814932)  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Must be a string in .* format"):
         normalize_isodatetime("next thursday")
 
 
@@ -96,9 +95,9 @@ def test_camel_case_model() -> None:
 
 def test_validate_exactly_one_of() -> None:
     class Model(BaseModel):
-        foo: Optional[int] = None
-        bar: Optional[int] = None
-        baz: Optional[int] = None
+        foo: int | None = None
+        bar: int | None = None
+        baz: int | None = None
 
         _validate_type = root_validator(allow_reuse=True)(
             validate_exactly_one_of("foo", "bar", "baz")
@@ -118,8 +117,8 @@ def test_validate_exactly_one_of() -> None:
     assert "one of foo, bar, and baz must be given" in str(excinfo.value)
 
     class TwoModel(BaseModel):
-        foo: Optional[int] = None
-        bar: Optional[int] = None
+        foo: int | None = None
+        bar: int | None = None
 
         _validate_type = root_validator(allow_reuse=True)(
             validate_exactly_one_of("foo", "bar")

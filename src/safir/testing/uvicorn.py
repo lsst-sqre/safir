@@ -17,7 +17,6 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 __all__ = [
     "ServerNotListeningError",
@@ -68,7 +67,7 @@ def _wait_for_server(port: int, timeout: float = 5.0) -> None:
             sock.connect(("localhost", port))
         except socket.timeout:
             pass
-        except socket.error as e:
+        except OSError as e:
             if e.errno not in (errno.ETIMEDOUT, errno.ECONNREFUSED):
                 raise
         else:
@@ -80,11 +79,11 @@ def _wait_for_server(port: int, timeout: float = 5.0) -> None:
 def spawn_uvicorn(
     *,
     working_directory: str | Path,
-    app: Optional[str] = None,
-    factory: Optional[str] = None,
+    app: str | None = None,
+    factory: str | None = None,
     capture: bool = False,
     timeout: float = 5.0,
-    env: Optional[dict[str, str]] = None,
+    env: dict[str, str] | None = None,
 ) -> UvicornProcess:
     """Spawn an ASGI app as a separate Uvicorn process.
 
@@ -129,10 +128,7 @@ def spawn_uvicorn(
         raise ValueError("Only one of app or factory may be given")
     if not app and not factory:
         raise ValueError("Neither of app nor factory was given")
-    if env:
-        env = {**os.environ, **env}
-    else:
-        env = {**os.environ}
+    env = {**os.environ, **env} if env else {**os.environ}
 
     # Get a random port for the app to listen on.
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -146,9 +142,9 @@ def spawn_uvicorn(
     elif factory:
         cmd.extend(("--factory", factory))
     if "PYTHONPATH" in env:
-        env["PYTHONPATH"] += f":{os.getcwd()}"
+        env["PYTHONPATH"] += f":{Path.cwd()}"
     else:
-        env["PYTHONPATH"] = os.getcwd()
+        env["PYTHONPATH"] = str(Path.cwd())
     logging.info("Starting server with command %s", " ".join(cmd))
     if capture:
         process = subprocess.Popen(

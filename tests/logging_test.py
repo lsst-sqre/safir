@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import ANY
 
@@ -96,8 +96,8 @@ def test_configure_logging_dev_timestamp(caplog: LogCaptureFixture) -> None:
     isotimestamp = match.group(1)
     assert isotimestamp.endswith("Z")
     timestamp = datetime.fromisoformat(isotimestamp[:-1])
-    timestamp = timestamp.replace(tzinfo=timezone.utc)
-    now = datetime.now(tz=timezone.utc)
+    timestamp = timestamp.replace(tzinfo=UTC)
+    now = datetime.now(tz=UTC)
     assert now - timedelta(seconds=5) < timestamp < now
 
 
@@ -148,8 +148,8 @@ def test_configure_logging_prod_timestamp(caplog: LogCaptureFixture) -> None:
     }
     assert data["timestamp"].endswith("Z")
     timestamp = datetime.fromisoformat(data["timestamp"][:-1])
-    timestamp = timestamp.replace(tzinfo=timezone.utc)
-    now = datetime.now(tz=timezone.utc)
+    timestamp = timestamp.replace(tzinfo=UTC)
+    now = datetime.now(tz=UTC)
     assert now - timedelta(seconds=5) < timestamp < now
 
 
@@ -188,7 +188,7 @@ def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
     logger = structlog.get_logger("myapp")
 
     try:
-        raise ValueError("this is some exception")
+        raise ValueError("this is some exception")  # noqa: TRY301
     except Exception:
         logger.exception("exception happened", foo="bar")
 
@@ -206,7 +206,7 @@ def test_production_exception_logging(caplog: LogCaptureFixture) -> None:
     logger = structlog.get_logger("myapp")
 
     try:
-        raise ValueError("this is some exception")
+        raise ValueError("this is some exception")  # noqa: TRY301
     except Exception:
         logger.exception("exception happened", foo="bar")
 

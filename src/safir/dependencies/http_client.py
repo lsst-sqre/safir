@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import httpx
 
 __all__ = [
@@ -40,7 +38,7 @@ class HTTPClientDependency:
     """
 
     def __init__(self) -> None:
-        self.http_client: Optional[httpx.AsyncClient] = None
+        self.http_client: httpx.AsyncClient | None = None
 
     async def __call__(self) -> httpx.AsyncClient:
         """Return the cached ``httpx.AsyncClient``."""

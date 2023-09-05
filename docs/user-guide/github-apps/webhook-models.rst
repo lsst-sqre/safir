@@ -8,7 +8,7 @@ This page provides a quick reference for the Pydantic models provided in `safir.
 
     Safir's coverage of GitHub webhooks is not exhaustive.
     You can contribute additional models as needed.
-    
+
     Additionally, the models are not necessarily complete.
     GitHub may provide additional fields that are not parsed by these models because they were not deemed relevant.
     To use additional fields documented by GitHub, you can either subclass these models and add additional fields, or contribute updates to the models in Safir.

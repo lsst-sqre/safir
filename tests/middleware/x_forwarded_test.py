@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from ipaddress import _BaseNetwork, ip_network
-from typing import Optional
 
 import pytest
 from fastapi import FastAPI, Request
@@ -12,7 +11,7 @@ from httpx import AsyncClient
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 
-def build_app(proxies: Optional[list[_BaseNetwork]] = None) -> FastAPI:
+def build_app(proxies: list[_BaseNetwork] | None = None) -> FastAPI:
     """Construct a test FastAPI app with the middleware registered."""
     app = FastAPI()
     app.add_middleware(XForwardedMiddleware, proxies=proxies)

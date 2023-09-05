@@ -5,7 +5,6 @@ incorporate information from the request in its bound context.
 """
 
 import uuid
-from typing import Optional
 
 import structlog
 from fastapi import Request
@@ -33,7 +32,7 @@ class LoggerDependency:
     """
 
     def __init__(self) -> None:
-        self.logger: Optional[BoundLogger] = None
+        self.logger: BoundLogger | None = None
 
     async def __call__(self, request: Request) -> BoundLogger:
         """Return a logger bound with request information.
@@ -45,7 +44,9 @@ class LoggerDependency:
         """
         if not self.logger:
             self.logger = structlog.get_logger(logging.logger_name)
-        assert self.logger
+            if not self.logger:
+                msg = f"Unable to get logger for {logging.logger_name}"
+                raise RuntimeError(msg)
 
         # Construct the httpRequest logging data (compatible with the format
         # expected by Google Log Explorer).
@@ -59,11 +60,10 @@ class LoggerDependency:
         if user_agent:
             request_data["userAgent"] = user_agent
 
-        logger = self.logger.new(
+        return self.logger.new(
             httpRequest=request_data,
             request_id=str(uuid.uuid4()),
         )
-        return logger
 
 
 logger_dependency = LoggerDependency()

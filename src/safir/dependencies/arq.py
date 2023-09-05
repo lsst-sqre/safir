@@ -1,10 +1,6 @@
-"""A FastAPI dependency that supplies a Redis connection for `arq
-<https://arq-docs.helpmanual.io>`__.
-"""
+"""A FastAPI dependency that supplies a Redis connection for arq_."""
 
 from __future__ import annotations
-
-from typing import Optional
 
 from arq.connections import RedisSettings
 
@@ -14,12 +10,12 @@ __all__ = ["ArqDependency", "arq_dependency"]
 
 
 class ArqDependency:
-    """A FastAPI dependency that maintains a Redis client for enqueing
-    tasks to the worker pool.
+    """A FastAPI dependency that maintains a Redis client for enqueuing tasks
+    to the worker pool.
     """
 
     def __init__(self) -> None:
-        self._arq_queue: Optional[ArqQueue] = None
+        self._arq_queue: ArqQueue | None = None
 
     async def initialize(
         self, *, mode: ArqMode, redis_settings: RedisSettings | None

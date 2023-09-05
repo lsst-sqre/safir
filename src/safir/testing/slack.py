@@ -27,7 +27,7 @@ class MockSlackWebhook:
         self.messages: list[dict[str, Any]] = []
 
     def post_webhook(self, request: Request) -> Response:
-        """Callback called whenever a Slack message is posted.
+        """Post a Slack message.
 
         The provided message is stored in the messages attribute.
 

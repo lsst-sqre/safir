@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import gidgethub.apps
 import httpx
 from gidgethub.httpx import GitHubAPI
@@ -48,9 +46,7 @@ class GitHubAppClientFactory:
             app_id=self.app_id, private_key=self.app_key
         )
 
-    def _create_client(
-        self, *, oauth_token: Optional[str] = None
-    ) -> GitHubAPI:
+    def _create_client(self, *, oauth_token: str | None = None) -> GitHubAPI:
         return GitHubAPI(
             self._http_client, self.app_name, oauth_token=oauth_token
         )
