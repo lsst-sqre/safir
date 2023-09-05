@@ -29,6 +29,7 @@ extensions = [
 
 [sphinx.intersphinx.projects]
 arq = "https://arq-docs.helpmanual.io"
+click = "https://click.palletsprojects.com/"
 cryptography = "https://cryptography.io/en/latest/"
 gidgethub = "https://gidgethub.readthedocs.io/en/latest/"
 python = "https://docs.python.org/3/"
