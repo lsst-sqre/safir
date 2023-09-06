@@ -78,14 +78,11 @@ class AsyncMultiQueue(Generic[T]):
         # detaches from the contents on clear.
         contents = self._contents
 
-        # Add a trigger for this caller and make sure it's set if there are
-        # any existing contents.
+        # Add a trigger for this caller.
         trigger = asyncio.Event()
-        if contents:
-            trigger.set()
         self._triggers.append(trigger)
 
-        # Construct the iteartor, which waits for the trigger and returns any
+        # Construct the iterator, which waits for the trigger and returns any
         # new events until it sees the placeholder for the end of the queue
         # (the ellipsis object).
         async def iterator() -> AsyncIterator[T]:
