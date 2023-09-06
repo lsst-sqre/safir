@@ -34,7 +34,7 @@ A typical reader looks like this:
    async for item in queue:
        await do_something(item)
 
-This iterates over the full contents of the queue until ``clear`` is called by the writer.
+This iterates over the full contents of the queue until `~safir.asyncio.AsyncMultiQueue.clear` is called by the writer.
 
 Readers can also start at any position and specify a timeout.
 The timeout, if given, is the total length of time the iterator is allowed to run, not the time to wait for the next element.
