@@ -16,9 +16,14 @@ T = TypeVar("T")
 
 __all__ = [
     "AsyncMultiQueue",
+    "AsyncMultiQueueError",
     "run_with_asyncio",
     "T",
 ]
+
+
+class AsyncMultiQueueError(Exception):
+    """Invalid sequence of calls when writing to `AsyncMultiQueue`."""
 
 
 class AsyncMultiQueue(Generic[T]):
@@ -44,6 +49,16 @@ class AsyncMultiQueue(Generic[T]):
     def __aiter__(self) -> AsyncIterator[T]:
         """Return an async iterator over the queue."""
         return self.aiter_from(0)
+
+    @property
+    def finished(self) -> bool:
+        """Whether `end` has been called on the queue.
+
+        If this property is `True`, the contents of the queue are finalized
+        and no new items will be added unless the queue is cleared with
+        `clear`.
+        """
+        return bool(self._contents and self._contents[-1] is Ellipsis)
 
     def aiter_from(
         self, start: int, timeout: timedelta | None = None
@@ -118,12 +133,28 @@ class AsyncMultiQueue(Generic[T]):
         before the clear, but will become detached from the queue and will not
         see any new events added after the clear.
         """
+        finished = self.finished
         contents = self._contents
         triggers = self._triggers
         self._contents = []
         self._triggers = []
-        contents.append(Ellipsis)
-        for trigger in triggers:
+        if not finished:
+            contents.append(Ellipsis)
+            for trigger in triggers:
+                trigger.set()
+
+    def end(self) -> None:
+        """Mark the end of the queue data.
+
+        Similar to `clear` in that any existing readers of the queue will see
+        the end of the iterator, but the data will not be deleted and new
+        readers can still read all of the data in the queue.
+
+        After `end` is called, `clear` must be called before any subsequent
+        `put`.
+        """
+        self._contents.append(Ellipsis)
+        for trigger in self._triggers:
             trigger.set()
 
     def put(self, item: T) -> None:
@@ -133,14 +164,26 @@ class AsyncMultiQueue(Generic[T]):
         ----------
         item
            Item to add.
+
+        Raises
+        ------
+        AsyncMultiQueueError
+            Raised if `put` was called after `end` without an intervening call
+            to `clear`.
         """
+        if self.finished:
+            msg = "end was already called, must call clear before put"
+            raise AsyncMultiQueueError(msg)
         self._contents.append(item)
         for trigger in self._triggers:
             trigger.set()
 
     def qsize(self) -> int:
         """Return the number of items currently in the queue."""
-        return len(self._contents)
+        count = len(self._contents)
+        if self.finished:
+            count -= 1
+        return count
 
 
 def run_with_asyncio(

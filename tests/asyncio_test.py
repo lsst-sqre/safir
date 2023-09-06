@@ -6,7 +6,11 @@ import asyncio
 
 import pytest
 
-from safir.asyncio import AsyncMultiQueue, run_with_asyncio
+from safir.asyncio import (
+    AsyncMultiQueue,
+    AsyncMultiQueueError,
+    run_with_asyncio,
+)
 
 
 @pytest.mark.asyncio
@@ -15,6 +19,11 @@ async def test_async_multi_queue() -> None:
     queue.put("one")
     queue.put("two")
     assert queue.qsize() == 2
+
+    # Here and below, use this somewhat awkward construction to hide the
+    # assertion from mypy's type narrowing of class attributes.
+    finished = queue.finished
+    assert not finished
 
     async def watcher(position: int) -> list[str]:
         return [s async for s in queue.aiter_from(position)]
@@ -35,17 +44,25 @@ async def test_async_multi_queue() -> None:
     await asyncio.sleep(0.1)
     queue.clear()
     assert queue.qsize() == 0
+    finished = queue.finished
+    assert not finished
 
     after_clear_task = asyncio.create_task(watcher_iter())
     await asyncio.sleep(0.1)
-    queue.clear()
+    queue.put("something")
+    queue.end()
+    assert queue.finished
+    assert queue.qsize() == 1
 
     assert await start_task == ["one", "two", "three", "four"]
     assert await one_task == ["two", "three", "four"]
     assert await current_task == ["three", "four"]
     assert await future_task == ["four"]
     assert await way_future_task == []
-    assert await after_clear_task == []
+    assert await after_clear_task == ["something"]
+
+    with pytest.raises(AsyncMultiQueueError):
+        queue.put("else")
 
 
 def test_run_with_asyncio() -> None:
