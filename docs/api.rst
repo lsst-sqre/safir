@@ -10,6 +10,7 @@ API reference
 
 .. automodapi:: safir.asyncio
    :include-all-objects:
+   :inherited-members:
 
 .. automodapi:: safir.click
    :include-all-objects:
