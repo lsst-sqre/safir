@@ -178,14 +178,14 @@ async def test_mock_events(mock_kubernetes: MockKubernetesApi) -> None:
     assert results[0] == results[1]
     assert results[0] == results[2]
     result = results[0]
-    assert result[1] == some_event.to_dict()
-    assert result[2] == done_event.to_dict()
+    assert result[1] == some_event.to_dict(serialize=True)
+    assert result[2] == done_event.to_dict(serialize=True)
 
     # The first event should have been the pod running event.
     assert result[0]["message"] == "Pod foo started"
-    assert result[0]["involved_object"]["kind"] == "Pod"
-    assert result[0]["involved_object"]["name"] == "foo"
-    assert result[0]["involved_object"]["namespace"] == "stuff"
+    assert result[0]["involvedObject"]["kind"] == "Pod"
+    assert result[0]["involvedObject"]["name"] == "foo"
+    assert result[0]["involvedObject"]["namespace"] == "stuff"
 
     # Starting with resource version "1" should skip the first event, since
     # the semantics of a watch are to show any events *after* the provided
@@ -223,10 +223,11 @@ async def watch_pod_events(
         "namespace": namespace,
         "timeout_seconds": 10,  # Just in case, so tests don't hang
     }
-    async with Watch().stream(method, **watch_args) as stream:
+    async with Watch(V1Pod).stream(method, **watch_args) as stream:
         seen = []
         async for event in stream:
             seen.append(event)
+            assert isinstance(event["object"], V1Pod)
             if event["type"] == "DELETED":
                 return seen
         return seen
@@ -295,6 +296,6 @@ async def test_pod_status(mock_kubernetes: MockKubernetesApi) -> None:
     assert results[0] == results[2]
     result = results[0]
     assert result[0]["type"] == "MODIFIED"
-    assert result[0]["object"]["status"]["phase"] == "Running"
+    assert result[0]["object"].status.phase == "Running"
     assert result[1]["type"] == "DELETED"
     assert result[1]["object"] == result[0]["object"]
