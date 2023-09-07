@@ -1427,6 +1427,31 @@ class MockKubernetesApi:
         name = body.metadata.name
         self._store_object(namespace, "NetworkPolicy", name, body)
 
+    async def read_namespaced_network_policy(
+        self, name: str, namespace: str
+    ) -> V1Pod:
+        """Read a network policy object.
+
+        Parameters
+        ----------
+        name
+            Name of the network policy.
+        namespace
+            Namespace of the network policy.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1NetworkPolicy
+            Network policy object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the network policy was not found.
+        """
+        self._maybe_error("read_namespaced_network_policy", name, namespace)
+        return self._get_object(namespace, "NetworkPolicy", name)
+
     # NODE API
 
     async def list_node(self) -> V1NodeList:
@@ -1468,6 +1493,34 @@ class MockKubernetesApi:
         self._store_object(
             namespace, "PersistentVolumeClaim", body.metadata.name, body
         )
+
+    async def read_namespaced_persistent_volume_claim(
+        self, name: str, namespace: str
+    ) -> V1PersistentVolumeClaim:
+        """Read a persistent volume claim.
+
+        Parameters
+        ----------
+        name
+            Name of the persistent volume claim.
+        namespace
+            Namespace of the persistent volume claim.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1PersistentVolumeClaim
+            Persistent volume claim object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the persistent volume claim was not
+            found.
+        """
+        self._maybe_error(
+            "read_namespaced_persistent_volume_claim", name, namespace
+        )
+        return self._get_object(namespace, "PersistentVolumeClaim", name)
 
     # POD API
 
