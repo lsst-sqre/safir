@@ -7,6 +7,7 @@
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
 .. _Gidgethub: https://gidgethub.readthedocs.io/en/latest/
 .. _HTTPX: https://www.python-httpx.org/
+.. _kubernetes_asyncio: https://github.com/tomplus/kubernetes_asyncio
 .. _mypy: https://www.mypy-lang.org
 .. _Phalanx: https://phalanx.lsst.io
 .. _pre-commit: https://pre-commit.com

@@ -75,15 +75,16 @@ Limitations of the mock
 -----------------------
 
 Only a limited subset of the API is supported, and only the most commonly-used parameters of those APIs are supported.
-Expect to need to add additional APIs and parameters, either by subclassing this mock or by contributing them back to Safir, when testing a new application.
+Expect to need to add additional APIs and parameters, when testing a new application.
+Contributions of those additional APIs and parameters will be gratefully reviewed and normally merged.
 
 Namespaces are only partially modeled.
 A namespace can be explicitly created with `~safir.testing.kubernetes.MockKubernetesApi.create_namespace`, in which case the provided ``V1Namespace`` object will be stored and returned by a subsequent `~safir.testing.kubernetes.MockKubernetesApi.read_namespace` or similar call.
 However, namespace creation is optional.
 If an object is created in a namespace, that namespace will magically come into existence, and a subsequent `~safir.testing.kubernetes.MockKubernetesApi.list_namespace` or `~safir.testing.kubernetes.MockKubernetesApi.read_namespace` call will return a synthetic namespace object.
 
-Most mock APIs do not support watches.
-The only exception is `~safir.testing.kubernetes.MockKubernetesApi.list_namespaced_event` (see :ref:`kubernetes-testing-events`).
+When creating Kubernetes watches, the caller will have to pass the expected model type explicitly as the first argument to the constructor of the ``Watch`` object in order to ensure correct deserialization of the raw object when using the mock.
+Unfortunately, the type autodetection support in kubernetes_asyncio_ does not work with our mock since it relies on docstring inspection.
 
 .. warning::
 
@@ -140,11 +141,7 @@ If this is any value other than ``Running``, the pod startup event for the names
 Testing events
 --------------
 
-Currently, `~safir.testing.kubernetes.MockKubernetesApi.list_namespaced_event` is the only API that supports watches.
-Multiple watchers and timeouts are supported.
-The ``field_selector`` parameter is accepted, but is currently ignored.
-
-The only event that will be posted automatically by the mock is a pod started event when creating a pod with `~safir.testing.kubernetes.MockKubernetesApi.create_namespaced_pod`, provided that the ``initial_pod_phase`` attribute on the mock is set to its default value of ``Running``.
+The only event that will be posted automatically by the mock Kubernetes API is a pod started event when creating a pod with `~safir.testing.kubernetes.MockKubernetesApi.create_namespaced_pod`, provided that the ``initial_pod_phase`` attribute on the mock is set to its default value of ``Running``.
 All other events must be injected manually with `~safir.testing.kubernetes.MockKubernetesApi.create_namespaced_event`.
 
 Testing node state
@@ -181,6 +178,11 @@ Here is an example of how this function could be used in a test:
        pod = await mock_kubernetes.read_namespaced_pod("pod", "namespace")
        data_path = Path(__name__).parent / "data" / "pod.json"
        expected = json.loads(data_path.read_text())
-       assert strip_none(pod.to_dict()) == expected
+       assert strip_none(pod.to_dict(serialize=True)) == expected
 
 The data stored in :file:`tests/data/pod.json` can then contain only the interesting elements of the data model (the ones that are not `None`).
+
+.. note::
+
+   As in the above example, consider passing ``serialize=True`` whenever calling the ``to_dict`` method on a Kubernetes model.
+   This tells the Kubernetes library to use the correct Kubernetes camel-case attribute names rather than the Python snake-case attribute names.

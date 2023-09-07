@@ -43,6 +43,7 @@ from kubernetes_asyncio.client import (
     V1ServiceList,
     V1Status,
 )
+from typing_extensions import Protocol
 
 from ..asyncio import AsyncMultiQueue
 
@@ -158,6 +159,20 @@ def strip_none(model: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+class _KubernetesModel(Protocol):
+    """Protocol describing common features of Kubernetes objects.
+
+    The kubernetes_asyncio_ library doesn't provide full typing of its methods
+    or objects, so use a protocol to describe the functionality that we rely
+    on when passing a generic object around.
+    """
+
+    def to_dict(
+        self, serialize: bool = False  # noqa: FBT001, FBT002
+    ) -> dict[str, Any]:
+        ...
+
+
 class _EventStream:
     """Holds the data for a stream of watchable events.
 
@@ -184,7 +199,7 @@ class _EventStream:
         """
         return str(self._queue.qsize() + 1)
 
-    def add_event(self, event: dict[str, Any]) -> None:
+    def add_event(self, action: str, obj: _KubernetesModel) -> None:
         """Add a new event and notify all watchers.
 
         Parameters
@@ -192,6 +207,7 @@ class _EventStream:
         event
             New event.
         """
+        event = {"type": action, "object": obj.to_dict(serialize=True)}
         self._queue.put(event)
 
     def build_watch_response(
@@ -801,7 +817,7 @@ class MockKubernetesApi:
         self._update_metadata(body, "v1", "Event", namespace)
         stream = self._event_streams[namespace]["Event"]
         body.metadata.resource_version = stream.next_resource_version
-        stream.add_event({"type": "ADDED", "object": body.to_dict()})
+        stream.add_event("ADDED", body)
         self._events[namespace].append(body)
 
     async def list_namespaced_event(
@@ -895,7 +911,7 @@ class MockKubernetesApi:
         )
         self._store_object(namespace, "Ingress", name, body)
         stream = self._event_streams[namespace]["Ingress"]
-        stream.add_event({"type": "ADDED", "object": body.to_dict()})
+        stream.add_event("ADDED", body)
 
     async def delete_namespaced_ingress(
         self,
@@ -931,7 +947,7 @@ class MockKubernetesApi:
         self._maybe_error("delete_namespaced_ingress", name, namespace)
         ingress = self._get_object(namespace, "Ingress", name)
         stream = self._event_streams[namespace]["Ingress"]
-        stream.add_event({"type": "DELETED", "object": ingress.to_dict()})
+        stream.add_event("DELETED", ingress)
         return self._delete_object(namespace, "Ingress", name)
 
     async def read_namespaced_ingress(
@@ -1072,7 +1088,7 @@ class MockKubernetesApi:
         stream = self._event_streams[namespace]["Ingress"]
         ingress.metadata.resource_version = stream.next_resource_version
         self._store_object(namespace, "Ingress", name, ingress, replace=True)
-        stream.add_event({"type": "MODIFIED", "object": ingress.to_dict()})
+        stream.add_event("MODIFIED", ingress)
         return ingress
 
     # JOB API
@@ -1181,7 +1197,7 @@ class MockKubernetesApi:
 
         job = self._get_object(namespace, "Job", name)
         stream = self._event_streams[namespace]["Job"]
-        stream.add_event({"type": "DELETED", "object": job.to_dict()})
+        stream.add_event("DELETED", job)
         return self._delete_object(namespace, "Job", name)
 
     async def list_namespaced_job(
@@ -1481,7 +1497,7 @@ class MockKubernetesApi:
         stream = self._event_streams[namespace]["Pod"]
         body.metadata.resource_version = stream.next_resource_version
         self._store_object(namespace, "Pod", body.metadata.name, body)
-        stream.add_event({"type": "ADDED", "object": body.to_dict()})
+        stream.add_event("ADDED", body)
         if self.initial_pod_phase == "Running":
             event = CoreV1Event(
                 metadata=V1ObjectMeta(
@@ -1529,7 +1545,7 @@ class MockKubernetesApi:
         pod = self._get_object(namespace, "Pod", name)
         result = self._delete_object(namespace, "Pod", name)
         stream = self._event_streams[namespace]["Pod"]
-        stream.add_event({"type": "DELETED", "object": pod.to_dict()})
+        stream.add_event("DELETED", pod)
         return result
 
     async def list_namespaced_pod(
@@ -1643,7 +1659,7 @@ class MockKubernetesApi:
         stream = self._event_streams[namespace]["Pod"]
         pod.metadata.resource_version = stream.next_resource_version
         self._store_object(namespace, "Pod", name, pod, replace=True)
-        stream.add_event({"type": "MODIFIED", "object": pod.to_dict()})
+        stream.add_event("MODIFIED", pod)
         return pod
 
     async def read_namespaced_pod(self, name: str, namespace: str) -> V1Pod:
@@ -2282,10 +2298,7 @@ def patch_kubernetes() -> Iterator[MockKubernetesApi]:
             mock_class = patcher.start()
             mock_class.return_value = mock_api
             patchers.append(patcher)
-        mock_api_client = Mock(spec=client.ApiClient)
-        mock_api_client.close = AsyncMock()
-        with patch.object(client, "ApiClient") as mock_client:
-            mock_client.return_value = mock_api_client
+        with patch.object(client.ApiClient, "request"):
             os.environ["KUBERNETES_PORT"] = "tcp://10.0.0.1:443"
             yield mock_api
             del os.environ["KUBERNETES_PORT"]
