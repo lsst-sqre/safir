@@ -52,7 +52,7 @@ class AsyncMultiQueue(Generic[T]):
 
     @property
     def finished(self) -> bool:
-        """Whether `end` has been called on the queue.
+        """Whether `close` has been called on the queue.
 
         If this property is `True`, the contents of the queue are finalized
         and no new items will be added unless the queue is cleared with
@@ -143,14 +143,14 @@ class AsyncMultiQueue(Generic[T]):
             for trigger in triggers:
                 trigger.set()
 
-    def end(self) -> None:
+    def close(self) -> None:
         """Mark the end of the queue data.
 
         Similar to `clear` in that any existing readers of the queue will see
         the end of the iterator, but the data will not be deleted and new
         readers can still read all of the data in the queue.
 
-        After `end` is called, `clear` must be called before any subsequent
+        After `close` is called, `clear` must be called before any subsequent
         `put`.
         """
         self._contents.append(Ellipsis)

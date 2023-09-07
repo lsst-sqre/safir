@@ -18,11 +18,18 @@ The writer should use the queue as follows:
    queue = AsyncMultiQueue[str]()
    queue.put("soemthing")
    queue.put("else")
+   queue.close()
 
-   # Calling clear will deliver the contents of the queue to all readers
-   # and then tell them that the queue of data has ended so their
-   # iterators will stop.
+Once `~safir.asyncio.AsyncMultiQueue.close` is called, no more data can be added to the queue, and the iterators for all readers will stop when they reach the point where `~safir.asyncio.AsyncMultiQueue.close` was called.
+
+To reset the queue entirely, use `~safir.asyncio.AsyncMultiQueue.clear`.
+
+.. code-block:: python
+
    queue.clear()
+
+This does the same thing as `~safir.asyncio.AsyncMultiQueue.close` for all existing readers, and then empties the queue and resets it so that new data can be added.
+New readers will see a fresh, empty queue.
 
 The type information for `~safir.asyncio.AsyncMultiQueue` can be any type.
 Note that the writer interface is fully synchronous.
@@ -34,7 +41,7 @@ A typical reader looks like this:
    async for item in queue:
        await do_something(item)
 
-This iterates over the full contents of the queue until `~safir.asyncio.AsyncMultiQueue.clear` is called by the writer.
+This iterates over the full contents of the queue until `~safir.asyncio.AsyncMultiQueue.close` or `~safir.asyncio.AsyncMultiQueue.clear` is called by the writer.
 
 Readers can also start at any position and specify a timeout.
 The timeout, if given, is the total length of time the iterator is allowed to run, not the time to wait for the next element.

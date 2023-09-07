@@ -50,7 +50,7 @@ async def test_async_multi_queue() -> None:
     after_clear_task = asyncio.create_task(watcher_iter())
     await asyncio.sleep(0.1)
     queue.put("something")
-    queue.end()
+    queue.close()
     assert queue.finished
     assert queue.qsize() == 1
 
