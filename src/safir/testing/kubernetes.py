@@ -1221,9 +1221,12 @@ class MockKubernetesApi:
         """Create a job object.
 
         A pod corresponding to this job will also be created. The pod will
-        have a label ``job-name`` set to the name of the Job object. Its
-        name will be the job's name prepended to ``-abcde``. If
-        ``initial_pod_phase`` on the mock is set to ``Running``, the
+        have a label ``job-name`` set to the name of the ``Job`` object, and
+        will honor the ``name`` or ``generateName`` metadata from the pod spec
+        in the ``Job``. If neither is set, it will use the job name followed
+        by ``-`` as the base for a generated name.
+
+        If ``initial_pod_phase`` on the mock is set to ``Running``, the
         ``status.active`` field of the job will be set to 1.
 
         Parameters
@@ -1244,24 +1247,20 @@ class MockKubernetesApi:
         stream = self._event_streams[namespace]["Job"]
         body.metadata.resource_version = stream.next_resource_version
         self._store_object(namespace, "Job", name, body)
-        # Pretend to spawn a pod
-        # If there is no metadata, create a V1ObjectMeta object with just
-        # namespace, a "generateName" of the job name, and a "job-name"
-        # label, which appears to be what Kubernetes does.
-        template = body.spec.template
-        podmd = template.metadata
-        if podmd is None:
-            podmd = V1ObjectMeta(
-                namespace=namespace,
-                generate_name=f"{name}-",
-            )
-        # In real life, the name has five random alphanumeric characters,
-        # but for testing we'd like to know what the spawned pod is going to
-        # be called.  But in real life, if you set "generateName" you can't
-        # also set the pod name.
-        podmd.name = name + "-abcde"
-        podmd.labels["job-name"] = name
-        pod = V1Pod(metadata=podmd, spec=template.spec)
+
+        # Normally, Kubernetes will immediately spawn a Pod using the
+        # specification in the Job. Simulate that here.
+        pod = V1Pod(
+            metadata=body.spec.template.metadata or V1ObjectMeta(),
+            spec=body.spec.template.spec,
+        )
+        if not pod.metadata.name:
+            if not pod.metadata.generate_name:
+                pod.metadata.generate_name = f"{name}-"
+            base = pod.metadata.generate_name
+            pod.metadata.name = base + os.urandom(3).hex()[:5]
+        pod.metadata.labels["job-name"] = name
+        pod.metadata.namespace = namespace
         await self.create_namespaced_pod(namespace, pod)
         if pod.status.phase == "Running":
             body.status = V1JobStatus(active=1)
