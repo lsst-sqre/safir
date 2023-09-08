@@ -1029,11 +1029,12 @@ class MockKubernetesApi:
             body, "networking.k8s.io/v1", "Ingress", namespace
         )
         name = body.metadata.name
+        stream = self._event_streams[namespace]["Ingress"]
+        body.metadata.resource_version = stream.next_resource_version
         body.status = V1IngressStatus(
             load_balancer=V1LoadBalancerStatus(ingress=[])
         )
         self._store_object(namespace, "Ingress", name, body)
-        stream = self._event_streams[namespace]["Ingress"]
         stream.add_event("ADDED", body)
 
     async def delete_namespaced_ingress(
@@ -1072,31 +1073,6 @@ class MockKubernetesApi:
         stream = self._event_streams[namespace]["Ingress"]
         stream.add_event("DELETED", ingress)
         return self._delete_object(namespace, "Ingress", name)
-
-    async def read_namespaced_ingress(
-        self, name: str, namespace: str
-    ) -> V1Ingress:
-        """Read a ingress object.
-
-        Parameters
-        ----------
-        name
-            Name of the ingress.
-        namespace
-            Namespace of the ingress.
-
-        Returns
-        -------
-        kubernetes_asyncio.client.V1Ingress
-            Ingress object.
-
-        Raises
-        ------
-        kubernetes_asyncio.client.ApiException
-            Raised with 404 status if the ingress was not found.
-        """
-        self._maybe_error("read_namespaced_ingress", name, namespace)
-        return self._get_object(namespace, "Ingress", name)
 
     async def list_namespaced_ingress(
         self,
@@ -1214,6 +1190,31 @@ class MockKubernetesApi:
         stream.add_event("MODIFIED", ingress)
         return ingress
 
+    async def read_namespaced_ingress(
+        self, name: str, namespace: str
+    ) -> V1Ingress:
+        """Read a ingress object.
+
+        Parameters
+        ----------
+        name
+            Name of the ingress.
+        namespace
+            Namespace of the ingress.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Ingress
+            Ingress object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the ingress was not found.
+        """
+        self._maybe_error("read_namespaced_ingress", name, namespace)
+        return self._get_object(namespace, "Ingress", name)
+
     # JOB API
 
     async def create_namespaced_job(self, namespace: str, body: V1Job) -> None:
@@ -1240,6 +1241,8 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_job", namespace, body)
         self._update_metadata(body, "batch/v1", "Job", namespace)
         name = body.metadata.name
+        stream = self._event_streams[namespace]["Job"]
+        body.metadata.resource_version = stream.next_resource_version
         self._store_object(namespace, "Job", name, body)
         # Pretend to spawn a pod
         # If there is no metadata, create a V1ObjectMeta object with just
@@ -1719,10 +1722,9 @@ class MockKubernetesApi:
         """
         self._maybe_error("delete_namespaced_pod", name, namespace)
         pod = self._get_object(namespace, "Pod", name)
-        result = self._delete_object(namespace, "Pod", name)
         stream = self._event_streams[namespace]["Pod"]
         stream.add_event("DELETED", pod)
-        return result
+        return self._delete_object(namespace, "Pod", name)
 
     async def list_namespaced_pod(
         self,
@@ -1990,16 +1992,16 @@ class MockKubernetesApi:
             Raised if any other type of patch was provided.
         """
         self._maybe_error("patch_namespaced_secret", name, namespace)
-        obj = copy.deepcopy(self._get_object(namespace, "Secret", name))
+        secret = copy.deepcopy(self._get_object(namespace, "Secret", name))
         for change in body:
             assert change["op"] == "replace"
             if change["path"] == "/metadata/annotations":
-                obj.metadata.annotations = change["value"]
+                secret.metadata.annotations = change["value"]
             elif change["path"] == "/metadata/labels":
-                obj.metadata.labels = change["value"]
+                secret.metadata.labels = change["value"]
             else:
                 raise AssertionError(f"unsupported path {change['path']}")
-        self._store_object(namespace, "Secret", name, obj, replace=True)
+        self._store_object(namespace, "Secret", name, secret, replace=True)
 
     async def read_namespaced_secret(
         self, name: str, namespace: str
@@ -2069,7 +2071,10 @@ class MockKubernetesApi:
         """
         self._maybe_error("create_namespaced_service", namespace, body)
         self._update_metadata(body, "v1", "Service", namespace)
+        stream = self._event_streams[namespace]["Service"]
+        body.metadata.resource_version = stream.next_resource_version
         self._store_object(namespace, "Service", body.metadata.name, body)
+        stream.add_event("ADDED", body)
 
     async def delete_namespaced_service(
         self,
@@ -2103,6 +2108,9 @@ class MockKubernetesApi:
             Raised with 404 status if the service was not found.
         """
         self._maybe_error("delete_namespaced_service", name, namespace)
+        service = self._get_object(namespace, "Service", name)
+        stream = self._event_streams[namespace]["Service"]
+        stream.add_event("DELETED", service)
         return self._delete_object(namespace, "Service", name)
 
     async def list_namespaced_service(
