@@ -9,6 +9,25 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-4.4.0'></a>
+## 4.4.0 (2023-09-07)
+
+### New features
+
+- Add a `safir.click.display_help` helper function that implements a `help` command for Click-based command-line interfaces, with support for nested subcommands.
+- Add a new `safir.asyncio.AsyncMultiQueue` data structure, which is an asyncio multi-reader queue that delivers all messages to each reader independently.
+- Add `read_` methods for the Kubernetes object types for which the mock provided `create_` methods (`NetworkPolicy` and `PersistentVolumeClaim`).
+
+### Bug fixes
+
+- Fix typing of the `safir.asyncio.run_with_asyncio` decorator so that it doesn't mask the type of the underlying function.
+- Kubernetes objects included in events are now serialized properly using the Kubernetes camel-case field names instead of the Python snake-case names. In addition to matching Kubernetes behavior more closely, this allows a watch configured with the Kubernetes model type to deserialize the object in the `object` key of the event dictionary. The type must be passed explicitly to the `Watch` constructor, since kubernetes_asyncio's type autodetection does not work with Safir's mock.
+- `safir.testing.kubernetes.patch_kubernetes` no longer mocks the entire `ApiClient` class since it is required for deserialization of objects in Kubernetes events. It instead mocks the `request` method of that class for safety, to prevent any network requests to Kubernetes clusters when Kubernetes is mocked.
+
+### Other changes
+
+- Safir now uses the [Ruff](https://beta.ruff.rs/docs/) linter instead of flake8 and isort.
+
 <a id='changelog-4.3.1'></a>
 ## 4.3.1 (2023-07-17)
 
