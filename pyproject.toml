@@ -284,5 +284,5 @@ categories = [
 entry_title_template = "{{ version }} ({{ date.strftime('%Y-%m-%d') }})"
 format = "md"
 md_header_level = "2"
-new_fragment_template = "file:changelog.d/_template.md"
-skip_fragments = "_template.md"
+new_fragment_template = "file:changelog.d/_template.md.jinja"
+skip_fragments = "_template.md.jinja"
