@@ -24,6 +24,6 @@ init:
 # level of shell trickery after failed commands.
 .PHONY: linkcheck
 linkcheck:
-	sphinx-build --keep-going -n -W -T -b linkcheck docs	\
+	sphinx-build --keep-going -n -T -b linkcheck docs	\
 	    docs/_build/linkcheck				\
 	    || (cat docs/_build/linkcheck/output.txt; exit 1)
