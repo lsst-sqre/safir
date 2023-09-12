@@ -9,6 +9,20 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-4.5.0'></a>
+## 4.5.0 (2023-09-12)
+
+### New features
+
+- Add `list_namespaced_custom_object` with watch support to the Kubernetes mock.
+- Add watch, field selector, and label selector support to `list_namespace` in the Kubernetes mock.
+
+### Bug fixes
+
+- The Kubernetes mock now correctly maintains the resource version of `Ingress`, `Job`, and `Service` objects, since they support watches which rely on resource versions.
+- When creating a `Pod` from a `Job` in the Kubernetes mock using `generateName`, randomize the `Pod` name like Kubernetes does rather than using a fixed name. This forces tests to scan correctly for pods associated with a job. If the `Pod` `name` or `generateName` was explicitly configured in the `Job` template, honor it.
+- `read_namespace` and `list_namespace` in the Kubernetes mock now only return namespace objects that have been explicitly created, not implicit namespaces created by creating another object without making a namespace first. This more closely matches the behavior of Kubernetes while still making it easy to use the mock in a test environment simulating a pre-existing namespace.
+
 <a id='changelog-4.4.0'></a>
 ## 4.4.0 (2023-09-07)
 
