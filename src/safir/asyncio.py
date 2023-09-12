@@ -87,6 +87,11 @@ class AsyncMultiQueue(Generic[T]):
             timeout waiting for the next item; this is the total execution
             time of the iterator.
 
+        Returns
+        -------
+        AsyncIterator
+            An async iterator over the contents of the queue.
+
         Raises
         ------
         TimeoutError
@@ -176,8 +181,8 @@ class AsyncMultiQueue(Generic[T]):
         Raises
         ------
         AsyncMultiQueueError
-            Raised if `put` was called after `end` without an intervening call
-            to `clear`.
+            Raised if `put` was called after `close` without an intervening
+            call to `clear`.
         """
         if self.finished:
             msg = "end was already called, must call clear before put"
