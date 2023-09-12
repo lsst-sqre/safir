@@ -6,7 +6,7 @@ import json
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-from pydantic import BaseModel, ValidationError, root_validator
+from pydantic import BaseModel, ValidationError, model_validator
 
 from safir.pydantic import (
     CamelCaseModel,
@@ -76,21 +76,21 @@ def test_camel_case_model() -> None:
         "replace_403": False,
         "foo_bar_baz": "something",
     }
-    data = TestModel.parse_obj(camel)
+    data = TestModel.model_validate(camel)
     assert data.minimum_lifetime == 10
     assert not data.replace_403
     assert data.foo_bar_baz == "something"
-    assert data.dict() == camel
-    assert data.dict(by_alias=False) == snake
-    assert data.json() == json.dumps(camel)
-    assert data.json(by_alias=False) == json.dumps(snake)
+    assert data.model_dump() == camel
+    assert data.model_dump(by_alias=False) == snake
+    assert json.loads(data.model_dump_json()) == camel
+    assert json.loads(data.model_dump_json(by_alias=False)) == snake
 
-    snake_data = TestModel.parse_obj(snake)
+    snake_data = TestModel.model_validate(snake)
     assert data.minimum_lifetime == 10
     assert not data.replace_403
     assert data.foo_bar_baz == "something"
-    assert snake_data.dict() == data.dict()
-    assert snake_data.json() == data.json()
+    assert snake_data.model_dump() == data.model_dump()
+    assert snake_data.model_dump_json() == data.model_dump_json()
 
 
 def test_validate_exactly_one_of() -> None:
@@ -99,35 +99,35 @@ def test_validate_exactly_one_of() -> None:
         bar: int | None = None
         baz: int | None = None
 
-        _validate_type = root_validator(allow_reuse=True)(
+        _validate_type = model_validator(mode="after")(
             validate_exactly_one_of("foo", "bar", "baz")
         )
 
-    Model.parse_obj({"foo": 4, "bar": None})
-    Model.parse_obj({"baz": 4})
-    Model.parse_obj({"bar": 4})
-    Model.parse_obj({"foo": None, "bar": 4})
+    Model.model_validate({"foo": 4, "bar": None})
+    Model.model_validate({"baz": 4})
+    Model.model_validate({"bar": 4})
+    Model.model_validate({"foo": None, "bar": 4})
 
     with pytest.raises(ValidationError) as excinfo:
-        Model.parse_obj({"foo": 4, "bar": 3, "baz": None})
+        Model.model_validate({"foo": 4, "bar": 3, "baz": None})
     assert "only one of foo, bar, and baz may be given" in str(excinfo.value)
 
     with pytest.raises(ValidationError) as excinfo:
-        Model.parse_obj({"foo": None, "baz": None})
+        Model.model_validate({"foo": None, "baz": None})
     assert "one of foo, bar, and baz must be given" in str(excinfo.value)
 
     class TwoModel(BaseModel):
         foo: int | None = None
         bar: int | None = None
 
-        _validate_type = root_validator(allow_reuse=True)(
+        _validate_type = model_validator(mode="after")(
             validate_exactly_one_of("foo", "bar")
         )
 
     with pytest.raises(ValidationError) as excinfo:
-        TwoModel.parse_obj({"foo": 3, "bar": 4})
+        TwoModel.model_validate({"foo": 3, "bar": 4})
     assert "only one of foo and bar may be given" in str(excinfo.value)
 
     with pytest.raises(ValidationError) as excinfo:
-        TwoModel.parse_obj({})
+        TwoModel.model_validate({})
     assert "one of foo and bar must be given" in str(excinfo.value)

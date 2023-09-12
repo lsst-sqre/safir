@@ -14,20 +14,20 @@ __all__ = ["Metadata", "get_metadata", "get_project_url"]
 class Metadata(BaseModel):
     """Metadata about a package."""
 
-    name: str = Field(..., title="Application name", example="myapp")
+    name: str = Field(..., title="Application name", examples=["myapp"])
 
-    version: str = Field(..., title="Version", example="1.0.0")
+    version: str = Field(..., title="Version", examples=["1.0.0"])
 
     description: str | None = Field(
-        None, title="Description", example="string"
+        None, title="Description", examples=["Some package description"]
     )
 
     repository_url: str | None = Field(
-        None, title="Repository URL", example="https://example.com/"
+        None, title="Repository URL", examples=["https://example.com/"]
     )
 
     documentation_url: str | None = Field(
-        None, title="Documentation URL", example="https://example.com/"
+        None, title="Documentation URL", examples=["https://example.com/"]
     )
 
 

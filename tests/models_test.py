@@ -18,5 +18,5 @@ def test_error_model() -> None:
             }
         ]
     }
-    model = ErrorModel.parse_raw(json.dumps(error))
-    assert model.dict() == error
+    model = ErrorModel.model_validate_json(json.dumps(error))
+    assert model.model_dump() == error

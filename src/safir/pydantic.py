@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, ParamSpec, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -50,12 +50,12 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
                None,
                title="Last used",
                description="When last used in seconds since epoch",
-               example=1614986130,
+               examples=[1614986130],
            )
 
-           _normalize_last_used = validator(
-               "last_used", allow_reuse=True, pre=True
-           )(normalize_datetime)
+           _normalize_last_used = field_validator("last_used", pre=True)(
+               normalize_datetime
+           )
     """
     if v is None:
         return v
@@ -99,12 +99,12 @@ def normalize_isodatetime(v: str | None) -> datetime | None:
                None,
                title="Last used",
                description="Date and time last used",
-               example="2023-01-25T15:44:34Z",
+               examples=["2023-01-25T15:44:34Z"],
            )
 
-           _normalize_last_used = validator(
-               "last_used", allow_reuse=True, pre=True
-           )(normalize_isodatetime)
+           _normalize_last_used = field_validator("last_used", pre=True)(
+               normalize_isodatetime
+           )
     """
     if v is None:
         return None
@@ -142,9 +142,9 @@ def to_camel_case(string: str) -> str:
        class Model(BaseModel):
            some_field: str
 
-           class Config:
-               alias_generator = to_camel_case
-               allow_population_by_field_name = True
+           model_config = ConfigDict(
+               alias_generator=to_camel_case, populate_by_name=True
+           )
 
     This must be added to every class that uses ``snake_case`` for an
     attribute and that needs to be initialized from ``camelCase``.
@@ -182,16 +182,16 @@ class CamelCaseModel(BaseModel):
 
     This is a convenience class identical to `~pydantic.BaseModel` except with
     an alias generator configured so that it can be initialized with either
-    camel-case or snake-case keys. Model exports with ``dict`` or ``json``
-    also default to exporting in camel-case.
+    camel-case or snake-case keys. Model exports with ``model_dump`` or
+    ``model_dump_json`` also default to exporting in camel-case.
     """
 
-    class Config:
-        alias_generator = to_camel_case
-        allow_population_by_field_name = True
+    model_config = ConfigDict(
+        alias_generator=to_camel_case, populate_by_name=True
+    )
 
-    @_copy_type(BaseModel.dict)
-    def dict(self, **kwargs: Any) -> dict[str, Any]:
+    @_copy_type(BaseModel.model_dump)
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Export the model as a dictionary.
 
         Overridden to change the default of ``by_alias`` from `False` to
@@ -199,10 +199,10 @@ class CamelCaseModel(BaseModel):
         """
         if "by_alias" not in kwargs:
             kwargs["by_alias"] = True
-        return super().dict(**kwargs)
+        return super().model_dump(**kwargs)
 
-    @_copy_type(BaseModel.json)
-    def json(self, **kwargs: Any) -> str:
+    @_copy_type(BaseModel.model_dump_json)
+    def model_dump_json(self, **kwargs: Any) -> str:
         """Export the model as JSON.
 
         Overridden to change the default of ``by_alias`` from `False` to
@@ -210,12 +210,12 @@ class CamelCaseModel(BaseModel):
         """
         if "by_alias" not in kwargs:
             kwargs["by_alias"] = True
-        return super().json(**kwargs)
+        return super().model_dump_json(**kwargs)
 
 
 def validate_exactly_one_of(
     *settings: str,
-) -> Callable[[type, dict[str, Any]], dict[str, Any]]:
+) -> Callable[[BaseModel], BaseModel]:
     """Generate a validator imposing a one and only one constraint.
 
     Sometimes, models have a set of attributes of which one and only one may
@@ -233,7 +233,7 @@ def validate_exactly_one_of(
     Returns
     -------
     Callable
-        The root validator.
+        Resulting model validator.
 
     Examples
     --------
@@ -246,7 +246,7 @@ def validate_exactly_one_of(
            bar: Optional[str] = None
            baz: Optional[str] = None
 
-           _validate_options = root_validator(allow_reuse=True)(
+           _validate_options = model_validator(mode="after")(
                validate_exactly_one_of("foo", "bar", "baz")
            )
 
@@ -263,15 +263,15 @@ def validate_exactly_one_of(
     else:
         options = ", ".join(settings[:-1]) + ", and " + settings[-1]
 
-    def validator(cls: type, values: dict[str, Any]) -> dict[str, Any]:
+    def validator(model: T) -> T:
         seen = False
         for setting in settings:
-            if setting in values and values[setting] is not None:
+            if getattr(model, setting, None) is not None:
                 if seen:
                     raise ValueError(f"only one of {options} may be given")
                 seen = True
         if not seen:
             raise ValueError(f"one of {options} must be given")
-        return values
+        return model
 
     return validator

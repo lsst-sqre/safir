@@ -1,6 +1,6 @@
 {
   "installation": {
-    "id": "123xyz"
+    "id": 123
   },
   "ref": "refs/tags/simple-tag",
   "before": "0000000000000000000000000000000000000000",

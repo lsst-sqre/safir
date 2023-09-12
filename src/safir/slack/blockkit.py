@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any, ClassVar, Self
 
 from httpx import HTTPError, HTTPStatusError
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from safir.datetime import current_datetime, format_datetime_for_logging
 
@@ -179,7 +179,8 @@ class SlackMessage(BaseModel):
     for long text for want of a better alternative.
     """
 
-    @validator("fields")
+    @field_validator("fields")
+    @classmethod
     def _validate_fields(cls, v: list[SlackBaseField]) -> list[SlackBaseField]:
         """Check constraints on fields.
 

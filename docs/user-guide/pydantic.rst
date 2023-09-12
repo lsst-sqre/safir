@@ -20,17 +20,21 @@ Here's an example of how to use it:
 
 .. code-block:: python
 
+   from pydantic import BaseModel, field_validator
+   from safir.pydantic import normalize_datetime
+
+
    class Info(BaseModel):
        last_used: Optional[datetime] = Field(
            None,
            title="Last used",
            description="When last used in seconds since epoch",
-           example=1614986130,
+           examples=[1614986130],
        )
 
-       _normalize_last_used = validator(
-           "last_used", allow_reuse=True, pre=True
-       )(normalize_datetime)
+       _normalize_last_used = field_validator("last_used", pre=True)(
+           normalize_datetime
+       )
 
 Multiple attributes can be listed as the initial arguments of `~pydantic.validator` if there are multiple fields that need to be checked.
 
@@ -56,19 +60,23 @@ To use it, add a configuration block to any Pydantic model that has snake-case a
 
 .. code-block:: python
 
+   from pydantic import BaseModel, ConfigDict
+   from safir.pydantic import to_camel_case
+
+
    class Model(BaseModel):
        some_field: str
 
-       class Config:
-           alias_generator = to_camel_case
-           allow_population_by_field_name = True
+       model_config = ConfigDict(
+           alias_generator=to_camel_case, populate_by_name=True
+       )
 
 By default, only the generated aliases (so, in this case, only the camel-case form of the attribute, ``someField``) are supported.
 The additional setting ``allow_population_by_field_name``, tells Pydantic to allow either ``some_field`` or ``someField`` in the input.
 
 As a convenience, you can instead inherit from `~safir.pydantic.CamelCaseModel`, which is a derived class of `~pydantic.BaseModel` with those settings added.
 This is somewhat less obvious when reading the classes and thus less self-documenting, but is less tedious if you have numerous models that need to support camel-case.
-`~safir.pydantic.CamelCaseModel` also overrides ``dict`` and ``json`` to change the default of ``by_alias`` to `True` so that this model exports in camel-case by default.
+`~safir.pydantic.CamelCaseModel` also overrides ``model_dump`` and ``model_dump_json`` to change the default of ``by_alias`` to `True` so that this model exports in camel-case by default.
 
 Requiring exactly one of a list of attributes
 =============================================
@@ -86,19 +94,22 @@ The intent here is that only one of those two configurations will be present: ei
 However, Pydantic has no native way to express that, and the above model will accept input where neither or both of those attributes are set.
 
 Safir provides a function, `~safir.pydantic.validate_exactly_one_of`, designed for this case.
-It takes a list of fields, of which exactly one must be set, and builds a root validator function that checks this property of the model.
+It takes a list of fields, of which exactly one must be set, and builds a model validator function that checks this property of the model.
 
 So, in the above example, the full class would be:
 
 .. code-block:: python
 
+   from pydantic import BaseModel, model_validator
+   from safir.pydantic import validate_exactly_one_of
+
+
    class Model(BaseModel):
        docker: Optional[DockerConfig] = None
        ghcr: Optional[GHCRConfig] = None
 
-       _validate_type = root_validator(allow_reuse=True)(
+       _validate_type = model_validator(mode="after")(
            validate_exactly_one_of("docker", "ghcr")
        )
 
 Note the syntax, which is a little odd since it is calling a decorator on the results of a function builder.
-``allow_reuse=True`` must be set due to limitations in Pydantic.

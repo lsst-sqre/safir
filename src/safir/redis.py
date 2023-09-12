@@ -198,7 +198,7 @@ class PydanticRedisStorage(Generic[S]):
         bytes
             The serialized object.
         """
-        return obj.json().encode()
+        return obj.model_dump_json().encode()
 
     def _deserialize(self, data: bytes) -> S:
         """Deserialize bytes into a Pydantic object.
@@ -213,7 +213,7 @@ class PydanticRedisStorage(Generic[S]):
         S
             The deserialized Pydantic object.
         """
-        return self._datatype.parse_raw(data.decode())
+        return self._datatype.model_validate_json(data.decode())
 
 
 class EncryptedPydanticRedisStorage(PydanticRedisStorage[S]):
@@ -249,9 +249,9 @@ class EncryptedPydanticRedisStorage(PydanticRedisStorage[S]):
         self._fernet = Fernet(encryption_key.encode())
 
     def _serialize(self, obj: S) -> bytes:
-        data = obj.json().encode()
+        data = obj.model_dump_json().encode()
         return self._fernet.encrypt(data)
 
     def _deserialize(self, data: bytes) -> S:
         data = self._fernet.decrypt(data)
-        return self._datatype.parse_raw(data.decode())
+        return self._datatype.model_validate_json(data.decode())

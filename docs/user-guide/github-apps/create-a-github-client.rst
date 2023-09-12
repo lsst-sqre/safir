@@ -31,7 +31,8 @@ For information about creating a GitHub App, retrieving its App ID and generatin
 
 .. code-block:: python
 
-   from pydantic import BaseSettings, Field, SecretStr
+   from pydantic import Field, SecretStr
+   from pydantic_settings import BaseSettings
 
    from safir.github import GitHubAppClientFactory
 
@@ -41,11 +42,15 @@ For information about creating a GitHub App, retrieving its App ID and generatin
        GitHub App functionality.
        """
 
-       github_app_id: str = Field(env="GITHUB_APP_ID")
+       github_app_id: str = Field(validation_alias="GITHUB_APP_ID")
 
-       github_webhook_secret: SecretStr = Field(env="GITHUB_WEBHOOK_SECRET")
+       github_webhook_secret: SecretStr = Field(
+           validation_alias="GITHUB_WEBHOOK_SECRET"
+       )
 
-       github_app_private_key: SecretStr = Field(env="GITHUB_APP_PRIVATE_KEY")
+       github_app_private_key: SecretStr = Field(
+           validation_alias="GITHUB_APP_PRIVATE_KEY"
+       )
 
 
    config = Config()

@@ -45,16 +45,19 @@ If your app uses a configuration system like ``pydantic.BaseSettings``, this exa
     from urllib.parse import urlparse
 
     from arq.connections import RedisSettings
-    from pydantic import BaseSettings, Field, RedisDsn
+    from pydantic import Field, RedisDsn
+    from pydantic_settings import BaseSettings
     from safir.arq import ArqMode
 
 
     class Config(BaseSettings):
         arq_queue_url: RedisDsn = Field(
-            "redis://localhost:6379/1", env="APP_ARQ_QUEUE_URL"
+            "redis://localhost:6379/1", validation_alias="APP_ARQ_QUEUE_URL"
         )
 
-        arq_mode: ArqMode = Field(ArqMode.production, env="APP_ARQ_MODE")
+        arq_mode: ArqMode = Field(
+            ArqMode.production, validation_alias="APP_ARQ_MODE"
+        )
 
         @property
         def arq_redis_settings(self) -> RedisSettings:
