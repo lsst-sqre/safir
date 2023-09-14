@@ -61,16 +61,6 @@ class GitHubAppClientFactory:
         """
         return self._create_client()
 
-    def create_app_client(self) -> GitHubAPI:
-        """Create a client authenticated as the GitHub App.
-
-        Returns
-        -------
-        gidgethub.httpx.GitHubAPI
-            The app client.
-        """
-        return self._create_client(oauth_token=self.get_app_jwt())
-
     async def create_installation_client(
         self, installation_id: str
     ) -> GitHubAPI:
