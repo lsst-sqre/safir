@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import overload
 from urllib.parse import quote, urlparse
 
@@ -140,7 +140,7 @@ def datetime_to_db(time: datetime | None) -> datetime | None:
     """
     if not time:
         return None
-    if time.tzinfo != UTC:
+    if time.utcoffset() != timedelta(seconds=0):
         raise ValueError(f"datetime {time} not in UTC")
     return time.replace(tzinfo=None)
 

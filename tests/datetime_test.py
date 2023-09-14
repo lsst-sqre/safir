@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
+from pydantic import BaseModel
 
 from safir.datetime import (
     current_datetime,
@@ -37,6 +38,15 @@ def test_isodatetime() -> None:
     with pytest.raises(ValueError, match=r"datetime .* not in UTC"):
         isodatetime(datetime.fromisoformat("2022-09-16T12:03:45+02:00"))
 
+    # Pydantic's JSON decoder uses a TzInfo data structure instead of
+    # datetime.timezone.utc. Make sure that's still recognized as UTC.
+    class Test(BaseModel):
+        time: datetime
+
+    json_model = Test(time=time).model_dump_json()
+    model = Test.model_validate_json(json_model)
+    assert isodatetime(model.time) == "2022-09-16T12:03:45Z"
+
 
 def test_parse_isodatetime() -> None:
     time = parse_isodatetime("2022-09-16T12:03:45Z")
@@ -65,3 +75,12 @@ def test_format_datetime_for_logging() -> None:
     time = datetime.now(tz=timezone(timedelta(hours=1)))
     with pytest.raises(ValueError, match=r"datetime .* not in UTC"):
         format_datetime_for_logging(time)
+
+    # Pydantic's JSON decoder uses a TzInfo data structure instead of
+    # datetime.timezone.utc. Make sure that's still recognized as UTC.
+    class Test(BaseModel):
+        time: datetime
+
+    json_model = Test(time=now).model_dump_json()
+    model = Test.model_validate_json(json_model)
+    assert format_datetime_for_logging(model.time) == expected
