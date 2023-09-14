@@ -56,7 +56,7 @@ dev = [
     "types-redis",
     "uvicorn",
     # documentation
-    "documenteer[guide]>=0.7.0,<1",
+    "documenteer[guide] @ git+https://github.com/lsst-sqre/documenteer@main",
     "autodoc_pydantic",
 ]
 gcs = [
