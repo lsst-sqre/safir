@@ -32,7 +32,7 @@ Here's an example of how to use it:
            examples=[1614986130],
        )
 
-       _normalize_last_used = field_validator("last_used", pre=True)(
+       _normalize_last_used = field_validator("last_used", mode="before")(
            normalize_datetime
        )
 

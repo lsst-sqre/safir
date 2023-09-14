@@ -53,7 +53,7 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
                examples=[1614986130],
            )
 
-           _normalize_last_used = field_validator("last_used", pre=True)(
+           _normalize_last_used = field_validator("last_used", mode="before")(
                normalize_datetime
            )
     """
@@ -102,7 +102,7 @@ def normalize_isodatetime(v: str | None) -> datetime | None:
                examples=["2023-01-25T15:44:34Z"],
            )
 
-           _normalize_last_used = field_validator("last_used", pre=True)(
+           _normalize_last_used = field_validator("last_used", mode="before")(
                normalize_isodatetime
            )
     """
