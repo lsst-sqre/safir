@@ -69,20 +69,29 @@ Authenticating as the app
 Your app can authenticate to GitHub in two modes: as the *app itself*, or as an *installation* of the app.
 Authenticating as the GitHub App enables your app to access information about the app itself, such as its installations.
 
+To do this, get the app's JWT and use it with an GitHub client requests:
+
 .. code-block:: python
 
-   app_client = github_client_factory.create_app_client()
+   client = github_client_factory.create_anonymous_client()
+   jwt = github_client_factory.get_app_jwt()
+
+Example of using the JWT to get the app's installations:
+
+.. code-block:: python
+
+   data = await client.getitem("/app/installations", jwt=jwt)
 
 Authenticating as the app installation
 ======================================
 
 To authenticate as an installation of the app, you need to know the installation ID.
-Dependening on the scenario, there are multiple ways of getting the installation ID.
+Depending on the scenario, there are multiple ways of getting the installation ID.
 
 In a webhook handler
 --------------------
 
-If your app recieves a webhook from GitHub, the installation ID will be included in the payload (as the ``installation.id`` field, see the `~safir.github.webhooks.GitHubAppInstallationModel`).
+If your app receives a webhook from GitHub, the installation ID will be included in the payload (as the ``installation.id`` field, see the `~safir.github.webhooks.GitHubAppInstallationModel`).
 
 .. code-block:: python
 
