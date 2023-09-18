@@ -20,18 +20,18 @@ __all__ = [
 ]
 
 
-def normalize_datetime(v: int | datetime | None) -> datetime | None:
+def normalize_datetime(v: Any) -> datetime | None:
     """Pydantic field validator for datetime fields.
 
-    Supports `~datetime.datetime` fields given in either any format supported
-    by Pydantic natively, or in seconds since epoch (which Pydantic doesn't
-    support).  This field validator ensures that datetimes are always stored
-    in the model as timezone-aware UTC datetimes.
+    Supports `~datetime.datetime` fields given as either datetime objects or
+    seconds since epoch (not the other types Pydantic natively supports) and
+    ensures that the resulting datetime object is timezone-aware and in the
+    UTC timezone.
 
     Parameters
     ----------
     v
-        The field representing a `~datetime.datetime`.
+        Field representing a `~datetime.datetime`.
 
     Returns
     -------
@@ -61,6 +61,8 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
         return v
     elif isinstance(v, int):
         return datetime.fromtimestamp(v, tz=UTC)
+    elif not isinstance(v, datetime):
+        raise ValueError("Must be a datetime or seconds since epoch")
     elif v.tzinfo and v.tzinfo.utcoffset(v) is not None:
         return v.astimezone(UTC)
     else:

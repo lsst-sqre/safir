@@ -6,7 +6,12 @@ import json
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-from pydantic import BaseModel, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from safir.pydantic import (
     CamelCaseModel,
@@ -18,39 +23,55 @@ from safir.pydantic import (
 
 
 def test_normalize_datetime() -> None:
-    assert normalize_datetime(None) is None
+    class TestModel(BaseModel):
+        time: datetime | None
+
+        _val = field_validator("time", mode="before")(normalize_datetime)
+
+    assert TestModel(time=None).time is None
 
     date = datetime.fromtimestamp(1668814932, tz=UTC)
-    assert normalize_datetime(1668814932) == date
+    model = TestModel(time=1668814932)  # type: ignore[arg-type]
+    assert model.time == date
 
     mst_zone = timezone(-timedelta(hours=7))
     mst_date = datetime.now(tz=mst_zone)
     utc_date = mst_date.astimezone(UTC)
-    assert normalize_datetime(mst_date) == utc_date
+    assert TestModel(time=mst_date).time == utc_date
 
     naive_date = datetime.utcnow()  # noqa: DTZ003
-    aware_date = normalize_datetime(naive_date)
+    aware_date = TestModel(time=naive_date).time
     assert aware_date == naive_date.replace(tzinfo=UTC)
     assert aware_date.tzinfo == UTC
 
+    with pytest.raises(ValueError, match=r"Must be a datetime or seconds .*"):
+        TestModel(time="2023-01-25T15:44:00+00:00")  # type: ignore[arg-type]
+
 
 def test_normalize_isodatetime() -> None:
-    assert normalize_isodatetime(None) is None
+    class TestModel(BaseModel):
+        time: datetime | None
+
+        _val = field_validator("time", mode="before")(normalize_isodatetime)
+
+    assert TestModel(time=None).time is None
 
     date = datetime.fromisoformat("2023-01-25T15:44:34+00:00")
-    assert date == normalize_isodatetime("2023-01-25T15:44:34Z")
+    model = TestModel(time="2023-01-25T15:44:34Z")  # type: ignore[arg-type]
+    assert model.time == date
 
     date = datetime.fromisoformat("2023-01-25T15:44:00+00:00")
-    assert date == normalize_isodatetime("2023-01-25T15:44Z")
+    model = TestModel(time="2023-01-25T15:44Z")  # type: ignore[arg-type]
+    assert model.time == date
 
     with pytest.raises(ValueError, match=r"Must be a string in .* format"):
-        normalize_isodatetime("2023-01-25T15:44:00+00:00")
+        TestModel(time="2023-01-25T15:44:00+00:00")  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match=r"Must be a string in .* format"):
-        normalize_isodatetime(1668814932)  # type: ignore[arg-type]
+        TestModel(time=1668814932)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match=r"Must be a string in .* format"):
-        normalize_isodatetime("next thursday")
+        TestModel(time="next thursday")  # type: ignore[arg-type]
 
 
 def test_to_camel_case() -> None:
