@@ -58,7 +58,7 @@ async def test_client_request_error() -> None:
 
         r = await client.get("/address")
         assert r.status_code == 422
-        error = ErrorModel.parse_obj(r.json())
+        error = ErrorModel.model_validate(r.json())
         assert error.detail[0].loc == [ErrorLocation.body, "user", "address"]
         assert error.detail[0].msg == "Invalid address"
         assert error.detail[0].type == "invalid_address"

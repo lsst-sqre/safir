@@ -35,7 +35,7 @@ class GitHubAppInstallationModel(BaseModel):
     payloads for GitHub Apps.
     """
 
-    id: str = Field(description="The installation ID.")
+    id: int = Field(description="The installation ID.")
 
 
 class GitHubPushEventModel(BaseModel):
@@ -58,7 +58,7 @@ class GitHubPushEventModel(BaseModel):
             "The full git ref that was pushed. Example: refs/heads/main or "
             "refs/tags/v3.14.1."
         ),
-        example="refs/heads/main",
+        examples=["refs/heads/main"],
     )
 
     before: str = Field(

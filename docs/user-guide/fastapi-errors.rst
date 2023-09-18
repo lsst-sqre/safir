@@ -127,7 +127,7 @@ The code to raise ``fastapi.HTTPException`` should therefore look something like
    )
    raise HTTPException(
        status_code=status.HTTP_404_NOT_FOUND,
-       detail=[error.dict(exclude_none=True)],
+       detail=[error.model_dump(exclude_none=True)],
    )
 
 Declaring the error model

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import overload
 
 __all__ = [
@@ -75,7 +75,7 @@ def format_datetime_for_logging(timestamp: datetime | None) -> str | None:
         Raised if the argument is in a time zone other than UTC.
     """
     if timestamp:
-        if timestamp.tzinfo not in (None, UTC):
+        if timestamp.utcoffset() != timedelta(seconds=0):
             raise ValueError(f"datetime {timestamp} not in UTC")
         if timestamp.microsecond:
             result = timestamp.isoformat(sep=" ", timespec="milliseconds")
@@ -106,7 +106,7 @@ def isodatetime(timestamp: datetime) -> str:
     ValueError
         The provided timestamp was not in UTC.
     """
-    if timestamp.tzinfo not in (None, UTC):
+    if timestamp.utcoffset() != timedelta(seconds=0):
         raise ValueError(f"datetime {timestamp} not in UTC")
     return timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 

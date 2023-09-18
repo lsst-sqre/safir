@@ -40,7 +40,7 @@ class GitHubRepoOwnerModel(BaseModel):
         description=(
             "Login name of the owner (either a user or an organization)."
         ),
-        example="lsst-sqre",
+        examples=["lsst-sqre"],
     )
 
 
@@ -76,7 +76,7 @@ class GitHubRepositoryModel(BaseModel):
     name: str = Field(
         title="Repository name",
         description="Excludes owner prefix.",
-        example="times-square-demo",
+        examples=["times-square-demo"],
     )
 
     full_name: str = Field(
@@ -85,46 +85,46 @@ class GitHubRepositoryModel(BaseModel):
             "Full name, including owner prefix "
             "(e.g. ``lsst-sqre/times-square-demo``).)"
         ),
-        example="lsst-sqre/times-square-demo",
+        examples=["lsst-sqre/times-square-demo"],
     )
 
     owner: GitHubRepoOwnerModel = Field(description="The repository's owner.")
 
     default_branch: str = Field(
-        description="The default branch (e.g. main).", example="main"
+        description="The default branch (e.g. main).", examples=["main"]
     )
 
     html_url: HttpUrl = Field(
         description="URL of the repository for browsers.",
-        example="https://github.com/lsst-sqre/times-square-demo",
+        examples=["https://github.com/lsst-sqre/times-square-demo"],
     )
 
     branches_url: str = Field(
         description="URI template for the repo's branches endpoint.",
-        example=(
+        examples=[
             "https://github.com/lsst-sqre/times-square-demo/branches{/branch}"
-        ),
+        ],
     )
 
     contents_url: str = Field(
         description="URI template for the contents endpoint.",
-        example=(
+        examples=[
             "https://github.com/lsst-sqre/times-square-demo/contents/{+path}"
-        ),
+        ],
     )
 
     trees_url: str = Field(
         description="URI template for the Git tree API.",
-        example=(
+        examples=[
             "https://github.com/lsst-sqre/times-square-demo/git/trees{/sha}"
-        ),
+        ],
     )
 
     blobs_url: str = Field(
         description="URI template for the Git blobs API.",
-        example=(
+        examples=[
             "https://github.com/lsst-sqre/times-square-demo/git/blobs{/sha}"
-        ),
+        ],
     )
 
 
@@ -181,7 +181,7 @@ class GitHubBranchModel(BaseModel):
     https://docs.github.com/en/rest/branches/branches#get-a-branch
     """
 
-    name: str = Field(description="Branch name (e.g. main)", example="main")
+    name: str = Field(description="Branch name (e.g. main)", examples=["main"])
 
     commit: GitHubBranchCommitModel = Field(description="HEAD commit info.")
 
@@ -274,7 +274,7 @@ class GitHubCheckSuiteModel(BaseModel):
     webhook (`~safir.github.webhooks.GitHubCheckSuiteEventModel`).
     """
 
-    id: str = Field(description="Identifier for this check run.")
+    id: int = Field(description="Identifier for this check run.")
 
     head_branch: str = Field(
         description="Name of the branch the changes are on.",
@@ -353,7 +353,7 @@ class GitHubCheckRunAnnotationLevel(str, Enum):
 class GitHubCheckSuiteId(BaseModel):
     """Brief information about a check suite in the `GitHubCheckRunModel`."""
 
-    id: str = Field(description="Check suite ID")
+    id: int = Field(description="Check suite ID")
 
 
 class GitHubCheckRunOutput(BaseModel):
@@ -383,7 +383,7 @@ class GitHubCheckRunModel(BaseModel):
     payload (`~safir.github.webhooks.GitHubCheckRunEventModel`).
     """
 
-    id: str = Field(description="Identifier for this check run.")
+    id: int = Field(description="Identifier for this check run.")
 
     external_id: str | None = Field(
         description="Identifier set by the check runner."

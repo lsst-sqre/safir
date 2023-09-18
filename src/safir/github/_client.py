@@ -21,10 +21,16 @@ class GitHubAppClientFactory:
         from (e.g. ``lsst-sqre/times-square``).
     http_client
         The httpx client.
+
+    Notes
+    -----
+    Gidgethub treats the application ID and installation ID as strings, but
+    GitHub's API appears to return them as integers. This class expects them
+    to be integers and converts them to strings when calling Gidgethub.
     """
 
     def __init__(
-        self, *, id: str, key: str, name: str, http_client: httpx.AsyncClient
+        self, *, id: int, key: str, name: str, http_client: httpx.AsyncClient
     ) -> None:
         self.app_id = id
         self.app_key = key
@@ -43,7 +49,7 @@ class GitHubAppClientFactory:
             The JWT token.
         """
         return gidgethub.apps.get_jwt(
-            app_id=self.app_id, private_key=self.app_key
+            app_id=str(self.app_id), private_key=self.app_key
         )
 
     def _create_client(self, *, oauth_token: str | None = None) -> GitHubAPI:
@@ -62,7 +68,7 @@ class GitHubAppClientFactory:
         return self._create_client()
 
     async def create_installation_client(
-        self, installation_id: str
+        self, installation_id: int
     ) -> GitHubAPI:
         """Create a client authenticated as an installation of the GitHub App
         for a specific repository or organization.
@@ -83,8 +89,8 @@ class GitHubAppClientFactory:
         anon_client = self.create_anonymous_client()
         token_info = await gidgethub.apps.get_installation_access_token(
             anon_client,
-            installation_id=installation_id,
-            app_id=self.app_id,
+            installation_id=str(installation_id),
+            app_id=str(self.app_id),
             private_key=self.app_key,
         )
         return self._create_client(oauth_token=token_info["token"])

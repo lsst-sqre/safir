@@ -35,12 +35,12 @@ class ErrorDetail(BaseModel):
     """The detail of the error message."""
 
     loc: list[str] | None = Field(
-        None, title="Location", example=["area", "field"]
+        None, title="Location", examples=[["area", "field"]]
     )
 
-    msg: str = Field(..., title="Message", example="Some error messge")
+    msg: str = Field(..., title="Message", examples=["Some error messge"])
 
-    type: str = Field(..., title="Error type", example="some_code")
+    type: str = Field(..., title="Error type", examples=["some_code"])
 
 
 class ErrorModel(BaseModel):

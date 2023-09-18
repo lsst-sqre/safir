@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, ParamSpec, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -20,18 +20,18 @@ __all__ = [
 ]
 
 
-def normalize_datetime(v: int | datetime | None) -> datetime | None:
-    """Pydantic validator for datetime fields.
+def normalize_datetime(v: Any) -> datetime | None:
+    """Pydantic field validator for datetime fields.
 
-    Supports `~datetime.datetime` fields given in either any format supported
-    by Pydantic natively, or in seconds since epoch (which Pydantic doesn't
-    support).  This validator ensures that datetimes are always stored in the
-    model as timezone-aware UTC datetimes.
+    Supports `~datetime.datetime` fields given as either datetime objects or
+    seconds since epoch (not the other types Pydantic natively supports) and
+    ensures that the resulting datetime object is timezone-aware and in the
+    UTC timezone.
 
     Parameters
     ----------
     v
-        The field representing a `~datetime.datetime`.
+        Field representing a `~datetime.datetime`.
 
     Returns
     -------
@@ -41,26 +41,28 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
 
     Examples
     --------
-    Here is a partial model that uses this function as a validator.
+    Here is a partial model that uses this function as a field validator.
 
     .. code-block:: python
 
        class Info(BaseModel):
-           last_used: Optional[datetime] = Field(
+           last_used: datetime | None = Field(
                None,
                title="Last used",
                description="When last used in seconds since epoch",
-               example=1614986130,
+               examples=[1614986130],
            )
 
-           _normalize_last_used = validator(
-               "last_used", allow_reuse=True, pre=True
-           )(normalize_datetime)
+           _normalize_last_used = field_validator("last_used", mode="before")(
+               normalize_datetime
+           )
     """
     if v is None:
         return v
     elif isinstance(v, int):
         return datetime.fromtimestamp(v, tz=UTC)
+    elif not isinstance(v, datetime):
+        raise ValueError("Must be a datetime or seconds since epoch")
     elif v.tzinfo and v.tzinfo.utcoffset(v) is not None:
         return v.astimezone(UTC)
     else:
@@ -68,12 +70,12 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
 
 
 def normalize_isodatetime(v: str | None) -> datetime | None:
-    """Pydantic validator for datetime fields in ISO format.
+    """Pydantic field validator for datetime fields in ISO format.
 
-    This validator requires the ISO 8601 date and time format with ``Z`` as
-    the time zone (``YYYY-MM-DDTHH:MM:SSZ``).  This format is compatible with
-    Kubernetes and the ISO UWS standard and is the same format produced by
-    `safir.datetime.isodatetime`.  It should be used when the ambiguous
+    This field validator requires the ISO 8601 date and time format with ``Z``
+    as the time zone (``YYYY-MM-DDTHH:MM:SSZ``). This format is compatible
+    with Kubernetes and the ISO UWS standard and is the same format produced
+    by `safir.datetime.isodatetime`. It should be used when the ambiguous
     formats supported by Pydantic by default (such as dates and times without
     time zone information) shouldn't be allowed.
 
@@ -90,21 +92,21 @@ def normalize_isodatetime(v: str | None) -> datetime | None:
 
     Examples
     --------
-    Here is a partial model that uses this function as a validator.
+    Here is a partial model that uses this function as a field validator.
 
     .. code-block:: python
 
        class Info(BaseModel):
-           last_used: Optional[datetime] = Field(
+           last_used: datetime | None = Field(
                None,
                title="Last used",
                description="Date and time last used",
-               example="2023-01-25T15:44:34Z",
+               examples=["2023-01-25T15:44:34Z"],
            )
 
-           _normalize_last_used = validator(
-               "last_used", allow_reuse=True, pre=True
-           )(normalize_isodatetime)
+           _normalize_last_used = field_validator("last_used", mode="before")(
+               normalize_isodatetime
+           )
     """
     if v is None:
         return None
@@ -142,9 +144,9 @@ def to_camel_case(string: str) -> str:
        class Model(BaseModel):
            some_field: str
 
-           class Config:
-               alias_generator = to_camel_case
-               allow_population_by_field_name = True
+           model_config = ConfigDict(
+               alias_generator=to_camel_case, populate_by_name=True
+           )
 
     This must be added to every class that uses ``snake_case`` for an
     attribute and that needs to be initialized from ``camelCase``.
@@ -182,16 +184,16 @@ class CamelCaseModel(BaseModel):
 
     This is a convenience class identical to `~pydantic.BaseModel` except with
     an alias generator configured so that it can be initialized with either
-    camel-case or snake-case keys. Model exports with ``dict`` or ``json``
-    also default to exporting in camel-case.
+    camel-case or snake-case keys. Model exports with ``model_dump`` or
+    ``model_dump_json`` also default to exporting in camel-case.
     """
 
-    class Config:
-        alias_generator = to_camel_case
-        allow_population_by_field_name = True
+    model_config = ConfigDict(
+        alias_generator=to_camel_case, populate_by_name=True
+    )
 
-    @_copy_type(BaseModel.dict)
-    def dict(self, **kwargs: Any) -> dict[str, Any]:
+    @_copy_type(BaseModel.model_dump)
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Export the model as a dictionary.
 
         Overridden to change the default of ``by_alias`` from `False` to
@@ -199,10 +201,10 @@ class CamelCaseModel(BaseModel):
         """
         if "by_alias" not in kwargs:
             kwargs["by_alias"] = True
-        return super().dict(**kwargs)
+        return super().model_dump(**kwargs)
 
-    @_copy_type(BaseModel.json)
-    def json(self, **kwargs: Any) -> str:
+    @_copy_type(BaseModel.model_dump_json)
+    def model_dump_json(self, **kwargs: Any) -> str:
         """Export the model as JSON.
 
         Overridden to change the default of ``by_alias`` from `False` to
@@ -210,19 +212,19 @@ class CamelCaseModel(BaseModel):
         """
         if "by_alias" not in kwargs:
             kwargs["by_alias"] = True
-        return super().json(**kwargs)
+        return super().model_dump_json(**kwargs)
 
 
 def validate_exactly_one_of(
     *settings: str,
-) -> Callable[[type, dict[str, Any]], dict[str, Any]]:
-    """Generate a validator imposing a one and only one constraint.
+) -> Callable[[BaseModel], BaseModel]:
+    """Generate a model validator imposing a one and only one constraint.
 
     Sometimes, models have a set of attributes of which one and only one may
     be set. Ideally this is represented properly in the type system, but
-    occasionally it's more convenient to use a validator. This is a validator
-    generator that can produce a validator function that ensures one and only
-    one of an arbitrary set of attributes must be set.
+    occasionally it's more convenient to use a model validator. This is a
+    model validator generator that can produce a model validator function that
+    ensures one and only one of an arbitrary set of attributes must be set.
 
     Parameters
     ----------
@@ -233,11 +235,11 @@ def validate_exactly_one_of(
     Returns
     -------
     Callable
-        The root validator.
+        Resulting model validator.
 
     Examples
     --------
-    Use this inside a Pydantic class as a validator as follows:
+    Use this inside a Pydantic class as a model validator as follows:
 
     .. code-block:: python
 
@@ -246,13 +248,13 @@ def validate_exactly_one_of(
            bar: Optional[str] = None
            baz: Optional[str] = None
 
-           _validate_options = root_validator(allow_reuse=True)(
+           _validate_options = model_validator(mode="after")(
                validate_exactly_one_of("foo", "bar", "baz")
            )
 
-    The attribute listed as the first argument to the ``validator`` call must
-    be the last attribute in the model definition so that any other attributes
-    have already been seen.
+    The attribute listed as the first argument to the ``model_validator`` call
+    must be the last attribute in the model definition so that any other
+    attributes have already been seen.
     """
     if len(settings) < 2:
         msg = "validate_exactly_one_of takes at least two field names"
@@ -263,15 +265,15 @@ def validate_exactly_one_of(
     else:
         options = ", ".join(settings[:-1]) + ", and " + settings[-1]
 
-    def validator(cls: type, values: dict[str, Any]) -> dict[str, Any]:
+    def validator(model: T) -> T:
         seen = False
         for setting in settings:
-            if setting in values and values[setting] is not None:
+            if getattr(model, setting, None) is not None:
                 if seen:
                     raise ValueError(f"only one of {options} may be given")
                 seen = True
         if not seen:
             raise ValueError(f"one of {options} must be given")
-        return values
+        return model
 
     return validator

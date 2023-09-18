@@ -8,6 +8,7 @@ from urllib.parse import unquote, urlparse
 
 import pytest
 import structlog
+from pydantic import BaseModel
 from sqlalchemy import Column, MetaData, String, Table
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.future import select
@@ -188,3 +189,12 @@ def test_datetime() -> None:
         datetime_to_db(tz_local)
     with pytest.raises(ValueError, match=r"datetime .* not in UTC"):
         datetime_from_db(tz_local)
+
+    # Pydantic's JSON decoder uses a TzInfo data structure instead of
+    # datetime.timezone.utc. Make sure that's still recognized as UTC.
+    class Test(BaseModel):
+        time: datetime
+
+    json_model = Test(time=tz_aware).model_dump_json()
+    model = Test.model_validate_json(json_model)
+    assert datetime_to_db(model.time) == tz_naive

@@ -53,15 +53,14 @@ To use this format as the serialized representation of any `~datetime.datetime` 
 
    from datetime import datetime
 
-   from pydantic import BaseModel
+   from pydantic import BaseModel, field_serializer
    from safir.datetime import isodatetime
 
 
    class Example(BaseModel):
        some_time: datetime
 
-       class Config:
-           json_encoders = {datetime: lambda v: isodatetime(v)}
+       _serialize_some_time = field_serializer("some_time")(isodatetime)
 
 Also see the Pydantic validation function `safir.pydantic.normalize_isodatetime`, discussed further at :ref:`pydantic-datetime`.
 

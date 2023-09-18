@@ -41,8 +41,9 @@ The URL path for this endpoint corresponds to the webhook callback URL you set u
        body = await request.body()
        event = Event.from_http(request.headers, body, secret=webhook_secret)
 
-       # Bind the X-GitHub-Delivery header to the logger context; this identifies
-       # the webhook request in GitHub's API and UI for diagnostics
+       # Bind the X-GitHub-Delivery header to the logger context; this
+       # identifies the webhook request in GitHub's API and UI for
+       # diagnostics
        logger = logger.bind(github_delivery=event.delivery_id)
 
        logger.debug("Received GitHub webhook", payload=event.data)
@@ -138,7 +139,7 @@ You can parse the ``event.data`` attribute into a Pydantic model using the ``par
            f"Received {event.event} {event.data.action} event",
            event=event.event,
            action=event.data.action,
-           payload=pull_request_event.dict(),
+           payload=pull_request_event.model_dump(),
            number=pull_request_event.number,
        )
 

@@ -27,7 +27,7 @@ dependencies = [
     "fastapi<1",
     "gidgethub<6",
     "httpx>=0.20.0,<1",
-    "pydantic<2",
+    "pydantic>2,<3",
     "starlette<1",
     "structlog>=21.2.0,<24",
 ]
@@ -56,7 +56,7 @@ dev = [
     "types-redis",
     "uvicorn",
     # documentation
-    "documenteer[guide]>=0.7.0,<1",
+    "documenteer[guide]>=1.0.0a7",
     "autodoc_pydantic",
 ]
 gcs = [
@@ -264,12 +264,6 @@ builtins-ignorelist = [
 [tool.ruff.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
-
-[tool.ruff.pep8-naming]
-classmethod-decorators = [
-    "pydantic.root_validator",
-    "pydantic.validator",
-]
 
 [tool.ruff.pydocstyle]
 convention = "numpy"
