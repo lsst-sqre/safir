@@ -21,12 +21,12 @@ __all__ = [
 
 
 def normalize_datetime(v: int | datetime | None) -> datetime | None:
-    """Pydantic validator for datetime fields.
+    """Pydantic field validator for datetime fields.
 
     Supports `~datetime.datetime` fields given in either any format supported
     by Pydantic natively, or in seconds since epoch (which Pydantic doesn't
-    support).  This validator ensures that datetimes are always stored in the
-    model as timezone-aware UTC datetimes.
+    support).  This field validator ensures that datetimes are always stored
+    in the model as timezone-aware UTC datetimes.
 
     Parameters
     ----------
@@ -41,12 +41,12 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
 
     Examples
     --------
-    Here is a partial model that uses this function as a validator.
+    Here is a partial model that uses this function as a field validator.
 
     .. code-block:: python
 
        class Info(BaseModel):
-           last_used: Optional[datetime] = Field(
+           last_used: datetime | None = Field(
                None,
                title="Last used",
                description="When last used in seconds since epoch",
@@ -68,12 +68,12 @@ def normalize_datetime(v: int | datetime | None) -> datetime | None:
 
 
 def normalize_isodatetime(v: str | None) -> datetime | None:
-    """Pydantic validator for datetime fields in ISO format.
+    """Pydantic field validator for datetime fields in ISO format.
 
-    This validator requires the ISO 8601 date and time format with ``Z`` as
-    the time zone (``YYYY-MM-DDTHH:MM:SSZ``).  This format is compatible with
-    Kubernetes and the ISO UWS standard and is the same format produced by
-    `safir.datetime.isodatetime`.  It should be used when the ambiguous
+    This field validator requires the ISO 8601 date and time format with ``Z``
+    as the time zone (``YYYY-MM-DDTHH:MM:SSZ``). This format is compatible
+    with Kubernetes and the ISO UWS standard and is the same format produced
+    by `safir.datetime.isodatetime`. It should be used when the ambiguous
     formats supported by Pydantic by default (such as dates and times without
     time zone information) shouldn't be allowed.
 
@@ -90,12 +90,12 @@ def normalize_isodatetime(v: str | None) -> datetime | None:
 
     Examples
     --------
-    Here is a partial model that uses this function as a validator.
+    Here is a partial model that uses this function as a field validator.
 
     .. code-block:: python
 
        class Info(BaseModel):
-           last_used: Optional[datetime] = Field(
+           last_used: datetime | None = Field(
                None,
                title="Last used",
                description="Date and time last used",
@@ -216,13 +216,13 @@ class CamelCaseModel(BaseModel):
 def validate_exactly_one_of(
     *settings: str,
 ) -> Callable[[BaseModel], BaseModel]:
-    """Generate a validator imposing a one and only one constraint.
+    """Generate a model validator imposing a one and only one constraint.
 
     Sometimes, models have a set of attributes of which one and only one may
     be set. Ideally this is represented properly in the type system, but
-    occasionally it's more convenient to use a validator. This is a validator
-    generator that can produce a validator function that ensures one and only
-    one of an arbitrary set of attributes must be set.
+    occasionally it's more convenient to use a model validator. This is a
+    model validator generator that can produce a model validator function that
+    ensures one and only one of an arbitrary set of attributes must be set.
 
     Parameters
     ----------
@@ -237,7 +237,7 @@ def validate_exactly_one_of(
 
     Examples
     --------
-    Use this inside a Pydantic class as a validator as follows:
+    Use this inside a Pydantic class as a model validator as follows:
 
     .. code-block:: python
 
@@ -250,9 +250,9 @@ def validate_exactly_one_of(
                validate_exactly_one_of("foo", "bar", "baz")
            )
 
-    The attribute listed as the first argument to the ``validator`` call must
-    be the last attribute in the model definition so that any other attributes
-    have already been seen.
+    The attribute listed as the first argument to the ``model_validator`` call
+    must be the last attribute in the model definition so that any other
+    attributes have already been seen.
     """
     if len(settings) < 2:
         msg = "validate_exactly_one_of takes at least two field names"

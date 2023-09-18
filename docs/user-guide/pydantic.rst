@@ -13,7 +13,7 @@ Normalizing datetime fields
 Pydantic supports several input formats for `~datetime.datetime` fields, but the resulting `~datetime.datetime` object may be timezone-naive.
 Best practice for Python code is to only use timezone-aware `~datetime.datetime` objects in the UTC time zone.
 
-Pydantic provides a utility function, `~safir.pydantic.normalize_datetime`, that can be used as a validator for a `~datetime.datetime` model field.
+Pydantic provides a utility function, `~safir.pydantic.normalize_datetime`, that can be used as a field validator for a `~datetime.datetime` model field.
 It ensures that any input is converted to UTC and is always timezone-aware.
 
 Here's an example of how to use it:
@@ -36,14 +36,14 @@ Here's an example of how to use it:
            normalize_datetime
        )
 
-Multiple attributes can be listed as the initial arguments of `~pydantic.validator` if there are multiple fields that need to be checked.
+Multiple attributes can be listed as the initial arguments of `~pydantic.field_validator` if there are multiple fields that need to be checked.
 
-This validator accepts all of the input formats that Pydantic accepts.
+This field validator accepts all of the input formats that Pydantic accepts.
 This includes some ambiguous formats, such as an ISO 8601 date without time zone information.
 All such dates are given a consistent interpretation as UTC, but the results may be surprising if the caller expected local time.
 In some cases, it may be desirable to restrict input to one unambiguous format.
 
-This can be done by using `~safir.pydantic.normalize_isodatetime` as the validator instead.
+This can be done by using `~safir.pydantic.normalize_isodatetime` as the field validator instead.
 This function only accepts ``YYYY-MM-DDTHH:MM[:SS]Z`` as the input format.
 The ``Z`` time zone prefix indicating UTC is mandatory.
 It is called the same way as `~safir.pydantic.normalize_datetime`.

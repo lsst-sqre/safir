@@ -265,12 +265,6 @@ builtins-ignorelist = [
 fixture-parentheses = false
 mark-parentheses = false
 
-[tool.ruff.pep8-naming]
-classmethod-decorators = [
-    "pydantic.root_validator",
-    "pydantic.validator",
-]
-
 [tool.ruff.pydocstyle]
 convention = "numpy"
 
