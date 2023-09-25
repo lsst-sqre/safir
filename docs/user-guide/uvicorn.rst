@@ -28,8 +28,8 @@ This code assumes the source code of the test app is in the variable ``_APP_SOUR
        app_path = tmp_path / "test.py"
        app_path.write_text(_APP_SOURCE)
        uvicorn = spawn_uvicorn(working_directory=tmp_path, app="test:app")
-       yield process
-       uvicorn.terminate()
+       yield uvicorn
+       uvicorn.process.terminate()
 
 The ``.url`` attribute of the returned object will contain the base URL of the running app.
 It will be listening on localhost on a random high-numbered port.
