@@ -28,10 +28,8 @@ This code assumes the source code of the test app is in the variable ``_APP_SOUR
        app_path = tmp_path / "test.py"
        app_path.write_text(_APP_SOURCE)
        uvicorn = spawn_uvicorn(working_directory=tmp_path, app="test:app")
-       try:
-           yield uvicorn
-       finally:
-           uvicorn.process.terminate()
+       yield uvicorn
+       uvicorn.process.terminate()
 
 The ``.url`` attribute of the returned object will contain the base URL of the running app.
 It will be listening on localhost on a random high-numbered port.
@@ -58,10 +56,8 @@ Alternately, if you need to dynamically create the application (using other fixt
            working_directory=tmp_path,
            factory="tests.support.selenium:create_app",
        )
-       try:
-           yield uvicorn
-       finally:
-           uvicorn.process.terminate()
+       yield uvicorn
+       uvicorn.process.terminate()
 
 By default, the output from Uvicorn is sent to the normal standard output and standard error, where it will be captured by pytest but will not be available to the test.
 If the test itself needs to inspect the Uvicorn output, pass ``capture=True`` to `~safir.testing.uvicorn.spawn_uvicorn`, and then call the `~subprocess.Popen.communicate` method on the ``.process`` attribute of the returned object to retrieve the standard output and standard error (generally after calling its `~subprocess.Popen.terminate` method).
