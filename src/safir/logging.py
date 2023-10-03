@@ -7,7 +7,7 @@ import logging.config
 import re
 import sys
 from enum import Enum
-from typing import Any
+from typing import Any, Self
 
 import structlog
 from structlog.stdlib import add_log_level
@@ -48,13 +48,28 @@ class Profile(Enum):
 
 
 class LogLevel(Enum):
-    """Python logging level."""
+    """Python logging level.
+
+    Any case variation is accepted when converting a string to an enum value
+    via the class constructor.
+    """
 
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
+
+    @classmethod
+    def _missing_(cls, value: Any) -> Self | None:
+        """Allow strings in any case to be used to create the enum."""
+        if not isinstance(value, str):
+            return None
+        value = value.upper()
+        for member in cls:
+            if member.value == value:
+                return member
+        return None
 
 
 def add_log_severity(
