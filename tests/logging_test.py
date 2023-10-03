@@ -14,6 +14,7 @@ import structlog
 from _pytest.capture import CaptureFixture
 from _pytest.logging import LogCaptureFixture
 from httpx import AsyncClient
+from pydantic import BaseModel, ValidationError
 
 from safir import logging as safir_logging
 from safir.logging import LogLevel, Profile, configure_logging
@@ -46,6 +47,25 @@ def _strip_color(string: str) -> str:
     See https://stackoverflow.com/questions/14693701/
     """
     return re.sub(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]", "", string)
+
+
+def test_log_level_enum() -> None:
+    """Test that any case is allowed when initializing the enum."""
+    assert LogLevel("warning") == LogLevel.WARNING
+    assert LogLevel("WARNING") == LogLevel.WARNING
+    assert LogLevel("Error") == LogLevel.ERROR
+
+    # Check that this also works when going through Pydantic.
+    class Model(BaseModel):
+        log_level: LogLevel
+
+    model = Model.model_validate({"log_level": "warning"})
+    assert model.log_level == LogLevel.WARNING
+    model = Model.model_validate({"log_level": "inFO"})
+    assert model.log_level == LogLevel.INFO
+
+    with pytest.raises(ValidationError):
+        Model.model_validate({"log_level": "unknown"})
 
 
 def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
