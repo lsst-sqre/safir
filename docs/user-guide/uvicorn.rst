@@ -24,7 +24,7 @@ This code assumes the source code of the test app is in the variable ``_APP_SOUR
 
 
    @pytest.fixture
-   def uvicorn(tmp_path: Path) -> Iterator[UvicornProcess]:
+   def server(tmp_path: Path) -> Iterator[UvicornProcess]:
        app_path = tmp_path / "test.py"
        app_path.write_text(_APP_SOURCE)
        uvicorn = spawn_uvicorn(working_directory=tmp_path, app="test:app")
@@ -49,14 +49,14 @@ Alternately, if you need to dynamically create the application (using other fixt
 
 
    @pytest.fixture
-   def uvicorn(tmp_path: Path) -> Iterator[UvicornProcess]:
+   def server(tmp_path: Path) -> Iterator[UvicornProcess]:
        app_path = tmp_path / "test.py"
        app_path.write_text(_APP_SOURCE)
        uvicorn = spawn_uvicorn(
            working_directory=tmp_path,
            factory="tests.support.selenium:create_app",
        )
-       yield process
+       yield uvicorn
        uvicorn.process.terminate()
 
 By default, the output from Uvicorn is sent to the normal standard output and standard error, where it will be captured by pytest but will not be available to the test.
