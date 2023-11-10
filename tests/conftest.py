@@ -38,7 +38,7 @@ async def redis_client() -> AsyncIterator[redis.Redis]:
 
     This fixture connects to the Redis server that runs via tox-docker.
     """
-    client: redis.Redis = redis.Redis(host="localhost", port=6379, db=0)
+    client = redis.Redis(host="localhost", port=6379, db=0)
     yield client
 
-    await client.close()
+    await client.aclose()
