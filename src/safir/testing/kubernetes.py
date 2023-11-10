@@ -480,6 +480,8 @@ class MockKubernetesApi:
         namespace: str,
         plural: str,
         body: dict[str, Any],
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create a new custom namespaced object.
 
@@ -495,6 +497,8 @@ class MockKubernetesApi:
             API plural for this custom object.
         body
             Custom object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -536,6 +540,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
+        _request_timeout: int | None = None,
     ) -> Any:
         """Delete a custom namespaced object.
 
@@ -557,6 +562,8 @@ class MockKubernetesApi:
             Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -582,6 +589,8 @@ class MockKubernetesApi:
         namespace: str,
         plural: str,
         name: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> dict[str, Any]:
         """Retrieve a namespaced custom object.
 
@@ -597,6 +606,8 @@ class MockKubernetesApi:
             API plural for this custom object.
         name
             Name of the object to retrieve.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -619,7 +630,12 @@ class MockKubernetesApi:
         return self._get_object(namespace, f"{group}/{version}/{plural}", name)
 
     async def list_cluster_custom_object(
-        self, group: str, version: str, plural: str
+        self,
+        group: str,
+        version: str,
+        plural: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> dict[str, list[dict[str, Any]]]:
         """List all custom objects in the cluster.
 
@@ -631,6 +647,8 @@ class MockKubernetesApi:
             API version for this custom object.
         plural
             API plural for this custom object.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -690,7 +708,7 @@ class MockKubernetesApi:
         _preload_content
             Verified to be `False` when performing a watch.
         _request_timeout
-            Ignored, accepted for compatibility with the watch API.
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -746,6 +764,8 @@ class MockKubernetesApi:
         plural: str,
         name: str,
         body: list[dict[str, Any]],
+        *,
+        _request_timeout: int | None = None,
     ) -> dict[str, Any]:
         """Patch the status of a namespaced custom object.
 
@@ -764,6 +784,8 @@ class MockKubernetesApi:
         body
             Body of the patch. The only patch supported is one with ``op`` of
             ``replace`` and ``path`` of ``/status``.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -805,6 +827,8 @@ class MockKubernetesApi:
         plural: str,
         name: str,
         body: dict[str, Any],
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Replace a custom namespaced object.
 
@@ -820,6 +844,8 @@ class MockKubernetesApi:
             API plural for this custom object.
         body
             New contents of custom object.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -848,7 +874,11 @@ class MockKubernetesApi:
     # CONFIGMAP API
 
     async def create_namespaced_config_map(
-        self, namespace: str, body: V1ConfigMap
+        self,
+        namespace: str,
+        body: V1ConfigMap,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create a ``ConfigMap`` object.
 
@@ -858,6 +888,8 @@ class MockKubernetesApi:
             Namespace in which to store the object.
         body
             Object to store.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -877,6 +909,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
+        _request_timeout: int | None = None,
     ) -> V1Status:
         """Delete a ``ConfigMap`` object.
 
@@ -892,6 +925,8 @@ class MockKubernetesApi:
             Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -909,7 +944,11 @@ class MockKubernetesApi:
         )
 
     async def read_namespaced_config_map(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1ConfigMap:
         """Read a config map object.
 
@@ -919,6 +958,8 @@ class MockKubernetesApi:
             Name of object.
         namespace
             Namespace of object.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -936,7 +977,11 @@ class MockKubernetesApi:
     # EVENTS API
 
     async def create_namespaced_event(
-        self, namespace: str, body: CoreV1Event
+        self,
+        namespace: str,
+        body: CoreV1Event,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Store a new namespaced event.
 
@@ -948,6 +993,8 @@ class MockKubernetesApi:
             Namespace of the event.
         body
             New event to store.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
         """
         self._maybe_error("create_namespaced_event", namespace, body)
         self._update_metadata(body, "v1", "Event", namespace)
@@ -989,7 +1036,7 @@ class MockKubernetesApi:
         _preload_content
             Verified to be `False` when performing a watch.
         _request_timeout
-            Ignored, accepted for compatibility with the watch API.
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1013,7 +1060,11 @@ class MockKubernetesApi:
     # INGRESS API
 
     async def create_namespaced_ingress(
-        self, namespace: str, body: V1Ingress
+        self,
+        namespace: str,
+        body: V1Ingress,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create an ingress object.
 
@@ -1031,6 +1082,8 @@ class MockKubernetesApi:
             Namespace in which to create the object.
         body
             Object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -1058,6 +1111,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
+        _request_timeout: int | None = None,
     ) -> V1Status:
         """Delete an ingress object.
 
@@ -1073,6 +1127,8 @@ class MockKubernetesApi:
             Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1128,7 +1184,7 @@ class MockKubernetesApi:
         _preload_content
             Verified to be `False` when performing a watch.
         _request_timeout
-            Ignored, accepted for compatibility with the watch API.
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1168,7 +1224,12 @@ class MockKubernetesApi:
         )
 
     async def patch_namespaced_ingress_status(
-        self, name: str, namespace: str, body: list[dict[str, Any]]
+        self,
+        name: str,
+        namespace: str,
+        body: list[dict[str, Any]],
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Secret:
         """Patch the status of an ingress object.
 
@@ -1182,6 +1243,8 @@ class MockKubernetesApi:
             Patches to apply. Only patches with ``op`` of ``replace`` are
             supported, and only with ``path`` of
             ``/status/loadBalancer/ingress``.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1208,7 +1271,11 @@ class MockKubernetesApi:
         return ingress
 
     async def read_namespaced_ingress(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Ingress:
         """Read a ingress object.
 
@@ -1218,6 +1285,8 @@ class MockKubernetesApi:
             Name of the ingress.
         namespace
             Namespace of the ingress.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1234,7 +1303,13 @@ class MockKubernetesApi:
 
     # JOB API
 
-    async def create_namespaced_job(self, namespace: str, body: V1Job) -> None:
+    async def create_namespaced_job(
+        self,
+        namespace: str,
+        body: V1Job,
+        *,
+        _request_timeout: int | None = None,
+    ) -> None:
         """Create a job object.
 
         A pod corresponding to this job will also be created. The pod will
@@ -1252,6 +1327,8 @@ class MockKubernetesApi:
             Namespace in which to create the object.
         body
             Object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -1290,6 +1367,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
+        _request_timeout: int | None = None,
     ) -> V1Status:
         """Delete a job object.
 
@@ -1307,6 +1385,8 @@ class MockKubernetesApi:
             Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1372,7 +1452,7 @@ class MockKubernetesApi:
         _preload_content
             Verified to be `False` when performing a watch.
         _request_timeout
-            Ignored, accepted for compatibility with the watch API.
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1411,7 +1491,13 @@ class MockKubernetesApi:
             label_selector=label_selector,
         )
 
-    async def read_namespaced_job(self, name: str, namespace: str) -> V1Job:
+    async def read_namespaced_job(
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
+    ) -> V1Job:
         """Read a job object.
 
         Parameters
@@ -1420,6 +1506,8 @@ class MockKubernetesApi:
             Name of the job.
         namespace
             Namespace of the job.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1436,7 +1524,12 @@ class MockKubernetesApi:
 
     # NAMESPACE API
 
-    async def create_namespace(self, body: V1Namespace) -> None:
+    async def create_namespace(
+        self,
+        body: V1Namespace,
+        *,
+        _request_timeout: int | None = None,
+    ) -> None:
         """Create a namespace.
 
         The mock doesn't truly track namespaces since it autocreates them when
@@ -1448,6 +1541,8 @@ class MockKubernetesApi:
         ----------
         body
             Namespace to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -1470,6 +1565,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
+        _request_timeout: int | None = None,
     ) -> None:
         """Delete a namespace.
 
@@ -1485,6 +1581,8 @@ class MockKubernetesApi:
             Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -1501,7 +1599,12 @@ class MockKubernetesApi:
             pass
         del self._objects[name]
 
-    async def read_namespace(self, name: str) -> V1Namespace:
+    async def read_namespace(
+        self,
+        name: str,
+        *,
+        _request_timeout: int | None = None,
+    ) -> V1Namespace:
         """Return the namespace object for a namespace.
 
         This will only return a namespace object if one was created via
@@ -1512,6 +1615,8 @@ class MockKubernetesApi:
         ----------
         name
             Name of namespace to retrieve.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1566,7 +1671,7 @@ class MockKubernetesApi:
         _preload_content
             Verified to be `False` when performing a watch.
         _request_timeout
-            Ignored, accepted for compatibility with the watch API.
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1626,7 +1731,11 @@ class MockKubernetesApi:
     # NETWORKPOLICY API
 
     async def create_namespaced_network_policy(
-        self, namespace: str, body: V1NetworkPolicy
+        self,
+        namespace: str,
+        body: V1NetworkPolicy,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create a network policy object.
 
@@ -1636,6 +1745,8 @@ class MockKubernetesApi:
             Namespace in which to create the object.
         body
             Object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -1650,7 +1761,11 @@ class MockKubernetesApi:
         self._store_object(namespace, "NetworkPolicy", name, body)
 
     async def read_namespaced_network_policy(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Pod:
         """Read a network policy object.
 
@@ -1660,6 +1775,8 @@ class MockKubernetesApi:
             Name of the network policy.
         namespace
             Namespace of the network policy.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1676,8 +1793,15 @@ class MockKubernetesApi:
 
     # NODE API
 
-    async def list_node(self) -> V1NodeList:
+    async def list_node(
+        self, *, _request_timeout: int | None = None
+    ) -> V1NodeList:
         """List node information.
+
+        Parameters
+        ----------
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1691,7 +1815,11 @@ class MockKubernetesApi:
     # PERSISTENTVOLUMECLAIM API
 
     async def create_namespaced_persistent_volume_claim(
-        self, namespace: str, body: V1PersistentVolumeClaim
+        self,
+        namespace: str,
+        body: V1PersistentVolumeClaim,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create a persistent volume claim.
 
@@ -1701,6 +1829,8 @@ class MockKubernetesApi:
             Namespace in which to create the persistent volume claim.
         body
             Persistent volume claim to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -1717,7 +1847,11 @@ class MockKubernetesApi:
         )
 
     async def read_namespaced_persistent_volume_claim(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1PersistentVolumeClaim:
         """Read a persistent volume claim.
 
@@ -1727,6 +1861,8 @@ class MockKubernetesApi:
             Name of the persistent volume claim.
         namespace
             Namespace of the persistent volume claim.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1746,7 +1882,13 @@ class MockKubernetesApi:
 
     # POD API
 
-    async def create_namespaced_pod(self, namespace: str, body: V1Pod) -> None:
+    async def create_namespaced_pod(
+        self,
+        namespace: str,
+        body: V1Pod,
+        *,
+        _request_timeout: int | None = None,
+    ) -> None:
         """Create a pod object.
 
         If ``initial_pod_phase`` on the mock Kubernetes object is set to
@@ -1760,6 +1902,8 @@ class MockKubernetesApi:
             Namespace in which to create the pod.
         body
             Pod specification.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -1793,6 +1937,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
+        _request_timeout: int | None = None,
     ) -> V1Status:
         """Delete a pod object.
 
@@ -1808,6 +1953,8 @@ class MockKubernetesApi:
             Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1861,7 +2008,7 @@ class MockKubernetesApi:
         _preload_content
             Verified to be `False` when performing a watch.
         _request_timeout
-            Ignored, accepted for compatibility with the watch API.
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1901,7 +2048,12 @@ class MockKubernetesApi:
         )
 
     async def patch_namespaced_pod_status(
-        self, name: str, namespace: str, body: list[dict[str, Any]]
+        self,
+        name: str,
+        namespace: str,
+        body: list[dict[str, Any]],
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Secret:
         """Patch the status of a pod object.
 
@@ -1914,6 +2066,8 @@ class MockKubernetesApi:
         body
             Patches to apply. Only patches with ``op`` of ``replace`` are
             supported, and only with ``path`` of ``/status/phase``.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1939,7 +2093,13 @@ class MockKubernetesApi:
         stream.add_event("MODIFIED", pod)
         return pod
 
-    async def read_namespaced_pod(self, name: str, namespace: str) -> V1Pod:
+    async def read_namespaced_pod(
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
+    ) -> V1Pod:
         """Read a pod object.
 
         Parameters
@@ -1948,6 +2108,8 @@ class MockKubernetesApi:
             Name of the pod.
         namespace
             Namespace of the pod.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1963,7 +2125,11 @@ class MockKubernetesApi:
         return self._get_object(namespace, "Pod", name)
 
     async def read_namespaced_pod_status(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Pod:
         """Read the status of a pod.
 
@@ -1973,6 +2139,8 @@ class MockKubernetesApi:
             Name of the pod.
         namespace
             Namespace of the pod.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -1993,7 +2161,11 @@ class MockKubernetesApi:
     # RESOURCEQUOTA API
 
     async def create_namespaced_resource_quota(
-        self, namespace: str, body: V1ResourceQuota
+        self,
+        namespace: str,
+        body: V1ResourceQuota,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create a resource quota object.
 
@@ -2003,6 +2175,8 @@ class MockKubernetesApi:
             Namespace in which to create the object.
         body
             Object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -2015,7 +2189,11 @@ class MockKubernetesApi:
         self._store_object(namespace, "ResourceQuota", name, body)
 
     async def read_namespaced_resource_quota(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1ResourceQuota:
         """Read a resource quota object.
 
@@ -2025,6 +2203,8 @@ class MockKubernetesApi:
             Name of object.
         namespace
             Namespace of object.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -2042,7 +2222,11 @@ class MockKubernetesApi:
     # SECRETS API
 
     async def create_namespaced_secret(
-        self, namespace: str, body: V1Secret
+        self,
+        namespace: str,
+        body: V1Secret,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create a secret object.
 
@@ -2052,6 +2236,8 @@ class MockKubernetesApi:
             Namespace in which to create the object.
         body
             Object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -2063,7 +2249,12 @@ class MockKubernetesApi:
         self._store_object(namespace, "Secret", body.metadata.name, body)
 
     async def patch_namespaced_secret(
-        self, name: str, namespace: str, body: list[dict[str, Any]]
+        self,
+        name: str,
+        namespace: str,
+        body: list[dict[str, Any]],
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Secret:
         """Patch a secret object.
 
@@ -2077,6 +2268,8 @@ class MockKubernetesApi:
             Patches to apply. Only patches with ``op`` of ``replace`` are
             supported, and only with ``path`` of either
             ``/metadata/annotations`` or ``/metadata/labels``.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -2103,7 +2296,11 @@ class MockKubernetesApi:
         self._store_object(namespace, "Secret", name, secret, replace=True)
 
     async def read_namespaced_secret(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Secret:
         """Read a secret.
 
@@ -2113,6 +2310,8 @@ class MockKubernetesApi:
             Name of secret.
         namespace
             Namespace of secret.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -2128,7 +2327,12 @@ class MockKubernetesApi:
         return self._get_object(namespace, "Secret", name)
 
     async def replace_namespaced_secret(
-        self, name: str, namespace: str, body: V1Secret
+        self,
+        name: str,
+        namespace: str,
+        body: V1Secret,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Replace a secret.
 
@@ -2140,6 +2344,8 @@ class MockKubernetesApi:
             Namespace of secret.
         body
             New body of secret.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -2152,7 +2358,11 @@ class MockKubernetesApi:
     # SERVICE API
 
     async def create_namespaced_service(
-        self, namespace: str, body: V1Service
+        self,
+        namespace: str,
+        body: V1Service,
+        *,
+        _request_timeout: int | None = None,
     ) -> None:
         """Create a service object.
 
@@ -2162,6 +2372,8 @@ class MockKubernetesApi:
             Namespace in which to create the object.
         body
             Object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Raises
         ------
@@ -2183,6 +2395,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
+        _request_timeout: int | None = None,
     ) -> V1Status:
         """Delete a service object.
 
@@ -2198,6 +2411,8 @@ class MockKubernetesApi:
             Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -2253,7 +2468,7 @@ class MockKubernetesApi:
         _preload_content
             Verified to be `False` when performing a watch.
         _request_timeout
-            Ignored, accepted for compatibility with the watch API.
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -2293,7 +2508,11 @@ class MockKubernetesApi:
         )
 
     async def read_namespaced_service(
-        self, name: str, namespace: str
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: int | None = None,
     ) -> V1Service:
         """Read a service.
 
@@ -2303,6 +2522,8 @@ class MockKubernetesApi:
             Name of service.
         namespace
             Namespace of service.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
@@ -2334,6 +2555,8 @@ class MockKubernetesApi:
             Name of the object.
         propagation_policy
             Propagation policy for deletion. Has no effect on the mock.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
 
         Returns
         -------
