@@ -19,21 +19,26 @@ Quick start
 Dependency set up and configuration
 -----------------------------------
 
-In your application's FastAPI setup module, typically :file:`main.py`, you need to initialize `safir.dependencies.arq.ArqDependency` during the start up event:
+In your application's FastAPI setup module, typically :file:`main.py`, you need to initialize `safir.dependencies.arq.ArqDependency` during your lifespan function.
 
 .. code-block:: python
+
+    from collections.abc import AsyncIterator
+    from contextlib import asynccontextmanager
 
     from fastapi import Depends, FastAPI
     from safir.dependencies.arq import arq_dependency
 
-    app = FastAPI()
 
-
-    @app.on_event("startup")
-    async def startup() -> None:
+    @asynccontextmanager
+    def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await arq_dependency.initialize(
             mode=config.arq_mode, redis_settings=config.arq_redis_settings
         )
+        yield
+
+
+    app = FastAPI(lifespan=lifespan)
 
 The ``mode`` parameter for `safir.dependencies.arq.ArqDependency.initialize` takes `ArqMode` enum values of either ``"production"`` or ``"test"``. The ``"production"`` mode configures a real arq_ queue backed by Redis, whereas ``"test"`` configures a mock version of the arq_ queue.
 

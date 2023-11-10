@@ -11,19 +11,23 @@ Setting up the httpx.AsyncClient
 The ``httpx.AsyncClient`` will be dyanmically created during application startup.
 Nothing further is needed apart from importing the dependency.
 However, it must be closed during application shutdown or a warning will be generated.
-
-To do this, add a shutdown hook to your application:
+This is normally done during the lifespan function for the FastAPI app.
 
 .. code-block:: python
 
+   from collections.abc import AsyncIterator
+   from contextlib import asynccontextmanager
+
    from safir.dependencies.http_client import http_client_dependency
 
-   app = FastAPI()
 
-
-   @app.on_event("shutdown")
-   async def shutdown_event() -> None:
+   @asynccontextmanager
+   async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+       yield
        await http_client_dependency.aclose()
+
+
+   app = FastAPI(lifespan=lifespan)
 
 You can add this line to an existing shutdown hook if you already have one.
 

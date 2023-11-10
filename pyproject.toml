@@ -44,6 +44,7 @@ db = [
 dev = [
     "asgi-lifespan",
     "coverage[toml]",
+    "fastapi>=0.93.0",
     "flake8",
     "mypy",
     "pre-commit",

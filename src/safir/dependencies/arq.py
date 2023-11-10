@@ -43,22 +43,27 @@ class ArqDependency:
         --------
         .. code-block:: python
 
+           from collections.abc import AsyncIterator
+           from contextlib import asynccontextmanager
+
            from fastapi import Depends, FastAPI
            from safir.arq import ArqMode, ArqQueue
            from safir.dependencies.arq import arq_dependency
 
-           app = FastAPI()
 
-
-           @app.on_event("startup")
-           async def startup() -> None:
+           @asynccontextmanager
+           async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                await arq_dependency.initialize(mode=ArqMode.test)
+               yield
+
+
+           app = FastAPI()
 
 
            @app.post("/")
            async def post_job(
                arq_queue: ArqQueue = Depends(arq_dependency),
-           ) -> Dict[str, Any]:
+           ) -> dict[str, Any]:
                job = await arq_queue.enqueue("test_task", "hello", an_int=42)
                return {"job_id": job.id}
         """
