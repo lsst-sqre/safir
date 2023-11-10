@@ -534,6 +534,7 @@ class MockKubernetesApi:
         name: str,
         *,
         grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
     ) -> Any:
         """Delete a custom namespaced object.
@@ -552,6 +553,8 @@ class MockKubernetesApi:
             Custom object to delete.
         grace_period_seconds
             Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
 
@@ -570,7 +573,7 @@ class MockKubernetesApi:
         obj = self._get_object(namespace, key, name)
         stream = self._event_streams[namespace][key]
         stream.add_custom_event("DELETED", obj)
-        return self._delete_object(namespace, key, name)
+        return self._delete_object(namespace, key, name, propagation_policy)
 
     async def get_namespaced_custom_object(
         self,
@@ -872,6 +875,7 @@ class MockKubernetesApi:
         namespace: str,
         *,
         grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete a ``ConfigMap`` object.
@@ -884,6 +888,8 @@ class MockKubernetesApi:
             Namespace of object.
         grace_period_seconds
             Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
 
@@ -898,7 +904,9 @@ class MockKubernetesApi:
             Raised with 404 status if the object does not exist.
         """
         self._maybe_error("delete_namespaced_config_map", name, namespace)
-        return self._delete_object(namespace, "ConfigMap", name)
+        return self._delete_object(
+            namespace, "ConfigMap", name, propagation_policy
+        )
 
     async def read_namespaced_config_map(
         self, name: str, namespace: str
@@ -1048,6 +1056,7 @@ class MockKubernetesApi:
         namespace: str,
         *,
         grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete an ingress object.
@@ -1060,6 +1069,8 @@ class MockKubernetesApi:
             Namespace of ingress to delete.
         grace_period_seconds
             Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
 
@@ -1077,7 +1088,9 @@ class MockKubernetesApi:
         ingress = self._get_object(namespace, "Ingress", name)
         stream = self._event_streams[namespace]["Ingress"]
         stream.add_event("DELETED", ingress)
-        return self._delete_object(namespace, "Ingress", name)
+        return self._delete_object(
+            namespace, "Ingress", name, propagation_policy
+        )
 
     async def list_namespaced_ingress(
         self,
@@ -1291,8 +1304,7 @@ class MockKubernetesApi:
         grace_period_seconds
             Grace period for object deletion (currently ignored).
         propagation_policy
-            Propagation policy for deletion. Must be ``Foreground`` if
-            specified, and has no effect on the behavior of the mock.
+            Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
 
@@ -1303,14 +1315,9 @@ class MockKubernetesApi:
 
         Raises
         ------
-        AssertionError
-            Raised if the propagation policy is not ``Foreground``.
         kubernetes_asyncio.client.ApiException
             Raised with 404 status if the job was not found.
         """
-        if propagation_policy not in ("Foreground", "Background", "Orphan"):
-            msg = f"Invalid propagation_policy {propagation_policy}"
-            raise AssertionError(msg)
         self._maybe_error("delete_namespaced_job", name, namespace)
 
         # This simulates a foreground deletion, where the Job is blocked
@@ -1327,7 +1334,7 @@ class MockKubernetesApi:
         job = self._get_object(namespace, "Job", name)
         stream = self._event_streams[namespace]["Job"]
         stream.add_event("DELETED", job)
-        return self._delete_object(namespace, "Job", name)
+        return self._delete_object(namespace, "Job", name, propagation_policy)
 
     async def list_namespaced_job(
         self,
@@ -1461,6 +1468,7 @@ class MockKubernetesApi:
         name: str,
         *,
         grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
     ) -> None:
         """Delete a namespace.
@@ -1473,6 +1481,8 @@ class MockKubernetesApi:
             Namespace to delete.
         grace_period_seconds
             Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
 
@@ -1781,6 +1791,7 @@ class MockKubernetesApi:
         namespace: str,
         *,
         grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete a pod object.
@@ -1793,6 +1804,8 @@ class MockKubernetesApi:
             Namespace of pod to delete.
         grace_period_seconds
             Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
 
@@ -1810,7 +1823,7 @@ class MockKubernetesApi:
         pod = self._get_object(namespace, "Pod", name)
         stream = self._event_streams[namespace]["Pod"]
         stream.add_event("DELETED", pod)
-        return self._delete_object(namespace, "Pod", name)
+        return self._delete_object(namespace, "Pod", name, propagation_policy)
 
     async def list_namespaced_pod(
         self,
@@ -2168,6 +2181,7 @@ class MockKubernetesApi:
         namespace: str,
         *,
         grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
     ) -> V1Status:
         """Delete a service object.
@@ -2180,6 +2194,8 @@ class MockKubernetesApi:
             Namespace of service to delete.
         grace_period_seconds
             Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
         body
             Delete options (currently ignored).
 
@@ -2197,7 +2213,9 @@ class MockKubernetesApi:
         service = self._get_object(namespace, "Service", name)
         stream = self._event_streams[namespace]["Service"]
         stream.add_event("DELETED", service)
-        return self._delete_object(namespace, "Service", name)
+        return self._delete_object(
+            namespace, "Service", name, propagation_policy
+        )
 
     async def list_namespaced_service(
         self,
@@ -2301,7 +2319,9 @@ class MockKubernetesApi:
 
     # Internal helper functions.
 
-    def _delete_object(self, namespace: str, key: str, name: str) -> V1Status:
+    def _delete_object(
+        self, namespace: str, key: str, name: str, propagation_policy: str
+    ) -> V1Status:
         """Delete an object from internal data structures.
 
         Parameters
@@ -2312,6 +2332,8 @@ class MockKubernetesApi:
             Key under which the object is stored (usually the kind).
         name
             Name of the object.
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
 
         Returns
         -------
@@ -2323,6 +2345,10 @@ class MockKubernetesApi:
         kubernetes_asyncio.client.ApiException
             Raised with a 404 status if the object is not found.
         """
+        if propagation_policy not in ("Foreground", "Background", "Orphan"):
+            msg = f"Invalid propagation_policy {propagation_policy}"
+            raise AssertionError(msg)
+
         # Called for the side effect of raising an exception if the object is
         # not found.
         self._get_object(namespace, key, name)
