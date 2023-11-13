@@ -481,7 +481,7 @@ class MockKubernetesApi:
         plural: str,
         body: dict[str, Any],
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a new custom namespaced object.
 
@@ -540,7 +540,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> Any:
         """Delete a custom namespaced object.
 
@@ -590,7 +590,7 @@ class MockKubernetesApi:
         plural: str,
         name: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> dict[str, Any]:
         """Retrieve a namespaced custom object.
 
@@ -635,7 +635,7 @@ class MockKubernetesApi:
         version: str,
         plural: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> dict[str, list[dict[str, Any]]]:
         """List all custom objects in the cluster.
 
@@ -676,7 +676,7 @@ class MockKubernetesApi:
         timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1IngressList | Mock:
         """List custom objects in a namespace.
 
@@ -765,7 +765,7 @@ class MockKubernetesApi:
         name: str,
         body: list[dict[str, Any]],
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> dict[str, Any]:
         """Patch the status of a namespaced custom object.
 
@@ -828,7 +828,7 @@ class MockKubernetesApi:
         name: str,
         body: dict[str, Any],
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Replace a custom namespaced object.
 
@@ -878,7 +878,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1ConfigMap,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a ``ConfigMap`` object.
 
@@ -909,7 +909,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Status:
         """Delete a ``ConfigMap`` object.
 
@@ -948,7 +948,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1ConfigMap:
         """Read a config map object.
 
@@ -981,7 +981,7 @@ class MockKubernetesApi:
         namespace: str,
         body: CoreV1Event,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Store a new namespaced event.
 
@@ -1012,7 +1012,7 @@ class MockKubernetesApi:
         timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> CoreV1EventList | Mock:
         """List namespaced events.
 
@@ -1064,7 +1064,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1Ingress,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create an ingress object.
 
@@ -1111,7 +1111,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Status:
         """Delete an ingress object.
 
@@ -1158,7 +1158,7 @@ class MockKubernetesApi:
         timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1IngressList | Mock:
         """List ingress objects in a namespace.
 
@@ -1229,7 +1229,7 @@ class MockKubernetesApi:
         namespace: str,
         body: list[dict[str, Any]],
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Secret:
         """Patch the status of an ingress object.
 
@@ -1275,7 +1275,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Ingress:
         """Read a ingress object.
 
@@ -1308,7 +1308,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1Job,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a job object.
 
@@ -1367,7 +1367,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Status:
         """Delete a job object.
 
@@ -1426,7 +1426,7 @@ class MockKubernetesApi:
         timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1JobList | Mock:
         """List job objects in a namespace.
 
@@ -1496,7 +1496,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Job:
         """Read a job object.
 
@@ -1528,7 +1528,7 @@ class MockKubernetesApi:
         self,
         body: V1Namespace,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a namespace.
 
@@ -1565,7 +1565,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Delete a namespace.
 
@@ -1603,7 +1603,7 @@ class MockKubernetesApi:
         self,
         name: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Namespace:
         """Return the namespace object for a namespace.
 
@@ -1642,7 +1642,7 @@ class MockKubernetesApi:
         timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1NamespaceList | Mock:
         """List namespaces.
 
@@ -1735,7 +1735,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1NetworkPolicy,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a network policy object.
 
@@ -1765,7 +1765,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Pod:
         """Read a network policy object.
 
@@ -1794,7 +1794,7 @@ class MockKubernetesApi:
     # NODE API
 
     async def list_node(
-        self, *, _request_timeout: int | None = None
+        self, *, _request_timeout: float | None = None
     ) -> V1NodeList:
         """List node information.
 
@@ -1819,7 +1819,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1PersistentVolumeClaim,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a persistent volume claim.
 
@@ -1851,7 +1851,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1PersistentVolumeClaim:
         """Read a persistent volume claim.
 
@@ -1887,7 +1887,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1Pod,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a pod object.
 
@@ -1937,7 +1937,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Status:
         """Delete a pod object.
 
@@ -1982,7 +1982,7 @@ class MockKubernetesApi:
         timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1PodList | Mock:
         """List pod objects in a namespace.
 
@@ -2053,7 +2053,7 @@ class MockKubernetesApi:
         namespace: str,
         body: list[dict[str, Any]],
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Secret:
         """Patch the status of a pod object.
 
@@ -2098,7 +2098,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Pod:
         """Read a pod object.
 
@@ -2129,7 +2129,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Pod:
         """Read the status of a pod.
 
@@ -2165,7 +2165,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1ResourceQuota,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a resource quota object.
 
@@ -2193,7 +2193,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1ResourceQuota:
         """Read a resource quota object.
 
@@ -2226,7 +2226,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1Secret,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a secret object.
 
@@ -2254,7 +2254,7 @@ class MockKubernetesApi:
         namespace: str,
         body: list[dict[str, Any]],
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Secret:
         """Patch a secret object.
 
@@ -2300,7 +2300,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Secret:
         """Read a secret.
 
@@ -2332,7 +2332,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1Secret,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Replace a secret.
 
@@ -2362,7 +2362,7 @@ class MockKubernetesApi:
         namespace: str,
         body: V1Service,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> None:
         """Create a service object.
 
@@ -2395,7 +2395,7 @@ class MockKubernetesApi:
         grace_period_seconds: int | None = None,
         propagation_policy: str = "Foreground",
         body: V1DeleteOptions | None = None,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Status:
         """Delete a service object.
 
@@ -2442,7 +2442,7 @@ class MockKubernetesApi:
         timeout_seconds: int | None = None,
         watch: bool = False,
         _preload_content: bool = True,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1ServiceList | Mock:
         """List service objects in a namespace.
 
@@ -2512,7 +2512,7 @@ class MockKubernetesApi:
         name: str,
         namespace: str,
         *,
-        _request_timeout: int | None = None,
+        _request_timeout: float | None = None,
     ) -> V1Service:
         """Read a service.
 
