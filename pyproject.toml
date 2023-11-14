@@ -50,10 +50,10 @@ dev = [
     "psycopg2",
     "pytest",
     "pytest-asyncio",
+    "redis>=5,<6",
     "respx",
     "scriv",
     "sqlalchemy[mypy]",
-    "types-redis",
     "uvicorn",
     # documentation
     "documenteer[guide]>=1.0.0a7",
