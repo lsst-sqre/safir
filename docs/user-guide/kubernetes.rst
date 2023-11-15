@@ -24,12 +24,17 @@ For example:
 
 .. code-block:: python
 
+   from collections.abc import AsyncIterator
+   from contextlib import asynccontextmanager
+
+   from fastapi import FastAPI
    from safir.kubernetes import initialize_kubernetes
 
 
-   @app.on_event("startup")
-   async def startup_event() -> None:
+   @asynccontextmanager
+   async def lifespan(app: FastAPI) -> AsyncIterator[None]:
        await initialize_kubernetes()
+       yield
 
 Testing with mock Kubernetes
 ============================

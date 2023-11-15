@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import pytest
 import respx
 from asgi_lifespan import LifespanManager
@@ -16,9 +19,15 @@ def non_mocked_hosts() -> list[str]:
     return ["example.com"]
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    await http_client_dependency.aclose()
+
+
 @pytest.mark.asyncio
 async def test_http_client(respx_mock: respx.Router) -> None:
-    app = FastAPI()
+    app = FastAPI(lifespan=_lifespan)
     respx_mock.get("https://www.google.com").respond(200)
 
     @app.get("/")
@@ -28,10 +37,6 @@ async def test_http_client(respx_mock: respx.Router) -> None:
         assert isinstance(http_client, AsyncClient)
         await http_client.get("https://www.google.com")
         return {}
-
-    @app.on_event("shutdown")
-    async def shutdown_event() -> None:
-        await http_client_dependency.aclose()
 
     async with LifespanManager(app):
         async with AsyncClient(app=app, base_url="http://example.com") as c:

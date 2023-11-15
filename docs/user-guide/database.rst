@@ -144,30 +144,32 @@ For FastAPI applications, Safir provides a FastAPI dependency that creates a dat
 This uses the `SQLAlchemy async_scoped_session <https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#using-asyncio-scoped-session>`__ to transparently manage a separate session per running task.
 
 To use the database session dependency, it must first be initialized during application startup.
-Generally this is done inside the application startup event:
+Generally this is done inside the application lifespan function.
+You must also close the dependency during application shutdown.
 
 .. code-block:: python
 
+   from collections.abc import AsyncIterator
+   from contextlib import asynccontextmanager
+
+   from fastapi import FastAPI
    from safir.dependencies.db_session import db_session_dependency
 
    from .config import config
 
 
-   @app.on_event("startup")
-   async def startup_event() -> None:
+   @asynccontextmanager
+   async def lifespan(app: FastAPI) -> AsyncIterator[None]:
        await db_session_dependency.initialize(
            config.database_url, config.database_password
        )
+       yield
+       await db_session_dependency.aclose()
+
+
+   app = FastAPI(lifespan=lifespan)
 
 As with some of the examples above, this assumes the application has a ``config`` object with the application settings, including the database URL and password.
-
-You must also close the dependency during application shutdown:
-
-.. code-block:: python
-
-   @app.on_event("shutdown")
-   async def shutdown_event() -> None:
-       await db_session_dependency.aclose()
 
 Then, any handler that needs a database session can depend on the `~safir.dependencies.db_session.db_session_dependency`:
 

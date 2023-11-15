@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
@@ -14,10 +16,16 @@ from safir.arq import ArqMode, JobNotFound, JobResultUnavailable, MockArqQueue
 from safir.dependencies.arq import arq_dependency
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    await arq_dependency.initialize(mode=ArqMode.test, redis_settings=None)
+    yield
+
+
 @pytest.mark.asyncio
 async def test_arq_dependency_mock() -> None:
     """Test the arq dependency entirely through the MockArqQueue."""
-    app = FastAPI()
+    app = FastAPI(lifespan=_lifespan)
 
     @app.post("/")
     async def post_job(
@@ -108,10 +116,6 @@ async def test_arq_dependency_mock() -> None:
             )
         except JobNotFound as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
-
-    @app.on_event("startup")
-    async def startup() -> None:
-        await arq_dependency.initialize(mode=ArqMode.test, redis_settings=None)
 
     async with LifespanManager(app):
         async with AsyncClient(app=app, base_url="http://example.com") as c:

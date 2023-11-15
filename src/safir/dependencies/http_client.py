@@ -27,14 +27,24 @@ class HTTPClientDependency:
 
     Notes
     -----
-    The application must call ``http_client_dependency.aclose()`` as part of a
-    shutdown hook:
+    The application must call ``http_client_dependency.aclose()`` in the
+    application lifespan hook:
 
     .. code-block:: python
 
-       @app.on_event("shutdown")
-       async def shutdown_event() -> None:
+       from collections.abc import AsyncIterator
+       from contextlib import asynccontextmanager
+
+       from fastapi import FastAPI
+
+
+       @asynccontextmanager
+       async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+           yield
            await http_client_dependency.aclose()
+
+
+       app = FastAPI(lifespan=lifespan)
     """
 
     def __init__(self) -> None:
