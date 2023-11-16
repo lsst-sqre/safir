@@ -1343,11 +1343,19 @@ class MockKubernetesApi:
         self._store_object(namespace, "Job", name, body)
 
         # Normally, Kubernetes will immediately spawn a Pod using the
-        # specification in the Job. Simulate that here.
-        pod = V1Pod(
-            metadata=body.spec.template.metadata or V1ObjectMeta(),
-            spec=body.spec.template.spec,
-        )
+        # specification in the Job. Simulate that here. We have to copy the
+        # components of the spec metadata so that we don't modify the Job when
+        # we flesh out the metadata of the Pod.
+        metadata = V1ObjectMeta()
+        if body.spec.template.metadata:
+            source = body.spec.template.metadata
+            metadata.name = source.name
+            metadata.generate_name = source.generate_name
+            if source.labels:
+                metadata.labels = source.labels.copy()
+            if source.annotations:
+                metadata.annnotations = source.annotations.copy()
+        pod = V1Pod(metadata=metadata, spec=body.spec.template.spec)
         if not pod.metadata.name:
             if not pod.metadata.generate_name:
                 pod.metadata.generate_name = f"{name}-"
