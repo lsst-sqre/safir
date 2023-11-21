@@ -1357,7 +1357,7 @@ class MockKubernetesApi:
             if source.labels:
                 metadata.labels = source.labels.copy()
             if source.annotations:
-                metadata.annnotations = source.annotations.copy()
+                metadata.annotations = source.annotations.copy()
         pod = V1Pod(metadata=metadata, spec=body.spec.template.spec)
         if not pod.metadata.name:
             if not pod.metadata.generate_name:
