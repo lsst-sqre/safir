@@ -15,6 +15,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: POSIX",
@@ -134,10 +135,17 @@ exclude = '''
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 filterwarnings = [
-    "ignore:'cgi' is deprecated:DeprecationWarning:google.cloud.storage.blob",
     # Google modules call a deprecated pkg_resources API.
     "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
     "ignore:.*pkg_resources\\.declare_namespace:DeprecationWarning",
+    # Google modules use PyType_Spec in a deprecated way.
+    "ignore:Type google\\..*metaclass.* custom tp_new:DeprecationWarning",
+    # dateutil uses a deprecated datetime function.
+    "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:dateutil.*",
+    # The point of this test is to test handling of datetime-naive UTC
+    # objects, which is what the deprecation warning is about. We want to
+    # continue doing this until the support has been removed entirely.
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:tests.pydantic_test",
 ]
 python_files = [
     "tests/*.py",
