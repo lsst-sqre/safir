@@ -9,6 +9,34 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-5.0.0'></a>
+## 5.0.0 (2023-12-05)
+
+### Backwards-incompatible changes
+
+- Safir now depends on Pydantic v2. Python code that uses any part of Safir related to Pydantic will also need to update to Pydantic v2, since the API is significantly different. See the [Pydantic migration guide](https://docs.pydantic.dev/latest/migration/) for more information.
+- `safir.pydantic.validate_exactly_one_of` is now a Pydantic model validator. It must be called with `mode="after"`, since it operates in the model rather than on a raw dictionary.
+- Remove the `GitHubAppClientFactory.create_app_client` method, which does not work with the Gidgethub API. Instead, the documentation shows how to create a JWT with the `GitHubAppClientFactory` and pass it with requests.
+- `safir.github.GitHubAppClientFactory` now expects the application ID and installation ID (for `create_installation_client`) to be of type `int`, not `str`. This appears to match what GitHub's API returns, but not what Gidgethub expects. The ID is converted to a string when passing it to Gidgethub.
+
+### New features
+
+- Allow the `safir.logging.LogLevel` enum to be created from strings of any case, which will allow the logging level to be specified with any case for Safir applications that use Pydantic to validate the field.
+- Add validated but ignored optional `propagation_policy` arguments to every delete method of the Kubernetes mock for better compatibility with the actual Kubernetes API. Previously, this argument was only accepted by `delete_namespaced_job`.
+- All mock Kubernetes methods now accept and ignore a `_request_timeout` error for better compatibility with the Kubernetes API.
+- Add delete, list, and watch support for persistent volume claims to the Kubernetes mock.
+
+### Bug fixes
+
+- `safir.database.datetime_to_db`, `safir.datetime.format_datetime_for_logging`, and `safir.datetime.isodatetime` now accept any `datetime` object with a time zone whose offset from UTC is 0, rather than only the `datetime.UTC` time zone object.
+- `safir.pydantic.normalize_datetime` now explicitly rejects input other than seconds since epoch or datetime objects with a validation error rather than attempting to treat the input as a datetime object and potentially throwing more obscure errors.
+- The `_request_timeout` parameters to mock Kubernetes methods now accept a float instead of an int to more correctly match the types of kubernetes_asyncio. The mock still does not accept a tuple of timeouts.
+- Avoid reusing the same metadata object when creating a `Pod` from a `Job`. Previous versions modified the `spec` part of the `Job` when adding additional metadata to the child `Pod`.
+
+### Other changes
+
+- Safir is now tested with Python 3.12 as well as Python 3.11.
+
 <a id='changelog-4.5.0'></a>
 ## 4.5.0 (2023-09-12)
 
