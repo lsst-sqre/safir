@@ -470,7 +470,7 @@ class MockKubernetesApi:
         nodes
             New node list to return.
         """
-        self._nodes = V1NodeList(items=nodes)
+        self._nodes = nodes
 
     # CUSTOM OBJECT API
 
@@ -1805,12 +1805,17 @@ class MockKubernetesApi:
     # NODE API
 
     async def list_node(
-        self, *, _request_timeout: float | None = None
+        self,
+        *,
+        label_selector: str | None = None,
+        _request_timeout: float | None = None,
     ) -> V1NodeList:
         """List node information.
 
         Parameters
         ----------
+        label_selector
+            Which objects to retrieve. All labels must match.
         _request_timeout
             Ignored, accepted for compatibility with the Kubernetes API.
 
@@ -1821,7 +1826,12 @@ class MockKubernetesApi:
             if any.
         """
         self._maybe_error("list_node")
-        return self._nodes
+        nodes = [
+            n
+            for n in self._nodes
+            if _check_labels(n.metadata.labels, label_selector)
+        ]
+        return V1NodeList(items=nodes)
 
     # PERSISTENTVOLUMECLAIM API
 
