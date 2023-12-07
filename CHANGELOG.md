@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-5.1.0'></a>
+## 5.1.0 (2023-12-07)
+
+### New features
+
+- Add support for label selectors in the `list_node` method of the Kubernetes mock.
+
 <a id='changelog-5.0.0'></a>
 ## 5.0.0 (2023-12-05)
 
