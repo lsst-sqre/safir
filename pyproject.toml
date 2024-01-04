@@ -30,7 +30,8 @@ dependencies = [
     "httpx>=0.20.0,<1",
     "pydantic>2,<3",
     "starlette<1",
-    "structlog>=21.2.0,<24",
+    # 23.3.0 excluded due to https://github.com/hynek/structlog/issues/584
+    "structlog>=21.2.0,<24,!=23.3.0",
 ]
 dynamic = ["version"]
 
