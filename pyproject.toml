@@ -31,7 +31,7 @@ dependencies = [
     "pydantic>2,<3",
     "starlette<1",
     # 23.3.0 excluded due to https://github.com/hynek/structlog/issues/584
-    "structlog>=21.2.0,<24,!=23.3.0",
+    "structlog>=21.2.0,!=23.3.0,<25",
 ]
 dynamic = ["version"]
 
