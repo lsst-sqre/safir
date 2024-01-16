@@ -12,6 +12,7 @@ from httpx import AsyncClient
 from structlog.stdlib import BoundLogger
 
 from safir.dependencies.gafaelfawr import (
+    auth_delegated_token_dependency,
     auth_dependency,
     auth_logger_dependency,
 )
@@ -33,6 +34,27 @@ async def test_auth_dependency() -> None:
         r = await client.get("/", headers={"X-Auth-Request-User": "someuser"})
         assert r.status_code == 200
         assert r.json() == {"user": "someuser"}
+
+
+@pytest.mark.asyncio
+async def test_auth_delegated_token_dependency() -> None:
+    app = FastAPI()
+
+    @app.get("/")
+    async def handler(
+        token: str = Depends(auth_delegated_token_dependency),
+    ) -> dict[str, str]:
+        return {"token": token}
+
+    async with AsyncClient(app=app, base_url="https://example.com") as client:
+        r = await client.get("/")
+        assert r.status_code == 422
+
+        r = await client.get(
+            "/", headers={"X-Auth-Request-Token": "sometoken"}
+        )
+        assert r.status_code == 200
+        assert r.json() == {"token": "sometoken"}
 
 
 @pytest.mark.asyncio
