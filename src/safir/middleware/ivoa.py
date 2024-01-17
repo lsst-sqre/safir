@@ -1,23 +1,22 @@
 """Middleware for IVOA services."""
 
-from collections.abc import Awaitable, Callable
-from urllib.parse import urlencode
+from copy import copy
+from urllib.parse import parse_qsl, urlencode
 
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 __all__ = ["CaseInsensitiveQueryMiddleware"]
 
 
-class CaseInsensitiveQueryMiddleware(BaseHTTPMiddleware):
+class CaseInsensitiveQueryMiddleware:
     """Make query parameter keys all lowercase.
 
     Unfortunately, several IVOA standards require that query parameters be
     case-insensitive, which is not supported by modern HTTP web frameworks.
     This middleware attempts to work around this by lowercasing the query
     parameter keys before the request is processed, allowing normal FastAPI
-    query parsing to then work without regard for case.  This, in turn,
-    permits FastAPI to perform input validation on GET parameters, which would
+    query parsing to then work without regard for case. This, in turn, permits
+    FastAPI to perform input validation on GET parameters, which would
     otherwise only happen if the case used in the request happened to match
     the case used in the function signature.
 
@@ -28,11 +27,17 @@ class CaseInsensitiveQueryMiddleware(BaseHTTPMiddleware):
     Based on `fastapi#826 <https://github.com/tiangolo/fastapi/issues/826>`__.
     """
 
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
-        params = [(k.lower(), v) for k, v in request.query_params.items()]
-        request.scope["query_string"] = urlencode(params).encode()
-        return await call_next(request)
+    def __init__(self, app: ASGIApp) -> None:
+        self._app = app
+
+    async def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> None:
+        if scope["type"] != "http" or not scope.get("query_string"):
+            await self._app(scope, receive, send)
+            return
+        scope = copy(scope)
+        params = [(k.lower(), v) for k, v in parse_qsl(scope["query_string"])]
+        scope["query_string"] = urlencode(params).encode()
+        await self._app(scope, receive, send)
+        return
