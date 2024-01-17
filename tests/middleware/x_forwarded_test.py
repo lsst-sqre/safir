@@ -7,6 +7,7 @@ from ipaddress import _BaseNetwork, ip_network
 import pytest
 from fastapi import FastAPI, Request
 from httpx import AsyncClient
+from starlette.datastructures import Headers
 
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
@@ -159,7 +160,7 @@ async def test_too_many_headers() -> None:
     end.  Instead, test by generating a mock request and then calling the
     underling middleware functions directly.
     """
-    state = {
+    scope = {
         "type": "http",
         "headers": [
             ("X-Forwarded-For", "10.10.10.10"),
@@ -170,9 +171,9 @@ async def test_too_many_headers() -> None:
             ("X-Forwarded-Host", "example.com"),
         ],
     }
-    request = Request(state)
+    headers = Headers(scope=scope)
     app = FastAPI()
     middleware = XForwardedMiddleware(app, proxies=[ip_network("10.0.0.0/8")])
-    assert middleware._get_forwarded_for(request) == []
-    assert middleware._get_forwarded_proto(request) == []
-    assert not middleware._get_forwarded_host(request)
+    assert middleware._get_forwarded_for(headers) == []
+    assert middleware._get_forwarded_proto(headers) == []
+    assert not middleware._get_forwarded_host(headers)
