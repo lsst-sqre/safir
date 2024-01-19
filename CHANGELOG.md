@@ -9,6 +9,17 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-5.2.0'></a>
+## 5.2.0 (2024-01-19)
+
+### New features
+
+- Add a FastAPI dependency for retrieving a Gafaelfawr delegated token from the request headers: `safir.dependencies.gafaelfawr.auth_delegated_token_dependency`.
+
+### Bug fixes
+
+- Rewrite `CaseInsensitiveQueryMiddleware` and `XForwardedMiddleware` as pure ASGI middleware rather than using the Starlette `BaseHTTPMiddleware` class. The latter seems to be behind some poor error reporting of application exceptions, has caused problems in the past due to its complexity, and is not used internally by Starlette middleware.
+
 <a id='changelog-5.1.0'></a>
 ## 5.1.0 (2023-12-07)
 
