@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Annotated
 
 import pytest
 import structlog
@@ -48,14 +49,18 @@ async def test_session() -> None:
 
     @app.post("/add")
     async def add(
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[
+            async_scoped_session, Depends(db_session_dependency)
+        ],
     ) -> None:
         async with session.begin():
             session.add(User(username="foo"))
 
     @app.get("/list")
     async def get_list(
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[
+            async_scoped_session, Depends(db_session_dependency)
+        ],
     ) -> list[str]:
         async with session.begin():
             result = await session.scalars(select(User.username))

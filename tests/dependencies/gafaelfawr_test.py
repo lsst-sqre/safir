@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Annotated
 from unittest.mock import ANY
 
 import pytest
@@ -24,7 +25,9 @@ async def test_auth_dependency() -> None:
     app = FastAPI()
 
     @app.get("/")
-    async def handler(user: str = Depends(auth_dependency)) -> dict[str, str]:
+    async def handler(
+        user: Annotated[str, Depends(auth_dependency)]
+    ) -> dict[str, str]:
         return {"user": user}
 
     async with AsyncClient(app=app, base_url="https://example.com") as client:
@@ -42,7 +45,7 @@ async def test_auth_delegated_token_dependency() -> None:
 
     @app.get("/")
     async def handler(
-        token: str = Depends(auth_delegated_token_dependency),
+        token: Annotated[str, Depends(auth_delegated_token_dependency)],
     ) -> dict[str, str]:
         return {"token": token}
 
@@ -65,7 +68,7 @@ async def test_auth_logger_dependency(caplog: LogCaptureFixture) -> None:
 
     @app.get("/")
     async def handler(
-        logger: BoundLogger = Depends(auth_logger_dependency),
+        logger: Annotated[BoundLogger, Depends(auth_logger_dependency)],
     ) -> dict[str, str]:
         logger.info("something")
         return {}
