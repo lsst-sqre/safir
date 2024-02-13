@@ -16,6 +16,8 @@ The URL path for this endpoint corresponds to the webhook callback URL you set u
 .. code-block:: python
    :caption: handlers.py
 
+   from typing import Annotated
+
    import httpx
    from fastapi import APIRouter, Depends, Request, Response, status
    from gidgethub.sansio import Event
@@ -34,7 +36,7 @@ The URL path for this endpoint corresponds to the webhook callback URL you set u
    )
    async def post_github_webhook(
        request: Request,
-       logger: BoundLogger = Depends(logger_dependency),
+       logger: Annotated[BoundLogger, Depends(logger_dependency)],
    ) -> Response:
        """Process GitHub webhook events."""
        webhook_secret = config.github_webhook_secret.get_secret_value()

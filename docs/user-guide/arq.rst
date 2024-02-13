@@ -180,7 +180,7 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
 
 .. code-block:: python
 
-    from typing import Any
+    from typing import Annotated, Any
 
     from fastapi import Depends, HTTPException
     from safir.arq import ArqQueue
@@ -189,7 +189,7 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
 
     @app.post("/jobs")
     async def post_job(
-        arq_queue: ArqQueue = Depends(arq_dependency),
+        arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
         a: str = "hello",
         b: int = 42,
     ) -> dict[str, Any]:
@@ -201,7 +201,7 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
     @app.get("/jobs/{job_id}")
     async def get_job(
         job_id: str,
-        arq_queue: ArqQueue = Depends(arq_dependency),
+        arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
     ) -> dict[str, Any]:
         """Get metadata about a job."""
         try:
