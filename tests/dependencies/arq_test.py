@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Annotated, Any
 
 import pytest
 from arq.constants import default_queue_name
@@ -29,7 +29,8 @@ async def test_arq_dependency_mock() -> None:
 
     @app.post("/")
     async def post_job(
-        arq_queue: MockArqQueue = Depends(arq_dependency),
+        *,
+        arq_queue: Annotated[MockArqQueue, Depends(arq_dependency)],
     ) -> dict[str, Any]:
         """Create a job."""
         job = await arq_queue.enqueue("test_task", "hello", a_number=42)
@@ -44,9 +45,10 @@ async def test_arq_dependency_mock() -> None:
 
     @app.get("/jobs/{job_id}")
     async def get_metadata(
+        *,
         job_id: str,
         queue_name: str | None = None,
-        arq_queue: MockArqQueue = Depends(arq_dependency),
+        arq_queue: Annotated[MockArqQueue, Depends(arq_dependency)],
     ) -> dict[str, Any]:
         """Get metadata about a job."""
         try:
@@ -66,9 +68,10 @@ async def test_arq_dependency_mock() -> None:
 
     @app.get("/results/{job_id}")
     async def get_result(
+        *,
         job_id: str,
         queue_name: str | None = None,
-        arq_queue: MockArqQueue = Depends(arq_dependency),
+        arq_queue: Annotated[MockArqQueue, Depends(arq_dependency)],
     ) -> dict[str, Any]:
         """Get the results for a job."""
         try:
@@ -90,9 +93,10 @@ async def test_arq_dependency_mock() -> None:
 
     @app.post("/jobs/{job_id}/inprogress")
     async def post_job_inprogress(
+        *,
         job_id: str,
         queue_name: str | None = None,
-        arq_queue: MockArqQueue = Depends(arq_dependency),
+        arq_queue: Annotated[MockArqQueue, Depends(arq_dependency)],
     ) -> None:
         """Toggle a job to in-progress, for testing."""
         try:
@@ -102,12 +106,12 @@ async def test_arq_dependency_mock() -> None:
 
     @app.post("/jobs/{job_id}/complete")
     async def post_job_complete(
-        job_id: str,
         *,
+        job_id: str,
         queue_name: str | None = None,
         result: str | None = None,
         success: bool = True,
-        arq_queue: MockArqQueue = Depends(arq_dependency),
+        arq_queue: Annotated[MockArqQueue, Depends(arq_dependency)],
     ) -> None:
         """Toggle a job to complete, for testing."""
         try:

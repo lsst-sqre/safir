@@ -248,15 +248,6 @@ target-version = "py311"
 known-first-party = ["safir", "tests"]
 split-on-trailing-comma = false
 
-[tool.ruff.flake8-bugbear]
-extend-immutable-calls = [
-    "fastapi.Form",
-    "fastapi.Header",
-    "fastapi.Depends",
-    "fastapi.Path",
-    "fastapi.Query",
-]
-
 # These are too useful as attributes or methods to allow the conflict with the
 # built-in to rule out their use.
 [tool.ruff.flake8-builtins]

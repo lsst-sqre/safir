@@ -67,6 +67,8 @@ Each handler that wants to use the logger requests it as a FastAPI dependency.
 
 .. code-block:: python
 
+   from typing import Annotated
+
    from structlog.stdlib import BoundLogger
 
    from safir.dependencies.logger import logger_dependency
@@ -74,7 +76,7 @@ Each handler that wants to use the logger requests it as a FastAPI dependency.
 
    @app.get("/")
    async def get_index(
-       logger: BoundLogger = Depends(logger_dependency),
+       logger: Annotated[BoundLogger, Depends(logger_dependency)],
    ) -> Dict[str, str]:
        logger.info("My message", somekey=42)
        return {}
@@ -136,9 +138,14 @@ To bind new context, get a new logger with the `~structlog.BoundLogger.bind` met
 
 .. code-block:: python
 
+   from typing import Annotated
+
+   from structlog.stdlib import BoundLogger
+
+
    @routes.get("/")
    async def get_index(
-       logger: BoundLogger = Depends(logger_dependency),
+       logger: Annotated[BoundLogger, Depends(logger_dependency)],
    ) -> Dict[str, str]:
        logger = logger.bind(answer=42)
 

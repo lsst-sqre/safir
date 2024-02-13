@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Annotated
 from unittest.mock import ANY
 
 import pytest
@@ -24,7 +25,7 @@ async def test_logger(caplog: LogCaptureFixture) -> None:
 
     @app.get("/")
     async def handler(
-        logger: BoundLogger = Depends(logger_dependency),
+        logger: Annotated[BoundLogger, Depends(logger_dependency)],
     ) -> dict[str, str]:
         logger.info("something", param="value")
         return {}
@@ -61,7 +62,7 @@ async def test_logger_xforwarded(caplog: LogCaptureFixture) -> None:
 
     @app.get("/")
     async def handler(
-        logger: BoundLogger = Depends(logger_dependency),
+        logger: Annotated[BoundLogger, Depends(logger_dependency)],
     ) -> dict[str, str]:
         logger.info("something", param="value")
         return {}

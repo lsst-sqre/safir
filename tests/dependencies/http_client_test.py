@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 import pytest
 import respx
@@ -32,7 +33,7 @@ async def test_http_client(respx_mock: respx.Router) -> None:
 
     @app.get("/")
     async def handler(
-        http_client: AsyncClient = Depends(http_client_dependency),
+        http_client: Annotated[AsyncClient, Depends(http_client_dependency)],
     ) -> dict[str, str]:
         assert isinstance(http_client, AsyncClient)
         await http_client.get("https://www.google.com")

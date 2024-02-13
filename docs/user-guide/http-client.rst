@@ -38,12 +38,15 @@ To use the client in a handler, just request it via a FastAPI dependency:
 
 .. code-block:: python
 
+   from typing import Annotated
+
+   from httpx import AsyncClient
    from safir.dependencies.http_client import http_client_dependency
 
 
    @routes.get("/")
    async def get_index(
-       http_client: httpx.AsyncClient = Depends(http_client_dependency),
+       http_client: Annotated[AsyncClient, Depends(http_client_dependency)],
    ) -> Dict[str, Any]:
        response = await http_client.get("https://keeper.lsst.codes")
        return await response.json()
@@ -61,4 +64,15 @@ To avoid this, wrap your test application in ``asgi_lifespan.LifespanManager`` f
        # insert tests here
        pass
 
-You can do this in a fixture to avoid code duplication.
+You can do this in a yield fixture to avoid code duplication.
+
+.. code-block:: python
+
+   from yourapp import main
+
+
+   @pytest_asyncio.fixture
+   async def app() -> AsyncIterator[FastAPI]:
+       # Add any other necessary application setup here.
+       async with LifespanManager(main.app):
+           yield main.app

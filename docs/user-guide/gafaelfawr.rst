@@ -12,6 +12,8 @@ To get that username, use the `~safir.dependencies.gafaelfawr.auth_dependency` F
 
 .. code-block:: python
 
+   from typing import Annotated
+
    from fastapi import Depends
 
    from safir.dependencies.gafaelfawr import auth_dependency
@@ -19,7 +21,7 @@ To get that username, use the `~safir.dependencies.gafaelfawr.auth_dependency` F
 
    @app.get("/route")
    async def get_rounte(
-       user: str = Depends(auth_dependency),
+       user: Annotated[str, Depends(auth_dependency)],
    ) -> Dict[str, str]:
        # Route implementation using user.
        return {"some": "data"}
