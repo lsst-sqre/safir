@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-5.2.1'></a>
+## 5.2.1 (2024-02-19)
+
+### Bug fixes
+
+- Fix the return type of `safir.datetime.parse_isodatetime` to not include `None` since the function never returns `None`.
+
 <a id='changelog-5.2.0'></a>
 ## 5.2.0 (2024-01-19)
 
