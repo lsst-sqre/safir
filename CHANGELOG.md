@@ -86,7 +86,7 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 ### Other changes
 
-- Safir now uses the [Ruff](https://beta.ruff.rs/docs/) linter instead of flake8 and isort.
+- Safir now uses the [Ruff](https://docs.astral.sh/ruff/) linter instead of flake8 and isort.
 
 <a id='changelog-4.3.1'></a>
 ## 4.3.1 (2023-07-17)

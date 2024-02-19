@@ -19,6 +19,7 @@ nitpick_ignore_regex = [
 nitpick_ignore = [
     ['py:class', 'unittest.mock.Base'],
     ['py:class', 'unittest.mock.CallableMixin'],
+    ["py:obj", "ComputedFieldInfo"],
     ["py:obj", "JobMetadata.id"],
     ["py:class", "pydantic.BaseModel"],
     ["py:class", "BaseModel"],
@@ -39,5 +40,7 @@ sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
 
 [sphinx.linkcheck]
 ignore = [
-    '^https://github\.com/lsst-sqre/safir/issues/new'
+    # StackOverflow sometimes rejects all link checks from GitHub Actions.
+    '^https://stackoverflow.com/questions/',
+    '^https://github\.com/lsst-sqre/safir/issues/new',
 ]
