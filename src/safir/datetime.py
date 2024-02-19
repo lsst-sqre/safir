@@ -111,14 +111,14 @@ def isodatetime(timestamp: datetime) -> str:
     return timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def parse_isodatetime(time_string: str) -> datetime | None:
+def parse_isodatetime(time_string: str) -> datetime:
     """Parse a string in a standard ISO date format.
 
     Parameters
     ----------
     time_string
         Date and time formatted as an ISO 8601 date and time using ``Z`` as
-        the time zone.  This is the same format produced by `isodatetime` and
+        the time zone. This is the same format produced by `isodatetime` and
         is compatible with Kubernetes and the IVOA UWS standard.
 
     Returns
@@ -134,8 +134,9 @@ def parse_isodatetime(time_string: str) -> datetime | None:
     Notes
     -----
     When parsing input for a model, use `safir.pydantic.normalize_isodatetime`
-    instead of this function.  Using a model will be the normal case; this
-    function is primarily useful in tests.
+    instead of this function. Using a model will be the normal case; this
+    function is primarily useful in tests or for the special parsing cases
+    required by the IVOA UWS standard.
     """
     if not time_string.endswith("Z"):
         raise ValueError(f"{time_string} does not end with Z")
