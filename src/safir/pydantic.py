@@ -158,7 +158,7 @@ def to_camel_case(string: str) -> str:
 
 
 def _copy_type(
-    parent: Callable[P, T]
+    parent: Callable[P, T],
 ) -> Callable[[Callable[..., T]], Callable[P, T]]:
     """Copy the type of a parent method.
 

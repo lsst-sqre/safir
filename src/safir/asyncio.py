@@ -200,7 +200,7 @@ class AsyncMultiQueue(Generic[T]):
 
 
 def run_with_asyncio(
-    f: Callable[P, Coroutine[None, None, T]]
+    f: Callable[P, Coroutine[None, None, T]],
 ) -> Callable[P, T]:
     """Run the decorated function with `asyncio.run`.
 

@@ -32,7 +32,7 @@ async def test_case_insensitive() -> None:
 
     @app.get("/list")
     async def list_handler(
-        param: Annotated[list[str], Query()]
+        param: Annotated[list[str], Query()],
     ) -> dict[str, list[str]]:
         return {"param": param}
 

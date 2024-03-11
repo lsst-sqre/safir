@@ -26,7 +26,7 @@ async def test_auth_dependency() -> None:
 
     @app.get("/")
     async def handler(
-        user: Annotated[str, Depends(auth_dependency)]
+        user: Annotated[str, Depends(auth_dependency)],
     ) -> dict[str, str]:
         return {"user": user}
 
