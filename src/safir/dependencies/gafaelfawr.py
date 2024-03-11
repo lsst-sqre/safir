@@ -15,7 +15,7 @@ __all__ = [
 
 
 async def auth_dependency(
-    x_auth_request_user: Annotated[str, Header(include_in_schema=False)]
+    x_auth_request_user: Annotated[str, Header(include_in_schema=False)],
 ) -> str:
     """Retrieve authentication information from HTTP headers.
 
@@ -27,7 +27,7 @@ async def auth_dependency(
 
 
 async def auth_delegated_token_dependency(
-    x_auth_request_token: Annotated[str, Header(include_in_schema=False)]
+    x_auth_request_token: Annotated[str, Header(include_in_schema=False)],
 ) -> str:
     """Retrieve Gafaelfawr delegated token from HTTP headers.
 

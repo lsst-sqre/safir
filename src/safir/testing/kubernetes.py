@@ -169,7 +169,8 @@ class _KubernetesModel(Protocol):
     """
 
     def to_dict(
-        self, serialize: bool = False  # noqa: FBT001, FBT002
+        self,
+        serialize: bool = False,  # noqa: FBT001, FBT002
     ) -> dict[str, Any]: ...
 
 

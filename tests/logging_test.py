@@ -208,7 +208,7 @@ def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
     logger = structlog.get_logger("myapp")
 
     try:
-        raise ValueError("this is some exception")  # noqa: TRY301
+        raise ValueError("this is some exception")
     except Exception:
         logger.exception("exception happened", foo="bar")
 
@@ -226,7 +226,7 @@ def test_production_exception_logging(caplog: LogCaptureFixture) -> None:
     logger = structlog.get_logger("myapp")
 
     try:
-        raise ValueError("this is some exception")  # noqa: TRY301
+        raise ValueError("this is some exception")
     except Exception:
         logger.exception("exception happened", foo="bar")
 

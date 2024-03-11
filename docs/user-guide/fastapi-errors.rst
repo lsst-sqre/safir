@@ -147,8 +147,7 @@ For example, for a single route:
        ...,
        responses={404: {"description": "Not found", "model": ErrorModel}},
    )
-   async def route(foo: str) -> None:
-       ...
+   async def route(foo: str) -> None: ...
 
 If all routes provided by a router have the same error handling behavior for a given response code, it saves some effort to instead do this when including the router, normally in ``main.py``:
 

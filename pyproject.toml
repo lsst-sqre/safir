@@ -211,10 +211,13 @@ ignore = [
     "FIX002",  # point of a TODO comment is that we're not ready to fix it
     "G004",    # forbidding logging f-strings is appealing, but not our style
     "RET505",  # disagree that omitting else always makes code more readable
+    "PLR0911", # often many returns is clearer and simpler style
     "PLR0913", # factory pattern uses constructors with many arguments
     "PLR2004", # too aggressive about magic values
+    "PLW0603", # yes global is discouraged but if needed, it's needed
     "S105",    # good idea but too many false positives on non-passwords
     "S106",    # good idea but too many false positives on non-passwords
+    "S107",    # good idea but too many false positives on non-passwords
     "S603",    # not going to manually mark every subprocess call as reviewed
     "S607",    # using PATH is not a security vulnerability
     "SIM102",  # sometimes the formatting of nested if statements is clearer
@@ -225,14 +228,31 @@ ignore = [
     "TD003",   # we don't require issues be created for TODOs
     "TID252",  # if we're going to use relative imports, use them always
     "TRY003",  # good general advice but lint is way too aggressive
+    "TRY301",  # sometimes raising exceptions inside try is the best flow
 
-    # Safir-specific rules.
-    "N818",    # Exception is correct in some cases, others are part of API
-    "PLW0603", # necessary trick for safir.logging
+    # The following settings should be disabled when using ruff format
+    # per https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "D206",
+    "D300",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "COM812",
+    "COM819",
+    "ISC001",
+    "ISC002",
 ]
 select = ["ALL"]
 
 [tool.ruff.lint.per-file-ignores]
+"src/safir/**" = [
+    "N818",    # Exception is correct in some cases, others are part of API
+]
 "src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
 ]
@@ -243,6 +263,7 @@ select = ["ALL"]
     "PLR0915", # tests are allowed to be long, sometimes that's convenient
     "PT012",   # way too aggressive about limiting pytest.raises blocks
     "S101",    # tests should use assert
+    "S106",    # tests are allowed to hard-code dummy passwords
     "SLF001",  # tests are allowed to access private members
 ]
 
