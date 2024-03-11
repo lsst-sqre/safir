@@ -60,14 +60,16 @@ This is most easily done by defining a fixture, as follows.
 
    import pytest_asyncio
    from fastapi import FastAPI
-   from httpx import AsyncClient
+   from httpx import ASGITransport, AsyncClient
 
 
    @pytest_asyncio.fixture
    async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
-       base = "https://example.com/"
-       hdrs = {"X-Auth-Request-User": "user"}
-       async with AsyncClient(app=app, base_url=base, headers=hdrs) as client:
+       async with AsyncClient(
+           transport=ASGITransport(app=app),  # type: ignore[arg-type]
+           base_url="https://example.com/",
+           headers={"X-Auth-Request-User": "user"},
+       ) as client:
            yield client
 
 Tests can then use ``client`` as a fixture and don't have to provide the ``X-Auth-Request-User`` header with every call.

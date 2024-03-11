@@ -170,8 +170,7 @@ class _KubernetesModel(Protocol):
 
     def to_dict(
         self, serialize: bool = False  # noqa: FBT001, FBT002
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
 
 class _EventStream:
@@ -429,7 +428,7 @@ class MockKubernetesApi:
             All objects of that kind found in the mock, sorted by namespace
             and then name.
         """
-        key = self._custom_kinds[kind] if kind in self._custom_kinds else kind
+        key = self._custom_kinds.get(kind, kind)
         results = []
         for namespace in sorted(self._objects.keys()):
             if key not in self._objects[namespace]:

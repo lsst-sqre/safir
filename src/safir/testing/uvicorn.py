@@ -65,7 +65,7 @@ def _wait_for_server(port: int, timeout: float = 5.0) -> None:
             sock = socket.socket()
             sock.settimeout(socket_timeout)
             sock.connect(("localhost", port))
-        except socket.timeout:
+        except TimeoutError:
             pass
         except OSError as e:
             if e.errno not in (errno.ETIMEDOUT, errno.ECONNREFUSED):

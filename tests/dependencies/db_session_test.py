@@ -8,7 +8,7 @@ from typing import Annotated
 import pytest
 import structlog
 from fastapi import Depends, FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import Column, String
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
@@ -66,7 +66,9 @@ async def test_session() -> None:
             result = await session.scalars(select(User.username))
             return list(result.all())
 
-    async with AsyncClient(app=app, base_url="https://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/list")
         assert r.status_code == 200
         assert r.json() == []

@@ -82,13 +82,11 @@ def _build_database_url(
 
 
 @overload
-def datetime_from_db(time: datetime) -> datetime:
-    ...
+def datetime_from_db(time: datetime) -> datetime: ...
 
 
 @overload
-def datetime_from_db(time: None) -> None:
-    ...
+def datetime_from_db(time: None) -> None: ...
 
 
 def datetime_from_db(time: datetime | None) -> datetime | None:
@@ -113,13 +111,11 @@ def datetime_from_db(time: datetime | None) -> datetime | None:
 
 
 @overload
-def datetime_to_db(time: datetime) -> datetime:
-    ...
+def datetime_to_db(time: datetime) -> datetime: ...
 
 
 @overload
-def datetime_to_db(time: None) -> None:
-    ...
+def datetime_to_db(time: None) -> None: ...
 
 
 def datetime_to_db(time: datetime | None) -> datetime | None:

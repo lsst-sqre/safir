@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from fastapi import FastAPI, status
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from safir.fastapi import ClientRequestError, client_request_error_handler
 from safir.models import ErrorLocation, ErrorModel
@@ -43,7 +43,9 @@ async def test_client_request_error() -> None:
     async def permission_error() -> dict[str, str]:
         raise PermissionDeniedError("Permission denied")
 
-    async with AsyncClient(app=app, base_url="https://example.com/") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/user")
         assert r.status_code == 404
         assert r.json() == {

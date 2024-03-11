@@ -123,7 +123,7 @@ class AsyncMultiQueue(Generic[T]):
                         for item in contents[position:end]:
                             if item is Ellipsis:
                                 return
-                            yield item
+                            yield item  # type: ignore[misc]
                         position = end
                     elif contents and contents[-1] is Ellipsis:
                         return

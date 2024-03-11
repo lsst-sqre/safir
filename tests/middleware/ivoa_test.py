@@ -6,7 +6,7 @@ from typing import Annotated
 
 import pytest
 from fastapi import FastAPI, Query
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from safir.middleware.ivoa import CaseInsensitiveQueryMiddleware
 
@@ -36,7 +36,9 @@ async def test_case_insensitive() -> None:
     ) -> dict[str, list[str]]:
         return {"param": param}
 
-    async with AsyncClient(app=app, base_url="https://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/", params={"param": "foo"})
         assert r.status_code == 200
         assert r.json() == {"param": "foo"}

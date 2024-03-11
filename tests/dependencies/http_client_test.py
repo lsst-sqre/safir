@@ -10,7 +10,7 @@ import pytest
 import respx
 from asgi_lifespan import LifespanManager
 from fastapi import Depends, FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from safir.dependencies.http_client import http_client_dependency
 
@@ -39,7 +39,9 @@ async def test_http_client(respx_mock: respx.Router) -> None:
         await http_client.get("https://www.google.com")
         return {}
 
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
     async with LifespanManager(app):
-        async with AsyncClient(app=app, base_url="http://example.com") as c:
+        async with AsyncClient(transport=transport, base_url=base_url) as c:
             r = await c.get("/")
     assert r.status_code == 200

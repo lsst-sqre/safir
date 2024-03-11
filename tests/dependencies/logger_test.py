@@ -9,7 +9,7 @@ from unittest.mock import ANY
 import pytest
 from _pytest.logging import LogCaptureFixture
 from fastapi import Depends, FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from structlog.stdlib import BoundLogger
 
 from safir.dependencies.logger import logger_dependency
@@ -31,7 +31,9 @@ async def test_logger(caplog: LogCaptureFixture) -> None:
         return {}
 
     caplog.clear()
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
             "/", headers={"User-Agent": "some-user-agent/1.0"}
         )
@@ -68,7 +70,9 @@ async def test_logger_xforwarded(caplog: LogCaptureFixture) -> None:
         return {}
 
     caplog.clear()
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
             "/",
             headers={
