@@ -44,13 +44,11 @@ def current_datetime(*, microseconds: bool = False) -> datetime:
 
 
 @overload
-def format_datetime_for_logging(timestamp: datetime) -> str:
-    ...
+def format_datetime_for_logging(timestamp: datetime) -> str: ...
 
 
 @overload
-def format_datetime_for_logging(timestamp: None) -> None:
-    ...
+def format_datetime_for_logging(timestamp: None) -> None: ...
 
 
 def format_datetime_for_logging(timestamp: datetime | None) -> str | None:

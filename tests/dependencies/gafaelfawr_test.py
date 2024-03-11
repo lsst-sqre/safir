@@ -9,7 +9,7 @@ from unittest.mock import ANY
 import pytest
 from _pytest.logging import LogCaptureFixture
 from fastapi import Depends, FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from structlog.stdlib import BoundLogger
 
 from safir.dependencies.gafaelfawr import (
@@ -30,7 +30,9 @@ async def test_auth_dependency() -> None:
     ) -> dict[str, str]:
         return {"user": user}
 
-    async with AsyncClient(app=app, base_url="https://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/")
         assert r.status_code == 422
 
@@ -49,7 +51,9 @@ async def test_auth_delegated_token_dependency() -> None:
     ) -> dict[str, str]:
         return {"token": token}
 
-    async with AsyncClient(app=app, base_url="https://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/")
         assert r.status_code == 422
 
@@ -74,7 +78,9 @@ async def test_auth_logger_dependency(caplog: LogCaptureFixture) -> None:
         return {}
 
     caplog.clear()
-    async with AsyncClient(app=app, base_url="https://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "https://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/", headers={"User-Agent": ""})
         assert r.status_code == 422
 

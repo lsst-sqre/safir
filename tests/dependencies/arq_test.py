@@ -10,7 +10,7 @@ import pytest
 from arq.constants import default_queue_name
 from asgi_lifespan import LifespanManager
 from fastapi import Depends, FastAPI, HTTPException
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from safir.arq import ArqMode, JobNotFound, JobResultUnavailable, MockArqQueue
 from safir.dependencies.arq import arq_dependency
@@ -121,8 +121,10 @@ async def test_arq_dependency_mock() -> None:
         except JobNotFound as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
     async with LifespanManager(app):
-        async with AsyncClient(app=app, base_url="http://example.com") as c:
+        async with AsyncClient(transport=transport, base_url=base_url) as c:
             r = await c.post("/")
             assert r.status_code == 200
             data = r.json()

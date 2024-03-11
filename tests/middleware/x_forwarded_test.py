@@ -6,7 +6,7 @@ from ipaddress import _BaseNetwork, ip_network
 
 import pytest
 from fastapi import FastAPI, Request
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from starlette.datastructures import Headers
 
 from safir.middleware.x_forwarded import XForwardedMiddleware
@@ -31,7 +31,9 @@ async def test_ok() -> None:
         assert request.url == "https://foo.example.com/"
         return {}
 
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
             "/",
             headers={
@@ -56,7 +58,9 @@ async def test_defaults() -> None:
         assert request.url == "http://example.com/"
         return {}
 
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
             "/",
             headers={
@@ -80,7 +84,9 @@ async def test_no_forwards() -> None:
         assert request.url == "http://example.com/"
         return {}
 
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/")
     assert r.status_code == 200
 
@@ -97,7 +103,9 @@ async def test_all_filtered() -> None:
         assert request.url == "https://example.com/"
         return {}
 
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
             "/",
             headers={
@@ -121,7 +129,9 @@ async def test_one_proto() -> None:
         assert request.url == "https://example.com/"
         return {}
 
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
             "/",
             headers={
@@ -145,7 +155,9 @@ async def test_no_proto_or_host() -> None:
         assert request.url == "http://example.com/"
         return {}
 
-    async with AsyncClient(app=app, base_url="http://example.com") as client:
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
             "/", headers={"X-Forwarded-For": "10.10.10.10, 11.11.11.11"}
         )
