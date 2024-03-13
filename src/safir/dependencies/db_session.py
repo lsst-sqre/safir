@@ -50,13 +50,14 @@ class DatabaseSessionDependency:
         """
         if not self._session:
             raise RuntimeError("db_session_dependency not initialized")
-        yield self._session
-
-        # Following the recommendations in the SQLAlchemy documentation, each
-        # session is scoped to a single web request.  However, this all uses
-        # the same async_scoped_session object, so should share an underlying
-        # engine and connection pool.
-        await self._session.remove()
+        try:
+            yield self._session
+        finally:
+            # Following the recommendations in the SQLAlchemy documentation,
+            # each session is scoped to a single web request. However, this
+            # all uses the same async_scoped_session object, so should share
+            # an underlying engine and connection pool.
+            await self._session.remove()
 
     async def aclose(self) -> None:
         """Shut down the database engine."""
