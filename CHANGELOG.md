@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-5.2.2'></a>
+## 5.2.2 (2024-03-15)
+
+### Bug fixes
+
+- Ensure that per-request database sessions provided by `db_session_dependency` are cleaned up even if the request aborts with an uncaught exception.
+
 <a id='changelog-5.2.1'></a>
 ## 5.2.1 (2024-02-19)
 
