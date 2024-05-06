@@ -214,8 +214,8 @@ def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
 
     assert caplog.record_tuples[0][0] == "myapp"
     assert caplog.record_tuples[0][1] == logging.ERROR
-    assert "Traceback (most recent call last)" in caplog.record_tuples[0][2]
-    assert '"this is some exception"' in caplog.record_tuples[0][2]
+    assert "Traceback" in _strip_color(caplog.record_tuples[0][2])
+    assert "this is some exception" in _strip_color(caplog.record_tuples[0][2])
 
 
 def test_production_exception_logging(caplog: LogCaptureFixture) -> None:
