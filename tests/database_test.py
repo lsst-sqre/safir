@@ -8,7 +8,7 @@ from urllib.parse import unquote, urlparse
 
 import pytest
 import structlog
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from sqlalchemy import Column, MetaData, String, Table
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.future import select
@@ -25,7 +25,7 @@ from safir.database import (
 )
 
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
-TEST_DATABASE_PASSWORD = os.getenv("TEST_DATABASE_PASSWORD")
+TEST_DATABASE_PASSWORD = os.environ["TEST_DATABASE_PASSWORD"]
 
 Base = declarative_base()
 
@@ -56,7 +56,10 @@ async def test_database_init() -> None:
         assert result.all() == ["someuser"]
     await session.remove()
 
-    # Reinitializing the database with reset should delete the data.
+    # Reinitializing the database with reset should delete the data. Try
+    # passing in the password as a SecretStr.
+    password = SecretStr(TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(TEST_DATABASE_URL, password)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():
