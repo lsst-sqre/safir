@@ -58,7 +58,7 @@ dev = [
     "sqlalchemy[mypy]",
     "uvicorn",
     # documentation
-    "documenteer[guide]>=1.0.0a7",
+    "documenteer[guide]>=1",
     "autodoc_pydantic",
 ]
 gcs = [
