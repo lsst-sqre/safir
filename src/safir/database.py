@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import overload
 from urllib.parse import quote, urlparse
 
+from pydantic import SecretStr
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import (
@@ -38,7 +39,7 @@ class DatabaseInitializationError(Exception):
 
 
 def _build_database_url(
-    url: str, password: str | None, *, is_async: bool
+    url: str, password: str | SecretStr | None, *, is_async: bool
 ) -> str:
     """Build the authenticated URL for the database.
 
@@ -66,6 +67,8 @@ def _build_database_url(
         if is_async and parsed_url.scheme == "postgresql":
             parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
         if password:
+            if isinstance(password, SecretStr):
+                password = password.get_secret_value()
             if not parsed_url.username:
                 raise ValueError(f"No username in database URL {url}")
             password = quote(password, safe="")
@@ -143,7 +146,7 @@ def datetime_to_db(time: datetime | None) -> datetime | None:
 
 def create_database_engine(
     url: str,
-    password: str | None,
+    password: str | SecretStr | None,
     *,
     isolation_level: str | None = None,
 ) -> AsyncEngine:
@@ -242,7 +245,7 @@ async def create_async_session(
 
 def create_sync_session(
     url: str,
-    password: str | None,
+    password: str | SecretStr | None,
     logger: BoundLogger | None = None,
     *,
     isolation_level: str | None = None,

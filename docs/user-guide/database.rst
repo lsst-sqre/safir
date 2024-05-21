@@ -70,6 +70,7 @@ For applications using `Click`_ (the recommended way to implement a command-line
        await engine.dispose()
 
 This code assumes that ``main`` is the Click entry point and ``.config`` provides a ``config`` object that contains the settings for the application, including the database URL and password as well as the normal Safir configuration settings.
+The database password may be a ``pydantic.SecretStr``, a `str`, or `None` if no password is required by the database.
 
 If it receives a connection error from the database, Safir will attempt the initialization five times, two seconds apart, to allow time for networking or a database proxy to start.
 

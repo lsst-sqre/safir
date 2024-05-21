@@ -47,7 +47,6 @@ dev = [
     "asgi-lifespan",
     "coverage[toml]",
     "fastapi>=0.93.0",
-    "flake8",
     "mypy",
     "pre-commit",
     "psycopg2",
@@ -59,7 +58,7 @@ dev = [
     "sqlalchemy[mypy]",
     "uvicorn",
     # documentation
-    "documenteer[guide]>=1.0.0a7",
+    "documenteer[guide]>=1",
     "autodoc_pydantic",
 ]
 gcs = [
