@@ -99,17 +99,22 @@ To accept this syntax as input for a Pydantic model, use a field validator such 
 
 .. code-block:: python
 
-   from pydantic import field_validator
+   from pydantic import BaseModel, field_validator
    from safir.datetime import parse_timedelta
 
 
-   @field_validator("lifetime", mode="before")
-   @classmethod
-   def _validate_lifetime(
-       cls, v: str | float | timedelta
-   ) -> float | timedelta:
-       if not isinstance(v, str):
-           return v
-       return parse_timedelta(v)
+   class Someething(BaseModel):
+       lifetime: timedelta = Field(..., title="Lifetime")
+
+       # ... other fields
+
+       @field_validator("lifetime", mode="before")
+       @classmethod
+       def _validate_lifetime(
+           cls, v: str | float | timedelta
+       ) -> float | timedelta:
+           if not isinstance(v, str):
+               return v
+           return parse_timedelta(v)
 
 This disables the built-in Pydantic support for ISO 8601 durations in favor of the syntax shown above.
