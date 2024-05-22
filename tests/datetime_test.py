@@ -12,6 +12,7 @@ from safir.datetime import (
     format_datetime_for_logging,
     isodatetime,
     parse_isodatetime,
+    parse_timedelta,
 )
 
 
@@ -84,3 +85,24 @@ def test_format_datetime_for_logging() -> None:
     json_model = Test(time=now).model_dump_json()
     model = Test.model_validate_json(json_model)
     assert format_datetime_for_logging(model.time) == expected
+
+
+def test_parse_timdelta() -> None:
+    assert parse_timedelta("8d") == timedelta(days=8)
+    assert parse_timedelta("4h 3minutes\n") == timedelta(hours=4, minutes=3)
+    assert parse_timedelta("\n 5w4d") == timedelta(weeks=5, days=4)
+    assert parse_timedelta(
+        "2weeks 2days 2hours 2minutes 2seconds"
+    ) == timedelta(weeks=2, days=2, hours=2, minutes=2, seconds=2)
+    assert parse_timedelta("1week 1day 1hour 1minute 1second") == timedelta(
+        weeks=1, days=1, hours=1, minutes=1, seconds=1
+    )
+    assert parse_timedelta("4hr 5mins 6secs") == timedelta(
+        hours=4, minutes=5, seconds=6
+    )
+    assert parse_timedelta("17min 65sec") == timedelta(minutes=17, seconds=65)
+
+    with pytest.raises(ValueError, match="Could not parse"):
+        parse_timedelta("3s4m")
+    with pytest.raises(ValueError, match="Could not parse"):
+        parse_timedelta("4weeks 36ms")

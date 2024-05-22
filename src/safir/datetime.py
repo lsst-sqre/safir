@@ -2,14 +2,25 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 from typing import overload
+
+_TIMEDELTA_PATTERN = re.compile(
+    r"((?P<weeks>\d+?)\s*(weeks|week|w))?\s*"
+    r"((?P<days>\d+?)\s*(days|day|d))?\s*"
+    r"((?P<hours>\d+?)\s*(hours|hour|hr|h))?\s*"
+    r"((?P<minutes>\d+?)\s*(minutes|minute|mins|min|m))?\s*"
+    r"((?P<seconds>\d+?)\s*(seconds|second|secs|sec|s))?$"
+)
+"""Regular expression pattern for a time duration."""
 
 __all__ = [
     "current_datetime",
     "format_datetime_for_logging",
     "isodatetime",
     "parse_isodatetime",
+    "parse_timedelta",
 ]
 
 
@@ -139,3 +150,66 @@ def parse_isodatetime(time_string: str) -> datetime:
     if not time_string.endswith("Z"):
         raise ValueError(f"{time_string} does not end with Z")
     return datetime.fromisoformat(time_string[:-1] + "+00:00")
+
+
+def parse_timedelta(text: str) -> timedelta:
+    """Parse a string into a `datetime.timedelta`.
+
+    Expects a string consisting of one or more sequences of numbers and
+    duration abbreviations, separated by optional whitespace. Whitespace at
+    the beginning and end of the string is ignored. The supported
+    abbreviations are:
+
+    - Week: ``weeks``, ``week``, ``w``
+    - Day: ``days``, ``day``, ``d``
+    - Hour: ``hours``, ``hour``, ``hr``, ``h``
+    - Minute: ``minutes``, ``minute``, ``mins``, ``min``, ``m``
+    - Second: ``seconds``, ``second``, ``secs``, ``sec``, ``s``
+
+    If several are present, they must be given in the above order. Example
+    valid strings are ``8d`` (8 days), ``4h 3minutes`` (four hours and three
+    minutes), and ``5w4d`` (five weeks and four days).
+
+    This function can be as a before-mode validator for Pydantic
+    `~datetime.timedelta` fields, replacing Pydantic's default ISO 8601
+    duration support.
+
+    Parameters
+    ----------
+    text
+        Input string.
+
+    Returns
+    -------
+    datetime.timedelta
+        Converted `datetime.timedelta`.
+
+    Raises
+    ------
+    ValueError
+        Raised if the string is not in a valid format.
+
+    Examples
+    --------
+    To accept a `~datetime.timedelta` in this format in a Pydantic model, use
+    a Pydantic field validator such as the following:
+
+    .. code-block:: python
+
+       @field_validator("lifetime", mode="before")
+       @classmethod
+       def _validate_lifetime(
+           cls, v: str | float | timedelta
+       ) -> float | timedelta:
+           if not isinstance(v, str):
+               return v
+           return parse_timedelta(v)
+
+    This will disable the Pydantic support for ISO 8601 durations and expect
+    the format parsed by this function instead.
+    """
+    m = _TIMEDELTA_PATTERN.match(text.strip())
+    if m is None:
+        raise ValueError(f"Could not parse {text!r} as a time duration")
+    td_args = {k: int(v) for k, v in m.groupdict().items() if v is not None}
+    return timedelta(**td_args)
