@@ -53,7 +53,7 @@ jobs:
       - name: Build docs in tox
         uses: lsst-sqre/run-tox@v1
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           tox-envs: "docs,docs-linkcheck"
           use-cache: false
 
@@ -80,7 +80,7 @@ jobs:
       - name: Build and publish
         uses: lsst-sqre/build-and-publish-to-pypi@v2
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           upload: false
 
       - name: Report status
