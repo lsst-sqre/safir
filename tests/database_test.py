@@ -24,7 +24,6 @@ from safir.database import (
     initialize_database,
 )
 
-TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
 TEST_DATABASE_PASSWORD = os.environ["TEST_DATABASE_PASSWORD"]
 
 Base = declarative_base()
@@ -39,9 +38,9 @@ class User(Base):
 
 
 @pytest.mark.asyncio
-async def test_database_init() -> None:
+async def test_database_init(database_url: str) -> None:
     logger = structlog.get_logger(__name__)
-    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():
@@ -59,7 +58,7 @@ async def test_database_init() -> None:
     # Reinitializing the database with reset should delete the data. Try
     # passing in the password as a SecretStr.
     password = SecretStr(TEST_DATABASE_PASSWORD)
-    engine = create_database_engine(TEST_DATABASE_URL, password)
+    engine = create_database_engine(database_url, password)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():
@@ -69,9 +68,9 @@ async def test_database_init() -> None:
     await engine.dispose()
 
 
-def test_build_database_url() -> None:
-    url = _build_database_url(TEST_DATABASE_URL, None, is_async=False)
-    assert url == TEST_DATABASE_URL
+def test_build_database_url(database_url: str) -> None:
+    url = _build_database_url(database_url, None, is_async=False)
+    assert url == database_url
 
     url = _build_database_url(
         "postgresql://foo@127.0.0.1/foo", "password", is_async=False
@@ -120,9 +119,9 @@ def test_build_database_url() -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_async_session() -> None:
+async def test_create_async_session(database_url: str) -> None:
     logger = structlog.get_logger(__name__)
-    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
 
     session = await create_async_session(
@@ -144,14 +143,14 @@ async def test_create_async_session() -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_sync_session() -> None:
+async def test_create_sync_session(database_url: str) -> None:
     logger = structlog.get_logger(__name__)
-    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     await engine.dispose()
 
     session = create_sync_session(
-        TEST_DATABASE_URL,
+        database_url,
         TEST_DATABASE_PASSWORD,
         logger,
         statement=select(User),
@@ -166,7 +165,7 @@ async def test_create_sync_session() -> None:
     bad_table = Table("bad", metadata, Column("name", String(64)))
     with pytest.raises(ProgrammingError):
         session = create_sync_session(
-            TEST_DATABASE_URL,
+            database_url,
             TEST_DATABASE_PASSWORD,
             logger,
             statement=select(bad_table),

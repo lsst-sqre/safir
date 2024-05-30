@@ -21,7 +21,6 @@ from safir.database import (
 )
 from safir.dependencies.db_session import db_session_dependency
 
-TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
 TEST_DATABASE_PASSWORD = os.getenv("TEST_DATABASE_PASSWORD")
 
 Base = declarative_base()
@@ -36,13 +35,13 @@ class User(Base):
 
 
 @pytest.mark.asyncio
-async def test_session() -> None:
+async def test_session(database_url: str) -> None:
     logger = structlog.get_logger(__name__)
-    engine = create_database_engine(TEST_DATABASE_URL, TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     await db_session_dependency.initialize(
-        TEST_DATABASE_URL, TEST_DATABASE_PASSWORD
+        database_url, TEST_DATABASE_PASSWORD
     )
 
     app = FastAPI()

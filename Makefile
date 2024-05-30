@@ -11,10 +11,9 @@ clean:
 	rm -rf docs/_build
 	rm -rf docs/api
 
-# Temporarily pin requests because 2.32.0 breaks docker 6.1.3.
 .PHONY: init
 init:
-	pip install --upgrade pip tox tox-docker pre-commit 'requests<2.32.0'
+	pip install --upgrade pip tox tox-docker pre-commit
 	pip install --upgrade -e ".[arq,db,dev,gcs,kubernetes]"
 	pre-commit install
 	rm -rf .tox
