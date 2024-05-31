@@ -38,7 +38,6 @@ class DatabaseSessionDependency:
 
     def __init__(self) -> None:
         self._engine: AsyncEngine | None = None
-        self._override_engine: AsyncEngine | None = None
         self._session: async_scoped_session | None = None
 
     async def __call__(self) -> AsyncIterator[async_scoped_session]:
@@ -85,28 +84,12 @@ class DatabaseSessionDependency:
             If specified, sets a non-default isolation level for the database
             engine.
         """
-        if self._override_engine:
-            self._session = await create_async_session(self._override_engine)
-        else:
-            self._engine = create_database_engine(
-                url, password, isolation_level=isolation_level
-            )
-            self._session = await create_async_session(self._engine)
-
-    def override_engine(self, engine: AsyncEngine) -> None:
-        """Force the dependency to use the provided engine.
-
-        Intended for testing, this allows the test suite to configure a single
-        database engine and share it across all of the tests, benefiting from
-        connection pooling for a minor test speed-up.  (This is not
-        significant enough to bother with except for an extensive test suite.)
-
-        Parameters
-        ----------
-        engine
-            Database engine to use for all sessions.
-        """
-        self._override_engine = engine
+        if self._engine:
+            await self._engine.dispose()
+        self._engine = create_database_engine(
+            url, password, isolation_level=isolation_level
+        )
+        self._session = await create_async_session(self._engine)
 
 
 db_session_dependency = DatabaseSessionDependency()
