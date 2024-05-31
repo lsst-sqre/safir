@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 
+from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
 from ..database import create_async_session, create_database_engine
@@ -68,7 +69,7 @@ class DatabaseSessionDependency:
     async def initialize(
         self,
         url: str,
-        password: str | None,
+        password: str | SecretStr | None,
         *,
         isolation_level: str | None = None,
     ) -> None:
