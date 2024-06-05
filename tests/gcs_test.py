@@ -15,6 +15,10 @@ def test_signed_url(mock_gcs: MockStorageClient) -> None:
     url = url_service.signed_url("s3://some-bucket/path/to/blob", "text/plain")
     assert url == "https://example.com/path/to/blob"
 
+    # Test the same with a gs URL.
+    url = url_service.signed_url("gs://some-bucket/path/to/blob", "text/plain")
+    assert url == "https://example.com/path/to/blob"
+
     # Test that the lifetime is passed down to the mock, which will reject it
     # if it's not an hour.
     url_service = SignedURLService("foo", timedelta(minutes=30))
