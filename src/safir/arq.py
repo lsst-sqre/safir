@@ -404,7 +404,7 @@ class RedisArqQueue(ArqQueue):
         pool = await create_pool(
             redis_settings, default_queue_name=default_queue_name
         )
-        return cls(pool)
+        return cls(pool, default_queue_name=default_queue_name)
 
     async def enqueue(
         self,
