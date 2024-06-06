@@ -16,13 +16,13 @@ class SignedURLService:
     """Generate signed URLs for Google Cloud Storage blobs.
 
     Uses default credentials plus credential impersonation to generate signed
-    URLs for Google Cloud Storage blobs.  This is the correct approach when
+    URLs for Google Cloud Storage blobs. This is the correct approach when
     running as a Kubernetes pod using workload identity.
 
     Parameters
     ----------
     service_account
-        The service account to use to sign the URLs.  The workload identity
+        The service account to use to sign the URLs. The workload identity
         must have access to generate service account tokens for that service
         account.
     lifetime
@@ -32,7 +32,7 @@ class SignedURLService:
     -----
     The workload identity (or other default credentials) under which the
     caller is running must have ``roles/iam.serviceAccountTokenCreator`` on
-    the service account given in the ``service_account`` parameter.  This is
+    the service account given in the ``service_account`` parameter. This is
     how a workload identity can retrieve a key that can be used to create a
     signed URL.
 
@@ -54,9 +54,9 @@ class SignedURLService:
         Parameters
         ----------
         uri
-            URI for the storage object.  This must start with ``s3://`` and
-            use the S3 URI syntax to specify bucket and blob of a Google
-            Cloud Storage object.
+            URI for the storage object. This must start with ``s3://`` or
+           ``gs://`` and use that URI syntax to specify bucket and blob of a
+           Google Cloud Storage object.
         mime_type
             MIME type of the object, for encoding in the signed URL.
 
@@ -69,17 +69,17 @@ class SignedURLService:
         Raises
         ------
         ValueError
-            The ``uri`` parameter is not an S3 URI.
+            Raised if the ``uri`` parameter is not an S3 or GCS URI.
 
         Notes
         -----
         This is inefficient, since it gets new signing credentials each time
-        it generates a signed URL.  Doing better will require figuring out the
+        it generates a signed URL. Doing better will require figuring out the
         lifetime and refreshing the credentials when the lifetime has expired.
         """
         parsed_uri = urlparse(uri)
-        if parsed_uri.scheme != "s3":
-            raise ValueError(f"URI {uri} is not an S3 URI")
+        if parsed_uri.scheme not in ("s3", "gs"):
+            raise ValueError(f"URI {uri} is not an s3 or gs URI")
         bucket = self._gcs.bucket(parsed_uri.netloc)
         blob = bucket.blob(parsed_uri.path[1:])
         signing_credentials = impersonated_credentials.Credentials(
