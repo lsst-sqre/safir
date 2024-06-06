@@ -307,11 +307,11 @@ class ArqQueue(metaclass=abc.ABCMeta):
         ----------
         task_name
             The function name to run.
-        *args
+        *task_args
             Positional arguments for the task function.
         _queue_name
             Name of the queue.
-        **kwargs
+        **task_kwargs
             Keyword arguments passed to the task function.
 
         Returns
