@@ -234,8 +234,18 @@ class SlackMessage(BaseModel):
 class SlackException(Exception):
     """Parent class of exceptions that can be reported to Slack.
 
-    Intended to be subclassed.  Subclasses may wish to override the
+    Intended to be subclassed. Subclasses may wish to override the
     ``to_slack`` method.
+
+    Attributes
+    ----------
+    message
+        Error message represented by this exception.
+    user
+        Username associated with the exception.
+    failed_at
+        When the failure occurred. Defaults to the time the exception was
+        created.
 
     Parameters
     ----------
@@ -254,12 +264,24 @@ class SlackException(Exception):
         *,
         failed_at: datetime | None = None,
     ) -> None:
+        # Do not call the parent Exception constructor here, because calling
+        # it with a different number of arguments than the constructor
+        # argument of derived exceptions breaks pickling. See the end of
+        # https://github.com/python/cpython/issues/44791. This requires
+        # implementing __str__ rather than relying on the default behavior.
+        #
+        # Arguably, this is a bug in the __reduce__ method of BaseException
+        # and its interaction with constructors, but it appears to be hard to
+        # fix. See https://github.com/python/cpython/issues/76877.
+        self.message = message
         self.user = user
         if failed_at:
             self.failed_at = failed_at
         else:
             self.failed_at = current_datetime(microseconds=True)
-        super().__init__(message)
+
+    def __str__(self) -> str:
+        return self.message
 
     def to_slack(self) -> SlackMessage:
         """Format the exception as a Slack message.
@@ -366,12 +388,11 @@ class SlackWebException(SlackException):
         status: int | None = None,
         body: str | None = None,
     ) -> None:
-        self.message = message
+        super().__init__(message, user, failed_at=failed_at)
         self.method = method
         self.url = url
         self.status = status
         self.body = body
-        super().__init__(message, user, failed_at=failed_at)
 
     def __str__(self) -> str:
         result = self.message

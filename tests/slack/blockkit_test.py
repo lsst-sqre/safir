@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pickle
 from unittest.mock import ANY
 
 import pytest
@@ -292,6 +293,31 @@ async def test_exception(mock_slack: MockSlackWebhook) -> None:
             ],
         }
     ]
+
+
+class SlackSubclassException(SlackException):
+    """Subclsas for testing pickling."""
+
+    def __init__(self) -> None:
+        super().__init__("Some error", "username")
+
+
+def test_exception_pickling() -> None:
+    """Test that a `SlackException` can be pickled and unpickled.
+
+    Errors that may be raised by backend workers in an arq queue must support
+    pickling so that they can be passed correctly to other workers or the
+    frontend.
+    """
+    exc = SlackException("some message", "username")
+    pickled_exc = pickle.loads(pickle.dumps(exc))
+    assert exc.to_slack() == pickled_exc.to_slack()
+
+    # Try the same with a derived class with a different number of constructor
+    # arguments.
+    subexc = SlackSubclassException()
+    pickled_subexc = pickle.loads(pickle.dumps(subexc))
+    assert subexc.to_slack() == pickled_subexc.to_slack()
 
 
 @pytest.mark.asyncio
