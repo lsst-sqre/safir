@@ -24,7 +24,7 @@ def test_mock(mock_gcs: MockStorageClient) -> None:
     credentials = google.auth.default()
     signing_credentials = impersonated_credentials.Credentials(
         source_credentials=credentials,
-        target_principle="some-service-account",
+        target_principal="some-service-account",
         target_scopes="https://www.googleapis.com/auth/devstorage.read_only",
         lifetime=2,
     )
@@ -62,7 +62,7 @@ def test_mock_files(mock_gcs_file: MockStorageClient) -> None:
     credentials = google.auth.default()
     signing_credentials = impersonated_credentials.Credentials(
         source_credentials=credentials,
-        target_principle="some-service-account",
+        target_principal="some-service-account",
         target_scopes="https://www.googleapis.com/auth/devstorage.read_only",
         lifetime=2,
     )
