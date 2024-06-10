@@ -9,6 +9,25 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-6.0.0'></a>
+## 6.0.0 (2024-06-10)
+
+### Backwards-incompatible changes
+
+- Drop `safir.database.create_sync_session`. This was only used by services that used Dramatiq for task management, since Dramatiq is sync-only. Services based on Safir should switch to arq and use only async database connections.
+- Drop `DatabaseSessionDependency.override_engine`. This was used for Gafaelfawr to share a database engine across all tests for speed, but this technique breaks with current versions of pytest-asyncio and is no longer used or safe to use.
+
+### New features
+
+- Allow the database password to be passed to `create_database_engine`, `create_sync_session`, and `DatabaseSessionDependency.initialize` as a Pydantic `SecretStr`.
+- Add new function `safir.datetime.parse_timedelta`, which parses a human-friendly syntax for specifying time durations into a Python `datetime.timedelta`.
+- Add support for `gs` URLs to `safir.gcs.SignedURLService`.
+- Support pickling of `SlackException` so that subclasses of it can be thrown by arq workers and unpickled correctly when retrieving results.
+
+### Bug fixes
+
+- Correctly honor the `default_queue_name` argument to `RedisArqQueue.initialize`.
+
 <a id='changelog-5.2.2'></a>
 ## 5.2.2 (2024-03-15)
 
