@@ -18,7 +18,6 @@ from safir.database import (
     _build_database_url,
     create_async_session,
     create_database_engine,
-    create_sync_session,
     datetime_from_db,
     datetime_to_db,
     initialize_database,
@@ -69,31 +68,17 @@ async def test_database_init(database_url: str) -> None:
 
 
 def test_build_database_url(database_url: str) -> None:
-    url = _build_database_url(database_url, None, is_async=False)
-    assert url == database_url
-
-    url = _build_database_url(
-        "postgresql://foo@127.0.0.1/foo", "password", is_async=False
-    )
-    assert url == "postgresql://foo:password@127.0.0.1/foo"
-
-    url = _build_database_url(
-        "postgresql://foo@127.0.0.1/foo", None, is_async=True
-    )
+    url = _build_database_url("postgresql://foo@127.0.0.1/foo", None)
     assert url == "postgresql+asyncpg://foo@127.0.0.1/foo"
 
-    url = _build_database_url(
-        "postgresql://foo@127.0.0.1:5432/foo", None, is_async=True
-    )
+    url = _build_database_url("postgresql://foo@127.0.0.1:5432/foo", None)
     assert url == "postgresql+asyncpg://foo@127.0.0.1:5432/foo"
 
-    url = _build_database_url(
-        "postgresql://foo@127.0.0.1/foo", "otherpass", is_async=True
-    )
+    url = _build_database_url("postgresql://foo@127.0.0.1/foo", "otherpass")
     assert url == "postgresql+asyncpg://foo:otherpass@127.0.0.1/foo"
 
     url = _build_database_url(
-        "postgresql://foo@127.0.0.1:5433/foo", "otherpass", is_async=True
+        "postgresql://foo@127.0.0.1:5433/foo", "otherpass"
     )
     assert url == "postgresql+asyncpg://foo:otherpass@127.0.0.1:5433/foo"
 
@@ -101,11 +86,10 @@ def test_build_database_url(database_url: str) -> None:
     url = _build_database_url(
         "postgresql://foo%40e.com@127.0.0.1:4444/foo",
         "pass@word/with stuff",
-        is_async=False,
     )
     assert url == (
-        "postgresql://foo%40e.com:pass%40word%2Fwith%20stuff@127.0.0.1:4444"
-        "/foo"
+        "postgresql+asyncpg://foo%40e.com:pass%40word%2Fwith%20stuff"
+        "@127.0.0.1:4444/foo"
     )
     parsed_url = urlparse(url)
     assert parsed_url.username
@@ -140,36 +124,6 @@ async def test_create_async_session(database_url: str) -> None:
             engine, logger, statement=select(bad_table)
         )
     await engine.dispose()
-
-
-@pytest.mark.asyncio
-async def test_create_sync_session(database_url: str) -> None:
-    logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
-    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
-    await engine.dispose()
-
-    session = create_sync_session(
-        database_url,
-        TEST_DATABASE_PASSWORD,
-        logger,
-        statement=select(User),
-    )
-    with session.begin():
-        session.add(User(username="foo"))
-    session.remove()
-
-    # Use a query against a non-existent table as the liveness check and
-    # ensure that fails.
-    metadata = MetaData()
-    bad_table = Table("bad", metadata, Column("name", String(64)))
-    with pytest.raises(ProgrammingError):
-        session = create_sync_session(
-            database_url,
-            TEST_DATABASE_PASSWORD,
-            logger,
-            statement=select(bad_table),
-        )
 
 
 def test_datetime() -> None:
