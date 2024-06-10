@@ -19,7 +19,7 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 ### New features
 
-- Allow the database password to be passed to `create_database_engine`, `create_sync_session`, and `DatabaseSessionDependency.initialize` as a Pydantic `SecretStr`.
+- Allow the database password to be passed to `create_database_engine` and `DatabaseSessionDependency.initialize` as a Pydantic `SecretStr`.
 - Add new function `safir.datetime.parse_timedelta`, which parses a human-friendly syntax for specifying time durations into a Python `datetime.timedelta`.
 - Add support for `gs` URLs to `safir.gcs.SignedURLService`.
 - Support pickling of `SlackException` so that subclasses of it can be thrown by arq workers and unpickled correctly when retrieving results.
