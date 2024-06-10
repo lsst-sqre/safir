@@ -426,55 +426,10 @@ For example:
 If the statement fails, it will be retried up to five times, waiting two seconds between attempts, before raising the underlying exception.
 This is particularly useful for waiting for network or a database proxy to come up when a process has first started.
 
-Creating a sync database session
---------------------------------
-
-Although Safir is primarily intended to support asyncio applications, it may sometimes be necessary to write sync code that performs database operations.
-One example would be `Dramatiq <https://dramatiq.io/>`__ workers.
-This can be done with `~safir.database.create_sync_session`.
-
-.. code-block:: python
-
-   from safir.database import create_sync_session
-
-   from .config import config
-
-
-   session = create_sync_session(config.database_url, config.database_password)
-   with session.begin():
-       # ... do something with the session ...
-       pass
-
-Unlike `~safir.database.create_async_session`, `~safir.database.create_sync_session` handles creating the engine internally, since sync engines do not require any special shutdown measures.
-
-As with :ref:`async database sessions <probing-db-connection>`, you can pass a `structlog`_ logger and a statement to perform a connection check on the database before returning the session:
-
-.. code-block:: python
-
-   import structlog
-   from safir.database import create_sync_session
-   from sqlalchemy.future import select
-
-   from .config import config
-   from .schema import User
-
-
-   logger = structlog.get_logger(config.logger_name)
-   stmt = select(User)
-   session = create_sync_session(
-       config.database_url,
-       config.database_password,
-       logger,
-       statement=stmt,
-   )
-
-Applications that use `~safir.database.create_sync_session` must declare a dependency on `psycopg2 <https://pypi.org/project/psycopg2/>`__ in their pip dependencies.
-Safir itself does not depend on psycopg2, even with the ``db`` extra, since most applications that use Safir for database support will only need async sessions.
-
 Setting an isolation level
 --------------------------
 
-`~safir.database.create_database_engine`, `~safir.database.create_sync_session`, and the ``initialize`` method of `~safir.dependencies.db_session.db_session_dependency` take an optional ``isolation_level`` argument that can be used to set a non-default isolation level.
+`~safir.database.create_database_engine` and the ``initialize`` method of `~safir.dependencies.db_session.db_session_dependency` take an optional ``isolation_level`` argument that can be used to set a non-default isolation level.
 If given, this parameter is passed through to the underlying SQLAlchemy engine.
 See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/14/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
 

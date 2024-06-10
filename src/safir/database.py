@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from datetime import UTC, datetime, timedelta
 from typing import overload
 from urllib.parse import quote, urlparse
 
 from pydantic import SecretStr
-from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -17,7 +15,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import CreateSchema
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.schema import MetaData
@@ -27,7 +24,6 @@ __all__ = [
     "DatabaseInitializationError",
     "create_async_session",
     "create_database_engine",
-    "create_sync_session",
     "datetime_from_db",
     "datetime_to_db",
     "initialize_database",
@@ -38,9 +34,7 @@ class DatabaseInitializationError(Exception):
     """Database initialization failed."""
 
 
-def _build_database_url(
-    url: str, password: str | SecretStr | None, *, is_async: bool
-) -> str:
+def _build_database_url(url: str, password: str | SecretStr | None) -> str:
     """Build the authenticated URL for the database.
 
     Parameters
@@ -49,8 +43,6 @@ def _build_database_url(
         Database connection URL, not including the password.
     password
         Database connection password.
-    is_async
-        Whether the resulting URL should be async or not.
 
     Returns
     -------
@@ -62,26 +54,24 @@ def _build_database_url(
     ValueError
         A password was provided but the connection URL has no username.
     """
-    if is_async or password:
-        parsed_url = urlparse(url)
-        if is_async and parsed_url.scheme == "postgresql":
-            parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
-        if password:
-            if isinstance(password, SecretStr):
-                password = password.get_secret_value()
-            if not parsed_url.username:
-                raise ValueError(f"No username in database URL {url}")
-            password = quote(password, safe="")
+    parsed_url = urlparse(url)
+    if parsed_url.scheme == "postgresql":
+        parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
+    if password:
+        if isinstance(password, SecretStr):
+            password = password.get_secret_value()
+        if not parsed_url.username:
+            raise ValueError(f"No username in database URL {url}")
+        password = quote(password, safe="")
 
-            # The username portion of the parsed URL does not appear to decode
-            # URL escaping of the username, so we should not quote it again or
-            # we will get double-quoting.
-            netloc = f"{parsed_url.username}:{password}@{parsed_url.hostname}"
-            if parsed_url.port:
-                netloc = f"{netloc}:{parsed_url.port}"
-            parsed_url = parsed_url._replace(netloc=netloc)
-        url = parsed_url.geturl()
-    return url
+        # The username portion of the parsed URL does not appear to decode URL
+        # escaping of the username, so we should not quote it again or we will
+        # get double-quoting.
+        netloc = f"{parsed_url.username}:{password}@{parsed_url.hostname}"
+        if parsed_url.port:
+            netloc = f"{netloc}:{parsed_url.port}"
+        parsed_url = parsed_url._replace(netloc=netloc)
+    return parsed_url.geturl()
 
 
 @overload
@@ -173,7 +163,7 @@ def create_database_engine(
     ValueError
         A password was provided but the connection URL has no username.
     """
-    url = _build_database_url(url, password, is_async=True)
+    url = _build_database_url(url, password)
     if isolation_level:
         return create_async_engine(
             url, future=True, isolation_level=isolation_level
@@ -240,81 +230,6 @@ async def create_async_session(
     # caller.
     async with session.begin():
         await session.execute(statement.limit(1))
-        return session
-
-
-def create_sync_session(
-    url: str,
-    password: str | SecretStr | None,
-    logger: BoundLogger | None = None,
-    *,
-    isolation_level: str | None = None,
-    statement: Select | None = None,
-) -> scoped_session:
-    """Create a new sync database session.
-
-    Used instead of `create_database_engine` and `create_async_session` for
-    sync code, such as Dramatiq workers.  This combines engine creation with
-    session creation.
-
-    Parameters
-    ----------
-    url
-        Database connection URL, not including the password.
-    password
-        Database connection password.
-    logger
-        Logger for reporting errors.  Used only if a statement is provided.
-    isolation_level
-        If specified, sets a non-default isolation level for the database
-        engine.
-    statement
-        If provided, statement to run to check database connectivity.  This
-        will be modified with ``limit(1)`` before execution.  If not provided,
-        database connectivity will not be checked.
-
-    Returns
-    -------
-    sqlalchemy.orm.scoping.scoped_session
-        The database session proxy.  This manages a separate session per
-        thread and therefore should be thread-safe.
-
-    Raises
-    ------
-    ValueError
-        A password was provided but the connection URL has no username.
-    """
-    url = _build_database_url(url, password, is_async=False)
-    if isolation_level:
-        engine = create_engine(url, isolation_level=isolation_level)
-    else:
-        engine = create_engine(url)
-    factory = sessionmaker(bind=engine, future=True)
-    session = scoped_session(factory)
-
-    # If no statement was provided, just return the scoped_session.
-    if statement is None:
-        return session
-
-    # A statement was provided, so we want to check connectivity and retry for
-    # up to ten seconds before returning the session.
-    for _ in range(5):
-        try:
-            with session.begin():
-                session.execute(statement.limit(1))
-                return session
-        except (ConnectionRefusedError, OperationalError, OSError):
-            if logger:
-                logger.info("database not ready, waiting two seconds")
-            session.remove()
-            time.sleep(2)
-            continue
-
-    # If we got here, we failed five times.  Try one last time without
-    # catching exceptions so that we raise the appropriate exception to our
-    # caller.
-    with session.begin():
-        session.execute(statement.limit(1))
         return session
 
 
