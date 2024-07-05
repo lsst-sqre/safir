@@ -174,126 +174,22 @@ init_typed = true
 warn_required_dynamic_aliases = true
 warn_untyped_fields = true
 
-# The rule used with Ruff configuration is to disable every lint that has
-# legitimate exceptions that are not dodgy code, rather than cluttering code
-# with noqa markers. This is therefore a reiatively relaxed configuration that
-# errs on the side of disabling legitimate lints.
-#
-# Reference for settings: https://beta.ruff.rs/docs/settings/
-# Reference for rules: https://beta.ruff.rs/docs/rules/
+# Use the generic Ruff configuration in ruff.toml and extend it with only
+# project-specific settings.
 [tool.ruff]
-exclude = [
-    "docs/**",
-]
-line-length = 79
-target-version = "py311"
+extend = "ruff-shared.toml"
 
-[tool.ruff.lint]
-ignore = [
-    "ANN101",  # self should not have a type annotation
-    "ANN102",  # cls should not have a type annotation
-    "ANN401",  # sometimes Any is the right type
-    "ARG001",  # unused function arguments are often legitimate
-    "ARG002",  # unused method arguments are often legitimate
-    "ARG005",  # unused lambda arguments are often legitimate
-    "BLE001",  # we want to catch and report Exception in background tasks
-    "C414",    # nested sorted is how you sort by multiple keys with reverse
-    "COM812",  # omitting trailing commas allows black autoreformatting
-    "D102",    # sometimes we use docstring inheritence
-    "D104",    # don't see the point of documenting every package
-    "D105",    # our style doesn't require docstrings for magic methods
-    "D106",    # Pydantic uses a nested Config class that doesn't warrant docs
-    "D205",    # our documentation style allows a folded first line
-    "EM101",   # justification (duplicate string in traceback) is silly
-    "EM102",   # justification (duplicate string in traceback) is silly
-    "FBT003",  # positional booleans are normal for Pydantic field defaults
-    "FIX002",  # point of a TODO comment is that we're not ready to fix it
-    "G004",    # forbidding logging f-strings is appealing, but not our style
-    "RET505",  # disagree that omitting else always makes code more readable
-    "PLR0911", # often many returns is clearer and simpler style
-    "PLR0913", # factory pattern uses constructors with many arguments
-    "PLR2004", # too aggressive about magic values
-    "PLW0603", # yes global is discouraged but if needed, it's needed
-    "S105",    # good idea but too many false positives on non-passwords
-    "S106",    # good idea but too many false positives on non-passwords
-    "S107",    # good idea but too many false positives on non-passwords
-    "S603",    # not going to manually mark every subprocess call as reviewed
-    "S607",    # using PATH is not a security vulnerability
-    "SIM102",  # sometimes the formatting of nested if statements is clearer
-    "SIM117",  # sometimes nested with contexts are clearer
-    "TCH001",  # we decided to not maintain separate TYPE_CHECKING blocks
-    "TCH002",  # we decided to not maintain separate TYPE_CHECKING blocks
-    "TCH003",  # we decided to not maintain separate TYPE_CHECKING blocks
-    "TD003",   # we don't require issues be created for TODOs
-    "TID252",  # if we're going to use relative imports, use them always
-    "TRY003",  # good general advice but lint is way too aggressive
-    "TRY301",  # sometimes raising exceptions inside try is the best flow
-
-    # The following settings should be disabled when using ruff format
-    # per https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
-    "W191",
-    "E111",
-    "E114",
-    "E117",
-    "D206",
-    "D300",
-    "Q000",
-    "Q001",
-    "Q002",
-    "Q003",
-    "COM812",
-    "COM819",
-    "ISC001",
-    "ISC002",
-
-    # Temporary bug workarounds.
-    "S113",    # https://github.com/astral-sh/ruff/issues/12210
-]
-select = ["ALL"]
-
-[tool.ruff.lint.per-file-ignores]
+[tool.ruff.lint.extend-per-file-ignores]
 "src/safir/**" = [
     "N818",    # Exception is correct in some cases, others are part of API
 ]
 "src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
 ]
-"tests/**" = [
-    "C901",    # tests are allowed to be complex, sometimes that's convenient
-    "D101",    # tests don't need docstrings
-    "D103",    # tests don't need docstrings
-    "PLR0915", # tests are allowed to be long, sometimes that's convenient
-    "PT012",   # way too aggressive about limiting pytest.raises blocks
-    "S101",    # tests should use assert
-    "S106",    # tests are allowed to hard-code dummy passwords
-    "S301",    # one test verifies that a class can be pickled
-    "SLF001",  # tests are allowed to access private members
-]
 
 [tool.ruff.lint.isort]
 known-first-party = ["safir", "tests"]
 split-on-trailing-comma = false
-
-# These are too useful as attributes or methods to allow the conflict with the
-# built-in to rule out their use.
-[tool.ruff.lint.flake8-builtins]
-builtins-ignorelist = [
-    "all",
-    "any",
-    "dict",
-    "help",
-    "id",
-    "list",
-    "open",
-    "type",
-]
-
-[tool.ruff.lint.flake8-pytest-style]
-fixture-parentheses = false
-mark-parentheses = false
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
 
 [tool.scriv]
 categories = [
