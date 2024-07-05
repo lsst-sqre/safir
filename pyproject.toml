@@ -245,6 +245,9 @@ ignore = [
     "COM819",
     "ISC001",
     "ISC002",
+
+    # Temporary bug workarounds.
+    "S113",    # https://github.com/astral-sh/ruff/issues/12210
 ]
 select = ["ALL"]
 
