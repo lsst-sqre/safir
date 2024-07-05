@@ -39,7 +39,7 @@ jobs:
           use-cache: false
 
       - name: Report status
-        if: always()
+        if: failure()
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
@@ -67,12 +67,12 @@ jobs:
           use-cache: false
 
       - name: Report status
-        if: always()
+        if: failure()
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
           notify_when: "failure"
-          notification_title: "Periodic documentation build for {repo} failed"
+          notification_title: "Periodic documentation test for {repo} failed"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
 
@@ -93,11 +93,11 @@ jobs:
           upload: false
 
       - name: Report status
-        if: always()
+        if: failure()
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
           notify_when: "failure"
-          notification_title: "Periodic PyPI test for {repo} failed"
+          notification_title: "Periodic packaging test for {repo} failed"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
