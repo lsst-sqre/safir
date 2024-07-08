@@ -7,7 +7,6 @@ from typing import Annotated
 from unittest.mock import ANY
 
 import pytest
-from _pytest.logging import LogCaptureFixture
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 from structlog.stdlib import BoundLogger
@@ -65,7 +64,9 @@ async def test_auth_delegated_token_dependency() -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_logger_dependency(caplog: LogCaptureFixture) -> None:
+async def test_auth_logger_dependency(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     configure_logging(name="myapp", profile="production", log_level="info")
 
     app = FastAPI()
