@@ -7,7 +7,6 @@ from typing import Annotated
 from unittest.mock import ANY
 
 import pytest
-from _pytest.logging import LogCaptureFixture
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 from structlog.stdlib import BoundLogger
@@ -18,7 +17,7 @@ from safir.middleware.x_forwarded import XForwardedMiddleware
 
 
 @pytest.mark.asyncio
-async def test_logger(caplog: LogCaptureFixture) -> None:
+async def test_logger(caplog: pytest.LogCaptureFixture) -> None:
     configure_logging(name="myapp", profile="production", log_level="info")
 
     app = FastAPI()
@@ -56,7 +55,7 @@ async def test_logger(caplog: LogCaptureFixture) -> None:
 
 
 @pytest.mark.asyncio
-async def test_logger_xforwarded(caplog: LogCaptureFixture) -> None:
+async def test_logger_xforwarded(caplog: pytest.LogCaptureFixture) -> None:
     configure_logging(name="myapp", profile="production", log_level="info")
 
     app = FastAPI()

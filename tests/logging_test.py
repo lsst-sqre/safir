@@ -11,8 +11,6 @@ from unittest.mock import ANY
 
 import pytest
 import structlog
-from _pytest.capture import CaptureFixture
-from _pytest.logging import LogCaptureFixture
 from httpx import AsyncClient
 from pydantic import BaseModel, ValidationError
 
@@ -68,7 +66,9 @@ def test_log_level_enum() -> None:
         Model.model_validate({"log_level": "unknown"})
 
 
-def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
+def test_configure_logging_development(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test that development-mode logging is key-value formatted."""
     caplog.set_level(logging.INFO)
 
@@ -88,7 +88,9 @@ def test_configure_logging_development(caplog: LogCaptureFixture) -> None:
     assert _strip_color(line) == expected
 
 
-def test_configure_logging_dev_timestamp(caplog: LogCaptureFixture) -> None:
+def test_configure_logging_dev_timestamp(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test development-mode logging with an added timestamp."""
     caplog.set_level(logging.INFO)
 
@@ -121,7 +123,9 @@ def test_configure_logging_dev_timestamp(caplog: LogCaptureFixture) -> None:
     assert now - timedelta(seconds=5) < timestamp < now
 
 
-def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
+def test_configure_logging_production(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test that production-mode logging is JSON formatted."""
     caplog.set_level(logging.INFO)
 
@@ -141,7 +145,9 @@ def test_configure_logging_production(caplog: LogCaptureFixture) -> None:
     )
 
 
-def test_configure_logging_prod_timestamp(caplog: LogCaptureFixture) -> None:
+def test_configure_logging_prod_timestamp(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test development-mode logging with an added timestamp."""
     caplog.set_level(logging.INFO)
 
@@ -173,7 +179,7 @@ def test_configure_logging_prod_timestamp(caplog: LogCaptureFixture) -> None:
     assert now - timedelta(seconds=5) < timestamp < now
 
 
-def test_configure_logging_level(caplog: LogCaptureFixture) -> None:
+def test_configure_logging_level(caplog: pytest.LogCaptureFixture) -> None:
     """Test that the logging level is set."""
     caplog.set_level(logging.DEBUG)
 
@@ -188,7 +194,7 @@ def test_configure_logging_level(caplog: LogCaptureFixture) -> None:
     assert len(caplog.record_tuples) == 1
 
 
-def test_duplicate_handlers(capsys: CaptureFixture[str]) -> None:
+def test_duplicate_handlers(capsys: pytest.CaptureFixture[str]) -> None:
     """Test that configuring logging more than once doesn't duplicate logs."""
     configure_logging(name="myapp", profile="production", log_level="info")
     configure_logging(name="myapp", profile="production", log_level="info")
@@ -200,7 +206,7 @@ def test_duplicate_handlers(capsys: CaptureFixture[str]) -> None:
     assert len(captured.out.splitlines()) == 1
 
 
-def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
+def test_dev_exception_logging(caplog: pytest.LogCaptureFixture) -> None:
     """Test that exceptions are properly logged in the development logger."""
     configure_logging(
         name="myapp", profile=Profile.development, log_level=LogLevel.INFO
@@ -218,7 +224,9 @@ def test_dev_exception_logging(caplog: LogCaptureFixture) -> None:
     assert "this is some exception" in _strip_color(caplog.record_tuples[0][2])
 
 
-def test_production_exception_logging(caplog: LogCaptureFixture) -> None:
+def test_production_exception_logging(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Test that exceptions are properly logged in the production logger."""
     configure_logging(
         name="myapp", profile=Profile.production, log_level=LogLevel.INFO
