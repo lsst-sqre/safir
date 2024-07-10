@@ -1,5 +1,11 @@
 name: Python CI
 
+env:
+  # Default Python version used for all jobs other than test, which uses a
+  # matrix of supported versions. Quote the version to avoid interpretation as
+  # a floating point number.
+  PYTHON_VERSION: "3.12"
+
 "on":
   merge_group: {}
   pull_request: {}
@@ -17,17 +23,18 @@ name: Python CI
     types: [published]
 
 jobs:
-
   lint:
 
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
@@ -35,6 +42,7 @@ jobs:
   test:
 
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     strategy:
       matrix:
@@ -50,11 +58,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           tox-envs: "py,typing"
-          tox-plugins: "tox-docker"
+          tox-plugins: "tox-docker tox-uv"
 
   docs:
 
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +78,7 @@ jobs:
         with:
           python-version: "3.12"
           tox-envs: "docs,docs-linkcheck"
+          tox-plugins: tox-uv
 
       # Only attempt documentation uploads for tagged releases and pull
       # requests from ticket branches in the same repository.  This avoids
@@ -82,8 +92,9 @@ jobs:
           username: ${{ secrets.LTD_USERNAME }}
           password: ${{ secrets.LTD_PASSWORD }}
         if: >
-          github.event_name != 'pull_request'
-          || startsWith(github.head_ref, 'tickets/')
+          github.event_name != 'merge_group'
+          && (github.event_name != 'pull_request'
+              || startsWith(github.head_ref, 'tickets/'))
 
   test-packaging:
 
@@ -100,7 +111,7 @@ jobs:
       - name: Build and publish
         uses: lsst-sqre/build-and-publish-to-pypi@v2
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
           upload: false
 
   pypi:
@@ -123,4 +134,4 @@ jobs:
 
       - uses: lsst-sqre/build-and-publish-to-pypi@v2
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}

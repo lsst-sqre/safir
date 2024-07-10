@@ -5,6 +5,12 @@
 
 name: Periodic CI
 
+env:
+  # Default Python version used for all jobs other than test, which uses a
+  # matrix of supported versions. Quote the version to avoid interpretation as
+  # a floating point number.
+  PYTHON_VERSION: "3.12"
+
 "on":
   schedule:
     - cron: "0 12 * * 1"
@@ -13,6 +19,7 @@ name: Periodic CI
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     strategy:
       matrix:
@@ -28,11 +35,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           tox-envs: "lint,typing,py"
-          tox-plugins: "tox-docker"
+          tox-plugins: "tox-docker tox-uv"
           use-cache: false
 
       - name: Report status
-        if: always()
+        if: failure()
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
@@ -43,6 +50,7 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -53,17 +61,18 @@ jobs:
       - name: Build docs in tox
         uses: lsst-sqre/run-tox@v1
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
           tox-envs: "docs,docs-linkcheck"
+          tox-plugins: tox-uv
           use-cache: false
 
       - name: Report status
-        if: always()
+        if: failure()
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
           notify_when: "failure"
-          notification_title: "Periodic documentation build for {repo} failed"
+          notification_title: "Periodic documentation test for {repo} failed"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
 
@@ -80,15 +89,15 @@ jobs:
       - name: Build and publish
         uses: lsst-sqre/build-and-publish-to-pypi@v2
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
           upload: false
 
       - name: Report status
-        if: always()
+        if: failure()
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
           notify_when: "failure"
-          notification_title: "Periodic PyPI test for {repo} failed"
+          notification_title: "Periodic packaging test for {repo} failed"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
