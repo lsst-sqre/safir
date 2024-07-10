@@ -4,6 +4,8 @@ help:
 	@echo "make clean - Remove generated files"
 	@echo "make init - Set up dev environment (install pre-commit hooks)"
 	@echo "make linkcheck - Check for broken links in documentation"
+	@echo "make update - Update pre-commit dependencies and run make init"
+	@echo "make update-deps - Update pre-commit dependencies"
 
 .PHONY: clean
 clean:
@@ -13,8 +15,9 @@ clean:
 
 .PHONY: init
 init:
-	pip install --upgrade pip tox tox-docker pre-commit
-	pip install --upgrade -e ".[arq,db,dev,gcs,kubernetes]"
+	pip install --upgrade uv
+	uv pip install --upgrade pre-commit tox tox-docker tox-uv
+	uv pip install --upgrade -e ".[arq,db,dev,gcs,kubernetes]"
 	pre-commit install
 	rm -rf .tox
 
@@ -27,3 +30,16 @@ linkcheck:
 	sphinx-build --keep-going -n -T -b linkcheck docs	\
 	    docs/_build/linkcheck				\
 	    || (cat docs/_build/linkcheck/output.txt; exit 1)
+
+# update and update-deps aren't that meaningful for PyPI packages that do
+# not have pinned Python package dependencies, but provide the same targets
+# as the FastAPI Safir app template so that people can use the same command
+# to update everything at the start of development (here, just pre-commit).
+.PHONY: update
+update: update-deps init
+
+.PHONY: update-deps
+update-deps:
+	pip install --upgrade uv
+	uv pip install --upgrade pre-commit
+	pre-commit autoupdate
