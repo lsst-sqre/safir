@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import abc
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -399,10 +400,15 @@ class RedisArqQueue(ArqQueue):
         redis_settings: RedisSettings,
         *,
         default_queue_name: str = arq_default_queue_name,
+        job_serializer: Callable[[Any], bytes] | None = None,
+        job_deserializer: Callable[[bytes], Any] | None = None,
     ) -> Self:
         """Initialize a RedisArqQueue from Redis settings."""
         pool = await create_pool(
-            redis_settings, default_queue_name=default_queue_name
+            redis_settings,
+            default_queue_name=default_queue_name,
+            job_serializer=job_serializer,
+            job_deserializer=job_deserializer,
         )
         return cls(pool, default_queue_name=default_queue_name)
 
