@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+import asyncio
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -327,6 +328,31 @@ class ArqQueue(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    async def abort_job(
+        self,
+        job_id: str,
+        queue_name: str | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> bool:
+        """Abort a queued or running job.
+
+        The worker must be configured to allow aborting jobs for this to
+        succeed.
+
+        Parameters
+        ----------
+        job_id
+            The job's identifier.
+        queue_name
+            Name of the queue.
+        timeout
+            How long to wait for the job result before raising `TimeoutError`.
+            If `None`, waits forever.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     async def get_job_metadata(
         self, job_id: str, queue_name: str | None = None
     ) -> JobMetadata:
@@ -433,6 +459,16 @@ class RedisArqQueue(ArqQueue):
             _queue_name=queue_name or self.default_queue_name,
         )
 
+    async def abort_job(
+        self,
+        job_id: str,
+        queue_name: str | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> bool:
+        job = self._get_job(job_id, queue_name=queue_name)
+        return await job.abort(timeout=timeout)
+
     async def get_job_metadata(
         self, job_id: str, queue_name: str | None = None
     ) -> JobMetadata:
@@ -482,6 +518,46 @@ class MockArqQueue(ArqQueue):
         )
         self._job_metadata[queue_name][new_job.id] = new_job
         return new_job
+
+    async def abort_job(
+        self,
+        job_id: str,
+        queue_name: str | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> bool:
+        queue_name = self._resolve_queue_name(queue_name)
+        try:
+            job_metadata = self._job_metadata[queue_name][job_id]
+        except KeyError:
+            return False
+
+        # If the job was started, simulate cancelling it.
+        if job_metadata.status == JobStatus.in_progress:
+            job_metadata.status = JobStatus.complete
+            result_info = JobResult(
+                id=job_metadata.id,
+                name=job_metadata.name,
+                args=job_metadata.args,
+                kwargs=job_metadata.kwargs,
+                status=job_metadata.status,
+                enqueue_time=job_metadata.enqueue_time,
+                start_time=current_datetime(microseconds=True),
+                finish_time=current_datetime(microseconds=True),
+                result=asyncio.CancelledError(),
+                success=False,
+                queue_name=queue_name,
+            )
+            self._job_results[queue_name][job_id] = result_info
+            return True
+
+        # If it was just queued, delete it.
+        if job_metadata.status in (JobStatus.deferred, JobStatus.queued):
+            del self._job_metadata[queue_name][job_id]
+            return True
+
+        # Otherwise, the job has already completed, so we can't abort it.
+        return False
 
     async def get_job_metadata(
         self, job_id: str, queue_name: str | None = None
