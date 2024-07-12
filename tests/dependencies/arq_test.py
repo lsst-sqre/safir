@@ -80,6 +80,10 @@ async def test_arq_dependency_mock() -> None:
             )
         except (JobNotFound, JobResultUnavailable) as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
+
+        # For testing purposes, turn exceptions into something serializable.
+        if isinstance(job_result.result, BaseException):
+            job_result.result = f"EXCEPTION {type(job_result.result).__name__}"
         return {
             "job_id": job_result.id,
             "job_status": job_result.status,
@@ -118,6 +122,19 @@ async def test_arq_dependency_mock() -> None:
             await arq_queue.set_complete(
                 job_id, result=result, success=success, queue_name=queue_name
             )
+        except JobNotFound as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+
+    @app.post("/jobs/{job_id}/abort")
+    async def abort_job(
+        *,
+        job_id: str,
+        queue_name: str | None = None,
+        arq_queue: Annotated[MockArqQueue, Depends(arq_dependency)],
+    ) -> None:
+        """Abort a job, for testing."""
+        try:
+            await arq_queue.abort_job(job_id, queue_name=queue_name)
         except JobNotFound as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -165,3 +182,39 @@ async def test_arq_dependency_mock() -> None:
             assert data["job_status"] == "complete"
             assert data["job_result"] == "done"
             assert data["job_success"] is True
+
+            # Aborting a completed job does nothing.
+            r = await c.post(f"/jobs/{job_id}/abort")
+            r = await c.get(f"/results/{job_id}")
+            assert r.status_code == 200
+            data = r.json()
+            assert data["job_status"] == "complete"
+
+            # Create a new job and abort it before starting it, which should
+            # delete the job.
+            r = await c.post("/")
+            assert r.status_code == 200
+            data = r.json()
+            job_id = data["job_id"]
+            r = await c.get(f"/jobs/{job_id}")
+            assert r.status_code == 200
+            r = await c.post(f"/jobs/{job_id}/abort")
+            r = await c.get(f"/results/{job_id}")
+            assert r.status_code == 404
+
+            # Create a new job, start it, and then abort it. This should keep
+            # the job but mark it complete and failed.
+            r = await c.post("/")
+            assert r.status_code == 200
+            data = r.json()
+            job_id = data["job_id"]
+            r = await c.get(f"/jobs/{job_id}")
+            assert r.status_code == 200
+            r = await c.post(f"/jobs/{job_id}/inprogress")
+            r = await c.post(f"/jobs/{job_id}/abort")
+            r = await c.get(f"/results/{job_id}")
+            assert r.status_code == 200
+            data = r.json()
+            assert data["job_status"] == "complete"
+            assert data["job_result"] == "EXCEPTION CancelledError"
+            assert data["job_success"] is False
