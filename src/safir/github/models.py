@@ -296,6 +296,10 @@ class GitHubCheckSuiteModel(BaseModel):
         description="The conclusion of the check suite."
     )
 
+    pull_requests: list[GitHubCheckRunPrInfoModel] = Field(
+        description="A list of pull requests associated with this check suite."
+    )
+
 
 class GitHubCheckRunStatus(str, Enum):
     """The check run status."""
