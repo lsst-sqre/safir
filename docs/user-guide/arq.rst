@@ -171,6 +171,9 @@ See `arq.worker.Worker` for details.
 The ``on_startup`` and ``on_shutdown`` handlers are ideal places to set up (and tear down) worker state, including network and database clients.
 The context variable, ``ctx``, passed to these functions are also passed to the worker functions.
 
+If you want to allow jobs to be aborted, add ``allow_abort_jobs = True`` to the ``WorkerSettings`` class.
+If a job is already running when it is aborted, it will be cancelled using asyncio task cancellation, which means that `asyncio.CancelledError` will be raised inside the job at the next opportunity.
+
 To run a worker, you run your application's Docker image with the ``arq`` command, followed by the fully-qualified namespace of the ``WorkerSettings`` class.
 
 Using the arq dependency in endpoint handlers
@@ -230,6 +233,17 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
 
         return response
 
+
+    @app.delete("/jobs/{job_id}", status_code=204)
+    async def delete_job(
+        job_id: str,
+        arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
+    ) -> None:
+        # This will only work if allow_abort_jobs is set to True in the worker
+        # configuration.
+        if not await arq_queue.abort_job(job_id):
+            raise HTTPException(status_code=404)
+
 For information on the metadata available from jobs, see `JobMetadata` and `JobResult`.
 
 Testing applications with an arq queue
@@ -238,7 +252,7 @@ Testing applications with an arq queue
 Unit testing an application with a running distributed queue is difficult since three components (two instances of the application and a redis database) must coordinate.
 A better unit testing approach is to test the front-end application separately from the worker functions.
 To help you do this, the arq dependency allows you to run a mocked version of an arq queue.
-With the mocked client, your front-end application can run the three basic client methods as normal: `ArqQueue.enqueue`, `ArqQueue.get_job_metadata`, and `ArqQueue.get_job_result`).
+With the mocked client, your front-end application can run the four basic client methods as normal: `ArqQueue.enqueue`, `ArqQueue.abort_job`, `ArqQueue.get_job_metadata`, and `ArqQueue.get_job_result`).
 This mocked client is a subclass of `ArqQueue` called `MockArqQueue`.
 
 Configuring the test mode
