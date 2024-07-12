@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-6.1.0'></a>
+## 6.1.0 (2024-07-12)
+
+### New features
+
+- Add `pull_requests` to `GitHubCheckSuiteModel` to capture info about any pull requests associated with a GitHub check suite event.
+
 <a id='changelog-6.0.0'></a>
 ## 6.0.0 (2024-06-10)
 
