@@ -170,9 +170,10 @@ def parse_timedelta(text: str) -> timedelta:
     valid strings are ``8d`` (8 days), ``4h 3minutes`` (four hours and three
     minutes), and ``5w4d`` (five weeks and four days).
 
-    This function can be as a before-mode validator for Pydantic
-    `~datetime.timedelta` fields, replacing Pydantic's default ISO 8601
-    duration support.
+    If you want to accept strings of this type as input to a
+    `~datetime.timedelta` field in a Pydantic model, use the
+    `~safir.pydantic.HumanTimedelta` type as the field type. It uses this
+    function to parse input strings.
 
     Parameters
     ----------
@@ -188,25 +189,6 @@ def parse_timedelta(text: str) -> timedelta:
     ------
     ValueError
         Raised if the string is not in a valid format.
-
-    Examples
-    --------
-    To accept a `~datetime.timedelta` in this format in a Pydantic model, use
-    a Pydantic field validator such as the following:
-
-    .. code-block:: python
-
-       @field_validator("lifetime", mode="before")
-       @classmethod
-       def _validate_lifetime(
-           cls, v: str | float | timedelta
-       ) -> float | timedelta:
-           if not isinstance(v, str):
-               return v
-           return parse_timedelta(v)
-
-    This will disable the Pydantic support for ISO 8601 durations and expect
-    the format parsed by this function instead.
     """
     m = _TIMEDELTA_PATTERN.match(text.strip())
     if m is None:

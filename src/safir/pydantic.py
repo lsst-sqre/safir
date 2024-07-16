@@ -3,21 +3,69 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import UTC, datetime
-from typing import Any, ParamSpec, TypeVar
+from datetime import UTC, datetime, timedelta
+from typing import Annotated, Any, ParamSpec, TypeAlias, TypeVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, BeforeValidator, ConfigDict
+
+from .datetime import parse_timedelta
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
 __all__ = [
     "CamelCaseModel",
+    "HumanTimedelta",
+    "SecondsTimedelta",
     "normalize_datetime",
     "normalize_isodatetime",
     "to_camel_case",
     "validate_exactly_one_of",
 ]
+
+
+def _validate_human_timedelta(v: str | float | timedelta) -> float | timedelta:
+    if not isinstance(v, str):
+        return v
+    try:
+        return float(v)
+    except ValueError:
+        return parse_timedelta(v)
+
+
+HumanTimedelta: TypeAlias = Annotated[
+    timedelta, BeforeValidator(_validate_human_timedelta)
+]
+"""Parse a human-readable string into a `datetime.timedelta`.
+
+Accepts as input an integer or float (or stringified integer or float) number
+of seconds, an already-parsed `~datetime.timedelta`, or a string consisting of
+one or more sequences of numbers and duration abbreviations, separated by
+optional whitespace.  Whitespace at the beginning and end of the string is
+ignored. The supported abbreviations are:
+
+- Week: ``weeks``, ``week``, ``w``
+- Day: ``days``, ``day``, ``d``
+- Hour: ``hours``, ``hour``, ``hr``, ``h``
+- Minute: ``minutes``, ``minute``, ``mins``, ``min``, ``m``
+- Second: ``seconds``, ``second``, ``secs``, ``sec``, ``s``
+
+If several are present, they must be given in the above order. Example
+valid strings are ``8d`` (8 days), ``4h 3minutes`` (four hours and three
+minutes), and ``5w4d`` (five weeks and four days).
+"""
+
+SecondsTimedelta: TypeAlias = Annotated[
+    timedelta,
+    BeforeValidator(lambda v: v if not isinstance(v, str) else int(v)),
+]
+"""Parse a float number of seconds into a `datetime.timedelta`.
+
+Accepts as input an integer or float (or stringified integer or float) number
+of seconds or an already-parsed `~datetime.timedelta`. Compared to the
+built-in Pydantic handling of `~datetime.timedelta`, an integer number of
+seconds as a string is accepted, and ISO 8601 durations are not supported.
+"""
 
 
 def normalize_datetime(v: Any) -> datetime | None:

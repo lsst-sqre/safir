@@ -76,11 +76,13 @@ Safir therefore also provides `safir.datetime.format_datetime_for_logging`, whic
 As the name of the function indicates, this function should only be used when formatting dates for logging and other human display.
 Dates that may need to be parsed again by another program should use `~safir.datetime.isodatetime` instead.
 
+.. _datetime-timedelta:
+
 Parsing time intervals
 ======================
 
 Pydantic by default supports specifying `datetime.timedelta` fields as either a floating-point number of seconds or as an ISO 8601 duration.
-The syntax for ISO 8601 durations is unambiguous, but it's obscure and not widely used.
+The syntax for ISO 8601 durations is unambiguous but obscure.
 For example, ``P23DT23H`` represents a duration of 23 days and 23 hours.
 
 Safir provides a function, `safir.datetime.parse_timedelta` that parses an alternative syntax for specifying durations that's easier for humans to read and is similar to the syntax supported by other languages and libraries.
@@ -95,26 +97,6 @@ The supported abbreviations are:
 
 So, for example, the duration mentioned above could be given as ``23d23h`` or ``23days 23hours``.
 
-To accept this syntax as input for a Pydantic model, use a field validator such as the following:
-
-.. code-block:: python
-
-   from pydantic import BaseModel, field_validator
-   from safir.datetime import parse_timedelta
-
-
-   class Someething(BaseModel):
-       lifetime: timedelta = Field(..., title="Lifetime")
-
-       # ... other fields
-
-       @field_validator("lifetime", mode="before")
-       @classmethod
-       def _validate_lifetime(
-           cls, v: str | float | timedelta
-       ) -> float | timedelta:
-           if not isinstance(v, str):
-               return v
-           return parse_timedelta(v)
-
-This disables the built-in Pydantic support for ISO 8601 durations in favor of the syntax shown above.
+To accept this syntax as input for a Pydantic model, declare the field to have the type `safir.pydantic.HumanTimedelta`.
+This will automatically convert input strings using the `~safir.datetime.parse_timedelta` function.
+See :ref:`pydantic-timedelta` for more information.
