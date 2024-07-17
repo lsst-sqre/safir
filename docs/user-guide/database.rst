@@ -13,6 +13,8 @@ Safir uses the `asyncpg`_ PostgreSQL database driver.
 Database support in Safir is optional.
 To use it, depend on ``safir[db]`` in your pip requirements.
 
+Also see :ref:`pydantic-dsns` for Pydantic types that help with configuring the PostgreSQL DSN.
+
 Initializing a database
 =======================
 

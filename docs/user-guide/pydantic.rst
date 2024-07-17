@@ -5,6 +5,55 @@ Utilities for Pydantic models
 Several validation and configuration problems arise frequently with Pydantic models.
 Safir offers some utility functions to assist in solving them.
 
+.. _pydantic-dsns:
+
+Configuring PostgreSQL and Redis DSNs
+=====================================
+
+Databases and other storage services often use a :abbr:`DSN (Data Source Name)` to specify how to connect to the service.
+Pydantic provides multiple pre-defined types to parse and validate those DSNs, including ones for PostgreSQL and Redis.
+
+Safir applications often use tox-docker_ to start local PostgreSQL and Redis servers before running tests.
+tox-docker starts services on random loopback IP addresses and ports, and stores the hostname and IP address in standard environment variables.
+
+Safir provides alternative data types for PostgreSQL and Redis DSNs that behave largely the same as the Pydantic data types if the tox-docker environment variables aren't set.
+If the tox-docker variables are set, their contents are used to override the hostname and port of any provided DSN with the values provided by tox-docker.
+This allows the application to get all of its configuration from environment variables at module load time without needing special code in every application to handle the tox-docker environment variables.
+
+For PostgreSQL DSNs, use the data type `safir.pydantic.EnvAsyncPostgresDsn` instead of `pydantic.PostgresDsn`.
+This type additionally forces the scheme of the PostgreSQL DSN to either not specify the underying library or to specify asyncpg, allowing it to work correctly with the :doc:`Safir database API <database>`.
+Unlike the Pydantic type, `~safir.pydantic.EnvAsyncPostgresDsn` only supports a single host.
+
+For Redis DSNs, use the data type `safir.pydantic.EnvRedisDsn` instead of `pydantic.RedisDsn`.
+
+For example:
+
+.. code-block:: python
+
+   from pydantic_settings import BaseSettings, SettingsConfigDict
+   from safir.pydantic import EnvAsyncPostgresDsn, EnvRedisDsn
+
+
+   class Config(BaseSettings):
+       database_url: EnvAsyncPostgresDsn
+       redis_url: EnvRedisDsn
+
+       model_config = SettingsConfigDict(
+           env_prefix="EXAMPLE_", case_sensitive=False
+       )
+
+These types only adjust DSNs initialized as normal.
+They do not synthesize DSNs if none are set.
+Therefore, the application will still need to set the corresponding environment variables in :file:`tox.ini` for testing purposes, although the hostname and port can be dummy values.
+In this case, that would look something like:
+
+.. code-block:: ini
+
+   [testenv:py]
+   setenv =
+       EXAMPLE_DATABASE_URL = postgresql://example@localhost/example
+       EXAMPLE_REDIS_URL = redis://localhost/0
+
 .. _pydantic-datetime:
 
 Normalizing datetime fields
