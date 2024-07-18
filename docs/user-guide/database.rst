@@ -468,3 +468,15 @@ Here's a simplified example from the storage layer of a Safir application:
                job.start_time = start
 
 If this method races with other methods updating the same job, the custom isolation level will force this update to fail with an exception, and it will then be retried by the decorator.
+
+By default, the method is attempted three times.
+This can be changed with a parameter to the decorator, such as:
+
+.. code-block:: python
+   :emphasize-lines: 2
+
+   class Storage:
+       @retry_async_transaction(max_tries=5)
+       async def mark_start(self, job_id: str, start: datetime) -> None:
+           async with self._session.begin():
+               ...
