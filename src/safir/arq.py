@@ -14,6 +14,8 @@ from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings
 from arq.constants import default_queue_name as arq_default_queue_name
 from arq.jobs import Job, JobStatus
+from pydantic import SecretStr
+from pydantic_core import Url
 
 from .datetime import current_datetime
 
@@ -28,6 +30,7 @@ __all__ = [
     "ArqQueue",
     "RedisArqQueue",
     "MockArqQueue",
+    "build_arq_redis_settings",
 ]
 
 
@@ -618,3 +621,51 @@ class MockArqQueue(ArqQueue):
             queue_name=queue_name,
         )
         self._job_results[queue_name][job_id] = result_info
+
+
+def build_arq_redis_settings(
+    url: Url, password: SecretStr | None
+) -> RedisSettings:
+    """Construct Redis settings for arq.
+
+    Parameters
+    ----------
+    url
+        Redis DSN.
+    password
+        Password for the Redis connection.
+
+    Returns
+    -------
+    arq.connections.RedisSettings
+        Settings for the arq Redis pool.
+
+    Examples
+    --------
+    This function is normally used from a property in the application
+    configuration. The application should usually use
+    `~safir.pydantic.EnvRedisDsn` as the type for the Redis DSN.
+
+    .. code-block:: python
+
+       from arq.connections import RedisSettings
+       from pydantic_settings import BaseSettings
+       from safir.pydantic import EnvRedisDsn
+
+
+       class Config(BaseSettings):
+           arq_queue_url: EnvRedisDsn
+           arq_queue_password: SecretStr | None
+
+           @property
+           def arq_redis_settings(self) -> RedisSettings:
+               return build_arq_redis_settings(
+                   self.arq_queue_url, self_arq_queue_password
+               )
+    """
+    return RedisSettings(
+        host=url.unicode_host() or "localhost",
+        port=url.port or 6379,
+        database=int(url.path.lstrip("/")) if url.path else 0,
+        password=password.get_secret_value() if password else None,
+    )

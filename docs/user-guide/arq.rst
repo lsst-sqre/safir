@@ -52,13 +52,17 @@ If your app uses a configuration system like ``pydantic.BaseSettings``, this exa
     from arq.connections import RedisSettings
     from pydantic import Field
     from pydantic_settings import BaseSettings
-    from safir.arq import ArqMode
+    from safir.arq import ArqMode, build_arq_redis_settings
     from safir.pydantic import EnvRedisDsn
 
 
     class Config(BaseSettings):
         arq_queue_url: EnvRedisDsn = Field(
             "redis://localhost:6379/1", validation_alias="APP_ARQ_QUEUE_URL"
+        )
+
+        arq_queue_password: SecretStr | None = Field(
+            None, validation_alias="APP_ARQ_QUEUE_PASSWORD"
         )
 
         arq_mode: ArqMode = Field(
@@ -68,15 +72,9 @@ If your app uses a configuration system like ``pydantic.BaseSettings``, this exa
         @property
         def arq_redis_settings(self) -> RedisSettings:
             """Create a Redis settings instance for arq."""
-            url_parts = urlparse(self.redis_queue_url)
-            redis_settings = RedisSettings(
-                host=url_parts.hostname or "localhost",
-                port=url_parts.port or 6379,
-                database=(
-                    int(url_parts.path.lstrip("/")) if url_parts.path else 0
-                ),
+            return build_arq_redis_settings(
+                self.arq_queue_url, self.arq_queue_password
             )
-            return redis_settings
 
 The `safir.pydantic.EnvRedisDsn` type will automatically incorporate Redis location information from tox-docker.
 See :ref:`pydantic-dsns` for more details.
