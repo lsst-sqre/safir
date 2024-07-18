@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 from collections.abc import Callable, Coroutine
 from functools import wraps
@@ -32,12 +33,12 @@ def retry_async_transaction(__func: RetryF) -> RetryF: ...
 
 @overload
 def retry_async_transaction(
-    *, max_tries: int = 3
+    *, delay: float = 0.5, max_tries: int = 3
 ) -> Callable[[RetryF], RetryF]: ...
 
 
 def retry_async_transaction(
-    __func: RetryF | None = None, *, max_tries: int = 3
+    __func: RetryF | None = None, *, delay: float = 0.5, max_tries: int = 3
 ) -> RetryF | Callable[[RetryF], RetryF]:
     """Retry if a transaction failed.
 
@@ -53,6 +54,8 @@ def retry_async_transaction(
 
     Parameters
     ----------
+    delay
+        How long, in seconds, to wait between tries.
     max_tries
         Number of times to retry the transaction. Practical experience with
         ``REPEATABLE READ`` isolation suggests a count of at least three.
@@ -93,6 +96,7 @@ def retry_async_transaction(
             for _ in range(1, max_tries):
                 with contextlib.suppress(DBAPIError):
                     return await f(*args, **kwargs)
+                await asyncio.sleep(delay)
             return await f(*args, **kwargs)
 
         return wrapper
