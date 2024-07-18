@@ -15,13 +15,13 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import declarative_base
 
 from safir.database import (
-    _build_database_url,
     create_async_session,
     create_database_engine,
     datetime_from_db,
     datetime_to_db,
     initialize_database,
 )
+from safir.database._connection import _build_database_url
 
 TEST_DATABASE_PASSWORD = os.environ["TEST_DATABASE_PASSWORD"]
 
