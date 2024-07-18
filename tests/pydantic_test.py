@@ -15,11 +15,49 @@ from pydantic import (
 
 from safir.pydantic import (
     CamelCaseModel,
+    HumanTimedelta,
+    SecondsTimedelta,
     normalize_datetime,
     normalize_isodatetime,
     to_camel_case,
     validate_exactly_one_of,
 )
+
+
+def test_human_timedelta() -> None:
+    class TestModel(BaseModel):
+        delta: HumanTimedelta
+
+    model = TestModel.model_validate({"delta": timedelta(seconds=5)})
+    assert model.delta == timedelta(seconds=5)
+    model = TestModel.model_validate({"delta": "4h5m18s"})
+    assert model.delta == timedelta(hours=4, minutes=5, seconds=18)
+    model = TestModel.model_validate({"delta": 600})
+    assert model.delta == timedelta(seconds=600)
+    model = TestModel.model_validate({"delta": 4.5})
+    assert model.delta.total_seconds() == 4.5
+    model = TestModel.model_validate({"delta": "300"})
+    assert model.delta == timedelta(seconds=300)
+
+    with pytest.raises(ValidationError):
+        TestModel.model_validate({"delta": "P1DT12H"})
+
+
+def test_seconds_timedelta() -> None:
+    class TestModel(BaseModel):
+        delta: SecondsTimedelta
+
+    model = TestModel.model_validate({"delta": timedelta(seconds=5)})
+    assert model.delta == timedelta(seconds=5)
+    model = TestModel.model_validate({"delta": 600})
+    assert model.delta == timedelta(seconds=600)
+    model = TestModel.model_validate({"delta": 4.5})
+    assert model.delta.total_seconds() == 4.5
+    model = TestModel.model_validate({"delta": "300"})
+    assert model.delta == timedelta(seconds=300)
+
+    with pytest.raises(ValidationError):
+        TestModel.model_validate({"delta": "P1DT12H"})
 
 
 def test_normalize_datetime() -> None:

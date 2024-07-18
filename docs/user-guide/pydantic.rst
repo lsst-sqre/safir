@@ -48,6 +48,39 @@ This function only accepts ``YYYY-MM-DDTHH:MM[:SS]Z`` as the input format.
 The ``Z`` time zone prefix indicating UTC is mandatory.
 It is called the same way as `~safir.pydantic.normalize_datetime`.
 
+.. _pydantic-timedelta:
+
+Normalizing timedelta fields
+============================
+
+The default Pydantic validation for `datetime.timedelta` fields accepts either a floating-point number of seconds or an ISO 8601 duration as a string.
+The syntax for ISO 8601 durations is unambiguous but obscure.
+For example, ``P23DT23H`` represents a duration of 23 days and 23 hours.
+
+Safir provides two alternate data types for Pydantic models.
+Both of these types represent normal `~datetime.timedelta` objects with some Pydantic validation rules attached.
+They can be used in Python source exactly like `~datetime.timedelta` objects.
+
+The type `safir.pydantic.SecondsTimedelta` accepts only a floating-point number of seconds, but allows it to be given as a string.
+For example, input of either ``300`` or ``"300"`` becomes a `~datetime.timedelta` object representing five minutes (300 seconds).
+
+The type `safir.pydantic.HumanTimedelta` accepts those formats as well as the time interval strings parsed by `safir.datetime.parse_timedelta`.
+For example, the string ``3h5m23s`` becomes a `~datetime.timedelta` object representing three hours, five minutes, and 23 seconds.
+See :ref:`datetime-timedelta` for the full supported syntax.
+
+These can be used like any other type in a model and perform their validation automatically.
+For example:
+
+.. code-block:: python
+
+   from pydantic import BaseModel
+   from safir.pydantic import HumanTimedelta, SecondsTimedelta
+
+
+   class Model(BaseModel):
+       timeout: SecondsTimedelta
+       lifetime: HumanTimedelta
+
 Accepting camel-case attributes
 ===============================
 
