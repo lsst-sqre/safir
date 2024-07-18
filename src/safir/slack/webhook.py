@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 from fastapi import HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
+from pydantic import SecretStr
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from structlog.stdlib import BoundLogger
 
@@ -56,9 +57,12 @@ class SlackWebhookClient:
     """
 
     def __init__(
-        self, hook_url: str, application: str, logger: BoundLogger
+        self, hook_url: str | SecretStr, application: str, logger: BoundLogger
     ) -> None:
-        self._hook_url = hook_url
+        if isinstance(hook_url, SecretStr):
+            self._hook_url = hook_url.get_secret_value()
+        else:
+            self._hook_url = hook_url
         self._application = application
         self._logger = logger
 
@@ -175,7 +179,7 @@ class SlackRouteErrorHandler(APIRoute):
 
     @classmethod
     def initialize(
-        cls, hook_url: str, application: str, logger: BoundLogger
+        cls, hook_url: str | SecretStr, application: str, logger: BoundLogger
     ) -> None:
         """Configure Slack alerting.
 

@@ -8,6 +8,7 @@ import pytest
 import structlog
 from fastapi import APIRouter, FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
 
 from safir.datetime import current_datetime, format_datetime_for_logging
 from safir.slack.blockkit import SlackException, SlackMessage
@@ -44,7 +45,7 @@ async def test_post(mock_slack: MockSlackWebhook) -> None:
 @pytest.mark.asyncio
 async def test_post_exception(mock_slack: MockSlackWebhook) -> None:
     logger = structlog.get_logger(__file__)
-    client = SlackWebhookClient(mock_slack.url, "App", logger)
+    client = SlackWebhookClient(SecretStr(mock_slack.url), "App", logger)
 
     exc = SlackException("Some exception message")
     await client.post_exception(exc)
