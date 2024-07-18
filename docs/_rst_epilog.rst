@@ -23,4 +23,5 @@
 .. _structlog: https://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
 .. _tox: https://tox.wiki/en/latest/
+.. _tox-docker: https://tox-docker.readthedocs.io/en/latest/
 .. _Uvicorn: https://www.uvicorn.org/

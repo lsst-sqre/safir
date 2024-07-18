@@ -15,6 +15,8 @@ from pydantic import (
 
 from safir.pydantic import (
     CamelCaseModel,
+    EnvAsyncPostgresDsn,
+    EnvRedisDsn,
     HumanTimedelta,
     SecondsTimedelta,
     normalize_datetime,
@@ -22,6 +24,119 @@ from safir.pydantic import (
     to_camel_case,
     validate_exactly_one_of,
 )
+
+
+def test_env_async_postgres_dsn(monkeypatch: pytest.MonkeyPatch) -> None:
+    class TestModel(BaseModel):
+        dsn: EnvAsyncPostgresDsn
+
+    monkeypatch.delenv("POSTGRES_5432_TCP_PORT", raising=False)
+    monkeypatch.delenv("POSTGRES_HOST", raising=False)
+    model = TestModel.model_validate(
+        {"dsn": "postgresql://localhost:7777/some-database"}
+    )
+    assert model.dsn.scheme == "postgresql"
+    assert not model.dsn.username
+    assert not model.dsn.password
+    assert model.dsn.host == "localhost"
+    assert model.dsn.port == 7777
+    assert model.dsn.path == "/some-database"
+    assert not model.dsn.query
+
+    model = TestModel.model_validate(
+        {
+            "dsn": (
+                "postgresql+asyncpg://user:password@localhost/other"
+                "?connect_timeout=10"
+            )
+        }
+    )
+    assert model.dsn.scheme == "postgresql+asyncpg"
+    assert model.dsn.username == "user"
+    assert model.dsn.password == "password"
+    assert model.dsn.host == "localhost"
+    assert not model.dsn.port
+    assert model.dsn.path == "/other"
+    assert model.dsn.query == "connect_timeout=10"
+
+    monkeypatch.setenv("POSTGRES_5432_TCP_PORT", "8999")
+    model = TestModel.model_validate(
+        {
+            "dsn": (
+                "postgresql://user:password@localhost/other?connect_timeout=10"
+            )
+        }
+    )
+    assert model.dsn.scheme == "postgresql"
+    assert model.dsn.username == "user"
+    assert model.dsn.password == "password"
+    assert model.dsn.host == "localhost"
+    assert model.dsn.port == 8999
+    assert model.dsn.path == "/other"
+    assert model.dsn.query == "connect_timeout=10"
+
+    monkeypatch.setenv("POSTGRES_HOST", "example.com")
+    model = TestModel.model_validate({"dsn": "postgresql://localhost/other"})
+    assert model.dsn.scheme == "postgresql"
+    assert not model.dsn.username
+    assert not model.dsn.password
+    assert model.dsn.host == "example.com"
+    assert model.dsn.port == 8999
+    assert model.dsn.path == "/other"
+    assert not model.dsn.query
+
+    with pytest.raises(ValidationError):
+        TestModel.model_validate(
+            {"dsn": "postgresql+psycopg2://localhost/other"}
+        )
+
+
+def test_env_redis_dsn(monkeypatch: pytest.MonkeyPatch) -> None:
+    class TestModel(BaseModel):
+        dsn: EnvRedisDsn
+
+    monkeypatch.delenv("REDIS_6379_TCP_PORT", raising=False)
+    monkeypatch.delenv("REDIS_HOST", raising=False)
+    model = TestModel.model_validate(
+        {"dsn": "redis://user:password@example.com:7777/1"}
+    )
+    assert model.dsn.scheme == "redis"
+    assert model.dsn.username == "user"
+    assert model.dsn.password == "password"
+    assert model.dsn.host == "example.com"
+    assert model.dsn.port == 7777
+    assert model.dsn.path == "/1"
+
+    model = TestModel.model_validate({"dsn": "redis://localhost"})
+    assert model.dsn.scheme == "redis"
+    assert not model.dsn.username
+    assert not model.dsn.password
+    assert model.dsn.host == "localhost"
+    assert model.dsn.port == 6379
+    assert model.dsn.path == "/0"
+
+    monkeypatch.setenv("REDIS_6379_TCP_PORT", "4567")
+    model = TestModel.model_validate(
+        {"dsn": "redis://user:password@example.com:7777/1"}
+    )
+    assert model.dsn.scheme == "redis"
+    assert model.dsn.username == "user"
+    assert model.dsn.password == "password"
+    assert model.dsn.host == "example.com"
+    assert model.dsn.port == 4567
+    assert model.dsn.path == "/1"
+
+    monkeypatch.setenv("REDIS_HOST", "127.12.0.1")
+    model = TestModel.model_validate({"dsn": "redis://localhost"})
+    assert model.dsn.scheme == "redis"
+    assert not model.dsn.username
+    assert not model.dsn.password
+    assert model.dsn.host == "127.12.0.1"
+    assert model.dsn.port == 4567
+    assert model.dsn.path == "/0"
+
+    with pytest.raises(ValidationError):
+        TestModel.model_validate({"dsn": "rediss://example.com/0"})
 
 
 def test_human_timedelta() -> None:

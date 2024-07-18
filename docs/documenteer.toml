@@ -25,6 +25,8 @@ nitpick_ignore = [
     ["py:class", "BaseModel"],
     # sphinx-automodapi apparently doesn't recognize TypeAlias as an object
     # that should have generated documentation, even with include-all-objects.
+    ["py:obj", "safir.pydantic.EnvAsyncPostgresDsn"],
+    ["py:obj", "safir.pydantic.EnvRedisDsn"],
     ["py:obj", "safir.pydantic.HumanTimedelta"],
     ["py:obj", "safir.pydantic.SecondsTimedelta"],
 ]
