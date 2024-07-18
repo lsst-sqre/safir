@@ -433,9 +433,38 @@ Setting an isolation level
 
 `~safir.database.create_database_engine` and the ``initialize`` method of `~safir.dependencies.db_session.db_session_dependency` take an optional ``isolation_level`` argument that can be used to set a non-default isolation level.
 If given, this parameter is passed through to the underlying SQLAlchemy engine.
-See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/14/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
+See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
 
 You may have to set a custom isolation level, such as ``REPEATABLE READ``, if you have multiple simultaneous database writers and need to coordinate their writes to ensure consistent results.
+In this case, transactions that attempt to modify an object that was modified by a different connection will raise an exception and can be retried.
 
-Be aware that most situations in which you need to set a custom isolation level will also result in valid transactions raising exceptions indicating that they need to be retried, because another writer changed the database while the transaction was in progress.
-You therefore will probably need to disable transaction management for the `~safir.dependencies.db_session.db_session_dependency` by passing ``manage_transactions=False`` to the ``initialize`` method and then manage transactions directly in the code (usually inside retry loops).
+Retrying transactions
+---------------------
+
+To aid in retrying transactions, such as when a custom isolation level is set, Safir provides a decorator function, `safir.database.retry_async_transaction`.
+If the decorated function or method raises `sqlalchemy.exc.DBAPIError` (the parent exception for exceptions raised by the underlying database API), it will be re-ran with the same arguments up to a configurable number of times.
+The decorated function or method must therefore be idempotent and safe to run repeatedly.
+
+Here's a simplified example from the storage layer of a Safir application:
+
+.. code-block:: python
+
+   from datetime import datetime
+
+   from safir.database import datetime_to_db, retry_async_transaction
+   from sqlalchemy.ext.asyncio import async_scoped_session
+
+
+   class Storage:
+       def __init__(self, session: async_scoped_session) -> None:
+           self._session = session
+
+       @retry_async_transaction
+       async def mark_start(self, job_id: str, start: datetime) -> None:
+           async with self._session.begin():
+               job = await self._get_job(job_id)
+               if job.phase in ("PENDING", "QUEUED"):
+                   job.phase = "EXECUTING"
+               job.start_time = start
+
+If this method races with other methods updating the same job, the custom isolation level will force this update to fail with an exception, and it will then be retried by the decorator.

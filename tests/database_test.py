@@ -10,7 +10,7 @@ import pytest
 import structlog
 from pydantic import BaseModel, SecretStr
 from sqlalchemy import Column, MetaData, String, Table
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.future import select
 from sqlalchemy.orm import declarative_base
 
@@ -20,6 +20,7 @@ from safir.database import (
     datetime_from_db,
     datetime_to_db,
     initialize_database,
+    retry_async_transaction,
 )
 from safir.database._connection import _build_database_url
 
@@ -154,3 +155,45 @@ def test_datetime() -> None:
     json_model = Test(time=tz_aware).model_dump_json()
     model = Test.model_validate_json(json_model)
     assert datetime_to_db(model.time) == tz_naive
+
+
+@pytest.mark.asyncio
+async def test_retry_async_transaction(database_url: str) -> None:
+    logger = structlog.get_logger(__name__)
+    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
+    await initialize_database(engine, logger, schema=Base.metadata, reset=True)
+    session = await create_async_session(engine, logger)
+    async with session.begin():
+        session.add(User(username="someuser"))
+    tries = 0
+
+    @retry_async_transaction
+    async def insert(attempts: int) -> None:
+        nonlocal tries
+        tries += 1
+        async with session.begin():
+            if tries <= attempts:
+                raise OperationalError(None, None, ValueError("foo"))
+            session.add(User(username="newuser"))
+
+    await insert(1)
+
+    tries = 0
+    with pytest.raises(OperationalError):
+        await insert(2)
+
+    @retry_async_transaction(max_retries=1)
+    async def insert_capped(attempts: int) -> None:
+        nonlocal tries
+        tries += 1
+        async with session.begin():
+            if tries <= attempts:
+                raise OperationalError(None, None, ValueError("foo"))
+            session.add(User(username="newuser"))
+
+    tries = 0
+    with pytest.raises(OperationalError):
+        await insert_capped(1)
+
+    await session.remove()
+    await engine.dispose()
