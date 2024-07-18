@@ -176,13 +176,13 @@ async def test_retry_async_transaction(database_url: str) -> None:
                 raise OperationalError(None, None, ValueError("foo"))
             session.add(User(username="newuser"))
 
-    await insert(1)
+    await insert(2)
 
     tries = 0
     with pytest.raises(OperationalError):
-        await insert(2)
+        await insert(3)
 
-    @retry_async_transaction(max_retries=1)
+    @retry_async_transaction(max_tries=1)
     async def insert_capped(attempts: int) -> None:
         nonlocal tries
         tries += 1

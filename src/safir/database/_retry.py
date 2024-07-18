@@ -32,17 +32,17 @@ def retry_async_transaction(__func: RetryF) -> RetryF: ...
 
 @overload
 def retry_async_transaction(
-    *, max_retries: int = 2
+    *, max_tries: int = 3
 ) -> Callable[[RetryF], RetryF]: ...
 
 
 def retry_async_transaction(
-    __func: RetryF | None = None, *, max_retries: int = 2
+    __func: RetryF | None = None, *, max_tries: int = 3
 ) -> RetryF | Callable[[RetryF], RetryF]:
     """Retry if a transaction failed.
 
     If the wrapped method fails with an `sqlalchemy.exc.DBAPIError` exception,
-    it is retried up to ``max_retries`` times. Any method with this decorator
+    it is retried up to ``max_tries`` times. Any method with this decorator
     must be idempotent, since it may be re-run multiple times.
 
     One common use for this decorator is when the database engine has been
@@ -53,9 +53,9 @@ def retry_async_transaction(
 
     Parameters
     ----------
-    max_retries
+    max_tries
         Number of times to retry the transaction. Practical experience with
-        ``REPEATABLE READ`` isolation suggests a count of at least two.
+        ``REPEATABLE READ`` isolation suggests a count of at least three.
 
     Examples
     --------
@@ -69,10 +69,10 @@ def retry_async_transaction(
        from sqlalchemy.ext.asyncio import async_scoped_session
 
 
-       @retry_async_transaction(max_retries=5)
+       @retry_async_transaction(max_tries=5)
        def make_some_database_call(session: async_scoped_session) -> None: ...
 
-    If the default value of ``max_retries`` is acceptable, this decorator can
+    If the default value of ``max_tries`` is acceptable, this decorator can
     be used without arguments.
 
     .. code-block:: python
@@ -90,7 +90,7 @@ def retry_async_transaction(
         async def wrapper(
             *args: RetryP.args, **kwargs: RetryP.kwargs
         ) -> RetryT:
-            for _ in range(1, max_retries):
+            for _ in range(1, max_tries):
                 with contextlib.suppress(DBAPIError):
                     return await f(*args, **kwargs)
             return await f(*args, **kwargs)
