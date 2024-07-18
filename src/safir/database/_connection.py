@@ -6,6 +6,7 @@ import asyncio
 from urllib.parse import quote, urlparse
 
 from pydantic import SecretStr
+from pydantic_core import Url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -22,7 +23,9 @@ __all__ = [
 ]
 
 
-def _build_database_url(url: str, password: str | SecretStr | None) -> str:
+def _build_database_url(
+    url: str | Url, password: str | SecretStr | None
+) -> str:
     """Build the authenticated URL for the database.
 
     The database scheme is forced to ``postgresql+asyncpg`` if it is
@@ -46,6 +49,8 @@ def _build_database_url(url: str, password: str | SecretStr | None) -> str:
         Raised if a password was provided but the connection URL has no
         username.
     """
+    if not isinstance(url, str):
+        url = str(url)
     parsed_url = urlparse(url)
     if parsed_url.scheme == "postgresql":
         parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
@@ -67,7 +72,7 @@ def _build_database_url(url: str, password: str | SecretStr | None) -> str:
 
 
 def create_database_engine(
-    url: str,
+    url: str | Url,
     password: str | SecretStr | None,
     *,
     isolation_level: str | None = None,

@@ -9,6 +9,7 @@ from urllib.parse import unquote, urlparse
 import pytest
 import structlog
 from pydantic import BaseModel, SecretStr
+from pydantic_core import Url
 from sqlalchemy import Column, MetaData, String, Table
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.future import select
@@ -82,6 +83,12 @@ def test_build_database_url(database_url: str) -> None:
         "postgresql://foo@127.0.0.1:5433/foo", "otherpass"
     )
     assert url == "postgresql+asyncpg://foo:otherpass@127.0.0.1:5433/foo"
+
+    pydantic_url = Url.build(
+        scheme="postgresql", username="user", host="localhost", path="foo"
+    )
+    url = _build_database_url(pydantic_url, "password")
+    assert url == "postgresql+asyncpg://user:password@localhost/foo"
 
     # Test that the username and password are quoted properly.
     url = _build_database_url(
