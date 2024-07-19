@@ -35,7 +35,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           tox-envs: "lint,typing,py"
-          tox-plugins: "tox-docker tox-uv"
+          tox-plugins: "tox-uv"
           use-cache: false
 
       - name: Report status

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from datetime import UTC, datetime, timedelta, timezone
 from urllib.parse import unquote, urlparse
 
@@ -25,8 +24,6 @@ from safir.database import (
 )
 from safir.database._connection import _build_database_url
 
-TEST_DATABASE_PASSWORD = os.environ["TEST_DATABASE_PASSWORD"]
-
 Base = declarative_base()
 
 
@@ -39,9 +36,11 @@ class User(Base):
 
 
 @pytest.mark.asyncio
-async def test_database_init(database_url: str) -> None:
+async def test_database_init(
+    database_url: str, database_password: str
+) -> None:
     logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(database_url, database_password)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():
@@ -58,7 +57,7 @@ async def test_database_init(database_url: str) -> None:
 
     # Reinitializing the database with reset should delete the data. Try
     # passing in the password as a SecretStr.
-    password = SecretStr(TEST_DATABASE_PASSWORD)
+    password = SecretStr(database_password)
     engine = create_database_engine(database_url, password)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
@@ -111,9 +110,11 @@ def test_build_database_url(database_url: str) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_async_session(database_url: str) -> None:
+async def test_create_async_session(
+    database_url: str, database_password: str
+) -> None:
     logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(database_url, database_password)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
 
     session = await create_async_session(
@@ -165,9 +166,11 @@ def test_datetime() -> None:
 
 
 @pytest.mark.asyncio
-async def test_retry_async_transaction(database_url: str) -> None:
+async def test_retry_async_transaction(
+    database_url: str, database_password: str
+) -> None:
     logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, TEST_DATABASE_PASSWORD)
+    engine = create_database_engine(database_url, database_password)
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():

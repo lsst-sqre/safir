@@ -58,7 +58,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           tox-envs: "py,typing"
-          tox-plugins: "tox-docker tox-uv"
+          tox-plugins: "tox-uv"
 
   docs:
 
