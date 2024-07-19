@@ -12,8 +12,9 @@ from pydantic import SecretStr
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from structlog.stdlib import BoundLogger
 
-from ..datetime import current_datetime, format_datetime_for_logging
-from ..dependencies.http_client import http_client_dependency
+from safir.datetime import current_datetime, format_datetime_for_logging
+from safir.dependencies.http_client import http_client_dependency
+
 from .blockkit import (
     SlackCodeBlock,
     SlackException,

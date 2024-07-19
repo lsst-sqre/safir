@@ -15,7 +15,7 @@ except ImportError as e:
 from cryptography.fernet import Fernet
 from pydantic import BaseModel
 
-from .slack.blockkit import (
+from safir.slack.blockkit import (
     SlackCodeBlock,
     SlackException,
     SlackMessage,

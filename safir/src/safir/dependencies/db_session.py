@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
-from ..database import create_async_session, create_database_engine
+from safir.database import create_async_session, create_database_engine
 
 __all__ = ["DatabaseSessionDependency", "db_session_dependency"]
 
