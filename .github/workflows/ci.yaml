@@ -53,12 +53,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run tox
-        uses: lsst-sqre/run-tox@v1
+      - name: Run nox
+        uses: lsst-sqre/run-nox@v1
         with:
+          cache-dependency: "*/pyproject.toml"
+          nox-sessions: "typing test"
           python-version: ${{ matrix.python }}
-          tox-envs: "py,typing"
-          tox-plugins: "tox-uv"
 
   docs:
 
@@ -73,12 +73,12 @@ jobs:
       - name: Install Graphviz
         run: sudo apt-get install graphviz
 
-      - name: Run tox
-        uses: lsst-sqre/run-tox@v1
+      - name: Run nox
+        uses: lsst-sqre/run-nox@v1
         with:
-          python-version: "3.12"
-          tox-envs: "docs,docs-linkcheck"
-          tox-plugins: tox-uv
+          cache-dependency: "*/pyproject.toml"
+          nox-sessions: "docs docs-linkcheck"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       # Only attempt documentation uploads for tagged releases and pull
       # requests from ticket branches in the same repository.  This avoids
@@ -113,6 +113,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           upload: false
+          working-directory: "safir"
 
   pypi:
 
@@ -135,3 +136,4 @@ jobs:
       - uses: lsst-sqre/build-and-publish-to-pypi@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          working-directory: "safir"

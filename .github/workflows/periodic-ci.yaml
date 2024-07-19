@@ -30,12 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run tests in tox
-        uses: lsst-sqre/run-tox@v1
+      - name: Run tests in nox
+        uses: lsst-sqre/run-nox@v1
         with:
+          nox-sessions: "update-deps lint typing test"
           python-version: ${{ matrix.python }}
-          tox-envs: "lint,typing,py"
-          tox-plugins: "tox-uv"
           use-cache: false
 
       - name: Report status
@@ -58,12 +57,11 @@ jobs:
       - name: Install Graphviz
         run: sudo apt-get install graphviz
 
-      - name: Build docs in tox
-        uses: lsst-sqre/run-tox@v1
+      - name: Build docs in nox
+        uses: lsst-sqre/run-nox@v1
         with:
+          nox-sessions: "docs docs-linkcheck"
           python-version: ${{ env.PYTHON_VERSION }}
-          tox-envs: "docs,docs-linkcheck"
-          tox-plugins: tox-uv
           use-cache: false
 
       - name: Report status
@@ -91,6 +89,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           upload: false
+          working-directory: "safir"
 
       - name: Report status
         if: failure()
