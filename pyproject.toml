@@ -24,7 +24,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "click<9",
-    "cryptography<43",
+    "cryptography<44",
     "fastapi<1",
     "gidgethub<6",
     "httpx>=0.20.0,<1",
