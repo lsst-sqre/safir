@@ -8,6 +8,9 @@ API reference
 .. automodapi:: safir.arq
    :include-all-objects:
 
+.. automodapi:: safir.arq.uws
+   :include-all-objects:
+
 .. automodapi:: safir.asyncio
    :include-all-objects:
    :inherited-members:
@@ -92,4 +95,7 @@ API reference
    :include-all-objects:
 
 .. automodapi:: safir.testing.uvicorn
+   :include-all-objects:
+
+.. automodapi:: safir.uws
    :include-all-objects:

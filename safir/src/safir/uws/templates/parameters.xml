@@ -1,0 +1,10 @@
+<uws:parameters
+    version="1.1"
+    xsi:schemaLocation="http://www.ivoa.net/xml/UWS/v1.0 UWS.xsd"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  {%- for param in job.parameters %}
+  <uws:parameter id="{{ param.parameter_id }}">{{ param.value }}</uws:parameter>
+  {%- endfor %}
+</uws:parameters>

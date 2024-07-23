@@ -23,6 +23,11 @@ nitpick_ignore = [
     ["py:obj", "JobMetadata.id"],
     ["py:class", "pydantic.BaseModel"],
     ["py:class", "BaseModel"],
+    # arq doesn't provide documentation for all of its types.
+    ["py:class", "arq.cron.CronJob"],
+    ["py:class", "arq.typing.StartupShutdown"],
+    ["py:class", "arq.typing.WorkerCoroutine"],
+    ["py:class", "arq.worker.Function"],
     # sphinx-automodapi apparently doesn't recognize TypeAlias as an object
     # that should have generated documentation, even with include-all-objects.
     ["py:obj", "safir.pydantic.EnvAsyncPostgresDsn"],
@@ -43,6 +48,7 @@ python = "https://docs.python.org/3/"
 redis = "https://redis-py.readthedocs.io/en/stable/"
 structlog = "https://www.structlog.org/en/stable/"
 sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
+vomodels = "https://vo-models.readthedocs.io/latest/"
 
 [sphinx.linkcheck]
 ignore = [

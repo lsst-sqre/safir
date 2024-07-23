@@ -25,7 +25,7 @@ def _install(session: nox.Session) -> None:
     """Install the application and all dependencies into the session."""
     session.install("--upgrade", "uv")
     session.install(
-        "-e", "./safir-arq", "./safir[arq,db,dev,gcs,kubernetes,redis]"
+        "-e", "./safir-arq", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]"
     )
 
 
