@@ -16,7 +16,7 @@ clean:
 .PHONY: init
 init:
 	pip install --upgrade uv
-	uv pip install --upgrade pre-commit tox tox-docker tox-uv
+	uv pip install --upgrade pre-commit tox tox-uv
 	uv pip install --upgrade -e ".[arq,db,dev,gcs,kubernetes]"
 	pre-commit install
 	rm -rf .tox
