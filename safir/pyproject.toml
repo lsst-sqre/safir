@@ -1,0 +1,139 @@
+[project]
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+name = "safir"
+description = "The Rubin Observatory SQuaRE framework for FastAPI services."
+license = {file = "LICENSE"}
+readme= "README.md"
+keywords = [
+    "rubin",
+    "lsst",
+]
+# https://pypi.org/classifiers/
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Typing :: Typed",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "click<9",
+    "cryptography<44",
+    "fastapi<1",
+    "gidgethub<6",
+    "httpx>=0.20.0,<1",
+    "pydantic>2,<3",
+    "pydantic-core",
+    "starlette<1",
+    # 23.3.0 excluded due to https://github.com/hynek/structlog/issues/584
+    "structlog>=21.2.0,!=23.3.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+arq = [
+    "arq>=0.23,<1"
+]
+db = [
+    "asyncpg<1",
+    "sqlalchemy[asyncio]>=1.4.18,<3",
+]
+dev = [
+    "asgi-lifespan",
+    "coverage[toml]",
+    "fastapi>=0.93.0",
+    "mypy",
+    "pre-commit",
+    "psycopg2",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "redis>=5,<6",
+    "respx",
+    "scriv",
+    "sqlalchemy[mypy]",
+    "testcontainers[postgres,redis]",
+    "uvicorn",
+    # documentation
+    "documenteer[guide]>=1",
+    "autodoc_pydantic",
+]
+gcs = [
+    "google-auth<3",
+    "google-cloud-storage<3"
+]
+kubernetes = [
+    "kubernetes_asyncio<31"
+]
+redis = [
+    "redis>4.5.2,<6",
+]
+
+[[project.authors]]
+name = "Association of Universities for Research in Astronomy, Inc. (AURA)"
+email = "sqre-admin@lists.lsst.org"
+
+[project.urls]
+Homepage = "https://safir.lsst.io"
+Source = "https://github.com/lsst-sqre/safir"
+"Change log" = "https://safir.lsst.io/changelog.html"
+"Issue tracker" = "https://github.com/lsst-sqre/safir/issues"
+
+[build-system]
+requires = [
+    "setuptools>=61",
+    "wheel",
+    "setuptools_scm[toml]>=6.2"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = ".."
+
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["safir"]
+
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+filterwarnings = [
+    # Google modules call a deprecated pkg_resources API.
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
+    "ignore:.*pkg_resources\\.declare_namespace:DeprecationWarning",
+    # Google modules use PyType_Spec in a deprecated way.
+    "ignore:Type google\\..*metaclass.* custom tp_new:DeprecationWarning",
+    # dateutil uses a deprecated datetime function.
+    "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:dateutil.*",
+    # The point of this test is to test handling of datetime-naive UTC
+    # objects, which is what the deprecation warning is about. We want to
+    # continue doing this until the support has been removed entirely.
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:tests.pydantic_test",
+]
+python_files = [
+    "tests/*.py",
+    "tests/*/*.py"
+]

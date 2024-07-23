@@ -9,6 +9,7 @@
 .. _HTTPX: https://www.python-httpx.org/
 .. _kubernetes_asyncio: https://github.com/tomplus/kubernetes_asyncio
 .. _mypy: https://www.mypy-lang.org
+.. _nox: https://nox.thea.codes/en/stable/
 .. _Phalanx: https://phalanx.lsst.io
 .. _pre-commit: https://pre-commit.com
 .. _Pydantic: https://docs.pydantic.dev/latest/
@@ -25,3 +26,4 @@
 .. _tox: https://tox.wiki/en/latest/
 .. _tox-docker: https://tox-docker.readthedocs.io/en/latest/
 .. _Uvicorn: https://www.uvicorn.org/
+.. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.io/en/stable/

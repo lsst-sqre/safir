@@ -9,7 +9,7 @@ import re
 from collections import defaultdict
 from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import timedelta
-from typing import Any
+from typing import Any, Protocol
 from unittest.mock import AsyncMock, Mock, patch
 
 from kubernetes_asyncio import client, config
@@ -44,7 +44,6 @@ from kubernetes_asyncio.client import (
     V1ServiceList,
     V1Status,
 )
-from typing_extensions import Protocol
 
 from ..asyncio import AsyncMultiQueue
 

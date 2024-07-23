@@ -1,124 +1,10 @@
-[project]
-# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
-name = "safir"
-description = "The Rubin Observatory SQuaRE framework for FastAPI services."
-license = {file = "LICENSE"}
-readme= "README.md"
-keywords = [
-    "rubin",
-    "lsst",
-]
-# https://pypi.org/classifiers/
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Intended Audience :: Developers",
-    "Natural Language :: English",
-    "Operating System :: POSIX",
-    "Typing :: Typed",
-]
-requires-python = ">=3.11"
-dependencies = [
-    "click<9",
-    "cryptography<44",
-    "fastapi<1",
-    "gidgethub<6",
-    "httpx>=0.20.0,<1",
-    "pydantic>2,<3",
-    "pydantic-core",
-    "starlette<1",
-    # 23.3.0 excluded due to https://github.com/hynek/structlog/issues/584
-    "structlog>=21.2.0,!=23.3.0",
-]
-dynamic = ["version"]
-
-[project.optional-dependencies]
-arq = [
-    "arq>=0.23,<1"
-]
-db = [
-    "asyncpg<1",
-    "sqlalchemy[asyncio]>=1.4.18,<3",
-]
-dev = [
-    "asgi-lifespan",
-    "coverage[toml]",
-    "fastapi>=0.93.0",
-    "mypy",
-    "pre-commit",
-    "psycopg2",
-    "pytest",
-    "pytest-asyncio",
-    "redis>=5,<6",
-    "respx",
-    "scriv",
-    "sqlalchemy[mypy]",
-    "testcontainers[postgres,redis]",
-    "uvicorn",
-    # documentation
-    "documenteer[guide]>=1",
-    "autodoc_pydantic",
-]
-gcs = [
-    "google-auth<3",
-    "google-cloud-storage<3"
-]
-kubernetes = [
-    "kubernetes_asyncio<31"
-]
-redis = [
-    "redis>4.5.2,<6",
-]
-
-[[project.authors]]
-name = "Association of Universities for Research in Astronomy, Inc. (AURA)"
-email = "sqre-admin@lists.lsst.org"
-
-[project.urls]
-Homepage = "https://safir.lsst.io"
-Source = "https://github.com/lsst-sqre/safir"
-"Change log" = "https://safir.lsst.io/changelog.html"
-"Issue tracker" = "https://github.com/lsst-sqre/safir/issues"
-
-[build-system]
-requires = [
-    "setuptools>=61",
-    "wheel",
-    "setuptools_scm[toml]>=6.2"
-]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-
-[tool.coverage.run]
-parallel = true
-branch = true
-source = ["safir"]
-
-[tool.coverage.paths]
-source = ["src", ".tox/*/site-packages"]
-
-[tool.coverage.report]
-show_missing = true
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:"
-]
+# This file contains only the tool configuration for linters. The
+# configuration for the component Python projects may be found in the
+# pyproject.toml files in subdirectories.
 
 [tool.black]
 line-length = 79
-target-version = ["py311"]
+target-version = ["py312"]
 exclude = '''
 /(
     \.eggs
@@ -133,26 +19,6 @@ exclude = '''
 '''
 # Use single-quoted strings so TOML treats the string like a Python r-string
 # Multi-line strings are implicitly treated by black as regular expressions
-
-[tool.pytest.ini_options]
-asyncio_mode = "strict"
-filterwarnings = [
-    # Google modules call a deprecated pkg_resources API.
-    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
-    "ignore:.*pkg_resources\\.declare_namespace:DeprecationWarning",
-    # Google modules use PyType_Spec in a deprecated way.
-    "ignore:Type google\\..*metaclass.* custom tp_new:DeprecationWarning",
-    # dateutil uses a deprecated datetime function.
-    "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:dateutil.*",
-    # The point of this test is to test handling of datetime-naive UTC
-    # objects, which is what the deprecation warning is about. We want to
-    # continue doing this until the support has been removed entirely.
-    "ignore:datetime.datetime.utcnow:DeprecationWarning:tests.pydantic_test",
-]
-python_files = [
-    "tests/*.py",
-    "tests/*/*.py"
-]
 
 [tool.mypy]
 disallow_untyped_defs = true
@@ -182,11 +48,25 @@ warn_untyped_fields = true
 extend = "ruff-shared.toml"
 
 [tool.ruff.lint.extend-per-file-ignores]
-"src/safir/**" = [
+"noxfile.py" = [
+    "T201",    # print makes sense as output from nox rules
+]
+"safir/src/safir/**" = [
     "N818",    # Exception is correct in some cases, others are part of API
 ]
-"src/safir/testing/**" = [
+"safir/src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
+]
+"*/tests/**" = [
+    "C901",    # tests are allowed to be complex, sometimes that's convenient
+    "D101",    # tests don't need docstrings
+    "D103",    # tests don't need docstrings
+    "PLR0915", # tests are allowed to be long, sometimes that's convenient
+    "PT012",   # way too aggressive about limiting pytest.raises blocks
+    "S101",    # tests should use assert
+    "S106",    # tests are allowed to hard-code dummy passwords
+    "S301",    # allow tests for whether code can be pickled
+    "SLF001",  # tests are allowed to access private members
 ]
 
 [tool.ruff.lint.isort]

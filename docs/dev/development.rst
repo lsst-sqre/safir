@@ -21,19 +21,31 @@ Safir is developed by the LSST SQuaRE team.
 Setting up a local development environment
 ==========================================
 
-To develop Safir, create a virtual environment with your method of choice (like virtualenvwrapper) and then clone or fork, and install:
+Development of Safir should be done inside a virtual environment.
 
-.. code-block:: sh
+Nublado uses nox_ as its build system, which can manage a virtual environment for you.
+Run:
 
-   git clone https://github.com/lsst-sqre/safir.git
-   cd safir
-   make init
+.. prompt:: bash
 
-This init step does three things:
+   nox -s venv-init
 
-1. Installs Safir in an editable mode with its "dev" extra that includes test and documentation dependencies.
-2. Installs pre-commit and tox.
-3. Installs the pre-commit hooks.
+The resulting virtual environment will be created in :file:`.venv`.
+Enable it by running :command:`source .venv/bin/activate`.
+
+Alternately, you can create a virtual environment with any other method of your choice (such as virtualenvwrapper_).
+If you use a different virtual environment, run the following command after you have enabled it:
+
+.. prompt:: bash
+
+   nox -s init
+
+Either ``venv-init`` or ``init`` does the following:
+
+#. Installs build system dependencies in the virtual environment.
+#. Installs package dependencies, including test and documentation dependencies.
+#. Installs Safir packages in editable mode so that changes made to the Git checkout will be picked up by the virtual environment.
+#. Installs pre-commit hooks.
 
 You must have Docker installed and configured so that your user can start Docker containers in order to run the test suite.
 
@@ -45,14 +57,8 @@ Pre-commit hooks
 The pre-commit hooks, which are automatically installed by running the :command:`make init` command on :ref:`set up <dev-environment>`, ensure that files are valid and properly formatted.
 Some pre-commit hooks automatically reformat code:
 
-``seed-isort-config``
-    Adds configuration for isort to the :file:`pyproject.toml` file.
-
-``isort``
-    Automatically sorts imports in Python modules.
-
-``black``
-    Automatically formats Python code.
+``ruff``
+    Lint and reformat Python code and attempt to automatically fix some problems.
 
 ``blacken-docs``
     Automatically formats Python code in reStructuredText documentation and docstrings.
@@ -65,26 +71,36 @@ To proceed, stage the new modifications and proceed with your Git commit.
 Running tests
 =============
 
-To test the library, run tox_, which tests the library the same way that the CI workflow does:
+To run all Safir tests, run:
 
-.. code-block:: sh
+.. prompt:: bash
 
-   tox run
+   nox -s
 
-To see a listing of test environments, run:
+This tests the library in the same way that the CI workflow does.
+You may wish to run the individual sessions (``lint``, ``typing``, ``test``, ``docs``, and ``docs-linkcheck``) when iterating on a specific change.
+Consider using the ``-R`` flag when you haven't updated dependencies, as discussed below.
 
-.. code-block:: sh
+To see a listing of nox sessions:
 
-   tox list
+.. prompt:: bash
 
-tox will start a PostgreSQL container, which is required for some tests.
+   nox --list
 
-To run a specific test or list of tests, you can add test file names (and any other pytest_ options) after ``--`` when executing the ``py`` tox environment.
+To run a specific test or list of tests, you can add test file names (and any other pytest_ options) after ``--`` when executing the ``test`` nox session.
 For example:
 
-.. code-block:: sh
+.. prompt:: bash
 
-   tox run -e py -- tests/database_test.py
+   nox -s test -- safir/tests/database_test.py
+
+If you are interating on a specific test failure, you may want to pass the ``-R`` flag to skip the dependency installation step.
+This will make nox run much faster, at the cost of not fixing out-of-date dependencies.
+For example:
+
+.. prompt:: bash
+
+   nox -Rs test -- safir/tests/database_test.py
 
 .. _dev-build-docs:
 
@@ -95,11 +111,28 @@ Documentation is built with Sphinx_:
 
 .. _Sphinx: https://www.sphinx-doc.org/en/master/
 
-.. code-block:: sh
+.. prompt:: bash
 
-   tox run -e docs
+   nox -s docs
 
 The build documentation is located in the :file:`docs/_build/html` directory.
+
+Additional dependencies required for the documentation build should be added as development dependencies of the ``safir`` library, in :file:`safir/pyproject.toml`.
+
+Documentation builds are incremental, and generate and use cached descriptions of the internal Python APIs.
+If you see errors in building the Python API documentation or have problems with changes to the documentation (particularly diagrams) not showing up, try a clean documentation build with:
+
+.. prompt:: bash
+
+   nox -s docs-clean
+
+This will be slower, but it will ensure that the documentation build doesn't rely on any cached data.
+
+To check the documentation for broken links, run:
+
+.. code-block:: sh
+
+   nox -s docs-linkcheck
 
 .. _dev-change-log:
 
@@ -136,7 +169,7 @@ Style guide
 Code
 ----
 
-- The code style follows :pep:`8`, though in practice lean on Black and isort to format the code for you.
+- The code style follows :pep:`8`, though in practice lean on Ruff to format the code for you.
 
 - Use :pep:`484` type annotations.
   The ``tox run -e typing`` test environment, which runs mypy_, ensures that the project's types are consistent.
