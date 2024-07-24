@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse
 from structlog.stdlib import BoundLogger
 
+from safir.arq import ArqQueue
 from safir.arq.uws import UWS_QUEUE_NAME, WorkerSettings
 from safir.database import create_database_engine, initialize_database
 
@@ -192,6 +193,18 @@ class UWSApplication:
         # known statically, which may confuse the handler copying code in
         # FastAPI. This problem was last verified in FastAPI 0.111.0.
         install_async_post_handler(router, self._config.async_post_route)
+
+    def override_arq_queue(self, arq_queue: ArqQueue) -> None:
+        """Change the arq used by the FastAPI route handlers.
+
+        This method is probably only useful for the test suite.
+
+        Parameters
+        ----------
+        arq
+            New arq queue.
+        """
+        uws_dependency.override_arq_queue(arq_queue)
 
     async def shutdown_fastapi(self) -> None:
         """Shut down the UWS subsystem for FastAPI applications.

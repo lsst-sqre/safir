@@ -97,5 +97,8 @@ API reference
 .. automodapi:: safir.testing.uvicorn
    :include-all-objects:
 
+.. automodapi:: safir.testing.uws
+   :include-all-objects:
+
 .. automodapi:: safir.uws
    :include-all-objects:

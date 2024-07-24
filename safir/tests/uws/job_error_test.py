@@ -8,11 +8,10 @@ from httpx import AsyncClient
 from safir.arq.uws import WorkerFatalError, WorkerTransientError
 from safir.datetime import isodatetime
 from safir.testing.slack import MockSlackWebhook
+from safir.testing.uws import MockUWSJobRunner
 from safir.uws import UWSJobParameter
 from safir.uws._dependencies import UWSFactory
 from safir.uws._exceptions import TaskError
-
-from ..support.uws import MockJobRunner
 
 ERRORED_JOB = """
 <uws:job
@@ -52,7 +51,7 @@ JOB_ERROR_SUMMARY = """
 @pytest.mark.asyncio
 async def test_temporary_error(
     client: AsyncClient,
-    runner: MockJobRunner,
+    runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
 ) -> None:
@@ -112,7 +111,7 @@ async def test_temporary_error(
 @pytest.mark.asyncio
 async def test_fatal_error(
     client: AsyncClient,
-    runner: MockJobRunner,
+    runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
 ) -> None:
@@ -166,7 +165,7 @@ async def test_fatal_error(
 @pytest.mark.asyncio
 async def test_unknown_error(
     client: AsyncClient,
-    runner: MockJobRunner,
+    runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
 ) -> None:

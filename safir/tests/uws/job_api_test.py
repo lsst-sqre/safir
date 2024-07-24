@@ -20,10 +20,9 @@ from vo_models.uws import Results
 from safir.arq import MockArqQueue
 from safir.arq.uws import WorkerJobInfo
 from safir.datetime import current_datetime, isodatetime
+from safir.testing.uws import MockUWSJobRunner
 from safir.uws import UWSConfig, UWSJob, UWSJobParameter, UWSJobResult
 from safir.uws._dependencies import UWSFactory
-
-from ..support.uws import MockJobRunner
 
 PENDING_JOB = """
 <uws:job
@@ -145,7 +144,7 @@ JOB_RESULTS = """
 @pytest.mark.asyncio
 async def test_job_run(
     client: AsyncClient,
-    runner: MockJobRunner,
+    runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     uws_config: UWSConfig,
 ) -> None:
@@ -275,7 +274,7 @@ async def test_job_run(
 @pytest.mark.asyncio
 async def test_job_abort(
     client: AsyncClient,
-    runner: MockJobRunner,
+    runner: MockUWSJobRunner,
     arq_queue: MockArqQueue,
     uws_factory: UWSFactory,
     uws_config: UWSConfig,
@@ -584,7 +583,7 @@ async def test_redirects(
 @pytest.mark.asyncio
 async def test_presigned_url(
     client: AsyncClient,
-    runner: MockJobRunner,
+    runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     uws_config: UWSConfig,
 ) -> None:

@@ -22,10 +22,11 @@ from safir.middleware.x_forwarded import XForwardedMiddleware
 from safir.slack.webhook import SlackRouteErrorHandler
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
+from safir.testing.uws import MockUWSJobRunner
 from safir.uws import UWSApplication, UWSConfig
 from safir.uws._dependencies import UWSFactory, uws_dependency
 
-from ..support.uws import MockJobRunner, build_uws_config
+from ..support.uws import build_uws_config
 
 
 @pytest_asyncio.fixture
@@ -102,9 +103,12 @@ def mock_slack(
     )
 
 
-@pytest.fixture
-def runner(uws_factory: UWSFactory, arq_queue: MockArqQueue) -> MockJobRunner:
-    return MockJobRunner(uws_factory, arq_queue)
+@pytest_asyncio.fixture
+async def runner(
+    uws_config: UWSConfig, arq_queue: MockArqQueue
+) -> AsyncIterator[MockUWSJobRunner]:
+    async with MockUWSJobRunner(uws_config, arq_queue) as runner:
+        yield runner
 
 
 @pytest.fixture

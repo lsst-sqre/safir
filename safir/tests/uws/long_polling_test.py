@@ -9,11 +9,10 @@ import pytest
 from httpx import AsyncClient
 
 from safir.datetime import current_datetime, isodatetime
+from safir.testing.uws import MockUWSJobRunner
 from safir.uws import UWSJobParameter
 from safir.uws._dependencies import UWSFactory
 from safir.uws._models import UWSJobResult
-
-from ..support.uws import MockJobRunner
 
 PENDING_JOB = """
 <uws:job
@@ -85,7 +84,7 @@ FINISHED_JOB = """
 
 @pytest.mark.asyncio
 async def test_poll(
-    client: AsyncClient, runner: MockJobRunner, uws_factory: UWSFactory
+    client: AsyncClient, runner: MockUWSJobRunner, uws_factory: UWSFactory
 ) -> None:
     job_service = uws_factory.create_job_service()
     job = await job_service.create(
