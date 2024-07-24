@@ -14,6 +14,7 @@ from structlog.stdlib import BoundLogger
 from safir.arq import ArqQueue
 from safir.arq.uws import UWS_QUEUE_NAME, WorkerSettings
 from safir.database import create_database_engine, initialize_database
+from safir.middleware.ivoa import CaseInsensitiveQueryMiddleware
 
 from ._config import UWSConfig
 from ._constants import UWS_DATABASE_TIMEOUT, UWS_EXPIRE_JOBS_SCHEDULE
@@ -193,6 +194,20 @@ class UWSApplication:
         # known statically, which may confuse the handler copying code in
         # FastAPI. This problem was last verified in FastAPI 0.111.0.
         install_async_post_handler(router, self._config.async_post_route)
+
+    def install_middleware(self, app: FastAPI) -> None:
+        """Install FastAPI middleware needed by UWS.
+
+        UWS unfortunately requires that the key portion of query parameters be
+        case-insensitive, so UWS FastAPI applications need to add custom
+        middleware to lowercase query parameter keys. This method does that.
+
+        Parameters
+        ----------
+        app
+            FastAPI app.
+        """
+        app.add_middleware(CaseInsensitiveQueryMiddleware)
 
     def override_arq_queue(self, arq_queue: ArqQueue) -> None:
         """Change the arq used by the FastAPI route handlers.

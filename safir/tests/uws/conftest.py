@@ -17,7 +17,6 @@ from structlog.stdlib import BoundLogger
 
 from safir.arq import MockArqQueue
 from safir.logging import configure_logging
-from safir.middleware.ivoa import CaseInsensitiveQueryMiddleware
 from safir.middleware.x_forwarded import XForwardedMiddleware
 from safir.slack.webhook import SlackRouteErrorHandler
 from safir.testing.gcs import MockStorageClient, patch_google_storage
@@ -52,8 +51,8 @@ async def app(
         await uws.shutdown_fastapi()
 
     app = FastAPI(lifespan=lifespan)
-    app.add_middleware(CaseInsensitiveQueryMiddleware)
     app.add_middleware(XForwardedMiddleware)
+    uws.install_middleware(app)
     router = APIRouter(route_class=SlackRouteErrorHandler)
     uws.install_handlers(router)
     app.include_router(router, prefix="/test")
