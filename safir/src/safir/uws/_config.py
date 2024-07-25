@@ -310,7 +310,7 @@ class UWSAppSettings(BaseSettings):
 
         Returns
         -------
-        uws_config
+        UWSConfig
             UWS configuration.
 
         Parameters

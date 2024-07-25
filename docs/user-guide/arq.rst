@@ -248,6 +248,8 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
 
 For information on the metadata available from jobs, see `JobMetadata` and `JobResult`.
 
+.. _arq-testing:
+
 Testing applications with an arq queue
 ======================================
 
