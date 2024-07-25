@@ -24,7 +24,9 @@ nox.options.reuse_existing_virtualenvs = True
 def _install(session: nox.Session) -> None:
     """Install the application and all dependencies into the session."""
     session.install("--upgrade", "uv")
-    session.install("-e", "./safir[arq,db,dev,gcs,kubernetes,redis]")
+    session.install(
+        "-e", "./safir-arq", "./safir[arq,db,dev,gcs,kubernetes,redis]"
+    )
 
 
 def _install_dev(session: nox.Session, bin_prefix: str = "") -> None:
@@ -105,9 +107,13 @@ def typing(session: nox.Session) -> None:
     session.run(
         "mypy",
         *session.posargs,
+        "--namespace-packages",
+        "--explicit-package-bases",
         "noxfile.py",
         "safir/src",
+        "safir-arq/src",
         "safir/tests",
+        env={"MYPYPATH": "safir/src:safir:safir-arq/src"},
     )
 
 

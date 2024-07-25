@@ -45,7 +45,7 @@ from kubernetes_asyncio.client import (
     V1Status,
 )
 
-from ..asyncio import AsyncMultiQueue
+from safir.asyncio import AsyncMultiQueue
 
 __all__ = [
     "MockKubernetesApi",

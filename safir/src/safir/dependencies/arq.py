@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from arq.connections import RedisSettings
 
-from ..arq import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue
+from safir.arq import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue
 
 __all__ = ["ArqDependency", "arq_dependency"]
 

@@ -51,7 +51,7 @@ extend = "ruff-shared.toml"
 "noxfile.py" = [
     "T201",    # print makes sense as output from nox rules
 ]
-"safir/src/safir/**" = [
+"*/src/safir/**" = [
     "N818",    # Exception is correct in some cases, others are part of API
 ]
 "safir/src/safir/testing/**" = [
@@ -70,6 +70,7 @@ extend = "ruff-shared.toml"
 ]
 
 [tool.ruff.lint.isort]
+detect-same-package = false
 known-first-party = ["safir", "tests"]
 split-on-trailing-comma = false
 

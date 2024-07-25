@@ -38,7 +38,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 arq = [
-    "arq>=0.23,<1"
+    "safir-arq",
 ]
 db = [
     "asyncpg<1",

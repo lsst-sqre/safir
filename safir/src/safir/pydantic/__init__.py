@@ -16,7 +16,7 @@ from pydantic import (
 )
 from pydantic_core import Url
 
-from .datetime import parse_timedelta
+from safir.datetime import parse_timedelta
 
 P = ParamSpec("P")
 T = TypeVar("T")

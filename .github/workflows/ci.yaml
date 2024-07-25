@@ -108,12 +108,19 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - name: Build and publish
+      - name: Test building and publishing safir
         uses: lsst-sqre/build-and-publish-to-pypi@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           upload: false
           working-directory: "safir"
+
+      - name: Test building and publishing safir-arq
+        uses: lsst-sqre/build-and-publish-to-pypi@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          upload: false
+          working-directory: "safir-arq"
 
   pypi:
 
@@ -137,3 +144,8 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           working-directory: "safir"
+
+      - uses: lsst-sqre/build-and-publish-to-pypi@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          working-directory: "safir-arq"

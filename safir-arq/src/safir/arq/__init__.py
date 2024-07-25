@@ -6,7 +6,7 @@ import abc
 import asyncio
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Self
 
@@ -16,8 +16,6 @@ from arq.constants import default_queue_name as arq_default_queue_name
 from arq.jobs import Job, JobStatus
 from pydantic import SecretStr
 from pydantic_core import Url
-
-from .datetime import current_datetime
 
 __all__ = [
     "ArqJobError",
@@ -515,7 +513,7 @@ class MockArqQueue(ArqQueue):
             name=task_name,
             args=task_args,
             kwargs=task_kwargs,
-            enqueue_time=current_datetime(microseconds=True),
+            enqueue_time=datetime.now(tz=UTC),
             status=JobStatus.queued,
             queue_name=queue_name,
         )
@@ -545,8 +543,8 @@ class MockArqQueue(ArqQueue):
                 kwargs=job_metadata.kwargs,
                 status=job_metadata.status,
                 enqueue_time=job_metadata.enqueue_time,
-                start_time=current_datetime(microseconds=True),
-                finish_time=current_datetime(microseconds=True),
+                start_time=datetime.now(tz=UTC),
+                finish_time=datetime.now(tz=UTC),
                 result=asyncio.CancelledError(),
                 success=False,
                 queue_name=queue_name,
@@ -614,8 +612,8 @@ class MockArqQueue(ArqQueue):
             kwargs=job_metadata.kwargs,
             status=job_metadata.status,
             enqueue_time=job_metadata.enqueue_time,
-            start_time=current_datetime(microseconds=True),
-            finish_time=current_datetime(microseconds=True),
+            start_time=datetime.now(tz=UTC),
+            finish_time=datetime.now(tz=UTC),
             result=result,
             success=success,
             queue_name=queue_name,

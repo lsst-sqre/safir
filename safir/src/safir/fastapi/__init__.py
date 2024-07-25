@@ -7,8 +7,8 @@ from typing import ClassVar
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
-from .models import ErrorLocation
-from .slack.webhook import SlackIgnoredException
+from safir.models import ErrorLocation
+from safir.slack.webhook import SlackIgnoredException
 
 __all__ = [
     "ClientRequestError",

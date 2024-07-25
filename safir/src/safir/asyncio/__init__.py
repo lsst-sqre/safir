@@ -9,7 +9,7 @@ from functools import wraps
 from types import EllipsisType
 from typing import Generic, ParamSpec, TypeVar
 
-from .datetime import current_datetime
+from safir.datetime import current_datetime
 
 #: Parameter spec for functions decorated by `run_with_asyncio`.
 P = ParamSpec("P")

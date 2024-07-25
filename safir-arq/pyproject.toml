@@ -1,0 +1,51 @@
+[project]
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+name = "safir-arq"
+description = "arq support for the Rubin Observatory SQuaRE framework, Safir."
+license = {file = "LICENSE"}
+readme= "README.md"
+keywords = [
+    "rubin",
+    "lsst",
+]
+# https://pypi.org/classifiers/
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Typing :: Typed",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "arq>=0.23,<1",
+    "pydantic>2,<3",
+    "pydantic-core",
+]
+dynamic = ["version"]
+
+[[project.authors]]
+name = "Association of Universities for Research in Astronomy, Inc. (AURA)"
+email = "sqre-admin@lists.lsst.org"
+
+[project.urls]
+Homepage = "https://safir.lsst.io"
+Source = "https://github.com/lsst-sqre/safir"
+"Change log" = "https://safir.lsst.io/changelog.html"
+"Issue tracker" = "https://github.com/lsst-sqre/safir/issues"
+
+[build-system]
+requires = [
+    "setuptools>=61",
+    "wheel",
+    "setuptools_scm[toml]>=6.2"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = ".."
