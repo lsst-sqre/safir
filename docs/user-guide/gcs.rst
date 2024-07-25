@@ -40,6 +40,8 @@ If not given, the default is one hour.
 The path to the Google Cloud Storage object for which to create a signed URL must be an S3 URL.
 The second argument to `~safir.gcs.SignedURLService.signed_url` is the MIME type of the underlying object, which will be encoded in the signed URL.
 
+.. _gcs-testing:
+
 Testing with mock Google Cloud Storage
 ======================================
 

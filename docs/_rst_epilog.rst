@@ -1,3 +1,4 @@
+.. _Alembic: https://alembic.sqlalchemy.org/en/latest/
 .. _arq: https://arq-docs.helpmanual.io
 .. _asyncpg: https://magicstack.github.io/asyncpg/current/
 .. _Click: https://click.palletsprojects.com/
@@ -27,3 +28,4 @@
 .. _tox-docker: https://tox-docker.readthedocs.io/en/latest/
 .. _Uvicorn: https://www.uvicorn.org/
 .. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.io/en/stable/
+.. _vo-models: https://vo-models.readthedocs.io/latest/
