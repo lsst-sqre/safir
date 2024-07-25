@@ -79,6 +79,7 @@ uws = [
     "google-auth<3",
     "google-cloud-storage<3",
     "jinja2<4",
+    "pydantic-settings",
     "python-multipart",
     "safir-arq<7",
     "sqlalchemy[asyncio]>=1.4.18,<3",
