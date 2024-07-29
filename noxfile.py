@@ -24,9 +24,8 @@ nox.options.reuse_existing_virtualenvs = True
 def _install(session: nox.Session) -> None:
     """Install the application and all dependencies into the session."""
     session.install("--upgrade", "uv")
-    session.install(
-        "-e", "./safir-arq", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]"
-    )
+    session.install("-e", "./safir-arq")
+    session.install("-e", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]")
 
 
 def _install_dev(session: nox.Session, bin_prefix: str = "") -> None:
