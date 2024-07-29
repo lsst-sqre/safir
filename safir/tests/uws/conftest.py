@@ -42,11 +42,11 @@ async def app(
     """
     uws = UWSApplication(uws_config)
     await uws.initialize_uws_database(logger, reset=True)
+    uws.override_arq_queue(arq_queue)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await uws.initialize_fastapi()
-        uws_dependency.override_arq_queue(arq_queue)
         yield
         await uws.shutdown_fastapi()
 

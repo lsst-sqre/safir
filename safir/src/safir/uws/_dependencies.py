@@ -98,7 +98,7 @@ class UWSDependency:
     """Initializes UWS and provides a UWS factory as a dependency."""
 
     def __init__(self) -> None:
-        self._arq: ArqQueue
+        self._arq: ArqQueue | None = None
         self._config: UWSConfig
         self._engine: AsyncEngine
         self._session: async_scoped_session
@@ -107,6 +107,8 @@ class UWSDependency:
     async def __call__(
         self, logger: Annotated[BoundLogger, Depends(logger_dependency)]
     ) -> AsyncIterator[UWSFactory]:
+        if not self._arq:
+            raise RuntimeError("UWSDependency not initialized")
         try:
             yield UWSFactory(
                 config=self._config,
@@ -136,11 +138,12 @@ class UWSDependency:
         """
         self._config = config
         self._result_store = ResultStore(config)
-        if config.arq_mode == ArqMode.production:
-            settings = config.arq_redis_settings
-            self._arq = await RedisArqQueue.initialize(settings)
-        else:
-            self._arq = MockArqQueue()
+        if not self._arq:
+            if config.arq_mode == ArqMode.production:
+                settings = config.arq_redis_settings
+                self._arq = await RedisArqQueue.initialize(settings)
+            else:
+                self._arq = MockArqQueue()
         self._engine = create_database_engine(
             config.database_url,
             config.database_password,
