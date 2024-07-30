@@ -216,7 +216,7 @@ class UWSApplication:
 
         Parameters
         ----------
-        arq
+        arq_queue
             New arq queue.
         """
         uws_dependency.override_arq_queue(arq_queue)

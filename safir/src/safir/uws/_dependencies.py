@@ -158,7 +158,7 @@ class UWSDependency:
 
         Parameters
         ----------
-        arq
+        arq_queue
             New arq queue.
         """
         self._arq = arq_queue

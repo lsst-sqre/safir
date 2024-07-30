@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import datetime, timedelta
 
 from structlog.stdlib import BoundLogger
@@ -11,7 +12,7 @@ from vo_models.vosi.availability import Availability
 
 from safir.arq import ArqQueue, JobMetadata
 from safir.arq.uws import WorkerJobInfo
-from safir.datetime import current_datetime, isodatetime
+from safir.datetime import isodatetime
 
 from ._config import ParametersModel, UWSConfig
 from ._constants import JOB_STOP_TIMEOUT
@@ -218,7 +219,7 @@ class JobService:
             User on behalf this operation is performed.
         job_id
             Identifier of the job.
-        wait
+        wait_seconds
             If given, wait up to this many seconds for the status to change
             before returning. -1 indicates waiting the maximum length of
             time. This is done by polling the database with exponential
@@ -362,7 +363,7 @@ class JobService:
             logger.warning("Job returned no results")
             raise SyncJobNoResultsError
 
-        # Return the the first result.
+        # Return the first result.
         return job.results[0]
 
     async def start(self, user: str, job_id: str, token: str) -> JobMetadata:
@@ -583,19 +584,19 @@ class JobService:
         Job
             The new state of the job.
         """
-        end_time = current_datetime(microseconds=True) + timeout
-        now = current_datetime(microseconds=True)
-
         # I don't know of a way to set a watch on the database, so use
         # polling. Poll the database with exponential delay starting with 0.1
         # seconds and increasing by 1.5x each time until we reach the maximum
         # duration.
         delay = 0.1
-        while job.phase in until_not and now < end_time:
-            await asyncio.sleep(delay)
-            job = await self._storage.get(job.job_id)
-            now = current_datetime(microseconds=True)
-            delay *= 1.5
-            if now + timedelta(seconds=delay) > end_time:
-                delay = (end_time - now).total_seconds()
-        return job
+        max_delay = 5
+        with suppress(TimeoutError):
+            async with asyncio.timeout(timeout.total_seconds()):
+                while job.phase in until_not:
+                    await asyncio.sleep(delay)
+                    job = await self._storage.get(job.job_id)
+                    delay = min(delay * 1.5, max_delay)
+
+        # If we timed out, we may have done so in the middle of a delay. Try
+        # one last request.
+        return await self._storage.get(job.job_id)

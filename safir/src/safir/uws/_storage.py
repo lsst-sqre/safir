@@ -319,7 +319,7 @@ class JobStore:
         ----------
         job_id
             Identifier of the job.
-        error
+        exc
             Exception of failed job.
         end_time
             When the job failed, if known.
