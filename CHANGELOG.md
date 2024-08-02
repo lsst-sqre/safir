@@ -9,6 +9,27 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-6.2.0'></a>
+## 6.2.0 (2024-08-02)
+
+### New features
+
+- Add new `safir.uws` and `safir.arq.uws` modules that provide the framework of an IVOA Universal Worker Service implementation.
+- Add new `safir.testing.uws` module that provides a mock UWS job runner for testing UWS applications.
+- `safir.arq` is now available as a separate PyPI package, `safir-arq`, so that it can be installed in environments where the full Safir dependency may be too heavy-weight or conflict with other packages. The `safir[arq]` dependency will continue to work as before (by installing `safir-arq` behind the scenes).
+- Add new `abort_job` method to instances of `safir.arq.ArqQueue`, which tells arq to abort a job that has been queued or in progress. To successfully abort a job that has already started, the arq worker must enable support for aborting jobs.
+- Add new utility function `safir.arq.build_arq_redis_settings`, which constructs the `RedisSettings` object used to create an arq Redis queue from a Pydantic Redis DSN.
+- Add new `safir.arq.WorkerSettings` class that models the acceptable parameters for an arq `WorkerSettings` object or class that Safir applications have needed.
+- Add new `safir.pydantic.SecondsDatetime` and `safir.pydantic.HumanDatetime` types for use in Pydantic models. These behave the same as `datetime.timedelta` fields but use custom validation. Both support a stringified number of seconds as input, and the latter also supports the interval strings parsed by `safir.datetime.parse_timedelta`.
+- Add new types `safir.pydantic.EnvAsyncPostgresDsn` and `safir.pydantic.EnvRedisDsn`, which validate PostgreSQL and Redis DSNs but rewrite them based on the environment variables set by tox-docker. Programs using these types for their configuration will therefore automatically honor tox-docker environment variables when running the test suite. `EnvAsyncPostgresDsn` also enforces that the scheme of the DSN is compatible with asyncpg and the Safir database support.
+- Add the decorator `safir.database.retry_async_transaction`, which retries a function or method a configurable number of times if it raises a SQLAlchemy exception from the underlying database API. This is primarily intended to retry database operations aborted due to transaction isolation.
+- `safir.database.create_database_engine` now accepts the database URL as a Pydantic `Url` as well as a `str`.
+- Allow the Slack webhook URL argument to `SlackWebhookClient` and `SlackRouteErrorHandler` to be given as a Pydantic `SecretStr` instead of a `str`. This simplifies code in applications that get that value from a secret.
+
+### Other changes
+
+- Safir is now built with [nox](https://nox.thea.codes/en/stable/index.html) instead of [tox](https://tox.wiki/).
+
 <a id='changelog-6.1.0'></a>
 ## 6.1.0 (2024-07-12)
 
