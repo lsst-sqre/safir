@@ -26,6 +26,7 @@ dependencies = [
     "arq>=0.23,<1",
     "pydantic>2,<3",
     "pydantic-core",
+    "structlog>=21.2.0",
 ]
 dynamic = ["version"]
 
