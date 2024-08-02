@@ -11,8 +11,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse
 from structlog.stdlib import BoundLogger
 
-from safir.arq import ArqQueue
-from safir.arq.uws import UWS_QUEUE_NAME, WorkerSettings
+from safir.arq import ArqQueue, WorkerSettings
+from safir.arq.uws import UWS_QUEUE_NAME
 from safir.database import create_database_engine, initialize_database
 from safir.middleware.ivoa import CaseInsensitiveQueryMiddleware
 

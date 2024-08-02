@@ -168,15 +168,20 @@ The :file:`src/yourapp/worker/main.py` module looks like:
         on_shutdown = shutdown
 
 The ``WorkerSettings`` class is where you configure the queue and declare worker functions.
+It can be either an object or a class.
+If it is a class, such as in the above example, the settings must be the default values of its class variables.
 See `arq.worker.Worker` for details.
+
+The `safir.arq.WorkerSettings` class defines the subset of the expected structure of this class or object that Safir applications have needed to date.
+If you wish, you can define an instance of that class at the module level instead of defining a class as in the example above.
 
 The ``on_startup`` and ``on_shutdown`` handlers are ideal places to set up (and tear down) worker state, including network and database clients.
 The context variable, ``ctx``, passed to these functions are also passed to the worker functions.
 
-If you want to allow jobs to be aborted, add ``allow_abort_jobs = True`` to the ``WorkerSettings`` class.
+If you want to allow jobs to be aborted, add ``allow_abort_jobs = True`` to ``WorkerSettings``.
 If a job is already running when it is aborted, it will be cancelled using asyncio task cancellation, which means that `asyncio.CancelledError` will be raised inside the job at the next opportunity.
 
-To run a worker, you run your application's Docker image with the ``arq`` command, followed by the fully-qualified namespace of the ``WorkerSettings`` class.
+To run a worker, you run your application's Docker image with the ``arq`` command, followed by the fully-qualified name of the ``WorkerSettings`` class or object.
 
 Using the arq dependency in endpoint handlers
 ---------------------------------------------

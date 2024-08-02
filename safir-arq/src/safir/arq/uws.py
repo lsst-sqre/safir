@@ -6,7 +6,7 @@ import asyncio
 import os
 import signal
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -17,14 +17,10 @@ from urllib.parse import urlsplit
 
 from arq import func
 from arq.connections import RedisSettings
-from arq.constants import default_queue_name
-from arq.cron import CronJob
-from arq.typing import SecondsTimedelta, StartupShutdown, WorkerCoroutine
-from arq.worker import Function
 from pydantic import BaseModel
 from structlog.stdlib import BoundLogger
 
-from . import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue
+from . import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue, WorkerSettings
 
 T = TypeVar("T", bound="BaseModel")
 """Type for job parameters."""
@@ -39,7 +35,6 @@ __all__ = [
     "WorkerFatalError",
     "WorkerJobInfo",
     "WorkerResult",
-    "WorkerSettings",
     "WorkerTimeoutError",
     "WorkerTransientError",
     "WorkerUsageError",
@@ -92,48 +87,6 @@ class WorkerConfig(Generic[T]):
             database=database,
             password=self.arq_queue_password,
         )
-
-
-@dataclass
-class WorkerSettings:
-    """Configuration class for an arq worker.
-
-    The arq command-line tool reads a class of the name ``WorkerSettings`` in
-    the module it was given on the command line and turns its attributes into
-    parameters to `arq.worker.Worker`. This dataclass is not a valid
-    configuration class for arq; it exists only to define the contents of the
-    class returned by other functions.
-    """
-
-    functions: Sequence[Function | WorkerCoroutine]
-    """Coroutines to register as arq worker entry points."""
-
-    redis_settings: RedisSettings
-    """Redis configuration for arq."""
-
-    job_completion_wait: SecondsTimedelta
-    """How long to wait for jobs to complete before cancelling them."""
-
-    job_timeout: SecondsTimedelta
-    """Maximum timeout for all jobs."""
-
-    max_jobs: int
-    """Maximum number of jobs that can be run at one time."""
-
-    allow_abort_jobs: bool = False
-    """Whether to allow jobs to be aborted."""
-
-    queue_name: str = default_queue_name
-    """Name of arq queue to listen to for jobs."""
-
-    on_startup: StartupShutdown | None = None
-    """Coroutine to run on startup."""
-
-    on_shutdown: StartupShutdown | None = None
-    """Coroutine to run on shutdown."""
-
-    cron_jobs: Sequence[CronJob] | None = None
-    """Cron jobs to run."""
 
 
 @dataclass
