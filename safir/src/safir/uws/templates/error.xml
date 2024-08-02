@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VOTABLE version="1.4" xmlns="http://www.ivoa.net/xml/VOTable/v1.3">
+  <INFO name="QUERY_STATUS" value="ERROR">
+{{ error.error_code.value }} {{ error.message }}
+{%- if error.detail %}
+
+{{ error.detail }}
+{%- endif %}
+  </INFO>
+</VOTABLE>

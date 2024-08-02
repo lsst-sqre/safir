@@ -119,7 +119,7 @@ The variables are:
     A Docker Hub Personal Access Token associated with ``DOCKER_USERNAME``.
     `Create a dedicated token <https://docs.docker.com/security/for-developers/access-tokens/>`__ specifically for your project's GitHub Actions workflow.
 
-After setting these secrets, re-run the GitHub Action by `re-running the workflow job from the GitHub Actions UI <https://docs.github.com/en/actions/managing-workflow-runs/re-running-workflows-and-jobs>`__ or by pushing a new commit to GitHub.
+After setting these secrets, re-run the GitHub Action by `re-running the workflow job from the GitHub Actions UI <https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/re-running-workflows-and-jobs>`__ or by pushing a new commit to GitHub.
 
 8. Try the local test commands
 ==============================

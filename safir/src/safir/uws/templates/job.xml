@@ -1,0 +1,40 @@
+<uws:job
+    version="1.1"
+    xsi:schemaLocation="http://www.ivoa.net/xml/UWS/v1.0 UWS.xsd"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <uws:jobId>{{ job.job_id }}</uws:jobId>
+  {%- if job.run_id %}
+  <uws:runId>{{ job.run_id }}</uws:runId>
+  {%- endif %}
+  <uws:ownerId>{{ job.owner }}</uws:ownerId>
+  <uws:phase>{{ job.phase.value }}</uws:phase>
+  <uws:creationTime>{{ job.creation_time | isodatetime }}</uws:creationTime>
+  {%- if job.start_time %}
+  <uws:startTime>{{ job.start_time | isodatetime }}</uws:startTime>
+  {%- endif %}
+  {%- if job.end_time %}
+  <uws:endTime>{{ job.end_time | isodatetime }}</uws:endTime>
+  {%- endif %}
+  <uws:executionDuration>{{ job.execution_duration.total_seconds() | int }}</uws:executionDuration>
+  <uws:destruction>{{ job.destruction_time | isodatetime }}</uws:destruction>
+  <uws:parameters>
+    {%- for param in job.parameters %}
+    <uws:parameter id="{{ param.parameter_id }}">{{ param.value }}</uws:parameter>
+    {%- endfor %}
+  </uws:parameters>
+  {%- if job.results %}
+  <uws:results>
+    {%- for result in results %}
+    <uws:result id="{{ result.result_id }}" xlink:href="{{ result.url }}"{% if result.size %} size="{{ result.size }}"{% endif %}{% if result.mime_type %} mime-type="{{ result.mime_type }}"{% endif %}/>
+    {%- endfor %}
+  </uws:results>
+  {%- endif %}
+  {%- if job.error %}
+  <uws:errorSummary type="{{ job.error.error_type.value }}" hasDetail="{% if job.error.detail %}true{% else %}false{% endif %}">
+    <uws:message>{{ job.error.error_code.value }} {{ job.error.message }}</uws:message>
+  </uws:errorSummary>
+  {%- endif %}
+</uws:job>

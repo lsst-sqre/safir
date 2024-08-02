@@ -267,6 +267,8 @@ Here is an example of updating a DateTime field in the database:
        job = (await session.execute(stmt)).scalar_one()
        job.destruction_time = datetime_to_db(destruction_time)
 
+.. _database-testing:
+
 Testing applications that use a database
 ========================================
 

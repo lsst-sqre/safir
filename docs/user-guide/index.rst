@@ -32,3 +32,4 @@ User guide
    github-apps/index
    click
    asyncio-queue
+   uws/index

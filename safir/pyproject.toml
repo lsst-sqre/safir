@@ -38,7 +38,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 arq = [
-    "safir-arq",
+    "safir-arq<7",
 ]
 db = [
     "asyncpg<1",
@@ -73,6 +73,17 @@ kubernetes = [
 ]
 redis = [
     "redis>4.5.2,<6",
+]
+uws = [
+    "asyncpg<1",
+    "google-auth<3",
+    "google-cloud-storage<3",
+    "jinja2<4",
+    "pydantic-settings",
+    "python-multipart",
+    "safir-arq<7",
+    "sqlalchemy[asyncio]>=1.4.18,<3",
+    "vo-models<1",
 ]
 
 [[project.authors]]
@@ -121,17 +132,12 @@ exclude_lines = [
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 filterwarnings = [
-    # Google modules call a deprecated pkg_resources API.
-    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
-    "ignore:.*pkg_resources\\.declare_namespace:DeprecationWarning",
-    # Google modules use PyType_Spec in a deprecated way.
-    "ignore:Type google\\..*metaclass.* custom tp_new:DeprecationWarning",
-    # dateutil uses a deprecated datetime function.
-    "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:dateutil.*",
     # The point of this test is to test handling of datetime-naive UTC
     # objects, which is what the deprecation warning is about. We want to
     # continue doing this until the support has been removed entirely.
     "ignore:datetime.datetime.utcnow:DeprecationWarning:tests.pydantic_test",
+    # Deprecated use of Pydantic v1 features in vo-models.
+    "ignore:Support for class-based `config`:DeprecationWarning",
 ]
 python_files = [
     "tests/*.py",

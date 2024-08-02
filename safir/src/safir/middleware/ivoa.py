@@ -24,7 +24,7 @@ class CaseInsensitiveQueryMiddleware:
     need to parse the POST data case-insensitively in the handler or a
     dependency.
 
-    Based on `fastapi#826 <https://github.com/tiangolo/fastapi/issues/826>`__.
+    Based on `fastapi#826 <https://github.com/fastapi/fastapi/issues/826>`__.
     """
 
     def __init__(self, app: ASGIApp) -> None:

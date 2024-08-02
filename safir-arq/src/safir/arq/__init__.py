@@ -5,6 +5,7 @@ from __future__ import annotations
 import abc
 import asyncio
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
@@ -13,7 +14,10 @@ from typing import Any, Self
 from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings
 from arq.constants import default_queue_name as arq_default_queue_name
+from arq.cron import CronJob
 from arq.jobs import Job, JobStatus
+from arq.typing import SecondsTimedelta, StartupShutdown, WorkerCoroutine
+from arq.worker import Function
 from pydantic import SecretStr
 from pydantic_core import Url
 
@@ -29,6 +33,7 @@ __all__ = [
     "RedisArqQueue",
     "MockArqQueue",
     "build_arq_redis_settings",
+    "WorkerSettings",
 ]
 
 
@@ -667,3 +672,45 @@ def build_arq_redis_settings(
         database=int(url.path.lstrip("/")) if url.path else 0,
         password=password.get_secret_value() if password else None,
     )
+
+
+@dataclass
+class WorkerSettings:
+    """Configuration class for an arq worker.
+
+    The arq command-line tool reads a class of the name ``WorkerSettings`` in
+    the module it was given on the command line and turns its attributes into
+    parameters to `arq.worker.Worker`. This dataclass represents the subset of
+    the available settings that Safir applications have needed to date, as an
+    aid for constructing that configuration object.
+    """
+
+    functions: Sequence[Function | WorkerCoroutine]
+    """Coroutines to register as arq worker entry points."""
+
+    redis_settings: RedisSettings
+    """Redis configuration for arq."""
+
+    job_completion_wait: SecondsTimedelta
+    """How long to wait for jobs to complete before cancelling them."""
+
+    job_timeout: SecondsTimedelta
+    """Maximum timeout for all jobs."""
+
+    max_jobs: int
+    """Maximum number of jobs that can be run at one time."""
+
+    allow_abort_jobs: bool = False
+    """Whether to allow jobs to be aborted."""
+
+    queue_name: str = arq_default_queue_name
+    """Name of arq queue to listen to for jobs."""
+
+    on_startup: StartupShutdown | None = None
+    """Coroutine to run on startup."""
+
+    on_shutdown: StartupShutdown | None = None
+    """Coroutine to run on shutdown."""
+
+    cron_jobs: Sequence[CronJob] | None = None
+    """Cron jobs to run."""
