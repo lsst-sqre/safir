@@ -1,7 +1,5 @@
 """An arq_ client with a mock for testing."""
 
-from __future__ import annotations
-
 from ._config import WorkerSettings, build_arq_redis_settings
 from ._exceptions import (
     ArqJobError,
