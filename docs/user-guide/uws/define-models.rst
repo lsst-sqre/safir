@@ -24,7 +24,7 @@ Every field must therefore be JSON-serializable and deserializable.
 Here is a simple example for a cutout service:
 
 .. code-block:: python
-   :caption: models/domain/cutout.py
+   :caption: domain.py
 
    from pydantic import BaseModel, Field
 
@@ -72,7 +72,7 @@ Over the lifetime of a service, those two interfaces often have to diverge, and 
 Here is an example of a simple model for a cutout service:
 
 .. code-block:: python
-   :caption: models/cutout.py
+   :caption: models.py
 
    from typing import Self
 

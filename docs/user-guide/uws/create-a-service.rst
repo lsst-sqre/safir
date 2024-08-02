@@ -6,17 +6,17 @@ Creating a new UWS service
 
 To create a new service that uses the Safir UWS library for its API, first create a new FastAPI Safir application.
 The easiest way to do this is to follow the instructions in :ref:`create-from-template`.
+Select the ``UWS`` flavor.
 
 Then, flesh out the application by following these steps:
 
-#. Create the application structure
 #. :doc:`Define the API parameters <define-inputs>`
 #. :doc:`Define the parameter models <define-models>`
 #. :doc:`Write the backend worker <write-backend>`
 #. :doc:`Write the test suite <testing>`
 
-The first step is covered in this page.
-The remaining steps are discussed in the linked pages.
+If you use the template and select the ``UWS`` flavor, all of the steps below will be done for you and you can skip the rest of this page.
+Read on if you're curious about what the ``UWS`` flavor sets up, or if you're converting an already-existing FastAPI application.
 
 .. _uws-config:
 
