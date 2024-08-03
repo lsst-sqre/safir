@@ -26,7 +26,6 @@ __all__ = [
     "PydanticRedisStorage",
     "EncryptedPydanticRedisStorage",
     "DeserializeError",
-    "S",
 ]
 
 

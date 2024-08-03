@@ -34,6 +34,11 @@ nitpick_ignore = [
     ["py:obj", "safir.pydantic.EnvRedisDsn"],
     ["py:obj", "safir.pydantic.HumanTimedelta"],
     ["py:obj", "safir.pydantic.SecondsTimedelta"],
+    # TypeVar references used as parameters to Generic seem to create target
+    # not found errors even if they are exported when they are used in private
+    # submodules.
+    ["py:obj", "safir.asyncio._multiqueue.T"],
+    ["py:obj", "safir.redis._storage.S"],
 ]
 extensions = [
     "sphinxcontrib.autodoc_pydantic",
