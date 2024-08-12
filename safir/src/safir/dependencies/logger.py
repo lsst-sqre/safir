@@ -10,7 +10,19 @@ import structlog
 from fastapi import Request
 from structlog.stdlib import BoundLogger
 
-from safir import logging
+_logger_name: str | None = None
+"""Name of the configured global logger.
+
+When `configure_logging` is called, the name of the configured logger is
+stored in this variable. It is used by the logger dependency to retrieve the
+application's configured logger.
+
+Only one configured logger is supported. Additional calls to
+`configure_logging` change the stored logger name.
+
+This variable is internal to Safir and should not be used outside of the
+library.
+"""
 
 __all__ = ["LoggerDependency", "logger_dependency"]
 
@@ -43,9 +55,9 @@ class LoggerDependency:
             The bound logger.
         """
         if not self.logger:
-            self.logger = structlog.get_logger(logging.logger_name)
+            self.logger = structlog.get_logger(_logger_name)
             if not self.logger:
-                msg = f"Unable to get logger for {logging.logger_name}"
+                msg = f"Unable to get logger for {_logger_name}"
                 raise RuntimeError(msg)
 
         # Construct the httpRequest logging data (compatible with the format

@@ -14,7 +14,6 @@ import structlog
 from httpx import AsyncClient
 from pydantic import BaseModel, ValidationError
 
-from safir import logging as safir_logging
 from safir.logging import LogLevel, Profile, configure_logging
 from safir.testing.uvicorn import spawn_uvicorn
 
@@ -75,7 +74,6 @@ def test_configure_logging_development(
     configure_logging(
         name="myapp", profile=Profile.development, log_level=LogLevel.INFO
     )
-    assert safir_logging.logger_name == "myapp"
 
     logger = structlog.get_logger("myapp")
     logger = logger.bind(answer=42)
