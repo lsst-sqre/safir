@@ -7,12 +7,18 @@ from typing import Any
 
 import respx
 from httpx import Request, Response
+from pydantic import SecretStr
 
 __all__ = ["MockSlackWebhook", "mock_slack_webhook"]
 
 
 class MockSlackWebhook:
     """Represents a Slack incoming webhook and remembers what was posted.
+
+    Parameters
+    ----------
+    url
+        URL that the mock has been configured to listen on.
 
     Attributes
     ----------
@@ -46,7 +52,7 @@ class MockSlackWebhook:
 
 
 def mock_slack_webhook(
-    hook_url: str, respx_mock: respx.Router
+    hook_url: str | SecretStr, respx_mock: respx.Router
 ) -> MockSlackWebhook:
     """Set up a mocked Slack server.
 
@@ -92,6 +98,8 @@ def mock_slack_webhook(
            # Do something with client that generates Slack messages.
            assert mock_slack.messages == [{...}, {...}]
     """
+    if isinstance(hook_url, SecretStr):
+        hook_url = hook_url.get_secret_value()
     mock = MockSlackWebhook(hook_url)
     respx_mock.post(hook_url).mock(side_effect=mock.post_webhook)
     return mock
