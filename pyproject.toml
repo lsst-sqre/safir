@@ -48,25 +48,11 @@ warn_untyped_fields = true
 extend = "ruff-shared.toml"
 
 [tool.ruff.lint.extend-per-file-ignores]
-"noxfile.py" = [
-    "T201",    # print makes sense as output from nox rules
-]
 "*/src/safir/**" = [
     "N818",    # Exception is correct in some cases, others are part of API
 ]
 "safir/src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
-]
-"*/tests/**" = [
-    "C901",    # tests are allowed to be complex, sometimes that's convenient
-    "D101",    # tests don't need docstrings
-    "D103",    # tests don't need docstrings
-    "PLR0915", # tests are allowed to be long, sometimes that's convenient
-    "PT012",   # way too aggressive about limiting pytest.raises blocks
-    "S101",    # tests should use assert
-    "S106",    # tests are allowed to hard-code dummy passwords
-    "S301",    # allow tests for whether code can be pickled
-    "SLF001",  # tests are allowed to access private members
 ]
 
 [tool.ruff.lint.isort]
