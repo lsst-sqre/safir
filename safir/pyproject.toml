@@ -30,9 +30,9 @@ dependencies = [
     "httpx>=0.20.0,<1",
     "pydantic>2,<3",
     "pydantic-core",
+    "safir-logging",
     "starlette<1",
-    # 23.3.0 excluded due to https://github.com/hynek/structlog/issues/584
-    "structlog>=21.2.0,!=23.3.0",
+    "structlog>=21.2.0",
 ]
 dynamic = ["version"]
 
@@ -50,7 +50,6 @@ dev = [
     "fastapi>=0.93.0",
     "mypy",
     "pre-commit",
-    "psycopg2",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",

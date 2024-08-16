@@ -5,6 +5,9 @@ Logging in Safir applications
 Safir supports logging with structlog_, a structured logging library.
 Rather than logging free-form messages, structured logging lets you create messages with easily parseable data attributes.
 
+Normally, packages that use this support should depend on ``safir``.
+However, packages that wish to use this support but do not want to depend on the full Safir library and its dependencies can depend on ``safir-logging`` instead.
+
 How to set up logging for Safir-based applications
 ==================================================
 
@@ -23,7 +26,7 @@ To configure logging, run the `safir.logging.configure_logging` function in appl
 
 .. code-block:: python
 
-   config = Configuration()
+   config = Config()
    configure_logging(
        profile=config.profile,
        log_level=config.log_level,
@@ -32,7 +35,7 @@ To configure logging, run the `safir.logging.configure_logging` function in appl
 
 .. note::
 
-   The ``Configuration`` object is the responsibility of each each app to create.
+   The ``Config`` object is the responsibility of each each app to create.
 
    See the `~safir.logging.configure_logging` for details about the parameters.
 

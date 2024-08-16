@@ -11,7 +11,12 @@ import structlog
 from structlog.stdlib import add_log_level
 from structlog.types import EventDict
 
-from safir.dependencies import logger as logger_dependency
+try:
+    from safir.dependencies import logger as logger_dependency
+
+    _UPDATE_DEPENDENCY = True
+except Exception:
+    _UPDATE_DEPENDENCY = False
 
 from ._models import LogLevel, Profile
 
@@ -162,4 +167,5 @@ def configure_logging(
     )
 
     # Set the configured name for the global logger.
-    logger_dependency._logger_name = name  # noqa: SLF001
+    if _UPDATE_DEPENDENCY:
+        logger_dependency._logger_name = name  # noqa: SLF001

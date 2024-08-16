@@ -149,3 +149,8 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           working-directory: "safir-arq"
+
+      - uses: lsst-sqre/build-and-publish-to-pypi@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          working-directory: "safir-logging"
