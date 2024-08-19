@@ -30,7 +30,7 @@ dependencies = [
     "httpx>=0.20.0,<1",
     "pydantic>2,<3",
     "pydantic-core",
-    "safir-logging",
+    "safir-logging<7",
     "starlette<1",
     "structlog>=21.2.0",
 ]
