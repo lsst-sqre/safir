@@ -31,7 +31,7 @@ It will, for example, generally include the module that defines the worker param
 
 However, be aware that the worker will run in a different Python environment than the frontend (usually a Rubin pipelines container).
 It therefore must not include any portion of the application source that requires additional dependencies such as FastAPI, and it must not include general Safir modules.
-Normally it should only include the worker parameter model, :mod:`safir.arq`, :mod:`safir.arq.uws`, and any other Python modules that are available in the backend Python environment.
+Normally it should only include the worker parameter model, :mod:`safir.arq`, :mod:`safir.arq.uws`, :mod:`safir.logging`, and any other Python modules that are available in the backend Python environment.
 
 The backend worker should also target the version of Python provided by its base container, which may be different (usually older) than the version of Python used by the frontend.
 
@@ -49,12 +49,19 @@ Here is the rough shape of the module that defines this worker:
        WorkerResult,
        build_worker,
    )
+   from safir.logging import configure_logging
 
 
    def example(
        params: WorkerCutout, info: WorkerJobInfo, logger: BoundLogger
    ) -> list[WorkerResult]: ...
 
+
+   configre_logging(
+       name="example",
+       profile=os.getenv("EXAMPLE_PROFILE", "development"),
+       log_level=os.getenv("EXAMPLE_LOG_LEVEL", "INFO"),
+   )
 
    WorkerSettings = build_worker(
        example,
@@ -179,7 +186,7 @@ This allows it to use a different software stack, such as the Science Pipelines 
 You will then need to install the backend worker code and its prerequisites so that it's suitable for use as an arq worker.
 
 The backend worker image must have a suitable Python 3.11 or later with Pydantic_ and structlog_.
-On top of this, install the safir-arq PyPI package, which contains just the portions of Safir required to talk to arq and create a backend worker.
+On top of this, install the safir-arq PyPI package, which contains just the portions of Safir required to talk to arq and create a backend worker, and the safir-logging PyPI package, which contains the code to configure structlog.
 
 Finally, install your application, but without its dependencies.
 This will ensure the worker code and the models it uses are available, but will not require all of the application dependencies such as Safir and FastAPI to be installed.
