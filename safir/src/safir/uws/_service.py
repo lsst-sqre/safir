@@ -262,8 +262,7 @@ class JobService:
                 wait = self._config.wait_timeout
             else:
                 wait = timedelta(seconds=wait_seconds)
-                if wait > self._config.wait_timeout:
-                    wait = self._config.wait_timeout
+                wait = min(wait, self._config.wait_timeout)
             if wait_for_completion:
                 until_not = ACTIVE_PHASES
             else:
@@ -495,8 +494,7 @@ class JobService:
         # Validate the new value.
         if validator := self._config.validate_execution_duration:
             duration = validator(duration, job)
-        if duration > self._config.execution_duration:
-            duration = self._config.execution_duration
+        duration = min(duration, self._config.execution_duration)
 
         # Update the duration in the job.
         if duration == job.execution_duration:
