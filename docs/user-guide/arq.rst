@@ -11,6 +11,9 @@ To simplify integrating arq_ into your FastAPI application and test suites, Safi
 For information on using arq in general, see the `arq documentation <https://arq-docs.helpmanual.io>`_.
 For real-world examples of how this dependency, and arq-based distributed queues in general are used in FastAPI apps, see our `Times Square <https://github.com/lsst-sqre/times-square>`__ and `Noteburst <https://github.com/lsst-sqre/noteburst>`__ applications.
 
+Normally, packages that wish to use this support should depend on ``safir[arq]``.
+As a special exception, packages that only need the facilities in `safir.arq` but not the dependency in `safir.dependencies.arq`, and which do not want to depend on the full Safir library and its dependencies, can instead depend on ``safir-arq``.
+
 Quick start
 ===========
 
