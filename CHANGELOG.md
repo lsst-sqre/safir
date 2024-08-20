@@ -10,7 +10,7 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 <!-- scriv-insert-here -->
 
 <a id='changelog-6.3.0'></a>
-## 6.3.0 (2024-08-19)
+## 6.3.0 (2024-08-20)
 
 ### New features
 
