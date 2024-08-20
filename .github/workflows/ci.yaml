@@ -122,6 +122,13 @@ jobs:
           upload: false
           working-directory: "safir-arq"
 
+      - name: Test building and publishing safir-logging
+        uses: lsst-sqre/build-and-publish-to-pypi@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          upload: false
+          working-directory: "safir-logging"
+
   pypi:
 
     name: Upload release to PyPI
