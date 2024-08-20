@@ -9,6 +9,20 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-6.3.0'></a>
+## 6.3.0 (2024-08-19)
+
+### New features
+
+- `safir.logging` is now available as a separate PyPI package, `safir-logging`, so that it can be installed in environments where the full Safir dependency may be too heavy-weight or conflict with other packages. Packages that do depend on `safir` can and should ignore this change and continue to assume depending on `safir` will be sufficient to provide `safir.logging`.
+- Allow the database URL passed to `DatabaseSessionDependency.initialize` to be a Pydantic `Url`. This simplifies logic for applications that use `EnvAsyncPostgresDsn` or other Pydantic URL types for their configuration.
+- Allow the hook URL argument to `safir.testing.slack.mock_slack_webhook` to be a Pydantic `SecretStr`.
+
+### Bug fixes
+
+- `safir.logging` previously exported a `logger_name` variable holding the logger name configured via `safir.logging.configure_logging`. This variable was never documented and was not intended for use outside of the library. It is no longer exported, has been renamed, and is now private to the library.
+- Fix construction of an `Availability` object reporting problems with the UWS database layer to use the correct field names and data type for the model.
+
 <a id='changelog-6.2.0'></a>
 ## 6.2.0 (2024-08-02)
 
