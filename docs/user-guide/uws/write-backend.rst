@@ -31,7 +31,7 @@ It will, for example, generally include the module that defines the worker param
 
 However, be aware that the worker will run in a different Python environment than the frontend (usually a Rubin pipelines container).
 It therefore must not include any portion of the application source that requires additional dependencies such as FastAPI, and it must not include general Safir modules.
-Normally it should only include the worker parameter model, :mod:`safir.arq`, :mod:`safir.arq.uws`, :mod:`safir.logging`, and any other Python modules that are available in the backend Python environment.
+Normally it should only include the worker parameter model, `safir.arq`, `safir.arq.uws`, `safir.logging`, and any other Python modules that are available in the backend Python environment.
 
 The backend worker should also target the version of Python provided by its base container, which may be different (usually older) than the version of Python used by the frontend.
 
