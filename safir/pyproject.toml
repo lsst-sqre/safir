@@ -129,6 +129,7 @@ exclude_lines = [
 ]
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "strict"
 filterwarnings = [
     # The point of this test is to test handling of datetime-naive UTC
