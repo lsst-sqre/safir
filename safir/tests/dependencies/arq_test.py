@@ -138,7 +138,7 @@ async def test_arq_dependency_mock() -> None:
         except JobNotFound as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with LifespanManager(app):
         async with AsyncClient(transport=transport, base_url=base_url) as c:

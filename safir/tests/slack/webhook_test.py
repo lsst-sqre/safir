@@ -153,10 +153,7 @@ async def test_route_handler(mock_slack: MockSlackWebhook) -> None:
 
     # We need a custom HTTPX configuration to disable raising server
     # exceptions so that we can inspect the resulting error handling.
-    transport = ASGITransport(
-        app=app,  # type: ignore[arg-type]
-        raise_app_exceptions=False,
-    )
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
 
     # Run the test.
     base_url = "https://example.com"

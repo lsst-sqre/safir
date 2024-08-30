@@ -60,7 +60,7 @@ async def test_session(database_url: str, database_password: str) -> None:
             result = await session.scalars(select(User.username))
             return list(result.all())
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/list")

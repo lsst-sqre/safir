@@ -535,8 +535,7 @@ async def test_redirects(
     # Try various actions that result in redirects and ensure the redirect is
     # correct.
     async with AsyncClient(
-        transport=ASGITransport(app=app),  # type: ignore[arg-type]
-        base_url="http://foo.com/",
+        transport=ASGITransport(app=app), base_url="http://foo.com/"
     ) as client:
         r = await client.post(
             "/test/jobs/1/destruction",

@@ -30,7 +30,7 @@ async def test_logger(caplog: pytest.LogCaptureFixture) -> None:
         return {}
 
     caplog.clear()
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
@@ -69,7 +69,7 @@ async def test_logger_xforwarded(caplog: pytest.LogCaptureFixture) -> None:
         return {}
 
     caplog.clear()
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(

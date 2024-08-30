@@ -31,7 +31,7 @@ async def test_ok() -> None:
         assert request.url == "https://foo.example.com/"
         return {}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
@@ -58,7 +58,7 @@ async def test_defaults() -> None:
         assert request.url == "http://example.com/"
         return {}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
@@ -84,7 +84,7 @@ async def test_no_forwards() -> None:
         assert request.url == "http://example.com/"
         return {}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/")
@@ -103,7 +103,7 @@ async def test_all_filtered() -> None:
         assert request.url == "https://example.com/"
         return {}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
@@ -129,7 +129,7 @@ async def test_one_proto() -> None:
         assert request.url == "https://example.com/"
         return {}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(
@@ -155,7 +155,7 @@ async def test_no_proto_or_host() -> None:
         assert request.url == "http://example.com/"
         return {}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "http://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get(

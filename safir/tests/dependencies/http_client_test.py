@@ -39,7 +39,7 @@ async def test_http_client(respx_mock: respx.Router) -> None:
         await http_client.get("https://www.google.com")
         return {}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with LifespanManager(app):
         async with AsyncClient(transport=transport, base_url=base_url) as c:

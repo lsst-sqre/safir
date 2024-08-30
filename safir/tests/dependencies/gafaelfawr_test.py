@@ -29,7 +29,7 @@ async def test_auth_dependency() -> None:
     ) -> dict[str, str]:
         return {"user": user}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/")
@@ -50,7 +50,7 @@ async def test_auth_delegated_token_dependency() -> None:
     ) -> dict[str, str]:
         return {"token": token}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/")
@@ -79,7 +79,7 @@ async def test_auth_logger_dependency(
         return {}
 
     caplog.clear()
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/", headers={"User-Agent": ""})
