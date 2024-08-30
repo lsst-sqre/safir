@@ -21,7 +21,7 @@ If the tox-docker variables are set, their contents are used to override the hos
 This allows the application to get all of its configuration from environment variables at module load time without needing special code in every application to handle the tox-docker environment variables.
 
 For PostgreSQL DSNs, use the data type `safir.pydantic.EnvAsyncPostgresDsn` instead of `pydantic.PostgresDsn`.
-This type additionally forces the scheme of the PostgreSQL DSN to either not specify the underying library or to specify asyncpg, allowing it to work correctly with the :doc:`Safir database API <database>`.
+This type additionally forces the scheme of the PostgreSQL DSN to either not specify the underying library or to specify asyncpg, allowing it to work correctly with the :doc:`Safir database API <database/index>`.
 Unlike the Pydantic type, `~safir.pydantic.EnvAsyncPostgresDsn` only supports a single host.
 
 For Redis DSNs, use the data type `safir.pydantic.EnvRedisDsn` instead of `pydantic.RedisDsn`.

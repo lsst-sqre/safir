@@ -16,7 +16,7 @@ User guide
 
    logging
    http-client
-   database
+   database/index
    arq
    gafaelfawr
    x-forwarded
