@@ -43,7 +43,7 @@ async def test_client_request_error() -> None:
     async def permission_error() -> dict[str, str]:
         raise PermissionDeniedError("Permission denied")
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/user")

@@ -36,7 +36,7 @@ async def test_case_insensitive() -> None:
     ) -> dict[str, list[str]]:
         return {"param": param}
 
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app)
     base_url = "https://example.com"
     async with AsyncClient(transport=transport, base_url=base_url) as client:
         r = await client.get("/", params={"param": "foo"})
