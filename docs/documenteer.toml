@@ -39,6 +39,13 @@ nitpick_ignore = [
     # submodules.
     ["py:obj", "safir.asyncio._multiqueue.T"],
     ["py:obj", "safir.redis._storage.S"],
+    # SQLAlchemy DeclarativeBase documentation has references that Sphinx
+    # can't resolve properly.
+    ["py:class", "sqlalchemy.inspection.Inspectable"],
+    ["py:class", "_orm.Mapper"],
+    ["py:class", "_orm.registry"],
+    ["py:class", "_schema.MetaData"],
+    ["py:class", "_schema.Table"],
 ]
 extensions = [
     "sphinxcontrib.autodoc_pydantic",

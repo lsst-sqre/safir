@@ -22,6 +22,7 @@ from ._models import ErrorCode, UWSJobError, UWSJobParameter
 
 __all__ = [
     "DataMissingError",
+    "DatabaseSchemaError",
     "InvalidPhaseError",
     "MultiValuedParameterError",
     "ParameterError",
@@ -35,6 +36,10 @@ __all__ = [
     "UsageError",
     "UWSError",
 ]
+
+
+class DatabaseSchemaError(Exception):
+    """Some problem was detected in the UWS database schema."""
 
 
 class UWSError(SlackIgnoredException):

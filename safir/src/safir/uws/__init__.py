@@ -4,6 +4,7 @@ from ._app import UWSApplication
 from ._config import ParametersModel, UWSAppSettings, UWSConfig, UWSRoute
 from ._dependencies import uws_post_params_dependency
 from ._exceptions import (
+    DatabaseSchemaError,
     MultiValuedParameterError,
     ParameterError,
     ParameterParseError,
@@ -17,8 +18,10 @@ from ._models import (
     UWSJobParameter,
     UWSJobResult,
 )
+from ._schema import UWSSchemaBase
 
 __all__ = [
+    "DatabaseSchemaError",
     "ErrorCode",
     "MultiValuedParameterError",
     "ParameterError",
@@ -28,11 +31,12 @@ __all__ = [
     "UWSAppSettings",
     "UWSConfig",
     "UWSError",
-    "UWSRoute",
     "UWSJob",
     "UWSJobError",
     "UWSJobParameter",
     "UWSJobResult",
+    "UWSRoute",
+    "UWSSchemaBase",
     "UsageError",
     "uws_post_params_dependency",
 ]

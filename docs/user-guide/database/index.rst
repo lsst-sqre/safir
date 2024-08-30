@@ -26,3 +26,4 @@ Guides
    datetime
    retry
    testing
+   schema

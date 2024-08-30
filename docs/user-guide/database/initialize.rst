@@ -55,6 +55,8 @@ If ``config.database_schema`` is `None`, the default schema will be used; otherw
 Safir supports this in database initialization by creating a non-default schema if one is set.
 If the ``schema`` attribute is set (via code like the above) on the SQLAlchemy metadata passed to the ``schema`` parameter of `~safir.database.initialize_database`, it will create that schema in the PostgreSQL database if it does not already exist.
 
+.. _database-init-cli:
+
 Add a CLI command to initialize the database
 ============================================
 
@@ -80,7 +82,7 @@ For applications using Click_ (the recommended way to implement a command-line i
        "--reset", is_flag=True, help="Delete all existing database data."
    )
    @run_with_asyncio
-   async def init(reset: bool) -> None:
+   async def init(*, reset: bool) -> None:
        logger = structlog.get_logger(config.logger_name)
        engine = create_database_engine(
            config.database_url, config.database_password

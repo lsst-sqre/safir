@@ -54,6 +54,10 @@ extend = "ruff-shared.toml"
 "safir/src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
 ]
+"safir/tests/data/database/*alembic/**" = [
+    "INP001",  # Alembic files are magical
+    "D400",    # Alembic migrations have their own format
+]
 
 [tool.ruff.lint.isort]
 detect-same-package = false

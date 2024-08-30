@@ -26,8 +26,8 @@ Then, add the following to :file:`tox.ini` to define a database container:
        5432:5432/tcp
    environment =
        POSTGRES_PASSWORD = INSECURE-PASSWORD
-       POSTGRES_USER = safir
-       POSTGRES_DB = safir
+       POSTGRES_USER = example
+       POSTGRES_DB = example
        PGPORT = 5432
    # The healthcheck ensures that tox-docker won't run tests until the
    # container is up and the command finishes with exit code 0 (success)
@@ -63,8 +63,8 @@ Assuming that your application uses environment variables to configure the datab
    [testenv:py]
    # ...
    setenv =
-       APP_DATABASE_URL = postgresql://safir@127.0.0.1/safir
-       APP_DATABASE_PASSWORD = INSECURE-PASSWORD
+       EXAMPLE_DATABASE_URL = postgresql://safir@127.0.0.1/safir
+       EXAMPLE_DATABASE_PASSWORD = INSECURE-PASSWORD
 
 Change the names of the environment variables to match those used by your application, and change the database user and database name to match your application if you did so in the ``[docker:postgres]`` section.
 
@@ -87,9 +87,9 @@ For example:
    from fastapi import FastAPI
    from safir.database import create_database_engine, initialize_database
 
-   from application import main
-   from application.config import config
-   from application.schema import Base
+   from example import main
+   from example.config import config
+   from example.schema import Base
 
 
    @pytest_asyncio.fixture

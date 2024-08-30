@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from arq import cron
@@ -13,13 +14,18 @@ from structlog.stdlib import BoundLogger
 
 from safir.arq import ArqQueue, WorkerSettings
 from safir.arq.uws import UWS_QUEUE_NAME
-from safir.database import create_database_engine, initialize_database
+from safir.database import (
+    create_database_engine,
+    initialize_database,
+    is_database_current,
+    stamp_database_async,
+)
 from safir.middleware.ivoa import CaseInsensitiveQueryMiddleware
 
 from ._config import UWSConfig
 from ._constants import UWS_DATABASE_TIMEOUT, UWS_EXPIRE_JOBS_SCHEDULE
 from ._dependencies import uws_dependency
-from ._exceptions import UWSError
+from ._exceptions import DatabaseSchemaError, UWSError
 from ._handlers import (
     install_async_post_handler,
     install_availability_handler,
@@ -73,7 +79,13 @@ class UWSApplication:
     def __init__(self, config: UWSConfig) -> None:
         self._config = config
 
-    def build_worker(self, logger: BoundLogger) -> WorkerSettings:
+    def build_worker(
+        self,
+        logger: BoundLogger,
+        *,
+        check_schema: bool = False,
+        alembic_config_path: Path = Path("alembic.ini"),
+    ) -> WorkerSettings:
         """Construct an arq worker configuration for the UWS worker.
 
         All UWS job status and results must be stored in the underlying
@@ -94,10 +106,23 @@ class UWSApplication:
         ----------
         logger
             Logger to use for messages.
+        check_schema
+            Whether to check the database schema version with Alembic on
+            startup.
+        alembic_config_path
+            When checking the schema, use this path to the Alembic
+            configuration.
         """
 
         async def startup(ctx: dict[Any, Any]) -> None:
-            ctx.update(await create_uws_worker_context(self._config, logger))
+            ctx.update(
+                await create_uws_worker_context(
+                    self._config,
+                    logger,
+                    check_schema=check_schema,
+                    alembic_config_path=alembic_config_path,
+                )
+            )
 
         async def shutdown(ctx: dict[Any, Any]) -> None:
             await close_uws_worker_context(ctx)
@@ -123,16 +148,46 @@ class UWSApplication:
             on_shutdown=shutdown,
         )
 
-    async def initialize_fastapi(self) -> None:
+    async def initialize_fastapi(
+        self,
+        logger: BoundLogger | None = None,
+        *,
+        check_schema: bool = False,
+        alembic_config_path: Path = Path("alembic.ini"),
+    ) -> None:
         """Initialize the UWS subsystem for FastAPI applications.
 
         This must be called before any UWS routes are accessed, normally from
         the lifespan function of the FastAPI application.
+
+        Parameters
+        ----------
+        logger
+            Logger to use to report any problems.
+        check_schema
+            If `True`, check whether the database schema for the UWS database
+            is up to date using Alembic.
+        alembic_config_path
+            When checking the schema, use this path to the Alembic
+            configuration.
+
+        Raises
+        ------
+        DatabaseSchemaError
+            Raised if the UWS database schema is out of date.
         """
+        if check_schema:
+            if not await self.is_schema_current(logger, alembic_config_path):
+                raise DatabaseSchemaError("UWS database schema out of date")
         await uws_dependency.initialize(self._config)
 
     async def initialize_uws_database(
-        self, logger: BoundLogger, *, reset: bool = False
+        self,
+        logger: BoundLogger,
+        *,
+        reset: bool = False,
+        use_alembic: bool = False,
+        alembic_config_path: Path = Path("alembic.ini"),
     ) -> None:
         """Initialize the UWS database.
 
@@ -142,6 +197,11 @@ class UWSApplication:
             Logger to use.
         reset
             If `True`, also delete all data in the database.
+        use_alembic
+            Whether to stamp the UWS database with Alembic.
+        alembic_config_path
+            When stamping the database, use this path to the Alembic
+            configuration.
         """
         engine = create_database_engine(
             self._config.database_url, self._config.database_password
@@ -149,6 +209,8 @@ class UWSApplication:
         await initialize_database(
             engine, logger, schema=UWSSchemaBase.metadata, reset=reset
         )
+        if use_alembic:
+            await stamp_database_async(engine, alembic_config_path)
         await engine.dispose()
 
     def install_error_handlers(self, app: FastAPI) -> None:
@@ -208,6 +270,28 @@ class UWSApplication:
             FastAPI app.
         """
         app.add_middleware(CaseInsensitiveQueryMiddleware)
+
+    async def is_schema_current(
+        self,
+        logger: BoundLogger | None = None,
+        config_path: Path = Path("alembic.ini"),
+    ) -> bool:
+        """Check that the database schema is current using Alembic.
+
+        Parameters
+        ----------
+        logger
+            Logger to use to report any problems.
+        config_path
+            Path to the Alembic configuration.
+        """
+        engine = create_database_engine(
+            self._config.database_url, self._config.database_password
+        )
+        try:
+            return await is_database_current(engine, logger, config_path)
+        finally:
+            await engine.dispose()
 
     def override_arq_queue(self, arq_queue: ArqQueue) -> None:
         """Change the arq used by the FastAPI route handlers.
