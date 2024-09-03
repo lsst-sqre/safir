@@ -61,7 +61,7 @@ Provide a test database
 -----------------------
 
 UWS relies on database in which to store job information and results.
-Follow the instructions in :ref:`database-testing` to use tox-docker_ to create a test PostgreSQL database, but skip the instructions there for initializing the database.
+Follow the instructions in :doc:`/user-guide/database/testing` to use tox-docker_ to create a test PostgreSQL database, but skip the instructions there for initializing the database.
 Instead, use the UWS library to initialize the resulting database:
 
 .. code-block:: python

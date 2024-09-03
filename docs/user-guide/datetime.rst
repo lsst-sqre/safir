@@ -15,7 +15,7 @@ Applications using Safir may wish to follow these rules:
   The one exception is when the time interval is a constant used as a validation parameter in contexts (such as some Pydantic and FastAPI cases) where a `~datetime.timedelta` is not supported.
 
 Safir provides several small utility functions for `~datetime.datetime` handling to help ensure consistency with these rules.
-Also see the Pydantic validation functions at :ref:`pydantic-datetime` and the utility functions for handling `~datetime.datetime` objects in database schemas in :ref:`database-datetime`.
+Also see the Pydantic validation functions at :ref:`pydantic-datetime` and the utility functions for handling `~datetime.datetime` objects in database schemas in :doc:`database/datetime`.
 
 Getting the current date and time
 =================================
