@@ -3,24 +3,9 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from ..kafka.config import (
-    KafkaConnectionSettings,
-    SchemaRegistryConnectionSettings,
-)
-
 
 class Configuration(BaseSettings):
     """Configuration for emitting events."""
-
-    kafka: KafkaConnectionSettings = Field(
-        ...,
-        description="Kafka connection configuration",
-    )
-
-    schema_registry: SchemaRegistryConnectionSettings = Field(
-        ...,
-        description="Schema registry connection configuration",
-    )
 
     base_topic_prefix: str = Field(
         "lsst.square.metrics", title="Metrics topic prefix"
