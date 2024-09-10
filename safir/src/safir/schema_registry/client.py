@@ -6,4 +6,4 @@ from safir.schema_registry.config import SchemaRegistryConnectionSettings
 def make_schema_registry_client(
     config: SchemaRegistryConnectionSettings,
 ) -> AsyncSchemaRegistryClient:
-    return AsyncSchemaRegistryClient(url=str(config.url.scheme))
+    return AsyncSchemaRegistryClient(url=str(config.url))

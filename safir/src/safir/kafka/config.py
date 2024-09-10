@@ -1,26 +1,36 @@
-"""Configuration for publishing events.
+"""Configuration definition."""
 
-Cribbed from Jonathon's work in Ook:
-https://github.com/lsst-sqre/ook/blob/main/src/ook/config.py
-"""
+from __future__ import annotations
 
 import ssl
 from enum import StrEnum
-from pathlib import Path
-from typing import TypeAlias
+from typing import Literal, Self
 
-from pydantic import DirectoryPath, Field, FilePath, SecretStr
+from pydantic import BaseModel, Field, FilePath, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+__all__ = [
+    "KafkaConnectionSettings",
+    "KafkaSecurityProtocol",
+    "KafkaSaslMechanism",
+    "KafkaConnectionSettings",
+]
 
 
 class KafkaSecurityProtocol(StrEnum):
-    """Kafka security protocols understood by aiokafka."""
+    """Kafka SASL security protocols understood by aiokafka."""
+
+    SASL_PLAINTEXT = "SASL_PLAINTEXT"
+    """Plain-text SASL-authenticated connection."""
+
+    SASL_SSL = "SASL_SSL"
+    """TLS-encrypted SASL-authenticated connection."""
 
     PLAINTEXT = "PLAINTEXT"
     """Plain-text connection."""
 
     SSL = "SSL"
-    """TLS-encrypted connection."""
+    """TLS-encrypted SSL-authenticated connection."""
 
 
 class KafkaSaslMechanism(StrEnum):
@@ -36,7 +46,51 @@ class KafkaSaslMechanism(StrEnum):
     """SCRAM-SHA-512 SASL mechanism."""
 
 
-class KafkaBaseConnectionSettings(BaseSettings):
+class KafkaTlsSettings(BaseModel):
+    """Subset of settings required for TLS auth."""
+
+    security_protocol: Literal[KafkaSecurityProtocol.SSL]
+
+    cluster_ca_path: FilePath
+
+    client_cert_path: FilePath
+
+    client_key_path: FilePath
+
+    @property
+    def ssl_context(self) -> ssl.SSLContext | None:
+        """An SSL context for connecting to Kafka, if the Kafka connection is
+        configured to use TLS authentication.
+        """
+        # Create an SSL context on the basis that we're the client
+        # authenticating the server (the Kafka broker).
+        ssl_context = ssl.create_default_context(
+            purpose=ssl.Purpose.SERVER_AUTH, cafile=str(self.cluster_ca_path)
+        )
+        # Add the certificates that the Kafka broker uses to authenticate us.
+        ssl_context.load_cert_chain(
+            certfile=str(self.client_cert_path),
+            keyfile=str(self.client_key_path),
+        )
+
+        return ssl_context
+
+
+class KafkaSaslSettings(BaseModel):
+    """Subset of settings required for SASL auth."""
+
+    security_protocol: Literal[
+        KafkaSecurityProtocol.SASL_PLAINTEXT, KafkaSecurityProtocol.SASL_SSL
+    ]
+
+    sasl_mechanism: KafkaSaslMechanism
+
+    sasl_username: str
+
+    sasl_password: SecretStr
+
+
+class KafkaConnectionSettings(BaseSettings):
     """Settings for connecting to Kafka."""
 
     bootstrap_servers: str = Field(
@@ -51,46 +105,8 @@ class KafkaBaseConnectionSettings(BaseSettings):
         ),
     )
 
-    model_config = SettingsConfigDict(
-        env_prefix="KAFKA_", case_sensitive=False
-    )
-
-
-class KafkaSaslConnectionSettings(KafkaBaseConnectionSettings):
-    """Settings for connecting to a kafka cluster via SASL."""
-
-    security_protocol: KafkaSecurityProtocol = Field(
-        KafkaSecurityProtocol.PLAINTEXT,
-        description="The security protocol to use when connecting to Kafka.",
-    )
-
-    sasl_mechanism: KafkaSaslMechanism = Field(
-        KafkaSaslMechanism.PLAIN,
-        title="SASL mechanism",
-        description=("The SASL mechanism to use for authentication. "),
-    )
-
-    sasl_username: str = Field(
-        title="SASL username",
-        description=("The username to use for SASL authentication. "),
-    )
-
-    sasl_password: SecretStr = Field(
-        title="SASL password",
-        description=("The password to use for SASL authentication. "),
-    )
-
-
-class KafkaTlsConnectionSettings(KafkaBaseConnectionSettings):
-    """Settings for connecting to a kafka cluster via TLS."""
-
-    cert_temp_dir: DirectoryPath = Field(
-        description=(
-            "Temporary writable directory for concatenating certificates."
-        ),
-    )
-
-    cluster_ca_path: FilePath = Field(
+    cluster_ca_path: FilePath | None = Field(
+        None,
         title="Path to CA certificate file",
         description=(
             "The path to the CA certificate file to use for verifying the "
@@ -100,7 +116,8 @@ class KafkaTlsConnectionSettings(KafkaBaseConnectionSettings):
         ),
     )
 
-    client_cert_path: FilePath = Field(
+    client_cert_path: FilePath | None = Field(
+        None,
         title="Path to client certificate file",
         description=(
             "The path to the client certificate file to use for "
@@ -110,7 +127,8 @@ class KafkaTlsConnectionSettings(KafkaBaseConnectionSettings):
         ),
     )
 
-    client_key_path: FilePath = Field(
+    client_key_path: FilePath | None = Field(
+        None,
         title="Path to client key file",
         description=(
             "The path to the client key file to use for authentication. "
@@ -119,26 +137,61 @@ class KafkaTlsConnectionSettings(KafkaBaseConnectionSettings):
         ),
     )
 
+    security_protocol: KafkaSecurityProtocol | None = Field(
+        title="SASL security protocol",
+        description=(
+            "The authentication and encryption mode for the connection."
+        ),
+    )
+    sasl_mechanism: KafkaSaslMechanism | None = Field(
+        KafkaSaslMechanism.PLAIN,
+        title="SASL mechanism",
+        description=(
+            "The SASL mechanism to use for authentication. "
+            "This is only needed if SASL authentication is enabled."
+        ),
+    )
+
+    sasl_username: str | None = Field(
+        None,
+        title="SASL username",
+        description=(
+            "The username to use for SASL authentication. "
+            "This is only needed if SASL authentication is enabled."
+        ),
+    )
+
+    sasl_password: SecretStr | None = Field(
+        None,
+        title="SASL password",
+        description=(
+            "The password to use for SASL authentication. "
+            "This is only needed if SASL authentication is enabled."
+        ),
+    )
+
+    model_config = SettingsConfigDict(
+        env_prefix="KAFKA_", case_sensitive=False
+    )
+
+    @model_validator(mode="after")
+    def check_auth_settings(self) -> Self:
+        _ = self.auth_settings
+        return self
+
     @property
-    def ssl_context(self) -> ssl.SSLContext | None:
-        """An SSL context for connecting to Kafka with aiokafka, if the
-        Kafka connection is configured to use SSL.
-        """
-        client_cert_path = Path(self.client_cert_path)
+    def auth_settings(self) -> KafkaTlsSettings | KafkaSaslSettings:
+        try:
+            return KafkaTlsSettings(**self.model_dump())
+        except ValueError:
+            pass
 
-        # Create an SSL context on the basis that we're the client
-        # authenticating the server (the Kafka broker).
-        ssl_context = ssl.create_default_context(
-            purpose=ssl.Purpose.SERVER_AUTH, cafile=str(self.cluster_ca_path)
+        try:
+            return KafkaSaslSettings(**self.model_dump())
+        except ValueError:
+            pass
+
+        raise ValueError(
+            "Valid settings must be specified for either TLS or SASL"
+            " authentication."
         )
-        # Add the certificates that the Kafka broker uses to authenticate us.
-        ssl_context.load_cert_chain(
-            certfile=str(client_cert_path), keyfile=str(self.client_key_path)
-        )
-
-        return ssl_context
-
-
-KafkaConnectionSettings: TypeAlias = (
-    KafkaSaslConnectionSettings | KafkaTlsConnectionSettings
-)
