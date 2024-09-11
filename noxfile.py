@@ -20,13 +20,18 @@ nox.options.sessions = [
 nox.options.default_venv_backend = "uv"
 nox.options.reuse_existing_virtualenvs = True
 
+# pip-installable dependencies for all the Safir modules.
+PIP_DEPENDENCIES = (
+    ("-e", "./safir-logging"),
+    ("-e", "./safir-arq"),
+    ("-e", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]"),
+)
+
 
 def _install(session: nox.Session) -> None:
     """Install the application and all dependencies into the session."""
-    session.install("--upgrade", "uv")
-    session.install("-e", "./safir-logging")
-    session.install("-e", "./safir-arq")
-    session.install("-e", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]")
+    for deps in PIP_DEPENDENCIES:
+        session.install(*deps)
 
 
 def _install_dev(session: nox.Session, bin_prefix: str = "") -> None:
@@ -36,8 +41,10 @@ def _install_dev(session: nox.Session, bin_prefix: str = "") -> None:
 
     # Install dev dependencies
     session.run(python, "-m", "pip", "install", "uv", external=True)
-    for args in (("nox[uv]", "pre-commit"), ("-e", "./safir[dev]")):
-        session.run(python, "-m", "uv", "pip", "install", *args, external=True)
+    uv_install = (python, "-m", "uv", "pip", "install")
+    session.run(*uv_install, "nox[uv]", "pre-commit", external=True)
+    for deps in PIP_DEPENDENCIES:
+        session.run(*uv_install, *deps, external=True)
 
     # Install pre-commit hooks
     session.run(precommit, "install", external=True)
