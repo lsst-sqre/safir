@@ -38,6 +38,7 @@ def _sasl(
     config: KafkaSaslSettings,
 ) -> SASLScram512 | SASLScram256 | SASLPlaintext:
     """Create a Faststream Security for SASL authentication."""
+    cls: type[SASLScram512 | SASLScram256 | SASLPlaintext]
     match config.sasl_mechanism:
         case KafkaSaslMechanism.SCRAM_SHA_512:
             cls = SASLScram512

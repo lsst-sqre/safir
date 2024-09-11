@@ -1,5 +1,7 @@
 import logging
-from enum import StrEnum, auto
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Self
 
 from dataclasses_avroschema.pydantic import AvroBaseModel
 from schema_registry.client import AsyncSchemaRegistryClient
@@ -7,17 +9,26 @@ from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
 )
 
+from safir.schema_manager.config import SchemaManagerSettings
+
 
 class Compatibility(StrEnum):
     """Schema registry compatibility types."""
 
-    BACKWARD = auto()
-    BACKWARD_TRANSITIVE = auto()
-    FORWARD = auto()
-    FORWARD_TRANSITIVE = auto()
-    FULL = auto()
-    FULL_TRANSITIVE = auto()
-    NONE = auto()
+    BACKWARD = "BACKWARD"
+    BACKWARD_TRANSITIVE = "BACKWARD_TRANSITIVE"
+    FORWARD = "FORWARD"
+    FORWARD_TRANSITIVE = "FORWARD_TRANSITIVE"
+    FULL = "FULL"
+    FULL_TRANSITIVE = "FULL_TRANSITIVE"
+    NONE = "NONE"
+
+
+@dataclass
+class SchemaInfo:
+    schema: str
+    schema_id: int
+    subject: str
 
 
 class PydanticSchemaManager:
@@ -39,6 +50,13 @@ class PydanticSchemaManager:
         For production, it's best to not set a suffix.
     """
 
+    @classmethod
+    def from_config(cls, config: SchemaManagerSettings) -> Self:
+        registry = AsyncSchemaRegistryClient(
+            url=str(config.schema_registry.url)
+        )
+        return cls(registry=registry, suffix=config.suffix)
+
     def __init__(
         self, *, registry: AsyncSchemaRegistryClient, suffix: str = ""
     ) -> None:
@@ -55,7 +73,7 @@ class PydanticSchemaManager:
         self,
         model: type[AvroBaseModel],
         compatibility: Compatibility | None = None,
-    ) -> None:
+    ) -> SchemaInfo:
         """Register the model with the registry.
 
         Parameters
@@ -73,6 +91,7 @@ class PydanticSchemaManager:
                 subject=subject,
                 level=compatibility,
             )
+        return SchemaInfo(schema=schema, schema_id=schema_id, subject=subject)
 
     async def serialize(self, data: AvroBaseModel) -> bytes:
         """Serialize the data.
