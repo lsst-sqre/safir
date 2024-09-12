@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Generic, TypeVar
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import structlog
@@ -15,16 +16,14 @@ from faststream.kafka import KafkaBroker
 from pydantic import create_model
 from structlog.stdlib import BoundLogger
 
-from safir.kafka.aiokafka_admin_client import make_kafka_admin_client
-from safir.kafka.config import KafkaConnectionSettings
-from safir.kafka.faststream_kafka_broker import make_kafka_broker
-from safir.metrics.development import NoopEventManagerStorage
-from safir.schema_manager.config import SchemaManagerSettings
-from safir.schema_manager.pydantic_schema_manager import (
+from ..kafka.aiokafka_admin_client import make_kafka_admin_client
+from ..kafka.config import KafkaConnectionSettings
+from ..kafka.faststream_kafka_broker import make_kafka_broker
+from ..schema_manager.config import SchemaManagerSettings
+from ..schema_manager.pydantic_schema_manager import (
     PydanticSchemaManager,
     SchemaInfo,
 )
-
 from .models import EventMetadata, Payload
 
 P = TypeVar("P", bound=Payload)
@@ -44,6 +43,7 @@ class Event(Generic[P]):
         schema_manager: PydanticSchemaManager,
         payload_model: type[P],
         logger: BoundLogger,
+        mock_mode: bool = False,
     ) -> None:
         self._name = name
         self._service = service
@@ -53,6 +53,12 @@ class Event(Generic[P]):
         self._schema_manager = schema_manager
         self._schema_info: SchemaInfo
         self._logger = logger
+        self._published_payloads: list[P] | None = None
+        self._published_events: list[AvroBaseModel] | None = None
+
+        if mock_mode:
+            self._published_payloads = []
+            self._published_events = []
 
         class MetaBase(AvroBaseModel):
             class Meta:
@@ -101,6 +107,12 @@ class Event(Generic[P]):
 
         encoded = await self._schema_manager.serialize(event)
         await self._publisher.publish(encoded)
+
+        if self._published_payloads is not None:
+            self._published_payloads.append(payload)
+        if self._published_events is not None:
+            self._published_events.append(event)
+
         self._logger.debug(
             "Published metrics event",
             metrics_event=event.model_dump(),
@@ -108,12 +120,30 @@ class Event(Generic[P]):
             schema_info=self._schema_info,
         )
 
+    @property
+    def published_payloads(self) -> list[P]:
+        if self._published_payloads is None:
+            raise RuntimeError(
+                "Event manager must be running in mock mode to remember"
+                " published payloads."
+            )
+        return self._published_payloads
+
+    @property
+    def published_events(self) -> list[AvroBaseModel]:
+        if self._published_events is None:
+            raise RuntimeError(
+                "Event manager must be running in mock mode to remember"
+                " published events."
+            )
+        return self._published_events
+
     def _ns_to_datetime(self, ns: int) -> datetime:
         return datetime.fromtimestamp(ns / 1e9, tz=UTC)
 
 
 @dataclass
-class EventManagerStorage:
+class _EventManagerStorage:
     kafka_broker: KafkaBroker | KafkaConnectionSettings
     kafka_admin_client: AIOKafkaAdminClient | KafkaConnectionSettings
     schema_manager: PydanticSchemaManager | SchemaManagerSettings
@@ -133,6 +163,7 @@ class EventManager:
         self._admin_client: AIOKafkaAdminClient
         self._manage_admin_client: bool
         self._schema_manager: PydanticSchemaManager
+        self._mock_mode = False
 
         self._events: dict[str, Event] = {}
 
@@ -141,49 +172,72 @@ class EventManager:
         *,
         service: str,
         base_topic_prefix: str,
-        storage: EventManagerStorage,
+        kafka_broker: KafkaBroker | KafkaConnectionSettings,
+        kafka_admin_client: AIOKafkaAdminClient | KafkaConnectionSettings,
+        schema_manager: PydanticSchemaManager | SchemaManagerSettings,
         logger: BoundLogger | None = None,
+        mock_mode: bool = False,
     ) -> None:
         self._service = service
         self._topic_prefix = f"{base_topic_prefix}.{service}"
         self._logger = logger or structlog.get_logger("metrics_event_manager")
+        self._mock_mode = mock_mode
 
-        if isinstance(storage, NoopEventManagerStorage):
+        if self._mock_mode:
             self._logger.warning(
-                "Using no-op storage, no events will be published"
+                "No metrics events will be sent, because the EventManager is"
+                " running in mock mode. ``kafka_broker``,"
+                " ``kafka_admin_client``, and ``schema_manager`` will all be"
+                " mocked. Values provided for those parameters will be"
+                " ignored."
             )
+            storage = self._make_mock_event_manager_storage()
+            kafka_broker = storage.kafka_broker
+            kafka_admin_client = storage.kafka_admin_client
+            schema_manager = storage.schema_manager
 
-        match storage.kafka_broker:
+        match kafka_broker:
             case KafkaBroker():
-                self._broker = storage.kafka_broker
+                self._broker = kafka_broker
                 self._manage_broker = False
             case KafkaConnectionSettings():
                 self._broker = make_kafka_broker(
-                    storage.kafka_broker,
+                    kafka_broker,
                     client_id=f"safir-metrics-client-{self._service}",
                 )
                 await self._broker.start()
                 self._manage_broker = True
 
-        match storage.kafka_admin_client:
+        match kafka_admin_client:
             case AIOKafkaAdminClient():
-                self._admin_client = storage.kafka_admin_client
+                self._admin_client = kafka_admin_client
                 self._manage_admin_client = False
             case KafkaConnectionSettings():
                 self._admin_client = make_kafka_admin_client(
-                    storage.kafka_admin_client,
+                    kafka_admin_client,
                     client_id=f"safir-metrics-admin-client-{self._service}",
                 )
                 await self._admin_client.start()
                 self._manage_admin_client = True
 
-        match storage.schema_manager:
+        match schema_manager:
             case PydanticSchemaManager():
-                self._schema_manager = storage.schema_manager
+                self._schema_manager = schema_manager
             case SchemaManagerSettings():
                 self._schema_manager = PydanticSchemaManager.from_config(
-                    storage.schema_manager
+                    schema_manager
                 )
+
+    def _make_mock_event_manager_storage(self) -> _EventManagerStorage:
+        """Construct a collection of no-op storage objects."""
+        mock_kafka_broker = AsyncMock(KafkaBroker)
+        mock_kafka_broker.publisher.return_value = AsyncMock()
+
+        return _EventManagerStorage(
+            kafka_broker=mock_kafka_broker,
+            kafka_admin_client=AsyncMock(AIOKafkaAdminClient),
+            schema_manager=AsyncMock(PydanticSchemaManager),
+        )
 
     def create_event(self, name: str, payload_model: type[P]) -> Event[P]:
         if name in self._events:
@@ -200,6 +254,7 @@ class EventManager:
             admin_client=self._admin_client,
             payload_model=payload_model,
             logger=self._logger,
+            mock_mode=self._mock_mode,
         )
         self._events[name] = event
         return event

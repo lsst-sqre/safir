@@ -62,7 +62,7 @@ dev = [
     "respx",
     "scriv",
     "sqlalchemy[mypy]",
-    "testcontainers[postgres,redis]",
+    "testcontainers[postgres,redis,kafka]",
     "uvicorn",
     # documentation
     "documenteer[guide]>=1",

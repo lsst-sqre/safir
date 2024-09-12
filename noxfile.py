@@ -70,6 +70,7 @@ def _pytest(
                 *args,
                 *generic,
                 *per_directory,
+                env={"TC_KAFKA_LIMIT_BROKER_TO_FIRST_HOST": "true"},
             )
 
 

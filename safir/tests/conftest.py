@@ -9,12 +9,71 @@ import pytest
 import pytest_asyncio
 import respx
 from redis.asyncio import Redis
+from testcontainers.core.container import DockerContainer, Network
+from testcontainers.kafka import KafkaContainer
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
+
+
+class SchemaRegistryContainer(DockerContainer):
+    def __init__(
+        self,
+        kafka_bootstrap_servers: str = "kafka:9092",
+        image: str = "confluentinc/cp-schema-registry:7.6.0",
+        **kwargs,
+    ) -> None:
+        super().__init__(image, **kwargs)
+        self.port = 8081
+        self.with_exposed_ports(self.port)
+        self.with_env(
+            "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS",
+            kafka_bootstrap_servers,
+        )
+        self.with_env("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081")
+        self.with_env(
+            "SCHEMA_REGISTRY_HOST_NAME", self.get_container_host_ip()
+        )
+
+    def get_url(self) -> str:
+        host = self.get_container_host_ip()
+        port = self.get_exposed_port(self.port)
+        return f"{host}:{port}"
+
+
+@pytest.fixture(scope="session")
+def kafka_docker_network() -> Iterator[Network]:
+    with Network() as network:
+        yield network
+
+
+@pytest.fixture(scope="session")
+def kafka_container(kafka_docker_network: Network) -> Iterator[KafkaContainer]:
+    container = KafkaContainer()
+    container.with_network(kafka_docker_network)
+    container.with_network_aliases("kafka")
+    with container as kafka:
+        yield kafka
+
+
+@pytest.fixture(scope="session")
+def kafka_bootstrap_server(kafka_container: KafkaContainer) -> str:
+    return kafka_container.get_bootstrap_server()
+
+
+@pytest.fixture(scope="session")
+def schema_registry_url(
+    kafka_container: KafkaContainer,
+    kafka_docker_network: Network,
+) -> Iterator[str]:
+    container = SchemaRegistryContainer(kafka_bootstrap_servers="kafka:9092")
+    container.with_network(kafka_docker_network)
+    container.with_network_aliases("schemaregistry")
+    with container as schema_registry:
+        yield schema_registry.get_url()
 
 
 @pytest.fixture(scope="session")
