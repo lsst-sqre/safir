@@ -8,10 +8,10 @@ import pytest
 import structlog
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import Column, String
+from sqlalchemy import String
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from safir.database import (
     create_async_session,
@@ -20,7 +20,9 @@ from safir.database import (
 )
 from safir.dependencies.db_session import db_session_dependency
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Declarative base for testing."""
 
 
 class User(Base):
@@ -28,7 +30,7 @@ class User(Base):
 
     __tablename__ = "user"
 
-    username: str = Column(String(64), primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), primary_key=True)
 
 
 @pytest.mark.asyncio
