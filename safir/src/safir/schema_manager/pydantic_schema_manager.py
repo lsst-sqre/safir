@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Self
+from typing import Self, TypeVar
 
 from dataclasses_avroschema.pydantic import AvroBaseModel
 from schema_registry.client import AsyncSchemaRegistryClient
@@ -10,6 +10,12 @@ from schema_registry.serializers.message_serializer import (
 )
 
 from safir.schema_manager.config import SchemaManagerSettings
+
+P = TypeVar("P", bound=AvroBaseModel)
+
+
+class DeserializeError(Exception):
+    pass
 
 
 class Compatibility(StrEnum):
@@ -114,11 +120,38 @@ class PydanticSchemaManager:
             schema_id = self._models[subject]
         except KeyError:
             raise RuntimeError(
-                f"Schema for model: {data} with subject: {subject} was never registered. `PydanticSchemaManager.register` must be called before you try to serialize instances of this model."
+                f"Schema for model: {data} with subject: {subject} was never"
+                " registered. `PydanticSchemaManager.register` must be called"
+                " before you try to serialize instances of this model."
             ) from None
         return await self._serializer.encode_record_with_schema_id(
             schema_id, data.model_dump()
         )
+
+    async def deserialize[P](self, data: bytes, model: type[P]) -> P:
+        """Serialize the data.
+
+        The model's schema must have been registered before calling this
+        method.
+
+        Parameters
+        ----------
+        data
+            The data to deserialize.
+        model
+            The AvroBaseModel to construct with the deserialized data.
+
+        Returns
+        -------
+        P
+            An instance of the model class passed in the model parameter.
+        """
+        raw = await self._serializer.decode_message(data)
+        if raw is None:
+            raise DeserializeError(
+                "Could not deserialize for an unkown reason"
+            )
+        return model(**raw)
 
     def _get_model_fqn(
         self, model: AvroBaseModel | type[AvroBaseModel]

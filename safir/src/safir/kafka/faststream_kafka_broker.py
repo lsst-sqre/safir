@@ -10,6 +10,7 @@ from faststream.security import (
 
 from .config import (
     KafkaConnectionSettings,
+    KafkaPlaintextSettings,
     KafkaSaslMechanism,
     KafkaSaslSettings,
     KafkaTlsSettings,
@@ -23,9 +24,11 @@ def make_kafka_broker(
     auth = config.auth_settings
     match auth:
         case KafkaTlsSettings():
-            security = _tls(auth)
+            security = BaseSecurity(ssl_context=auth.ssl_context)
         case KafkaSaslSettings():
             security = _sasl(auth)
+        case KafkaPlaintextSettings():
+            security = BaseSecurity()
 
     return KafkaBroker(
         bootstrap_servers=config.bootstrap_servers,
@@ -52,8 +55,3 @@ def _sasl(
         password=config.sasl_password.get_secret_value(),
         ssl_context=ssl.create_default_context(),
     )
-
-
-def _tls(config: KafkaTlsSettings) -> BaseSecurity:
-    """Create a Faststream Security for TLS authentication."""
-    return BaseSecurity(ssl_context=config.ssl_context)

@@ -1,6 +1,6 @@
 import ssl
 
-from aiokafka.admin.client import AIOKafkaAdminClient
+from aiokafka import AIOKafkaConsumer
 
 from .config import (
     KafkaConnectionSettings,
@@ -11,15 +11,18 @@ from .config import (
 )
 
 
-def make_kafka_admin_client(
-    config: KafkaConnectionSettings, client_id: str
-) -> AIOKafkaAdminClient:
+def make_kafka_consumer(
+    config: KafkaConnectionSettings,
+    client_id: str,
+    group_id: str | None = None,
+) -> AIOKafkaConsumer:
     """Create a FastStream Kafka broker."""
     auth = config.auth_settings
     match auth:
         case KafkaTlsSettings():
-            return AIOKafkaAdminClient(
+            return AIOKafkaConsumer(
                 client_id=client_id,
+                group_id=group_id,
                 bootstrap_servers=config.bootstrap_servers,
                 security_protocol="SSL",
                 ssl_context=auth.ssl_context,
@@ -27,29 +30,35 @@ def make_kafka_admin_client(
         case KafkaSaslSettings():
             return _sasl(
                 client_id=client_id,
+                group_id=group_id,
                 bootstrap_servers=config.bootstrap_servers,
                 auth_config=auth,
             )
         case KafkaPlaintextSettings():
-            return AIOKafkaAdminClient(
+            return AIOKafkaConsumer(
                 client_id=client_id,
+                group_id=group_id,
                 bootstrap_servers=config.bootstrap_servers,
                 security_protocol="PLAINTEXT",
             )
 
 
 def _sasl(
-    client_id: str, bootstrap_servers: str, auth_config: KafkaSaslSettings
-) -> AIOKafkaAdminClient:
+    client_id: str,
+    bootstrap_servers: str,
+    auth_config: KafkaSaslSettings,
+    group_id: str | None = None,
+) -> AIOKafkaConsumer:
     match auth_config.security_protocol:
         case KafkaSecurityProtocol.SASL_PLAINTEXT:
             ssl_context = None
         case KafkaSecurityProtocol.SASL_SSL:
             ssl_context = ssl.create_default_context()
 
-    return AIOKafkaAdminClient(
+    return AIOKafkaConsumer(
         bootstrap_servers=bootstrap_servers,
         client_id=client_id,
+        group_id=group_id,
         security_protocol=auth_config.security_protocol,
         sasl_mechanism=auth_config.sasl_mechanism,
         sasl_plain_username=auth_config.sasl_username,

@@ -36,6 +36,7 @@ class Event(Generic[P]):
         self,
         *,
         name: str,
+        namespace: str,
         service: str,
         topic: str,
         broker: KafkaBroker,
@@ -46,6 +47,7 @@ class Event(Generic[P]):
         mock_mode: bool = False,
     ) -> None:
         self._name = name
+        self._namespace = namespace
         self._service = service
         self._topic = topic
         self._broker = broker
@@ -62,7 +64,8 @@ class Event(Generic[P]):
 
         class MetaBase(AvroBaseModel):
             class Meta:
-                schema_name = topic
+                schema_name = self._name
+                namespace = self._namespace
 
         event_class = create_model(
             "EventModel",
@@ -247,6 +250,7 @@ class EventManager:
             )
         event = Event(
             name=name,
+            namespace=self._topic_prefix,
             service=self._service,
             topic=f"{self._topic_prefix}.{name}",
             broker=self._broker,

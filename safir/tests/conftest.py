@@ -4,16 +4,26 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
 from datetime import timedelta
+from typing import Any, Self
 
 import pytest
 import pytest_asyncio
+import requests
 import respx
+from aiokafka import AIOKafkaConsumer
 from redis.asyncio import Redis
-from testcontainers.core.container import DockerContainer, Network
+from requests.exceptions import ConnectionError, ReadTimeout
+from testcontainers.core.container import (
+    DockerContainer,
+    Network,
+    wait_container_is_ready,
+)
 from testcontainers.kafka import KafkaContainer
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
+from safir.kafka.aiokafka_consumer import make_kafka_consumer
+from safir.kafka.config import KafkaConnectionSettings, KafkaSecurityProtocol
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
@@ -38,10 +48,23 @@ class SchemaRegistryContainer(DockerContainer):
             "SCHEMA_REGISTRY_HOST_NAME", self.get_container_host_ip()
         )
 
+    def start(self, *args: list[Any], **kwargs: dict[str, Any]) -> Self:
+        super().start(*args, **kwargs)
+        self.health()
+        return self
+
     def get_url(self) -> str:
         host = self.get_container_host_ip()
         port = self.get_exposed_port(self.port)
-        return f"{host}:{port}"
+        return f"http://{host}:{port}"
+
+    class HealthCheckError(Exception):
+        pass
+
+    @wait_container_is_ready(ConnectionError, ReadTimeout)
+    def health(self) -> None:
+        url = f"{self.get_url()}/subjects"
+        requests.get(url, timeout=5).raise_for_status()
 
 
 @pytest.fixture(scope="session")
@@ -57,6 +80,22 @@ def kafka_container(kafka_docker_network: Network) -> Iterator[KafkaContainer]:
     container.with_network_aliases("kafka")
     with container as kafka:
         yield kafka
+
+
+@pytest_asyncio.fixture
+async def kafka_consumer(
+    kafka_bootstrap_server: str,
+) -> AsyncIterator[AIOKafkaConsumer]:
+    kafka_settings = KafkaConnectionSettings(
+        bootstrap_servers=kafka_bootstrap_server,
+        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+    )
+    consumer = make_kafka_consumer(config=kafka_settings, client_id="pytest")
+    await consumer.start()
+
+    yield consumer
+
+    await consumer.stop()
 
 
 @pytest.fixture(scope="session")

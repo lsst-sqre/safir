@@ -6,6 +6,7 @@ import ssl
 from enum import StrEnum
 from typing import Literal, Self
 
+from aiokafka import helpers
 from pydantic import BaseModel, Field, FilePath, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -58,22 +59,15 @@ class KafkaTlsSettings(BaseModel):
     client_key_path: FilePath
 
     @property
-    def ssl_context(self) -> ssl.SSLContext | None:
+    def ssl_context(self) -> ssl.SSLContext:
         """An SSL context for connecting to Kafka, if the Kafka connection is
         configured to use TLS authentication.
         """
-        # Create an SSL context on the basis that we're the client
-        # authenticating the server (the Kafka broker).
-        ssl_context = ssl.create_default_context(
-            purpose=ssl.Purpose.SERVER_AUTH, cafile=str(self.cluster_ca_path)
-        )
-        # Add the certificates that the Kafka broker uses to authenticate us.
-        ssl_context.load_cert_chain(
+        return helpers.create_ssl_context(
+            cafile=str(self.cluster_ca_path),
             certfile=str(self.client_cert_path),
             keyfile=str(self.client_key_path),
         )
-
-        return ssl_context
 
 
 class KafkaSaslSettings(BaseModel):
@@ -88,6 +82,12 @@ class KafkaSaslSettings(BaseModel):
     sasl_username: str
 
     sasl_password: SecretStr
+
+
+class KafkaPlaintextSettings(BaseModel):
+    """Subset of settings required for SASL auth."""
+
+    security_protocol: Literal[KafkaSecurityProtocol.PLAINTEXT]
 
 
 class KafkaConnectionSettings(BaseSettings):
@@ -105,8 +105,15 @@ class KafkaConnectionSettings(BaseSettings):
         ),
     )
 
+    security_protocol: KafkaSecurityProtocol = Field(
+        title="Security Protocol",
+        description=(
+            "The authentication and encryption mode for the connection."
+        ),
+    )
+
     cluster_ca_path: FilePath | None = Field(
-        None,
+        default=None,
         title="Path to CA certificate file",
         description=(
             "The path to the CA certificate file to use for verifying the "
@@ -117,7 +124,7 @@ class KafkaConnectionSettings(BaseSettings):
     )
 
     client_cert_path: FilePath | None = Field(
-        None,
+        default=None,
         title="Path to client certificate file",
         description=(
             "The path to the client certificate file to use for "
@@ -128,7 +135,7 @@ class KafkaConnectionSettings(BaseSettings):
     )
 
     client_key_path: FilePath | None = Field(
-        None,
+        default=None,
         title="Path to client key file",
         description=(
             "The path to the client key file to use for authentication. "
@@ -137,14 +144,8 @@ class KafkaConnectionSettings(BaseSettings):
         ),
     )
 
-    security_protocol: KafkaSecurityProtocol | None = Field(
-        title="SASL security protocol",
-        description=(
-            "The authentication and encryption mode for the connection."
-        ),
-    )
     sasl_mechanism: KafkaSaslMechanism | None = Field(
-        KafkaSaslMechanism.PLAIN,
+        default=KafkaSaslMechanism.PLAIN,
         title="SASL mechanism",
         description=(
             "The SASL mechanism to use for authentication. "
@@ -153,7 +154,7 @@ class KafkaConnectionSettings(BaseSettings):
     )
 
     sasl_username: str | None = Field(
-        None,
+        default=None,
         title="SASL username",
         description=(
             "The username to use for SASL authentication. "
@@ -162,7 +163,7 @@ class KafkaConnectionSettings(BaseSettings):
     )
 
     sasl_password: SecretStr | None = Field(
-        None,
+        default=None,
         title="SASL password",
         description=(
             "The password to use for SASL authentication. "
@@ -180,7 +181,9 @@ class KafkaConnectionSettings(BaseSettings):
         return self
 
     @property
-    def auth_settings(self) -> KafkaTlsSettings | KafkaSaslSettings:
+    def auth_settings(
+        self,
+    ) -> KafkaTlsSettings | KafkaSaslSettings | KafkaPlaintextSettings:
         try:
             return KafkaTlsSettings(**self.model_dump())
         except ValueError:
@@ -191,7 +194,12 @@ class KafkaConnectionSettings(BaseSettings):
         except ValueError:
             pass
 
+        try:
+            return KafkaPlaintextSettings(**self.model_dump())
+        except ValueError:
+            pass
+
         raise ValueError(
-            "Valid settings must be specified for either TLS or SASL"
-            " authentication."
+            "Valid settings must be specified for either TLS or SASL or"
+            " Plaintext authentication."
         )
