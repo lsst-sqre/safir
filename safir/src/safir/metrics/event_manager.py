@@ -22,7 +22,18 @@ P = TypeVar("P", bound=Payload)
 E = TypeVar("E", bound=BaseEvent)
 
 
-class BaseEventManager(ABC, Generic[E]):
+class BaseEventManager(Generic[E], ABC):
+    def __init__(
+        self,
+        service: str,
+        base_topic_prefix: str,
+        logger: BoundLogger | None = None,
+    ) -> None:
+        self._service = service
+        self._topic_prefix = f"{base_topic_prefix}.{service}"
+        self._logger = logger or structlog.get_logger("metrics_event_manager")
+        self._events: dict[str, E] = {}
+
     @abstractmethod
     def create_event(self, name: str, payload_model: type[P]) -> E: ...
 
@@ -34,25 +45,13 @@ class BaseEventManager(ABC, Generic[E]):
 
 
 class NoopEventManager(BaseEventManager[NoopEvent]):
-    def __init__(
-        self,
-        service: str,
-        base_topic_prefix: str,
-        logger: BoundLogger | None = None,
-    ) -> None:
-        self._service = service
-        self._topic_prefix = f"{base_topic_prefix}.{service}"
-        self._logger = logger or structlog.get_logger("metrics_event_manager")
-        self._events: dict[str, NoopEvent] = {}
-        self._event_type: E = NoopEvent
-
-    def create_event(self, name: str, payload_model: type[P]) -> BaseEvent[P]:
+    def create_event(self, name: str, payload_model: type[P]) -> NoopEvent[P]:
         if name in self._events:
             raise RuntimeError(
                 f"{name}: you have already created an event with this name."
                 " Events must have unique names within this application."
             )
-        return self._event_type(
+        event = NoopEvent(
             name=name,
             namespace=self._topic_prefix,
             service=self._service,
@@ -61,6 +60,9 @@ class NoopEventManager(BaseEventManager[NoopEvent]):
             logger=self._logger,
         )
 
+        self._events[name] = event
+        return event
+
     async def initialize_events(self) -> None:
         return None
 
@@ -68,7 +70,7 @@ class NoopEventManager(BaseEventManager[NoopEvent]):
         return None
 
 
-class EventManager(NoopEventManager):
+class EventManager(BaseEventManager[Event]):
     def __init__(
         self,
         service: str,
@@ -83,12 +85,22 @@ class EventManager(NoopEventManager):
         self._admin_client: AIOKafkaAdminClient
         self._manage_admin_client: bool
         self._schema_manager: PydanticSchemaManager
-        self._event_class = type[Event]
-
-        self._events: dict[str, Event] = {}
 
     def create_event(self, name: str, payload_model: type[P]) -> Event[P]:
-        event = super().create_event(name=name, payload_model=payload_model)
+        if name in self._events:
+            raise RuntimeError(
+                f"{name}: you have already created an event with this name."
+                " Events must have unique names within this application."
+            )
+        event = Event(
+            name=name,
+            namespace=self._topic_prefix,
+            service=self._service,
+            topic=f"{self._topic_prefix}.{name}",
+            payload_model=payload_model,
+            logger=self._logger,
+        )
+
         self._events[name] = event
         return event
 

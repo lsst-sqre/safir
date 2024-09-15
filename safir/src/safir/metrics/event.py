@@ -25,7 +25,7 @@ class BaseEvent(Generic[P], ABC):
     async def publish(self, payload: P) -> None: ...
 
 
-class NoopEvent(Generic[P], BaseEvent):
+class NoopEvent(BaseEvent, Generic[P]):
     def __init__(
         self,
         *,
