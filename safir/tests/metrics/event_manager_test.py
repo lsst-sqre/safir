@@ -1,23 +1,65 @@
 """Test metrics development tools."""
 
 import asyncio
-import time
-from datetime import UTC, datetime
-from unittest.mock import Mock
+import math
 from uuid import UUID
 
 import pytest
 from aiokafka import AIOKafkaConsumer
-from freezegun import freeze_time
 from pydantic import AnyUrl
 
 from safir.kafka.config import KafkaConnectionSettings, KafkaSecurityProtocol
-from safir.metrics.event_manager import EventManager
-from safir.metrics.models import Payload
+from safir.metrics.event_manager import Event, EventManager, NoopEventManager
+from safir.metrics.models import EventMetadata, Payload
 from safir.schema_manager.config import (
     SchemaManagerSettings,
     SchemaRegistryConnectionSettings,
 )
+
+
+class MyEvent(Payload):
+    foo: str
+
+
+async def publish(manager: EventManager) -> Event[MyEvent]:
+    """Works with a real or no-op event manager."""
+    event = manager.create_event("my_event", MyEvent)
+
+    await manager.initialize_events()
+    await event.publish(MyEvent(foo="bar1"))
+    await event.publish(MyEvent(foo="bar2"))
+    await manager.aclose()
+    return event
+
+
+async def assert_event_from_kafka(
+    consumer: AIOKafkaConsumer,
+    manager: EventManager,
+    event: Event[MyEvent],
+    foo: str,
+) -> None:
+    """Deserialize a published event back into its model type."""
+    message = await consumer.getone()
+    assert isinstance(message.value, bytes)
+    deserialized = await manager._schema_manager.deserialize(
+        message.value, event._event_class
+    )
+
+    assert isinstance(deserialized, EventMetadata)
+    assert isinstance(deserialized.id, UUID)
+    assert deserialized.service == "test-app"
+
+    # dataclasses-avroschema serializes python ``datetime``s into avro
+    # ``timestamp-millis``s
+    assert (
+        math.trunc(deserialized.timestamp_ns / 1e6)
+        == deserialized.timestamp.timestamp() * 1e3
+    )
+
+    # Mypy can't deal with the fact that deserialized has both EventMetadata
+    # AND MyEvent as bases, so let's pretend we don't know either :(
+    # https://github.com/python/mypy/issues/12314
+    assert getattr(deserialized, "foo", None) == foo
 
 
 @pytest.mark.asyncio
@@ -44,79 +86,20 @@ async def test_integration(
         kafka_admin_client=kafka_settings,
         schema_manager=schema_manager_settings,
     )
-
-    class MyEvent(Payload):
-        foo: str
-
-    event = manager.create_event("my_event", MyEvent)
+    event = await publish(manager)
     topic = "what.ever.test-app.my_event"
     assert event._topic == topic
-
-    await manager.initialize_events()
-    await event.publish(MyEvent(foo="bar"))
-    await event.publish(MyEvent(foo="bar2"))
-    await manager.aclose()
 
     kafka_consumer.subscribe(pattern=topic)
     await asyncio.sleep(1)
     await kafka_consumer.seek_to_beginning()
-    message1 = await kafka_consumer.getone()
-    event1 = await manager._schema_manager.deserialize(
-        message1.value, event._event_class
-    )
 
-    message2 = await kafka_consumer.getone()
-    event2 = await manager._schema_manager.deserialize(
-        message2.value, event._event_class
-    )
+    await assert_event_from_kafka(kafka_consumer, manager, event, "bar1")
+    await assert_event_from_kafka(kafka_consumer, manager, event, "bar2")
 
 
-@freeze_time("2022-03-13")
 @pytest.mark.asyncio
 async def test_noop() -> None:
-    expected_timestamp_ns = time.time_ns()
-    expected_timestamp = datetime.now(tz=UTC)
-    manager = EventManager()
+    manager = NoopEventManager()
 
-    await manager.initialize(
-        service="test-app",
-        base_topic_prefix="what.ever",
-        kafka_broker=Mock(),
-        kafka_admin_client=Mock(),
-        schema_manager=Mock(),
-        mock_mode=True,
-    )
-
-    class MyEvent(Payload):
-        foo: str
-
-    event = manager.create_event("my_event", MyEvent)
-    assert event._topic == "what.ever.test-app.my_event"
-
-    await manager.initialize_events()
-    await event.publish(MyEvent(foo="bar"))
-    await event.publish(MyEvent(foo="bar2"))
-    await manager.aclose()
-
-    published = event.published_events[0]
-    assert isinstance(published.id, UUID)  # type: ignore[attr-defined]
-    assert published.service == "test-app"  # type: ignore[attr-defined]
-    assert published.timestamp_ns == expected_timestamp_ns  # type: ignore[attr-defined]
-    assert published.timestamp == expected_timestamp  # type: ignore[attr-defined]
-    assert published.foo == "bar"  # type: ignore[attr-defined]
-    await manager.initialize_events()
-    await manager.aclose()
-
-    published = event.published_events[1]
-    assert isinstance(published.id, UUID)  # type: ignore[attr-defined]
-    assert published.service == "test-app"  # type: ignore[attr-defined]
-    assert published.timestamp_ns == expected_timestamp_ns  # type: ignore[attr-defined]
-    assert published.timestamp == expected_timestamp  # type: ignore[attr-defined]
-    assert published.foo == "bar2"  # type: ignore[attr-defined]
-    await manager.initialize_events()
-    await manager.aclose()
-
-    assert [
-        MyEvent(foo="bar"),
-        MyEvent(foo="bar2"),
-    ] == event.published_payloads
+    await publish(manager)

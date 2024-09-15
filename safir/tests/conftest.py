@@ -6,13 +6,13 @@ from collections.abc import AsyncIterator, Iterator
 from datetime import timedelta
 from typing import Any, Self
 
+import httpx
 import pytest
 import pytest_asyncio
-import requests
 import respx
 from aiokafka import AIOKafkaConsumer
+from httpx import ReadError, RemoteProtocolError
 from redis.asyncio import Redis
-from requests.exceptions import ConnectionError, ReadTimeout
 from testcontainers.core.container import (
     DockerContainer,
     Network,
@@ -34,7 +34,7 @@ class SchemaRegistryContainer(DockerContainer):
         self,
         kafka_bootstrap_servers: str = "kafka:9092",
         image: str = "confluentinc/cp-schema-registry:7.6.0",
-        **kwargs,
+        **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(image, **kwargs)
         self.port = 8081
@@ -61,10 +61,10 @@ class SchemaRegistryContainer(DockerContainer):
     class HealthCheckError(Exception):
         pass
 
-    @wait_container_is_ready(ConnectionError, ReadTimeout)
+    @wait_container_is_ready(ReadError, RemoteProtocolError)
     def health(self) -> None:
         url = f"{self.get_url()}/subjects"
-        requests.get(url, timeout=5).raise_for_status()
+        httpx.get(url, timeout=5).raise_for_status()
 
 
 @pytest.fixture(scope="session")

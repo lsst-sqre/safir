@@ -128,7 +128,7 @@ class PydanticSchemaManager:
             schema_id, data.model_dump()
         )
 
-    async def deserialize[P](self, data: bytes, model: type[P]) -> P:
+    async def deserialize(self, data: bytes, model: type[P]) -> P:
         """Serialize the data.
 
         The model's schema must have been registered before calling this
