@@ -1,0 +1,12 @@
+version: "3"
+services:
+  postgresql:
+    image: "postgres:latest"
+    hostname: "postgresql"
+    container_name: "postgresql"
+    environment:
+      POSTGRES_PASSWORD: "INSECURE"
+      POSTGRES_USER: "test"
+      POSTGRES_DB: "test"
+    ports:
+      - "5432:5432"

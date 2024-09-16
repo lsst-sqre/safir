@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, ParamSpec
 
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -21,7 +22,11 @@ from safir.arq import (
     RedisArqQueue,
 )
 from safir.arq.uws import WorkerError, WorkerTransientError
-from safir.database import create_async_session, create_database_engine
+from safir.database import (
+    create_async_session,
+    create_database_engine,
+    is_database_current,
+)
 from safir.datetime import format_datetime_for_logging
 from safir.dependencies.http_client import http_client_dependency
 from safir.slack.blockkit import SlackException
@@ -29,7 +34,7 @@ from safir.slack.webhook import SlackIgnoredException, SlackWebhookClient
 
 from ._config import UWSConfig
 from ._constants import JOB_RESULT_TIMEOUT
-from ._exceptions import TaskError, UnknownJobError
+from ._exceptions import DatabaseSchemaError, TaskError, UnknownJobError
 from ._models import UWSJob
 from ._service import JobService
 from ._storage import JobStore
@@ -46,7 +51,11 @@ __all__ = [
 
 
 async def create_uws_worker_context(
-    config: UWSConfig, logger: BoundLogger
+    config: UWSConfig,
+    logger: BoundLogger,
+    *,
+    check_schema: bool = False,
+    alembic_config_path: Path = Path("alembic.ini"),
 ) -> dict[str, Any]:
     """Construct the arq context for UWS workers.
 
@@ -59,11 +68,21 @@ async def create_uws_worker_context(
         UWS configuration.
     logger
         Logger for the worker to use.
+    check_schema
+        Whether to check the database schema version with Alembic on startup.
+    alembic_config_path
+        When checking the schema, use this path to the Alembic
+        configuration.
 
     Returns
     -------
     dict
         Keys to add to the ``ctx`` dictionary.
+
+    Raises
+    ------
+    DatabaseSchemaError
+        Raised if the UWS database schema is out of date.
     """
     logger = logger.bind(worker_instance=uuid.uuid4().hex)
 
@@ -81,6 +100,9 @@ async def create_uws_worker_context(
         config.database_password,
         isolation_level="REPEATABLE READ",
     )
+    if check_schema:
+        if not await is_database_current(engine, logger, alembic_config_path):
+            raise DatabaseSchemaError("UWS database schema out of date")
     session = await create_async_session(engine, logger)
     storage = JobStore(session)
     service = JobService(

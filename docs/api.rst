@@ -72,8 +72,14 @@ API reference
 .. automodapi:: safir.middleware.x_forwarded
    :include-all-objects:
 
+..
+   If all objects from safir.pydantic are included, the pages for the
+   Pydantic types are generated but not linked into any table of contents.
+   This is probably a but in automodapi and should be checked against later
+   verisons to see if it's fixed. Once this is fixed, the nitpick exclusions
+   in documenteer.yaml can also be removed.
+
 .. automodapi:: safir.pydantic
-   :include-all-objects:
 
 .. automodapi:: safir.redis
    :include-all-objects:

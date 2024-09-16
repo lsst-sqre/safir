@@ -18,18 +18,19 @@ from sqlalchemy.sql.expression import Select
 from structlog.stdlib import BoundLogger
 
 __all__ = [
+    "build_database_url",
     "create_async_session",
     "create_database_engine",
 ]
 
 
-def _build_database_url(
-    url: str | Url, password: str | SecretStr | None
+def build_database_url(
+    url: str | Url, password: str | SecretStr | None, *, is_async: bool = True
 ) -> str:
     """Build the authenticated URL for the database.
 
-    The database scheme is forced to ``postgresql+asyncpg`` if it is
-    ``postgresql``.
+    Unless ``is_async`` is set to `False`, the database scheme is forced to
+    ``postgresql+asyncpg`` if it is ``postgresql``.
 
     Parameters
     ----------
@@ -37,6 +38,8 @@ def _build_database_url(
         Database connection URL, not including the password.
     password
         Database connection password.
+    is_async
+        Whether to force an async driver.
 
     Returns
     -------
@@ -100,7 +103,7 @@ def create_database_engine(
     ValueError
         A password was provided but the connection URL has no username.
     """
-    url = _build_database_url(url, password)
+    url = build_database_url(url, password)
     if isolation_level:
         return create_async_engine(
             url, future=True, isolation_level=isolation_level
