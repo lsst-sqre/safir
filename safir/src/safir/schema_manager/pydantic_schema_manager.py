@@ -1,7 +1,9 @@
+import inspect
 import logging
+import re
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Self, TypeVar
+from typing import Any, Self, TypeVar
 
 from dataclasses_avroschema.pydantic import AvroBaseModel
 from schema_registry.client import AsyncSchemaRegistryClient
@@ -9,7 +11,8 @@ from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
 )
 
-from safir.schema_manager.config import SchemaManagerSettings
+from .config import SchemaManagerSettings
+from .exceptions import InvalidAvroNameError, UnmanagedSchemaError
 
 P = TypeVar("P", bound=AvroBaseModel)
 
@@ -32,7 +35,7 @@ class Compatibility(StrEnum):
 
 @dataclass
 class SchemaInfo:
-    schema: str
+    schema: dict[str, Any]
     schema_id: int
     subject: str
 
@@ -87,7 +90,7 @@ class PydanticSchemaManager:
         model
             The model to register.
         """
-        schema = model.avro_schema()
+        schema = model.avro_schema_to_python()
         subject = self._get_model_fqn(model)
         schema_id = await self._registry.register(subject, schema)
         self._models[subject] = schema_id
@@ -97,6 +100,7 @@ class PydanticSchemaManager:
                 subject=subject,
                 level=compatibility,
             )
+
         return SchemaInfo(schema=schema, schema_id=schema_id, subject=subject)
 
     async def serialize(self, data: AvroBaseModel) -> bytes:
@@ -119,7 +123,7 @@ class PydanticSchemaManager:
         try:
             schema_id = self._models[subject]
         except KeyError:
-            raise RuntimeError(
+            raise UnmanagedSchemaError(
                 f"Schema for model: {data} with subject: {subject} was never"
                 " registered. `PydanticSchemaManager.register` must be called"
                 " before you try to serialize instances of this model."
@@ -129,10 +133,7 @@ class PydanticSchemaManager:
         )
 
     async def deserialize(self, data: bytes, model: type[P]) -> P:
-        """Serialize the data.
-
-        The model's schema must have been registered before calling this
-        method.
+        """Deserialize the data.
 
         Parameters
         ----------
@@ -159,13 +160,15 @@ class PydanticSchemaManager:
         # Mypy can't detect the Meta class on the model, so we have to ignore
         # those lines.
 
-        try:
-            name = model.Meta.schema_name  # type: ignore [union-attr]
-        except AttributeError:
-            name = model.__class__.__name__
+        klass = model if inspect.isclass(model) else model.__class__
 
         try:
-            namespace = model.Meta.namespace  # type: ignore [union-attr]
+            name = klass.Meta.schema_name  # type: ignore [union-attr]
+        except AttributeError:
+            name = klass.__name__
+
+        try:
+            namespace = klass.Meta.namespace  # type: ignore [union-attr]
         except AttributeError:
             namespace = None
 
@@ -175,4 +178,15 @@ class PydanticSchemaManager:
         if self._suffix:
             name += self._suffix
 
+        self._validate_name(name)
         return name
+
+    def _validate_name(self, name: str) -> None:
+        pattern = r"^[A-Za-z_][A-Za-z0-9_]*$"
+
+        bad = [part for part in name.split(".") if not re.match(pattern, part)]
+        if bad:
+            raise InvalidAvroNameError(
+                f"{name} has invalid Avro name parts: {bad}. Each part must"
+                f"match: {pattern}"
+            )
