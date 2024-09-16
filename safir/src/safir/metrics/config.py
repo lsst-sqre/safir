@@ -3,8 +3,10 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+__all__ = ["MetricsConfiguration"]
 
-class Configuration(BaseSettings):
+
+class MetricsConfiguration(BaseSettings):
     """Configuration for emitting events."""
 
     base_topic_prefix: str = Field(
@@ -15,6 +17,12 @@ class Configuration(BaseSettings):
         ...,
         title="Service name",
         description="The name of the service that is emitting these metrics",
+    )
+
+    noop: bool = Field(
+        default=False,
+        title="No-op",
+        description='Set to "True" to prevent actually publishing metrics',
     )
 
     model_config = SettingsConfigDict(

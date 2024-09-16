@@ -21,11 +21,6 @@ P = TypeVar("P", bound=Payload)
 
 
 class BaseEvent(Generic[P], ABC):
-    @abstractmethod
-    async def publish(self, payload: P) -> None: ...
-
-
-class NoopEvent(BaseEvent, Generic[P]):
     def __init__(
         self,
         *,
@@ -39,7 +34,7 @@ class NoopEvent(BaseEvent, Generic[P]):
         self._name = name
         self._namespace = namespace
         self._service = service
-        self._topic = topic
+        self.topic = topic
         self._logger = logger
 
         class MetaBase(AvroBaseModel):
@@ -56,8 +51,13 @@ class NoopEvent(BaseEvent, Generic[P]):
             raise TypeError(
                 "This can never happen, but mypy can't figure that out."
             )
-        self._event_class: type[AvroBaseModel] = event_class
+        self.event_class: type[AvroBaseModel] = event_class
 
+    @abstractmethod
+    async def publish(self, payload: P) -> None: ...
+
+
+class NoopEvent(BaseEvent, Generic[P]):
     async def publish(self, payload: P) -> None:
         self._logger.debug(
             "Would have published metrics payload",
@@ -65,7 +65,7 @@ class NoopEvent(BaseEvent, Generic[P]):
         )
 
 
-class Event(NoopEvent, Generic[P]):
+class Event(BaseEvent, Generic[P]):
     def __init__(
         self,
         *,
@@ -100,18 +100,18 @@ class Event(NoopEvent, Generic[P]):
         self._admin_client = admin_client
         self._schema_manager = schema_manager
         self._publisher = self._broker.publisher(
-            self._topic, schema=self._event_class
+            self.topic, schema=self.event_class
         )
 
         topic = NewTopic(
-            name=self._topic,
+            name=self.topic,
             num_partitions=1,
             replication_factor=3,
         )
         await self._admin_client.create_topics([topic])
 
         self._schema_info = await self._schema_manager.register_model(
-            self._event_class
+            self.event_class
         )
 
     async def publish(self, payload: P) -> None:
@@ -123,7 +123,7 @@ class Event(NoopEvent, Generic[P]):
             timestamp=self._ns_to_datetime(time_ns),
             timestamp_ns=time_ns,
         )
-        event = self._event_class(
+        event = self.event_class(
             **metadata.model_dump(), **payload.model_dump()
         )
 
@@ -133,7 +133,7 @@ class Event(NoopEvent, Generic[P]):
         self._logger.debug(
             "Published metrics event",
             metrics_event=event.model_dump(),
-            topic=self._topic,
+            topic=self.topic,
             schema_info=self._schema_info,
         )
 

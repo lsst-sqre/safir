@@ -3,26 +3,28 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar, overload
 
 import structlog
 from aiokafka.admin.client import AIOKafkaAdminClient
 from faststream.kafka import KafkaBroker
 from structlog.stdlib import BoundLogger
 
+from safir.metrics.config import MetricsConfiguration
+
 from ..kafka.aiokafka_admin_client import make_kafka_admin_client
 from ..kafka.config import KafkaConnectionSettings
 from ..kafka.faststream_kafka_broker import make_kafka_broker
 from ..schema_manager.config import SchemaManagerSettings
 from ..schema_manager.pydantic_schema_manager import PydanticSchemaManager
-from .event import BaseEvent, Event, NoopEvent
+from .event import Event, NoopEvent
 from .models import Payload
 
 P = TypeVar("P", bound=Payload)
-E = TypeVar("E", bound=BaseEvent)
+E = TypeVar("E", Event, NoopEvent)
 
 
-class BaseEventManager(Generic[E], ABC):
+class BaseEventManager(ABC, Generic[E]):
     def __init__(
         self,
         service: str,
@@ -34,24 +36,17 @@ class BaseEventManager(Generic[E], ABC):
         self._logger = logger or structlog.get_logger("metrics_event_manager")
         self._events: dict[str, E] = {}
 
+    @property
     @abstractmethod
-    def create_event(self, name: str, payload_model: type[P]) -> E: ...
+    def _event_class(self) -> type[E]: ...
 
-    @abstractmethod
-    async def initialize_events(self) -> None: ...
-
-    @abstractmethod
-    async def aclose(self) -> None: ...
-
-
-class NoopEventManager(BaseEventManager[NoopEvent]):
-    def create_event(self, name: str, payload_model: type[P]) -> NoopEvent[P]:
+    def create_event(self, name: str, payload_model: type[P]) -> E:
         if name in self._events:
             raise RuntimeError(
                 f"{name}: you have already created an event with this name."
                 " Events must have unique names within this application."
             )
-        event = NoopEvent(
+        event = self._event_class(
             name=name,
             namespace=self._topic_prefix,
             service=self._service,
@@ -63,11 +58,29 @@ class NoopEventManager(BaseEventManager[NoopEvent]):
         self._events[name] = event
         return event
 
+    async def initialize(
+        self,
+        *,
+        kafka_broker: KafkaBroker | KafkaConnectionSettings,
+        kafka_admin_client: AIOKafkaAdminClient | KafkaConnectionSettings,
+        schema_manager: PydanticSchemaManager | SchemaManagerSettings,
+    ) -> None:
+        self._logger.warning(
+            "Called initialize on a no-op event manager. No events will"
+            " actually be published."
+        )
+
     async def initialize_events(self) -> None:
         return None
 
     async def aclose(self) -> None:
         return None
+
+
+class NoopEventManager(BaseEventManager[NoopEvent]):
+    @property
+    def _event_class(self) -> type[NoopEvent]:
+        return NoopEvent
 
 
 class EventManager(BaseEventManager[Event]):
@@ -86,23 +99,9 @@ class EventManager(BaseEventManager[Event]):
         self._manage_admin_client: bool
         self._schema_manager: PydanticSchemaManager
 
-    def create_event(self, name: str, payload_model: type[P]) -> Event[P]:
-        if name in self._events:
-            raise RuntimeError(
-                f"{name}: you have already created an event with this name."
-                " Events must have unique names within this application."
-            )
-        event = Event(
-            name=name,
-            namespace=self._topic_prefix,
-            service=self._service,
-            topic=f"{self._topic_prefix}.{name}",
-            payload_model=payload_model,
-            logger=self._logger,
-        )
-
-        self._events[name] = event
-        return event
+    @property
+    def _event_class(self) -> type[Event]:
+        return Event
 
     async def initialize(
         self,
@@ -156,3 +155,62 @@ class EventManager(BaseEventManager[Event]):
             await self._broker.close()
         if self._manage_admin_client:
             await self._admin_client.close()
+
+
+@overload
+def create_event_manager(
+    *,
+    service: str,
+    base_topic_prefix: str,
+    logger: BoundLogger | None = ...,
+    noop: Literal[False] = ...,
+) -> EventManager: ...
+
+
+@overload
+def create_event_manager(
+    *,
+    service: str,
+    base_topic_prefix: str,
+    logger: BoundLogger | None = ...,
+    noop: Literal[True] = ...,
+) -> EventManager: ...
+
+
+@overload
+def create_event_manager(
+    *,
+    service: str,
+    base_topic_prefix: str,
+    logger: BoundLogger | None = ...,
+    noop: bool = ...,
+) -> EventManager: ...
+
+
+def create_event_manager(
+    *,
+    service: str,
+    base_topic_prefix: str,
+    logger: BoundLogger | None = None,
+    noop: bool = False,
+) -> EventManager | NoopEventManager:
+    if noop:
+        return NoopEventManager(
+            service=service, base_topic_prefix=base_topic_prefix, logger=logger
+        )
+    else:
+        return EventManager(
+            service=service, base_topic_prefix=base_topic_prefix, logger=logger
+        )
+
+
+def create_event_manager_from_config(
+    config: MetricsConfiguration,
+    logger: BoundLogger | None = None,
+) -> EventManager | NoopEventManager:
+    return create_event_manager(
+        service=config.service,
+        base_topic_prefix=config.base_topic_prefix,
+        noop=config.noop,
+        logger=logger,
+    )
