@@ -9,6 +9,14 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-6.4.0'></a>
+## 6.4.0 (2024-09-16)
+
+### New features
+
+- Add support functions for using Alembic to manage database schema migrations and to verify that the current database schema matches the expectations of the running application. The support in Safir is designed to use asyncpg for all database operations, which avoids having to add a separate dependency on a sync database client.
+- Add Alembic schema management support to the UWS library. This support is likely temporary and will probably be replaced in the future with a standalone UWS database service.
+
 <a id='changelog-6.3.0'></a>
 ## 6.3.0 (2024-08-20)
 
