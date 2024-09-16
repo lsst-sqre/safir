@@ -10,11 +10,10 @@ from pydantic import AnyUrl
 
 from safir.kafka.config import KafkaConnectionSettings, KafkaSecurityProtocol
 from safir.metrics.config import MetricsConfiguration
-from safir.metrics.event import BaseEvent
 from safir.metrics.event_manager import (
-    BaseEventManager,
+    Event,
     EventManager,
-    create_event_manager,
+    create_event_manager_from_config,
 )
 from safir.metrics.models import EventMetadata, Payload
 from safir.schema_manager.config import (
@@ -31,25 +30,14 @@ async def subscribe_and_wait(consumer: AIOKafkaConsumer, pattern: str) -> None:
     await asyncio.sleep(0.5)
 
 
-class MyPayload(Payload):
+class MyEvent(Payload):
     foo: str
-
-
-async def publish(manager: BaseEventManager) -> BaseEvent[MyPayload]:
-    """Works with a real or no-op event manager."""
-    event = manager.create_event("my_event", MyPayload)
-
-    await manager.initialize_events()
-    await event.publish(MyPayload(foo="bar1"))
-    await event.publish(MyPayload(foo="bar2"))
-    await manager.aclose()
-    return event
 
 
 async def assert_event_from_kafka(
     consumer: AIOKafkaConsumer,
     manager: EventManager,
-    event: BaseEvent[MyPayload],
+    event: Event[MyEvent],
     foo: str,
 ) -> None:
     """Deserialize a published event back into its model type."""
@@ -96,18 +84,18 @@ async def test_integration(
         service="test-app",
         base_topic_prefix="what.ever",
     )
-    manager = create_event_manager(
-        service=config.service,
-        base_topic_prefix=config.base_topic_prefix,
-        noop=config.noop,
-    )
-    await manager.initialize(
+    manager = create_event_manager_from_config(config)
+    event = manager.create_event(MyEvent)
+    await manager.register_events(
         kafka_broker=kafka_settings,
         kafka_admin_client=kafka_settings,
         schema_manager=schema_manager_settings,
     )
-    topic = "what.ever.test-app.my_event"
-    event = await publish(manager)
+    await event.publish(MyEvent(foo="bar1"))
+    await event.publish(MyEvent(foo="bar2"))
+    await manager.aclose()
+
+    topic = "what.ever.test-app.MyEvent"
     assert event.topic == topic
 
     await subscribe_and_wait(consumer=kafka_consumer, pattern=topic)
@@ -124,10 +112,18 @@ async def test_noop() -> None:
         base_topic_prefix="what.ever",
         noop=True,
     )
-    manager = create_event_manager(
-        noop=config.noop,
-        service=config.service,
-        base_topic_prefix=config.base_topic_prefix,
+    manager = create_event_manager_from_config(config)
+
+    event = manager.create_event(MyEvent)
+    await manager.register_events(
+        kafka_broker=None,
+        kafka_admin_client=None,
+        schema_manager=None,
     )
 
-    await publish(manager)
+    await event.publish(MyEvent(foo="bar1"))
+    await event.publish(MyEvent(foo="bar2"))
+    await manager.aclose()
+
+    topic = "what.ever.test-app.MyEvent"
+    assert event.topic == topic

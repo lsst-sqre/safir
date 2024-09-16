@@ -58,8 +58,12 @@ class SchemaRegistryContainer(DockerContainer):
         port = self.get_exposed_port(self.port)
         return f"http://{host}:{port}"
 
-    class HealthCheckError(Exception):
-        pass
+    def reset(self) -> None:
+        url = f"{self.get_url()}/subjects"
+        subjects = httpx.get(url).json()
+        for subject in subjects:
+            httpx.delete(f"{url}/{subject}")
+            httpx.delete(f"{url}/{subject}?permanent=true")
 
     @wait_container_is_ready(ReadError, RemoteProtocolError)
     def health(self) -> None:
@@ -98,21 +102,32 @@ async def kafka_consumer(
     await consumer.stop()
 
 
-@pytest.fixture(scope="session")
-def kafka_bootstrap_server(kafka_container: KafkaContainer) -> str:
-    return kafka_container.get_bootstrap_server()
+@pytest.fixture
+def kafka_bootstrap_server(kafka_container: KafkaContainer) -> Iterator[str]:
+    yield kafka_container.get_bootstrap_server()
+    kafka_container.exec(
+        "/bin/kafka-topics --bootstrap-server localhost:9092 --delete --topic '.*'"
+    )
 
 
 @pytest.fixture(scope="session")
-def schema_registry_url(
+def schema_registry_container(
     kafka_container: KafkaContainer,
     kafka_docker_network: Network,
-) -> Iterator[str]:
+) -> Iterator[SchemaRegistryContainer]:
     container = SchemaRegistryContainer(kafka_bootstrap_servers="kafka:9092")
     container.with_network(kafka_docker_network)
     container.with_network_aliases("schemaregistry")
     with container as schema_registry:
-        yield schema_registry.get_url()
+        yield container
+
+
+@pytest.fixture
+def schema_registry_url(
+    schema_registry_container: SchemaRegistryContainer,
+) -> Iterator[str]:
+    yield schema_registry_container.get_url()
+    schema_registry_container.reset()
 
 
 @pytest.fixture(scope="session")
