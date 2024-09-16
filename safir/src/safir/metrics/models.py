@@ -35,9 +35,40 @@ class EventMetadata(AvroBaseModel):
 class Payload(AvroBaseModel):
     """All event payloads should inherit from this."""
 
-    def validate_structure(self) -> None:
+    @classmethod
+    def validate_structure(cls) -> None:
         """Do runtime validation of fields.
 
         Make sure all of the fields are compatible with the backing datastore
-        (InfluxDB at the time of this writing).
+        (InfluxDB at the moment).
         """
+        valids = [
+            "string",
+            "int",
+            "long",
+            "boolean",
+            "float",
+            "double",
+            "null",
+        ]
+        errors: list[str] = []
+        schema = cls.avro_schema_to_python()
+        for field in schema["fields"]:
+            field_type = field["type"]
+            name = field["name"]
+            if isinstance(field_type, dict):
+                field_type = field["type"]["type"]
+            if not isinstance(field_type, str):
+                errors.append(
+                    f"{name}\n   Couldn't validate avro schema"
+                    f"compatibility: {field_type}"
+                )
+            if field_type not in valids:
+                errors.append(
+                    f"{name}\n   Serializes to an unsupported avro type:"
+                    f" {field_type}"
+                )
+        if bool(errors):
+            errors = ["Unsupported Avro Schema", *errors]
+            errors.append(f"Supported avro types are: {valids}")
+            raise ValueError("\n".join(errors))

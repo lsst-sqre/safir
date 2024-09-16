@@ -1,4 +1,4 @@
-"""Test metrics development tools."""
+"""Test metrics tooling."""
 
 import asyncio
 import math
@@ -6,13 +6,16 @@ from uuid import UUID
 
 import pytest
 from aiokafka import AIOKafkaConsumer
-from pydantic import AnyUrl
+from aiokafka.admin.client import AIOKafkaAdminClient
+from faststream.kafka.annotations import KafkaBroker
+from pydantic import Field
 
-from safir.kafka.config import KafkaConnectionSettings, KafkaSecurityProtocol
+from safir.kafka.config import KafkaConnectionSettings
 from safir.metrics.config import MetricsConfiguration
+from safir.metrics.dependencies import EventsDependency
 from safir.metrics.event_manager import (
-    Event,
     EventManager,
+    Publisher,
     create_event_manager_from_config,
 )
 from safir.metrics.models import EventMetadata, Payload
@@ -20,27 +23,40 @@ from safir.schema_manager.config import (
     SchemaManagerSettings,
     SchemaRegistryConnectionSettings,
 )
+from safir.schema_manager.pydantic_schema_manager import PydanticSchemaManager
+
+
+class MyEvent(Payload):
+    """An event payload."""
+
+    foo: str
+
+
+class Events:
+    """A class to hold event publishers."""
+
+    def __init__(self, manager: EventManager) -> None:
+        self.my_event = manager.create_publisher(MyEvent)
 
 
 async def subscribe_and_wait(consumer: AIOKafkaConsumer, pattern: str) -> None:
-    # There is some race condition in where an exception is raised if we start
-    # trying to consume messages too soon after we have subscribed to a topic
-    # or pattern, because partitions haven't been assigned to the consumer yet.
+    """Avoid race condition when subscribing to topics.
+
+    There is some race condition where an exception is raised if we start
+    trying to consume messages too soon after we have subscribed to a topic
+    or pattern, because partitions haven't been assigned to the consumer yet.
+    """
     consumer.subscribe(pattern=pattern)
     await asyncio.sleep(0.5)
 
 
-class MyEvent(Payload):
-    foo: str
-
-
-async def assert_event_from_kafka(
+async def assert_from_kafka(
     consumer: AIOKafkaConsumer,
     manager: EventManager,
-    event: Event[MyEvent],
+    event: Publisher[MyEvent],
     foo: str,
 ) -> None:
-    """Deserialize a published event back into its model type."""
+    """Grab a message from kafka, deserialize it, and assert stuff about it."""
     message = await consumer.getone()
     assert isinstance(message.value, bytes)
     deserialized = await manager._schema_manager.deserialize(
@@ -64,49 +80,99 @@ async def assert_event_from_kafka(
     assert getattr(deserialized, "foo", None) == foo
 
 
-@pytest.mark.asyncio
-async def test_integration(
-    kafka_bootstrap_server: str,
-    schema_registry_url: str,
+async def integration_test(
+    *,
+    kafka_broker: KafkaBroker | KafkaConnectionSettings,
+    kafka_admin_client: AIOKafkaAdminClient | KafkaConnectionSettings,
+    schema_manager: PydanticSchemaManager | SchemaManagerSettings,
     kafka_consumer: AIOKafkaConsumer,
-) -> None:
-    kafka_settings = KafkaConnectionSettings(
-        bootstrap_servers=kafka_bootstrap_server,
-        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
-    )
-    schema_manager_settings = SchemaManagerSettings(
-        schema_registry=SchemaRegistryConnectionSettings(
-            url=AnyUrl(schema_registry_url)
-        )
-    )
-
+) -> EventManager:
+    """Publish events to actual storage and read them back and verify them."""
     config = MetricsConfiguration(
         service="test-app",
         base_topic_prefix="what.ever",
     )
+
+    # Construct an event manager and intialize our events dependency
     manager = create_event_manager_from_config(config)
-    event = manager.create_event(MyEvent)
-    await manager.register_events(
-        kafka_broker=kafka_settings,
-        kafka_admin_client=kafka_settings,
-        schema_manager=schema_manager_settings,
+
+    # Create an events dependency and initialize it with the transport config
+    events_dependency = EventsDependency(Events)
+    await events_dependency.initialize(
+        manager=manager,
+        kafka_broker=kafka_broker,
+        kafka_admin_client=kafka_admin_client,
+        schema_manager=schema_manager,
     )
+
+    # Publish events
+    event = events_dependency.events.my_event
     await event.publish(MyEvent(foo="bar1"))
     await event.publish(MyEvent(foo="bar2"))
-    await manager.aclose()
+    await events_dependency.aclose()
 
-    topic = "what.ever.test-app.MyEvent"
-    assert event.topic == topic
-
-    await subscribe_and_wait(consumer=kafka_consumer, pattern=topic)
+    # Set up a kafka consumer
+    expected_topic = "what.ever.test-app.MyEvent"
+    await subscribe_and_wait(consumer=kafka_consumer, pattern=expected_topic)
     await kafka_consumer.seek_to_beginning()
 
-    await assert_event_from_kafka(kafka_consumer, manager, event, "bar1")
-    await assert_event_from_kafka(kafka_consumer, manager, event, "bar2")
+    # Assert stuff
+    assert event.topic == expected_topic
+    await assert_from_kafka(kafka_consumer, manager, event, "bar1")
+    await assert_from_kafka(kafka_consumer, manager, event, "bar2")
+
+    return manager
+
+
+@pytest.mark.asyncio
+async def test_events_connection_info_integration(
+    kafka_connection_settings: KafkaConnectionSettings,
+    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+    kafka_consumer: AIOKafkaConsumer,
+) -> None:
+    """Test all metrics-events-related stuff against real storage."""
+    # Build our config models
+    schema_manager_settings = SchemaManagerSettings(
+        schema_registry=schema_registry_connection_settings
+    )
+
+    manager = await integration_test(
+        kafka_broker=kafka_connection_settings,
+        kafka_admin_client=kafka_connection_settings,
+        schema_manager=schema_manager_settings,
+        kafka_consumer=kafka_consumer,
+    )
+
+    # If we give connection config instead of clients to the manager, it should
+    # clean up all of the clients it creates
+    assert manager._admin_client._closed
+    assert not await manager._broker.ping(timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_events_clients_integration(
+    kafka_broker: KafkaBroker,
+    kafka_admin_client: AIOKafkaAdminClient,
+    schema_manager: PydanticSchemaManager,
+    kafka_consumer: AIOKafkaConsumer,
+) -> None:
+    """Test all metrics-events-related stuff against real storage."""
+    await integration_test(
+        kafka_broker=kafka_broker,
+        kafka_admin_client=kafka_admin_client,
+        schema_manager=schema_manager,
+        kafka_consumer=kafka_consumer,
+    )
+
+    # If we give clients instead of connection config to the manager, it should
+    # NOT clean up the clients we pass in
+    assert not kafka_admin_client._closed
+    assert await kafka_broker.ping(timeout=1)
 
 
 @pytest.mark.asyncio
 async def test_noop() -> None:
+    """Test that no-op actually does no operations."""
     config = MetricsConfiguration(
         service="test-app",
         base_topic_prefix="what.ever",
@@ -114,7 +180,7 @@ async def test_noop() -> None:
     )
     manager = create_event_manager_from_config(config)
 
-    event = manager.create_event(MyEvent)
+    event = manager.create_publisher(MyEvent)
     await manager.register_events(
         kafka_broker=None,
         kafka_admin_client=None,
@@ -127,3 +193,25 @@ async def test_noop() -> None:
 
     topic = "what.ever.test-app.MyEvent"
     assert event.topic == topic
+
+
+def test_invalid_payload() -> None:
+    config = MetricsConfiguration(
+        service="test-app",
+        base_topic_prefix="what.ever",
+        noop=True,
+    )
+    manager = create_event_manager_from_config(config)
+
+    class MyInvalidEvent(Payload):
+        good_field: str = Field()
+        bad_field: list[str] = Field()
+        another_bad_field: dict[str, str] = Field()
+
+    with pytest.raises(ValueError, match="Unsupported Avro Schema") as excinfo:
+        manager.create_publisher(MyInvalidEvent)
+    err = str(excinfo.value)
+
+    assert "bad_field" in err
+    assert "another_bad_field" in err
+    assert "good_field" not in err

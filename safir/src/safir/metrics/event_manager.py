@@ -31,7 +31,7 @@ from .models import EventMetadata, Payload
 P = TypeVar("P", bound=Payload)
 
 
-class Event(Generic[P]):
+class Publisher(Generic[P]):
     def __init__(
         self,
         *,
@@ -78,7 +78,7 @@ class EventManager(ABC):
         self._service = service
         self._topic_prefix = f"{base_topic_prefix}.{service}"
         self._logger = logger or structlog.get_logger("metrics_event_manager")
-        self._events: dict[str, Event] = {}
+        self._events: dict[str, Publisher] = {}
         self._registered = False
 
         # Not used in no-op
@@ -88,14 +88,15 @@ class EventManager(ABC):
         self._manage_admin_client: bool
         self._schema_manager: PydanticSchemaManager
 
-    def create_event(
+    def create_publisher(
         self, payload_model: type[P], name: str | None = None
-    ) -> Event[P]:
+    ) -> Publisher[P]:
         if self._registered:
             raise RuntimeError(
                 "All events must be registered before ``register_events`` is"
                 " called"
             )
+        payload_model.validate_structure()
         name = name or payload_model.__name__
 
         if name in self._events:
@@ -103,7 +104,7 @@ class EventManager(ABC):
                 f"{name}: you have already created an event with this name."
                 " Events must have unique names within this application."
             )
-        event = Event(
+        event = Publisher(
             name=name,
             topic=f"{self._topic_prefix}.{name}",
             payload_model=payload_model,
@@ -130,7 +131,9 @@ class EventManager(ABC):
         return None
 
     @abstractmethod
-    async def publish(self, event: Event, payload: Payload) -> AvroBaseModel:
+    async def publish(
+        self, event: Publisher, payload: Payload
+    ) -> AvroBaseModel:
         if not self._registered:
             raise RuntimeError("``register`` must be called before publishing")
         time_ns = time.time_ns()
@@ -169,7 +172,9 @@ class NoopEventManager(EventManager):
             " actually be published."
         )
 
-    async def publish(self, event: Event, payload: Payload) -> AvroBaseModel:
+    async def publish(
+        self, event: Publisher, payload: Payload
+    ) -> AvroBaseModel:
         model = await super().publish(event, payload)
         self._logger.debug(
             "Would have published event",
@@ -237,7 +242,7 @@ class RealEventManager(EventManager):
         for event in self._events.values():
             await self._initialize_event(event)
 
-    async def _initialize_event(self, event: Event) -> None:
+    async def _initialize_event(self, event: Publisher) -> None:
         event.publisher = self._broker.publisher(
             event.topic, schema=event.event_class
         )
@@ -253,7 +258,9 @@ class RealEventManager(EventManager):
             event.event_class
         )
 
-    async def publish(self, event: Event, payload: Payload) -> AvroBaseModel:
+    async def publish(
+        self, event: Publisher, payload: Payload
+    ) -> AvroBaseModel:
         model = await super().publish(event, payload)
         encoded = await self._schema_manager.serialize(model)
         await event.publisher.publish(encoded)

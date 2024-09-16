@@ -4,97 +4,90 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
 from datetime import timedelta
-from typing import Any, Self
 
-import httpx
 import pytest
 import pytest_asyncio
 import respx
 from aiokafka import AIOKafkaConsumer
-from httpx import ReadError, RemoteProtocolError
+from aiokafka.admin.client import AIOKafkaAdminClient
+from faststream.kafka.annotations import KafkaBroker
+from pydantic import AnyUrl
 from redis.asyncio import Redis
-from testcontainers.core.container import (
-    DockerContainer,
-    Network,
-    wait_container_is_ready,
-)
-from testcontainers.kafka import KafkaContainer
+from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
+from safir.kafka.aiokafka_admin_client import make_kafka_admin_client
 from safir.kafka.aiokafka_consumer import make_kafka_consumer
 from safir.kafka.config import KafkaConnectionSettings, KafkaSecurityProtocol
+from safir.kafka.faststream_kafka_broker import make_kafka_broker
+from safir.schema_manager.config import (
+    SchemaManagerSettings,
+    SchemaRegistryConnectionSettings,
+)
+from safir.schema_manager.pydantic_schema_manager import PydanticSchemaManager
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
-
-class SchemaRegistryContainer(DockerContainer):
-    def __init__(
-        self,
-        kafka_bootstrap_servers: str = "kafka:9092",
-        image: str = "confluentinc/cp-schema-registry:7.6.0",
-        **kwargs: dict[str, Any],
-    ) -> None:
-        super().__init__(image, **kwargs)
-        self.port = 8081
-        self.with_exposed_ports(self.port)
-        self.with_env(
-            "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS",
-            kafka_bootstrap_servers,
-        )
-        self.with_env("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081")
-        self.with_env(
-            "SCHEMA_REGISTRY_HOST_NAME", self.get_container_host_ip()
-        )
-
-    def start(self, *args: list[Any], **kwargs: dict[str, Any]) -> Self:
-        super().start(*args, **kwargs)
-        self.health()
-        return self
-
-    def get_url(self) -> str:
-        host = self.get_container_host_ip()
-        port = self.get_exposed_port(self.port)
-        return f"http://{host}:{port}"
-
-    def reset(self) -> None:
-        url = f"{self.get_url()}/subjects"
-        subjects = httpx.get(url).json()
-        for subject in subjects:
-            httpx.delete(f"{url}/{subject}")
-            httpx.delete(f"{url}/{subject}?permanent=true")
-
-    @wait_container_is_ready(ReadError, RemoteProtocolError)
-    def health(self) -> None:
-        url = f"{self.get_url()}/subjects"
-        httpx.get(url, timeout=5).raise_for_status()
+from .support.kafka import NetworkedKafkaContainer
+from .support.schema_registry import NetworkedSchemaRegistryContainer
 
 
 @pytest.fixture(scope="session")
 def kafka_docker_network() -> Iterator[Network]:
+    """Provide a network object to link session-scoped testcontainers."""
     with Network() as network:
         yield network
 
 
 @pytest.fixture(scope="session")
-def kafka_container(kafka_docker_network: Network) -> Iterator[KafkaContainer]:
-    container = KafkaContainer()
-    container.with_network(kafka_docker_network)
-    container.with_network_aliases("kafka")
+def kafka_container(
+    kafka_docker_network: Network,
+) -> Iterator[NetworkedKafkaContainer]:
+    """Provide a session-scoped schema kafka container that can talk to the
+    containers in other docker-based kafka fixtures.
+
+    You proably want one of the dependent test-scoped fixtures that clears
+    kafka data, like:
+    * ``kafka_broker``
+    * ``kafka_consumer``
+    * ``kafka_admin_client``
+    """
+    container = NetworkedKafkaContainer(network=kafka_docker_network)
     with container as kafka:
         yield kafka
 
 
+@pytest.fixture(scope="session")
+def schema_registry_container(
+    kafka_container: NetworkedKafkaContainer,
+    kafka_docker_network: Network,
+) -> Iterator[NetworkedSchemaRegistryContainer]:
+    """Provide a session-scoped schema registry container that can talk to the
+    containers in other docker-based kafka fixtures.
+
+    You probably want one of the dependent test-scoped fixtures that clears
+    registry data, like ``schema_registry_connection_settings`` or
+    ``schema_manager``.
+    """
+    container = NetworkedSchemaRegistryContainer(network=kafka_docker_network)
+    with container as schema_registry:
+        yield schema_registry
+
+
 @pytest_asyncio.fixture
 async def kafka_consumer(
-    kafka_bootstrap_server: str,
+    kafka_connection_settings: KafkaConnectionSettings,
 ) -> AsyncIterator[AIOKafkaConsumer]:
-    kafka_settings = KafkaConnectionSettings(
-        bootstrap_servers=kafka_bootstrap_server,
-        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+    """Provide an AOIKafkaConsumer pointed at a session-scoped kafka container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    consumer = make_kafka_consumer(
+        config=kafka_connection_settings,
+        client_id="pytest-consumer",
     )
-    consumer = make_kafka_consumer(config=kafka_settings, client_id="pytest")
     await consumer.start()
 
     yield consumer
@@ -102,31 +95,85 @@ async def kafka_consumer(
     await consumer.stop()
 
 
-@pytest.fixture
-def kafka_bootstrap_server(kafka_container: KafkaContainer) -> Iterator[str]:
-    yield kafka_container.get_bootstrap_server()
-    kafka_container.exec(
-        "/bin/kafka-topics --bootstrap-server localhost:9092 --delete --topic '.*'"
+@pytest_asyncio.fixture
+async def kafka_broker(
+    kafka_connection_settings: KafkaConnectionSettings,
+) -> AsyncIterator[KafkaBroker]:
+    """Provide a fast stream KafkaBroker pointed at a session-scoped kafka
+    container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    broker = make_kafka_broker(
+        config=kafka_connection_settings, client_id="pytest-broker"
     )
+    await broker.start()
+
+    yield broker
+
+    await broker.close()
 
 
-@pytest.fixture(scope="session")
-def schema_registry_container(
-    kafka_container: KafkaContainer,
-    kafka_docker_network: Network,
-) -> Iterator[SchemaRegistryContainer]:
-    container = SchemaRegistryContainer(kafka_bootstrap_servers="kafka:9092")
-    container.with_network(kafka_docker_network)
-    container.with_network_aliases("schemaregistry")
-    with container as schema_registry:
-        yield container
+@pytest_asyncio.fixture
+async def kafka_admin_client(
+    kafka_connection_settings: KafkaConnectionSettings,
+) -> AsyncIterator[AIOKafkaAdminClient]:
+    """Provide an AOIKafkaAdmin client pointed at a session-scoped kafka
+    container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    client = make_kafka_admin_client(
+        config=kafka_connection_settings, client_id="pytest-admin"
+    )
+    await client.start()
+
+    yield client
+
+    await client.close()
+
+
+@pytest_asyncio.fixture
+def schema_manager(
+    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+) -> Iterator[PydanticSchemaManager]:
+    """Provide a PydanticSchemaManager pointed at a session-scoped schema
+    registry container.
+
+    All data is cleared from the registry at the end of the test.
+    """
+    config = SchemaManagerSettings(
+        schema_registry=schema_registry_connection_settings
+    )
+    yield PydanticSchemaManager.from_config(config)
 
 
 @pytest.fixture
-def schema_registry_url(
-    schema_registry_container: SchemaRegistryContainer,
-) -> Iterator[str]:
-    yield schema_registry_container.get_url()
+def kafka_connection_settings(
+    kafka_container: NetworkedKafkaContainer,
+) -> Iterator[KafkaConnectionSettings]:
+    """Provide a url to a session-scoped kafka container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    yield KafkaConnectionSettings(
+        bootstrap_servers=kafka_container.get_bootstrap_server(),
+        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+    )
+    kafka_container.reset()
+
+
+@pytest.fixture
+def schema_registry_connection_settings(
+    schema_registry_container: NetworkedSchemaRegistryContainer,
+) -> Iterator[SchemaRegistryConnectionSettings]:
+    """Provide a URL to a session-scoped schema registry.
+
+    All data is cleared from it at the end of the test.
+    """
+    yield SchemaRegistryConnectionSettings(
+        url=AnyUrl(schema_registry_container.get_url())
+    )
     schema_registry_container.reset()
 
 
