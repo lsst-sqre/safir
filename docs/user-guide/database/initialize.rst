@@ -19,14 +19,16 @@ In the file :file:`schema/base.py`, define the SQLAlchemy declarative base:
 
 .. code-block:: python
 
-   from sqlalchemy.orm import declarative_base
+   from sqlalchemy.orm import DeclarativeBase
 
-   Base = declarative_base()
 
-In other files in that directory, define the database tables using the normal SQLAlchemy ORM syntax, one table per file.
+   class Base(DeclarativeBase):
+       """Declarative base for SQLAlchemy ORM model of database schema."""
+
+In other files in that directory, define the database tables using the `normal SQLAlchemy ORM syntax <https://docs.sqlalchemy.org/en/20/orm/mapping_styles.html#declarative-mapping>`__, one table per file.
 Each database table definition must inherit from ``Base``, imported from ``.base``.
 
-In :file:`schema/__init__.py`, import the table definitions from all of the files in the directory, as well as the ``Base`` variable, and export them using ``__all__``.
+In :file:`schema/__init__.py`, import the table definitions from all of the files in the directory, as well as the ``Base`` class, and export them using ``__all__``.
 
 Using non-default PostgreSQL schemas
 ------------------------------------
