@@ -31,7 +31,7 @@ class KafkaSecurityProtocol(StrEnum):
     """Plain-text connection."""
 
     SSL = "SSL"
-    """TLS-encrypted SSL-authenticated connection."""
+    """SSL-encrypted SSL-authenticated connection."""
 
 
 class KafkaSaslMechanism(StrEnum):
