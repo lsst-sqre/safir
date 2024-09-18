@@ -62,7 +62,8 @@ class FullKafkaContainer(DockerContainer):
         image: str = "confluentinc/cp-kafka:7.6.0",
         port: int = 9093,
         ssl_port: int = 29093,
-        sasl_port: int = 29094,
+        sasl_plaintext_port: int = 29094,
+        sasl_ssl_port: int = 29095,
         host_cert_path: Path | None = None,
         **kwargs: Any,
     ) -> None:
@@ -87,9 +88,15 @@ class FullKafkaContainer(DockerContainer):
         )
 
         self.port = port
+        self.sasl_plaintext_port = sasl_plaintext_port
         self.ssl_port = ssl_port
-        self.sasl_ssl_port = sasl_port
-        self.with_exposed_ports(self.port, self.ssl_port, self.sasl_ssl_port)
+        self.sasl_ssl_port = sasl_ssl_port
+        self.with_exposed_ports(
+            self.port,
+            self.ssl_port,
+            self.sasl_plaintext_port,
+            self.sasl_ssl_port,
+        )
 
         self.sasl_username = "admin"
         self.sasl_password = "admin"
@@ -98,10 +105,8 @@ class FullKafkaContainer(DockerContainer):
         self.wait_for = r".*\[KafkaServer id=\d+\] started.*"
         self.boot_command = ""
         self.cluster_id = "MkU3OEVBNTcwNTJENDM2Qk"
-        self.listeners = f"PLAINTEXT://0.0.0.0:{self.port},BROKER://0.0.0.0:9092,SSL://0.0.0.0:{self.ssl_port},SASL_SSL://0.0.0.0:{self.sasl_ssl_port}"
-        self.security_protocol_map = (
-            "BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_SSL:SASL_SSL"
-        )
+        self.listeners = f"PLAINTEXT://0.0.0.0:{self.port},BROKER://0.0.0.0:9092,SSL://0.0.0.0:{self.ssl_port},SASL_SSL://0.0.0.0:{self.sasl_ssl_port},SASL_PLAINTEXT://0.0.0.0:{self.sasl_plaintext_port}"
+        self.security_protocol_map = "BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_SSL:SASL_SSL,SASL_PLAINTEXT:SASL_PLAINTEXT"
 
         self.with_env("KAFKA_LISTENERS", self.listeners)
         self.with_env(
@@ -203,6 +208,11 @@ class FullKafkaContainer(DockerContainer):
         port = self.get_exposed_port(self.sasl_ssl_port)
         return f"{host}:{port}"
 
+    def get_sasl_plaintext_bootstrap_server(self) -> str:
+        host = self.get_container_host_ip()
+        port = self.get_exposed_port(self.sasl_plaintext_port)
+        return f"{host}:{port}"
+
     def get_sasl_username(self) -> str:
         return self.sasl_username
 
@@ -216,12 +226,13 @@ class FullKafkaContainer(DockerContainer):
         host = self.get_container_host_ip()
         port = self.get_exposed_port(self.port)
         ssl_port = self.get_exposed_port(self.ssl_port)
-        sasl_port = self.get_exposed_port(self.sasl_ssl_port)
+        sasl_ssl_port = self.get_exposed_port(self.sasl_ssl_port)
+        sasl_plaintext_port = self.get_exposed_port(self.sasl_plaintext_port)
 
         if kafka_config.limit_broker_to_first_host:
-            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i | cut -d' ' -f1):9092,SSL://{host}:{ssl_port},SASL_SSL://{host}:{sasl_port}"
+            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i | cut -d' ' -f1):9092,SSL://{host}:{ssl_port},SASL_SSL://{host}:{sasl_ssl_port},SASL_PLAINTEXT://{host}:{sasl_plaintext_port}"
         else:
-            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i):9092,SSL://{host}:{port},SASL_SSL://{host}:{sasl_port}"
+            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i):9092,SSL://{host}:{port},SASL_SSL://{host}:{sasl_ssl_port},SASL_PLAINTEXT://{host}:{sasl_plaintext_port}"
         data = (
             dedent(
                 f"""

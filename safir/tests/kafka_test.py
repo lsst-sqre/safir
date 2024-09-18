@@ -1,5 +1,6 @@
 """Tests for the safir.kafka module."""
 
+import logging
 import os
 from pathlib import Path
 from unittest import mock
@@ -7,16 +8,17 @@ from unittest import mock
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from safir.kafka import (
-    make_kafka_admin_client,
-    make_kafka_broker,
-    make_kafka_consumer,
-)
+from safir.kafka import make_kafka_broker
+from safir.kafka._aiokafka_admin_client import make_kafka_admin_client
+from safir.kafka._aiokafka_consumer import make_kafka_consumer
 from safir.kafka.config import (
     KafkaConnectionSettings,
     KafkaSaslMechanism,
     KafkaSecurityProtocol,
 )
+
+logger = logging.getLogger("aiokafka")
+logger.setLevel(logging.DEBUG)
 
 
 async def assert_clients(settings: KafkaConnectionSettings) -> None:
@@ -45,66 +47,62 @@ async def assert_clients(settings: KafkaConnectionSettings) -> None:
             await admin.close()
 
 
-async def make_clients(settings: KafkaConnectionSettings) -> None:
-    make_kafka_consumer(settings)
-    make_kafka_admin_client(settings)
-    make_kafka_broker(settings)
-
-
 @pytest.mark.asyncio
-async def test_plain_text(
+async def test_plaintext(
     monkeypatch: pytest.MonkeyPatch, kafka_bootstrap_server: str
 ) -> None:
     settings = KafkaConnectionSettings(
         bootstrap_servers=kafka_bootstrap_server,
         security_protocol=KafkaSecurityProtocol.PLAINTEXT,
     )
-    await make_clients(settings)
+    await assert_clients(settings)
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "KAFKA_BOOTSTRAP_SERVERS": "some.domain:1234",
+            "KAFKA_BOOTSTRAP_SERVERS": kafka_bootstrap_server,
             "KAFKA_SECURITY_PROTOCOL": "PLAINTEXT",
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
         settings = KafkaConnectionSettings()
-        await make_clients(settings)
+        await assert_clients(settings)
 
 
 @pytest.mark.asyncio
-async def test_sasl_plaintext(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_sasl_plaintext(
+    monkeypatch: pytest.MonkeyPatch, kafka_sasl_plaintext_bootstrap_server: str
+) -> None:
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
-            bootstrap_servers="some.domain:1234",
+            bootstrap_servers=kafka_sasl_plaintext_bootstrap_server,
             security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
-            sasl_mechanism=KafkaSaslMechanism.PLAIN,
+            sasl_mechanism=KafkaSaslMechanism.SCRAM_SHA_512,
             sasl_username="username",
         )
 
     settings = KafkaConnectionSettings(
-        bootstrap_servers="some.domain:1234",
+        bootstrap_servers=kafka_sasl_plaintext_bootstrap_server,
         security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
-        sasl_username="username",
-        sasl_password=SecretStr("password"),
-        sasl_mechanism=KafkaSaslMechanism.PLAIN,
+        sasl_username="admin",
+        sasl_password=SecretStr("admin"),
+        sasl_mechanism=KafkaSaslMechanism.SCRAM_SHA_512,
     )
 
-    await make_clients(settings)
+    await assert_clients(settings)
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "KAFKA_BOOTSTRAP_SERVERS": "some.domain:1234",
+            "KAFKA_BOOTSTRAP_SERVERS": kafka_sasl_plaintext_bootstrap_server,
             "KAFKA_SECURITY_PROTOCOL": "SASL_PLAINTEXT",
-            "KAFKA_SASL_USERNAME": "username",
-            "KAFKA_SASL_PASSWORD": "password",
-            "KAFKA_SASL_MECHANISM": "PLAIN",
+            "KAFKA_SASL_USERNAME": "admin",
+            "KAFKA_SASL_PASSWORD": "admin",
+            "KAFKA_SASL_MECHANISM": "SCRAM-SHA-512",
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
         settings = KafkaConnectionSettings()
 
-        await make_clients(settings)
+        await assert_clients(settings)
 
 
 @pytest.mark.asyncio
@@ -177,7 +175,7 @@ async def test_ssl(
         client_key_path=client_key_path,
     )
 
-    await make_clients(settings)
+    await assert_clients(settings)
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {

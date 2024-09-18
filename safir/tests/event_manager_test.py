@@ -125,7 +125,7 @@ async def integration_test(
 
 
 @pytest.mark.asyncio
-async def test_events_connection_info_integration(
+async def test_integration_with_connection_info(
     kafka_connection_settings: KafkaConnectionSettings,
     schema_registry_connection_settings: SchemaRegistryConnectionSettings,
     kafka_consumer: AIOKafkaConsumer,
@@ -150,7 +150,7 @@ async def test_events_connection_info_integration(
 
 
 @pytest.mark.asyncio
-async def test_events_clients_integration(
+async def test_integration_with_preconstructed_clients(
     kafka_broker: KafkaBroker,
     kafka_admin_client: AIOKafkaAdminClient,
     schema_manager: PydanticSchemaManager,

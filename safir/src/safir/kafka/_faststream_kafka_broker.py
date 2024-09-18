@@ -13,6 +13,7 @@ from .config import (
     KafkaPlaintextSettings,
     KafkaSaslMechanism,
     KafkaSaslSettings,
+    KafkaSecurityProtocol,
     KafkaSslSettings,
 )
 
@@ -60,8 +61,12 @@ def _sasl(
         case KafkaSaslMechanism.PLAIN:
             cls = SASLPlaintext
 
+    if config.security_protocol == KafkaSecurityProtocol.SASL_PLAINTEXT:
+        ssl_context = None
+    else:
+        ssl_context = config.ssl_context
     return cls(
         username=config.sasl_username,
         password=config.sasl_password.get_secret_value(),
-        ssl_context=config.ssl_context,
+        ssl_context=ssl_context,
     )
