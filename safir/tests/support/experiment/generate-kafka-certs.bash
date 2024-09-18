@@ -146,3 +146,5 @@ openssl pkcs12 -in client.keystore.p12 -nodes -nocerts -out client.key -passin p
 
 # Credentials (password) file
 echo ${PASSWORD} >credentials
+
+echo 'KafkaServer { org.apache.kafka.common.security.scram.ScramLoginModule required username="_" password="_"; };' >"$1/kafka_server_jaas.conf"

@@ -1,7 +1,5 @@
 """Helpers for constructing an aiokafka admin client."""
 
-import ssl
-
 from aiokafka.admin.client import AIOKafkaAdminClient
 
 from .config import (
@@ -58,7 +56,7 @@ def _sasl(
         case KafkaSecurityProtocol.SASL_PLAINTEXT:
             ssl_context = None
         case KafkaSecurityProtocol.SASL_SSL:
-            ssl_context = ssl.create_default_context()
+            ssl_context = auth_config.ssl_context
 
     return AIOKafkaAdminClient(
         bootstrap_servers=bootstrap_servers,

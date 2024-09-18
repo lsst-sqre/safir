@@ -88,6 +88,33 @@ class KafkaSaslSettings(BaseModel):
 
     sasl_password: SecretStr
 
+    cluster_ca_path: FilePath | None
+
+    client_cert_path: FilePath | None
+
+    client_key_path: FilePath | None
+
+    @property
+    def ssl_context(self) -> ssl.SSLContext:
+        """An SSL context for connecting to Kafka, if the Kafka connection is
+        configured to use TLS authentication.
+        """
+        cafile = None
+        certfile = None
+        keyfile = None
+
+        if self.cluster_ca_path:
+            cafile = str(self.cluster_ca_path)
+        if self.client_cert_path:
+            certfile = str(self.client_cert_path)
+        if self.client_key_path:
+            keyfile = str(self.client_key_path)
+        return helpers.create_ssl_context(
+            cafile=cafile,
+            certfile=certfile,
+            keyfile=keyfile,
+        )
+
 
 class KafkaPlaintextSettings(BaseModel):
     """Subset of settings required for Plaintext auth."""
@@ -170,7 +197,7 @@ class KafkaConnectionSettings(BaseSettings):
     )
 
     sasl_mechanism: KafkaSaslMechanism | None = Field(
-        default=KafkaSaslMechanism.PLAIN,
+        default=None,
         title="SASL mechanism",
         description=(
             "The SASL mechanism to use for authentication. "

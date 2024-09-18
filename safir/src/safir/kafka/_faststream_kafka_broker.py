@@ -1,7 +1,5 @@
 """Helpers for constructing an FastStream kafka broker."""
 
-import ssl
-
 from faststream.kafka import KafkaBroker
 from faststream.security import (
     BaseSecurity,
@@ -65,5 +63,5 @@ def _sasl(
     return cls(
         username=config.sasl_username,
         password=config.sasl_password.get_secret_value(),
-        ssl_context=ssl.create_default_context(),
+        ssl_context=config.ssl_context,
     )

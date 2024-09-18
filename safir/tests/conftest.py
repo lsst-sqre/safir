@@ -66,28 +66,40 @@ def kafka_container(
         yield kafka
 
 
+@pytest.fixture(scope="session")
+def reset_kafka_container(
+    kafka_container: FullKafkaContainer,
+) -> Iterator[FullKafkaContainer]:
+    yield kafka_container
+    kafka_container.reset()
+
+
 @pytest.fixture
 def kafka_cert_path(
-    kafka_container: FullKafkaContainer,
-) -> Iterator[Path]:
-    yield kafka_container.get_cert_path()
-    kafka_container.reset()
+    reset_kafka_container: FullKafkaContainer,
+) -> Path:
+    return reset_kafka_container.get_cert_path()
 
 
 @pytest.fixture(scope="session")
 def kafka_ssl_bootstrap_server(
-    kafka_container: FullKafkaContainer,
-) -> Iterator[str]:
-    yield kafka_container.get_ssl_bootstrap_server()
-    kafka_container.reset()
+    reset_kafka_container: FullKafkaContainer,
+) -> str:
+    return reset_kafka_container.get_ssl_bootstrap_server()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
+def kafka_sasl_ssl_bootstrap_server(
+    reset_kafka_container: FullKafkaContainer,
+) -> str:
+    return reset_kafka_container.get_sasl_ssl_bootstrap_server()
+
+
+@pytest.fixture
 def kafka_bootstrap_server(
-    kafka_container: FullKafkaContainer,
-) -> Iterator[str]:
-    yield kafka_container.get_bootstrap_server()
-    kafka_container.reset()
+    reset_kafka_container: FullKafkaContainer,
+) -> str:
+    return reset_kafka_container.get_bootstrap_server()
 
 
 @pytest.fixture(scope="session")
@@ -107,6 +119,20 @@ def schema_registry_container(
     container.with_network_aliases("schemaregistry")
     with container as schema_registry:
         yield schema_registry
+
+
+@pytest.fixture
+def kafka_connection_settings(
+    kafka_bootstrap_server: str,
+) -> KafkaConnectionSettings:
+    """Provide a url to a session-scoped kafka container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    return KafkaConnectionSettings(
+        bootstrap_servers=kafka_bootstrap_server,
+        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+    )
 
 
 @pytest_asyncio.fixture
@@ -160,36 +186,6 @@ async def kafka_admin_client(
     await client.close()
 
 
-@pytest_asyncio.fixture
-def schema_manager(
-    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
-) -> Iterator[PydanticSchemaManager]:
-    """Provide a PydanticSchemaManager pointed at a session-scoped schema
-    registry container.
-
-    All data is cleared from the registry at the end of the test.
-    """
-    config = SchemaManagerSettings(
-        schema_registry=schema_registry_connection_settings
-    )
-    yield PydanticSchemaManager.from_config(config)
-
-
-@pytest.fixture
-def kafka_connection_settings(
-    kafka_container: FullKafkaContainer,
-) -> Iterator[KafkaConnectionSettings]:
-    """Provide a url to a session-scoped kafka container.
-
-    All data is cleared from the kafka instance at the end of the test.
-    """
-    yield KafkaConnectionSettings(
-        bootstrap_servers=kafka_container.get_bootstrap_server(),
-        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
-    )
-    kafka_container.reset()
-
-
 @pytest.fixture
 def schema_registry_connection_settings(
     schema_registry_container: SchemaRegistryContainer,
@@ -202,6 +198,21 @@ def schema_registry_connection_settings(
         url=AnyUrl(schema_registry_container.get_url())
     )
     schema_registry_container.reset()
+
+
+@pytest_asyncio.fixture
+def schema_manager(
+    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+) -> PydanticSchemaManager:
+    """Provide a PydanticSchemaManager pointed at a session-scoped schema
+    registry container.
+
+    All data is cleared from the registry at the end of the test.
+    """
+    config = SchemaManagerSettings(
+        schema_registry=schema_registry_connection_settings
+    )
+    return PydanticSchemaManager.from_config(config)
 
 
 @pytest.fixture(scope="session")

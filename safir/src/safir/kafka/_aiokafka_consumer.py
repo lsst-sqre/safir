@@ -1,7 +1,5 @@
 """Helpers for constructing an aiokafka consumer."""
 
-import ssl
-
 from aiokafka import AIOKafkaConsumer
 
 from .config import (
@@ -66,7 +64,7 @@ def _sasl(
         case KafkaSecurityProtocol.SASL_PLAINTEXT:
             ssl_context = None
         case KafkaSecurityProtocol.SASL_SSL:
-            ssl_context = ssl.create_default_context()
+            ssl_context = auth_config.ssl_context
 
     return AIOKafkaConsumer(
         bootstrap_servers=bootstrap_servers,

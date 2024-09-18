@@ -12,7 +12,11 @@ from safir.kafka import (
     make_kafka_broker,
     make_kafka_consumer,
 )
-from safir.kafka.config import KafkaConnectionSettings, KafkaSecurityProtocol
+from safir.kafka.config import (
+    KafkaConnectionSettings,
+    KafkaSaslMechanism,
+    KafkaSecurityProtocol,
+)
 
 
 async def assert_clients(settings: KafkaConnectionSettings) -> None:
@@ -74,6 +78,8 @@ async def test_sasl_plaintext(monkeypatch: pytest.MonkeyPatch) -> None:
         KafkaConnectionSettings(
             bootstrap_servers="some.domain:1234",
             security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
+            sasl_mechanism=KafkaSaslMechanism.PLAIN,
+            sasl_username="username",
         )
 
     settings = KafkaConnectionSettings(
@@ -81,6 +87,7 @@ async def test_sasl_plaintext(monkeypatch: pytest.MonkeyPatch) -> None:
         security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
         sasl_username="username",
         sasl_password=SecretStr("password"),
+        sasl_mechanism=KafkaSaslMechanism.PLAIN,
     )
 
     await make_clients(settings)
@@ -91,6 +98,7 @@ async def test_sasl_plaintext(monkeypatch: pytest.MonkeyPatch) -> None:
             "KAFKA_SECURITY_PROTOCOL": "SASL_PLAINTEXT",
             "KAFKA_SASL_USERNAME": "username",
             "KAFKA_SASL_PASSWORD": "password",
+            "KAFKA_SASL_MECHANISM": "PLAIN",
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
@@ -100,34 +108,47 @@ async def test_sasl_plaintext(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_sasl_ssl(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_sasl_ssl(
+    monkeypatch: pytest.MonkeyPatch,
+    kafka_sasl_ssl_bootstrap_server: str,
+    kafka_cert_path: Path,
+) -> None:
+    cluster_ca_path = kafka_cert_path / "ca.crt"
+
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
-            bootstrap_servers="some.domain:1234",
+            bootstrap_servers=kafka_sasl_ssl_bootstrap_server,
             security_protocol=KafkaSecurityProtocol.SASL_SSL,
+            sasl_username="admin",
+            sasl_password=SecretStr("admin"),
+            cluster_ca_path=cluster_ca_path,
         )
 
     settings = KafkaConnectionSettings(
-        bootstrap_servers="some.domain:1234",
+        bootstrap_servers=kafka_sasl_ssl_bootstrap_server,
         security_protocol=KafkaSecurityProtocol.SASL_SSL,
-        sasl_username="username",
-        sasl_password=SecretStr("password"),
+        sasl_username="admin",
+        sasl_password=SecretStr("admin"),
+        sasl_mechanism=KafkaSaslMechanism.SCRAM_SHA_512,
+        cluster_ca_path=cluster_ca_path,
     )
 
-    await make_clients(settings)
+    await assert_clients(settings)
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "KAFKA_BOOTSTRAP_SERVERS": "some.domain:1234",
+            "KAFKA_BOOTSTRAP_SERVERS": kafka_sasl_ssl_bootstrap_server,
             "KAFKA_SECURITY_PROTOCOL": "SASL_SSL",
-            "KAFKA_SASL_USERNAME": "username",
-            "KAFKA_SASL_PASSWORD": "password",
+            "KAFKA_SASL_USERNAME": "admin",
+            "KAFKA_SASL_PASSWORD": "admin",
+            "KAFKA_SASL_MECHANISM": "SCRAM-SHA-512",
+            "KAFKA_CLUSTER_CA_PATH": str(cluster_ca_path),
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
         settings = KafkaConnectionSettings()
 
-        await make_clients(settings)
+        await assert_clients(settings)
 
 
 @pytest.mark.asyncio

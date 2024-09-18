@@ -62,6 +62,7 @@ class FullKafkaContainer(DockerContainer):
         image: str = "confluentinc/cp-kafka:7.6.0",
         port: int = 9093,
         ssl_port: int = 29093,
+        sasl_port: int = 29094,
         host_cert_path: Path | None = None,
         **kwargs: Any,
     ) -> None:
@@ -84,19 +85,24 @@ class FullKafkaContainer(DockerContainer):
             container="/var/some-scripts",
             mode="rw",
         )
+
         self.port = port
         self.ssl_port = ssl_port
-        self.kraft_enabled = False
+        self.sasl_ssl_port = sasl_port
+        self.with_exposed_ports(self.port, self.ssl_port, self.sasl_ssl_port)
+
+        self.sasl_username = "admin"
+        self.sasl_password = "admin"
+
+        # Kraft
         self.wait_for = r".*\[KafkaServer id=\d+\] started.*"
         self.boot_command = ""
         self.cluster_id = "MkU3OEVBNTcwNTJENDM2Qk"
-        self.listeners = f"PLAINTEXT://0.0.0.0:{self.port},BROKER://0.0.0.0:9092,SSL://0.0.0.0:{self.ssl_port}"
+        self.listeners = f"PLAINTEXT://0.0.0.0:{self.port},BROKER://0.0.0.0:9092,SSL://0.0.0.0:{self.ssl_port},SASL_SSL://0.0.0.0:{self.sasl_ssl_port}"
         self.security_protocol_map = (
-            "BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL"
+            "BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_SSL:SASL_SSL"
         )
 
-        self.with_exposed_ports(self.port)
-        self.with_exposed_ports(self.ssl_port)
         self.with_env("KAFKA_LISTENERS", self.listeners)
         self.with_env(
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", self.security_protocol_map
@@ -109,10 +115,8 @@ class FullKafkaContainer(DockerContainer):
         self.with_env("KAFKA_LOG_FLUSH_INTERVAL_MESSAGES", "10000000")
         self.with_env("KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0")
 
-        self.with_env(
-            "KAFKA_SSL_KEYSTORE_FILENAME",
-            "server.keystore.jks",
-        )
+        # SSL
+        self.with_env("KAFKA_SSL_KEYSTORE_FILENAME", "server.keystore.jks")
         self.with_env("KAFKA_SSL_KEYSTORE_CREDENTIALS", "credentials")
         self.with_env("KAFKA_SSL_KEY_CREDENTIALS", "credentials")
         self.with_env(
@@ -120,6 +124,13 @@ class FullKafkaContainer(DockerContainer):
             "server.truststore.jks",
         )
         self.with_env("KAFKA_SSL_TRUSTSTORE_CREDENTIALS", "credentials")
+
+        # SASL
+        self.with_env("KAFKA_SASL_ENABLED_MECHANISMS", "SCRAM-SHA-512")
+        self.with_env(
+            "KAFKA_OPTS",
+            f"-Djava.security.auth.login.config={self.container_cert_path!s}/kafka_server_jaas.conf",
+        )
 
         self._verify_min_kraft_version()
         self.kraft_enabled = True
@@ -187,6 +198,17 @@ class FullKafkaContainer(DockerContainer):
         port = self.get_exposed_port(self.ssl_port)
         return f"{host}:{port}"
 
+    def get_sasl_ssl_bootstrap_server(self) -> str:
+        host = self.get_container_host_ip()
+        port = self.get_exposed_port(self.sasl_ssl_port)
+        return f"{host}:{port}"
+
+    def get_sasl_username(self) -> str:
+        return self.sasl_username
+
+    def get_sasl_password(self) -> str:
+        return self.sasl_password
+
     def get_cert_path(self) -> Path:
         return self.host_cert_path
 
@@ -194,10 +216,12 @@ class FullKafkaContainer(DockerContainer):
         host = self.get_container_host_ip()
         port = self.get_exposed_port(self.port)
         ssl_port = self.get_exposed_port(self.ssl_port)
+        sasl_port = self.get_exposed_port(self.sasl_ssl_port)
+
         if kafka_config.limit_broker_to_first_host:
-            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i | cut -d' ' -f1):9092,SSL://{host}:{ssl_port}"
+            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i | cut -d' ' -f1):9092,SSL://{host}:{ssl_port},SASL_SSL://{host}:{sasl_port}"
         else:
-            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i):9092,SSL://{host}:{port}"
+            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i):9092,SSL://{host}:{port},SASL_SSL://{host}:{sasl_port}"
         data = (
             dedent(
                 f"""
@@ -225,6 +249,9 @@ class FullKafkaContainer(DockerContainer):
         super().start()
         self.tc_start()
         wait_for_logs(self, self.wait_for, timeout=timeout)
+        self.exec(
+            f"kafka-configs --bootstrap-server localhost:9092 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password={self.sasl_password}]' --entity-type users --entity-name {self.sasl_username}"
+        )
         return self
 
     def reset(self) -> None:

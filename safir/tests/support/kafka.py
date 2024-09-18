@@ -17,3 +17,9 @@ class NetworkedKafkaContainer(KafkaContainer):
         super().__init__(image=image, port=port, **kwargs)
         self.with_network(network)
         self.with_network_aliases("kafka")
+
+    def reset(self) -> None:
+        self.exec(
+            "/bin/kafka-topics --bootstrap-server localhost:9092 --delete"
+            " --topic '.*'"
+        )
