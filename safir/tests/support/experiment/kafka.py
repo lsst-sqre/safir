@@ -50,8 +50,21 @@ class FullKafkaContainer(DockerContainer):
             >>> with KafkaContainer().with_kraft() as kafka:
             ...     connection = kafka.get_bootstrap_server()
 
-    Changes from the in-tree module:
+    This is the testcontainers built-in module:
+    https://github.com/testcontainers/testcontainers-python/blob/main/modules/kafka/testcontainers/kafka/__init__.py
+
+    With these differences:
+    * Provision SSL, SASL_SSL, and SASL_PLAINTEXT listeners in addition to the
+      existing PLAINTEXT listener.
+    * Optionally mount a host directory for the generated kafka ssl secrets so
+      they can be used in test clients
+    * Expose the SASL username and password with ``.get_sasl_username()`` and
+      ``.get_sasl_password()``
+    * Provide ``.reset()`` to delete all topics from the running kafka instance
+    * Optionally control ``limit_broker_to_first_host`` with an init var
+      instead of an env var
     * Always uses Kraft, no more Zookeeper
+    * Type annotation fixes
     """
 
     TC_START_SCRIPT = "/tc-start.sh"
@@ -65,10 +78,17 @@ class FullKafkaContainer(DockerContainer):
         sasl_plaintext_port: int = 29094,
         sasl_ssl_port: int = 29095,
         host_cert_path: Path | None = None,
+        limit_broker_to_first_host: bool | None = None,
         **kwargs: Any,
     ) -> None:
         raise_for_deprecated_parameter(kwargs, "port_to_expose", "port")
         super().__init__(image, **kwargs)
+
+        self.limit_broker_to_first_host = (
+            limit_broker_to_first_host
+            if limit_broker_to_first_host is not None
+            else kafka_config.limit_broker_to_first_host
+        )
         self.host_cert_path = host_cert_path
         self.container_cert_path = Path("/etc/kafka/secrets")
         self.host_cert_script_path = Path(__file__).parent
@@ -83,8 +103,8 @@ class FullKafkaContainer(DockerContainer):
             )
         self.with_volume_mapping(
             host=str(self.host_cert_script_path),
-            container="/var/some-scripts",
-            mode="rw",
+            container="/var/testcontainers-init",
+            mode="ro",
         )
 
         self.port = port
@@ -106,6 +126,7 @@ class FullKafkaContainer(DockerContainer):
         self.boot_command = ""
         self.cluster_id = "MkU3OEVBNTcwNTJENDM2Qk"
         self.listeners = f"PLAINTEXT://0.0.0.0:{self.port},BROKER://0.0.0.0:9092,SSL://0.0.0.0:{self.ssl_port},SASL_SSL://0.0.0.0:{self.sasl_ssl_port},SASL_PLAINTEXT://0.0.0.0:{self.sasl_plaintext_port}"
+
         self.security_protocol_map = "BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_SSL:SASL_SSL,SASL_PLAINTEXT:SASL_PLAINTEXT"
 
         self.with_env("KAFKA_LISTENERS", self.listeners)
@@ -140,7 +161,7 @@ class FullKafkaContainer(DockerContainer):
         self._verify_min_kraft_version()
         self.kraft_enabled = True
 
-    def _verify_min_kraft_version(self):
+    def _verify_min_kraft_version(self) -> None:
         actual_version = self.image.split(":")[-1]
 
         if ComparableVersion(actual_version) < self.MIN_KRAFT_TAG:
@@ -181,7 +202,7 @@ class FullKafkaContainer(DockerContainer):
                     echo 'kafka-storage format --ignore-formatted -t {self.cluster_id} -c /etc/kafka/kafka.properties' >> /etc/confluent/docker/configure
                 """
 
-    def _get_network_alias(self):
+    def _get_network_alias(self) -> str | None:
         if self._network:
             return next(
                 iter(
@@ -219,9 +240,6 @@ class FullKafkaContainer(DockerContainer):
     def get_sasl_password(self) -> str:
         return self.sasl_password
 
-    def get_cert_path(self) -> Path:
-        return self.host_cert_path
-
     def tc_start(self) -> None:
         host = self.get_container_host_ip()
         port = self.get_exposed_port(self.port)
@@ -229,7 +247,7 @@ class FullKafkaContainer(DockerContainer):
         sasl_ssl_port = self.get_exposed_port(self.sasl_ssl_port)
         sasl_plaintext_port = self.get_exposed_port(self.sasl_plaintext_port)
 
-        if kafka_config.limit_broker_to_first_host:
+        if self.limit_broker_to_first_host:
             listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i | cut -d' ' -f1):9092,SSL://{host}:{ssl_port},SASL_SSL://{host}:{sasl_ssl_port},SASL_PLAINTEXT://{host}:{sasl_plaintext_port}"
         else:
             listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i):9092,SSL://{host}:{port},SASL_SSL://{host}:{sasl_ssl_port},SASL_PLAINTEXT://{host}:{sasl_plaintext_port}"
@@ -237,7 +255,7 @@ class FullKafkaContainer(DockerContainer):
             dedent(
                 f"""
                 #!/bin/bash
-                /var/some-scripts/generate-kafka-certs.bash {self.container_cert_path!s}
+                /var/testcontainers-init/generate-kafka-secrets.bash {self.container_cert_path!s} {host}
                 {self.boot_command}
                 export KAFKA_ADVERTISED_LISTENERS={listeners}
                 . /etc/confluent/docker/bash-config
@@ -278,7 +296,7 @@ class FullKafkaContainer(DockerContainer):
         ):
             tarinfo = tarfile.TarInfo(name=path)
             tarinfo.size = len(content)
-            tarinfo.mtime = time.time()
+            tarinfo.mtime = int(time.time())
             tar.addfile(tarinfo, BytesIO(content))
             archive.seek(0)
             self.get_wrapped_container().put_archive("/", archive)

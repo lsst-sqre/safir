@@ -45,20 +45,28 @@ def kafka_docker_network() -> Iterator[Network]:
 
 
 @pytest.fixture(scope="session")
-def kafka_container(
-    kafka_docker_network: Network,
+def kafka_cert_path(
     tmp_path_factory: pytest.TempPathFactory,
+) -> Path:
+    return tmp_path_factory.mktemp("kafka-certs")
+
+
+@pytest.fixture(scope="session")
+def global_kafka_container(
+    kafka_docker_network: Network,
+    kafka_cert_path: Path,
 ) -> Iterator[FullKafkaContainer]:
     """Provide a session-scoped kafka container.
 
     You proably want one of the dependent test-scoped fixtures that clears
     kafka data, like:
+    * ``kafka_container``
     * ``kafka_broker``
     * ``kafka_consumer``
     * ``kafka_admin_client``
     """
     container = FullKafkaContainer(
-        host_cert_path=tmp_path_factory.mktemp("certs")
+        host_cert_path=kafka_cert_path, limit_broker_to_first_host=True
     )
     container.with_network(kafka_docker_network)
     container.with_network_aliases("kafka")
@@ -67,51 +75,17 @@ def kafka_container(
 
 
 @pytest.fixture
-def reset_kafka_container(
-    kafka_container: FullKafkaContainer,
+def kafka_container(
+    global_kafka_container: FullKafkaContainer,
 ) -> Iterator[FullKafkaContainer]:
-    yield kafka_container
-    kafka_container.reset()
-
-
-@pytest.fixture
-def kafka_cert_path(
-    reset_kafka_container: FullKafkaContainer,
-) -> Path:
-    return reset_kafka_container.get_cert_path()
-
-
-@pytest.fixture
-def kafka_ssl_bootstrap_server(
-    reset_kafka_container: FullKafkaContainer,
-) -> str:
-    return reset_kafka_container.get_ssl_bootstrap_server()
-
-
-@pytest.fixture
-def kafka_sasl_ssl_bootstrap_server(
-    reset_kafka_container: FullKafkaContainer,
-) -> str:
-    return reset_kafka_container.get_sasl_ssl_bootstrap_server()
-
-
-@pytest.fixture
-def kafka_sasl_plaintext_bootstrap_server(
-    reset_kafka_container: FullKafkaContainer,
-) -> str:
-    return reset_kafka_container.get_sasl_plaintext_bootstrap_server()
-
-
-@pytest.fixture
-def kafka_bootstrap_server(
-    reset_kafka_container: FullKafkaContainer,
-) -> str:
-    return reset_kafka_container.get_bootstrap_server()
+    """Yield the global kafka container, but rid it of data post-test."""
+    yield global_kafka_container
+    global_kafka_container.reset()
 
 
 @pytest.fixture(scope="session")
-def schema_registry_container(
-    kafka_container: FullKafkaContainer,
+def global_schema_registry_container(
+    global_kafka_container: FullKafkaContainer,
     kafka_docker_network: Network,
 ) -> Iterator[SchemaRegistryContainer]:
     """Provide a session-scoped schema registry container that can talk to the
@@ -129,23 +103,15 @@ def schema_registry_container(
 
 
 @pytest.fixture
-def reset_schema_registry_container(
-    schema_registry_container: SchemaRegistryContainer,
-) -> Iterator[SchemaRegistryContainer]:
-    yield schema_registry_container
-    schema_registry_container.reset()
-
-
-@pytest.fixture
 def kafka_connection_settings(
-    kafka_bootstrap_server: str,
+    kafka_container: FullKafkaContainer,
 ) -> KafkaConnectionSettings:
     """Provide a url to a session-scoped kafka container.
 
     All data is cleared from the kafka instance at the end of the test.
     """
     return KafkaConnectionSettings(
-        bootstrap_servers=kafka_bootstrap_server,
+        bootstrap_servers=kafka_container.get_bootstrap_server(),
         security_protocol=KafkaSecurityProtocol.PLAINTEXT,
     )
 
@@ -202,15 +168,24 @@ async def kafka_admin_client(
 
 
 @pytest.fixture
+def schema_registry_container(
+    global_schema_registry_container: SchemaRegistryContainer,
+) -> Iterator[SchemaRegistryContainer]:
+    """Yield the global schema registry container and rid of data post-test."""
+    yield global_schema_registry_container
+    global_schema_registry_container.reset()
+
+
+@pytest.fixture
 def schema_registry_connection_settings(
-    reset_schema_registry_container: SchemaRegistryContainer,
+    schema_registry_container: SchemaRegistryContainer,
 ) -> SchemaRegistryConnectionSettings:
     """Provide a URL to a session-scoped schema registry.
 
     All data is cleared from it at the end of the test.
     """
     return SchemaRegistryConnectionSettings(
-        url=AnyUrl(reset_schema_registry_container.get_url())
+        url=AnyUrl(schema_registry_container.get_url())
     )
 
 

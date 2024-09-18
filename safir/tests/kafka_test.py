@@ -16,6 +16,7 @@ from safir.kafka.config import (
     KafkaSaslMechanism,
     KafkaSecurityProtocol,
 )
+from tests.support.experiment.kafka import FullKafkaContainer
 
 logger = logging.getLogger("aiokafka")
 logger.setLevel(logging.DEBUG)
@@ -49,17 +50,18 @@ async def assert_clients(settings: KafkaConnectionSettings) -> None:
 
 @pytest.mark.asyncio
 async def test_plaintext(
-    monkeypatch: pytest.MonkeyPatch, kafka_bootstrap_server: str
+    monkeypatch: pytest.MonkeyPatch, kafka_container: FullKafkaContainer
 ) -> None:
+    bootstrap_server = kafka_container.get_bootstrap_server()
     settings = KafkaConnectionSettings(
-        bootstrap_servers=kafka_bootstrap_server,
+        bootstrap_servers=bootstrap_server,
         security_protocol=KafkaSecurityProtocol.PLAINTEXT,
     )
     await assert_clients(settings)
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "KAFKA_BOOTSTRAP_SERVERS": kafka_bootstrap_server,
+            "KAFKA_BOOTSTRAP_SERVERS": bootstrap_server,
             "KAFKA_SECURITY_PROTOCOL": "PLAINTEXT",
         }
         for k, v in envvars.items():
@@ -70,18 +72,19 @@ async def test_plaintext(
 
 @pytest.mark.asyncio
 async def test_sasl_plaintext(
-    monkeypatch: pytest.MonkeyPatch, kafka_sasl_plaintext_bootstrap_server: str
+    monkeypatch: pytest.MonkeyPatch, kafka_container: FullKafkaContainer
 ) -> None:
+    bootstrap_server = kafka_container.get_sasl_plaintext_bootstrap_server()
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
-            bootstrap_servers=kafka_sasl_plaintext_bootstrap_server,
+            bootstrap_servers=bootstrap_server,
             security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
             sasl_mechanism=KafkaSaslMechanism.SCRAM_SHA_512,
             sasl_username="username",
         )
 
     settings = KafkaConnectionSettings(
-        bootstrap_servers=kafka_sasl_plaintext_bootstrap_server,
+        bootstrap_servers=bootstrap_server,
         security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
         sasl_username="admin",
         sasl_password=SecretStr("admin"),
@@ -92,7 +95,7 @@ async def test_sasl_plaintext(
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "KAFKA_BOOTSTRAP_SERVERS": kafka_sasl_plaintext_bootstrap_server,
+            "KAFKA_BOOTSTRAP_SERVERS": bootstrap_server,
             "KAFKA_SECURITY_PROTOCOL": "SASL_PLAINTEXT",
             "KAFKA_SASL_USERNAME": "admin",
             "KAFKA_SASL_PASSWORD": "admin",
@@ -108,14 +111,15 @@ async def test_sasl_plaintext(
 @pytest.mark.asyncio
 async def test_sasl_ssl(
     monkeypatch: pytest.MonkeyPatch,
-    kafka_sasl_ssl_bootstrap_server: str,
+    kafka_container: FullKafkaContainer,
     kafka_cert_path: Path,
 ) -> None:
     cluster_ca_path = kafka_cert_path / "ca.crt"
 
+    bootstrap_server = kafka_container.get_sasl_ssl_bootstrap_server()
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
-            bootstrap_servers=kafka_sasl_ssl_bootstrap_server,
+            bootstrap_servers=bootstrap_server,
             security_protocol=KafkaSecurityProtocol.SASL_SSL,
             sasl_username="admin",
             sasl_password=SecretStr("admin"),
@@ -123,7 +127,7 @@ async def test_sasl_ssl(
         )
 
     settings = KafkaConnectionSettings(
-        bootstrap_servers=kafka_sasl_ssl_bootstrap_server,
+        bootstrap_servers=bootstrap_server,
         security_protocol=KafkaSecurityProtocol.SASL_SSL,
         sasl_username="admin",
         sasl_password=SecretStr("admin"),
@@ -135,7 +139,7 @@ async def test_sasl_ssl(
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "KAFKA_BOOTSTRAP_SERVERS": kafka_sasl_ssl_bootstrap_server,
+            "KAFKA_BOOTSTRAP_SERVERS": bootstrap_server,
             "KAFKA_SECURITY_PROTOCOL": "SASL_SSL",
             "KAFKA_SASL_USERNAME": "admin",
             "KAFKA_SASL_PASSWORD": "admin",
@@ -152,23 +156,24 @@ async def test_sasl_ssl(
 @pytest.mark.asyncio
 async def test_ssl(
     kafka_cert_path: Path,
-    kafka_ssl_bootstrap_server: str,
+    kafka_container: FullKafkaContainer,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cluster_ca_path = kafka_cert_path / "ca.crt"
     client_cert_path = kafka_cert_path / "client.crt"
     client_key_path = kafka_cert_path / "client.key"
 
+    bootstrap_server = kafka_container.get_ssl_bootstrap_server()
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
-            bootstrap_servers=kafka_ssl_bootstrap_server,
+            bootstrap_servers=bootstrap_server,
             security_protocol=KafkaSecurityProtocol.SSL,
             cluster_ca_path=cluster_ca_path,
             client_cert_path=client_cert_path,
         )
 
     settings = KafkaConnectionSettings(
-        bootstrap_servers=kafka_ssl_bootstrap_server,
+        bootstrap_servers=bootstrap_server,
         security_protocol=KafkaSecurityProtocol.SSL,
         cluster_ca_path=cluster_ca_path,
         client_cert_path=client_cert_path,
@@ -179,7 +184,7 @@ async def test_ssl(
 
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "KAFKA_BOOTSTRAP_SERVERS": kafka_ssl_bootstrap_server,
+            "KAFKA_BOOTSTRAP_SERVERS": bootstrap_server,
             "KAFKA_SECURITY_PROTOCOL": "SSL",
             "KAFKA_CLUSTER_CA_PATH": str(cluster_ca_path),
             "KAFKA_CLIENT_CERT_PATH": str(client_cert_path),
