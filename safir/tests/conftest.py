@@ -17,10 +17,12 @@ from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from safir.kafka.aiokafka_admin_client import make_kafka_admin_client
-from safir.kafka.aiokafka_consumer import make_kafka_consumer
+from safir.kafka import (
+    make_kafka_admin_client,
+    make_kafka_broker,
+    make_kafka_consumer,
+)
 from safir.kafka.config import KafkaConnectionSettings, KafkaSecurityProtocol
-from safir.kafka.faststream_kafka_broker import make_kafka_broker
 from safir.schema_manager.config import (
     SchemaManagerSettings,
     SchemaRegistryConnectionSettings,
@@ -30,6 +32,7 @@ from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
+from .support.experiment.kafka import FullKafkaContainer
 from .support.kafka import NetworkedKafkaContainer
 from .support.schema_registry import NetworkedSchemaRegistryContainer
 

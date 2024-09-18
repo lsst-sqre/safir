@@ -1,3 +1,5 @@
+"""Helpers for constructing an FastStream kafka broker."""
+
 import ssl
 
 from faststream.kafka import KafkaBroker
@@ -13,17 +15,27 @@ from .config import (
     KafkaPlaintextSettings,
     KafkaSaslMechanism,
     KafkaSaslSettings,
-    KafkaTlsSettings,
+    KafkaSslSettings,
 )
 
 
 def make_kafka_broker(
     config: KafkaConnectionSettings, client_id: str
 ) -> KafkaBroker:
-    """Create a FastStream Kafka broker."""
+    """Create a `FastStream Kafka broker <https://faststream.airt.ai/latest/kafka/#faststream-kafkabroker>`_.
+
+    Parameters
+    ----------
+    client_id
+        A name for this client. This string is passed in each request to
+        servers and can be used to identify specific server-side log entries
+        that correspond to this client.
+    config
+        Kafka connection and auth settings.
+    """
     auth = config.auth_settings
     match auth:
-        case KafkaTlsSettings():
+        case KafkaSslSettings():
             security = BaseSecurity(ssl_context=auth.ssl_context)
         case KafkaSaslSettings():
             security = _sasl(auth)

@@ -1,3 +1,5 @@
+"""Helpers for constructing an aiokafka admin client."""
+
 import ssl
 
 from aiokafka.admin.client import AIOKafkaAdminClient
@@ -7,17 +9,27 @@ from .config import (
     KafkaPlaintextSettings,
     KafkaSaslSettings,
     KafkaSecurityProtocol,
-    KafkaTlsSettings,
+    KafkaSslSettings,
 )
 
 
 def make_kafka_admin_client(
-    config: KafkaConnectionSettings, client_id: str
+    client_id: str, config: KafkaConnectionSettings
 ) -> AIOKafkaAdminClient:
-    """Create a FastStream Kafka broker."""
+    """Create an `aiokafka admin client <https://github.com/aio-libs/aiokafka/blob/master/aiokafka/admin/client.py>`_.
+
+    Parameters
+    ----------
+    client_id
+        A name for this client. This string is passed in each request to
+        servers and can be used to identify specific server-side log entries
+        that correspond to this client.
+    config
+        Kafka connection and auth settings.
+    """
     auth = config.auth_settings
     match auth:
-        case KafkaTlsSettings():
+        case KafkaSslSettings():
             return AIOKafkaAdminClient(
                 client_id=client_id,
                 bootstrap_servers=config.bootstrap_servers,
@@ -41,6 +53,7 @@ def make_kafka_admin_client(
 def _sasl(
     client_id: str, bootstrap_servers: str, auth_config: KafkaSaslSettings
 ) -> AIOKafkaAdminClient:
+    """Construct an admin client from SASL auth settings."""
     match auth_config.security_protocol:
         case KafkaSecurityProtocol.SASL_PLAINTEXT:
             ssl_context = None

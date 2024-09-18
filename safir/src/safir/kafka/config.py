@@ -1,4 +1,7 @@
-"""Configuration definition."""
+"""Kafka connection settings.
+
+Adapted from Jonathan Sick's kafka work in `Ook <https://ook.lsst.io>`_.
+"""
 
 from __future__ import annotations
 
@@ -15,11 +18,13 @@ __all__ = [
     "KafkaSecurityProtocol",
     "KafkaSaslMechanism",
     "KafkaConnectionSettings",
+    "KafkaPlaintextSettings",
+    "KafkaSslSettings",
 ]
 
 
 class KafkaSecurityProtocol(StrEnum):
-    """Kafka SASL security protocols understood by aiokafka."""
+    """Kafka SASL security protocols."""
 
     SASL_PLAINTEXT = "SASL_PLAINTEXT"
     """Plain-text SASL-authenticated connection."""
@@ -35,7 +40,7 @@ class KafkaSecurityProtocol(StrEnum):
 
 
 class KafkaSaslMechanism(StrEnum):
-    """Kafka SASL mechanisms understood by aiokafka."""
+    """Kafka SASL mechanisms."""
 
     PLAIN = "PLAIN"
     """Plain-text SASL mechanism."""
@@ -47,8 +52,8 @@ class KafkaSaslMechanism(StrEnum):
     """SCRAM-SHA-512 SASL mechanism."""
 
 
-class KafkaTlsSettings(BaseModel):
-    """Subset of settings required for TLS auth."""
+class KafkaSslSettings(BaseModel):
+    """Subset of settings required for SSL auth."""
 
     security_protocol: Literal[KafkaSecurityProtocol.SSL]
 
@@ -85,13 +90,33 @@ class KafkaSaslSettings(BaseModel):
 
 
 class KafkaPlaintextSettings(BaseModel):
-    """Subset of settings required for SASL auth."""
+    """Subset of settings required for Plaintext auth."""
 
     security_protocol: Literal[KafkaSecurityProtocol.PLAINTEXT]
 
 
 class KafkaConnectionSettings(BaseSettings):
-    """Settings for connecting to Kafka."""
+    """Settings for connecting to Kafka.
+
+    This settings model supports different authentication methods, which each
+    have different sets of required settings. All of these settings can be
+    provided in ``KAFKA_`` prefixed environment variables. The
+    ``auth_settings`` property enforces at runtime that the correct settings
+    were provided for the desired authentication method, and provides
+    non-optional attributes to access those settings::
+
+    An instance of this model can be passed directly to the various client
+    constructor functions in this module. This allows for succinct kafka setup
+    in applications::
+
+    .. code-block:: python
+
+       from safir.kafka.config import KafkaConnectionSettings
+       from safir.kafka import make_kafka_broker
+
+       config = KafkaConnectionSettings()
+       kafka_broker = make_kafka_broker(config)
+    """
 
     bootstrap_servers: str = Field(
         ...,
@@ -177,29 +202,28 @@ class KafkaConnectionSettings(BaseSettings):
 
     @model_validator(mode="after")
     def check_auth_settings(self) -> Self:
+        """Validate that the correct parameters are specified for the correct
+        auth method.
+        """
         _ = self.auth_settings
         return self
 
     @property
     def auth_settings(
         self,
-    ) -> KafkaTlsSettings | KafkaSaslSettings | KafkaPlaintextSettings:
-        try:
-            return KafkaTlsSettings(**self.model_dump())
-        except ValueError:
-            pass
+    ) -> KafkaSslSettings | KafkaSaslSettings | KafkaPlaintextSettings:
+        """Return a model representing a paricular Kafka auth method.
 
-        try:
-            return KafkaSaslSettings(**self.model_dump())
-        except ValueError:
-            pass
-
-        try:
-            return KafkaPlaintextSettings(**self.model_dump())
-        except ValueError:
-            pass
-
-        raise ValueError(
-            "Valid settings must be specified for either TLS or SASL or"
-            " Plaintext authentication."
-        )
+        This method will fail with a ValidationError if an invalid set of
+        settings were provided.
+        """
+        match self.security_protocol:
+            case KafkaSecurityProtocol.PLAINTEXT:
+                return KafkaPlaintextSettings(**self.model_dump())
+            case (
+                KafkaSecurityProtocol.SASL_SSL
+                | KafkaSecurityProtocol.SASL_PLAINTEXT
+            ):
+                return KafkaSaslSettings(**self.model_dump())
+            case KafkaSecurityProtocol.SSL:
+                return KafkaSslSettings(**self.model_dump())

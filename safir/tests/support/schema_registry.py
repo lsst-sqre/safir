@@ -6,7 +6,7 @@ from testcontainers.core.container import DockerContainer
 from testcontainers.core.network import Network
 from testcontainers.core.waiting_utils import wait_container_is_ready
 
-from ..constants import CONFLUENT_VERSION_TAG
+from ..constants import SCHEMA_REGISTRY_DOCKER_IMAGE
 
 __all__ = ["NetworkedSchemaRegistryContainer"]
 
@@ -16,7 +16,7 @@ class NetworkedSchemaRegistryContainer(DockerContainer):
         self,
         network: Network,
         kafka_bootstrap_servers: str = "kafka:9092",
-        image: str = f"confluentinc/cp-schema-registry:{CONFLUENT_VERSION_TAG}",
+        image: str = SCHEMA_REGISTRY_DOCKER_IMAGE,
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(image, **kwargs)

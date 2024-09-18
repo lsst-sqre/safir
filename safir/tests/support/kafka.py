@@ -3,14 +3,14 @@ from typing import Any
 from testcontainers.core.network import Network
 from testcontainers.kafka import KafkaContainer
 
-from tests.constants import CONFLUENT_VERSION_TAG
+from tests.constants import KAFKA_DOCKER_IMAGE
 
 
 class NetworkedKafkaContainer(KafkaContainer):
     def __init__(
         self,
         network: Network,
-        image: str = f"confluentinc/cp-kafka:{CONFLUENT_VERSION_TAG}",
+        image: str = KAFKA_DOCKER_IMAGE,
         port: int = 9093,
         **kwargs: dict[str, Any],
     ) -> None:

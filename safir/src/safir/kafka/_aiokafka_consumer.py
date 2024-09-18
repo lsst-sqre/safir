@@ -1,3 +1,5 @@
+"""Helpers for constructing an aiokafka consumer."""
+
 import ssl
 
 from aiokafka import AIOKafkaConsumer
@@ -7,7 +9,7 @@ from .config import (
     KafkaPlaintextSettings,
     KafkaSaslSettings,
     KafkaSecurityProtocol,
-    KafkaTlsSettings,
+    KafkaSslSettings,
 )
 
 
@@ -16,10 +18,20 @@ def make_kafka_consumer(
     client_id: str,
     group_id: str | None = None,
 ) -> AIOKafkaConsumer:
-    """Create a FastStream Kafka broker."""
+    """Create an `aoikafka consumer <https://aiokafka.readthedocs.io/en/stable/consumer.html>`_.
+
+    Parameters
+    ----------
+    client_id
+        A name for this client. This string is passed in each request to
+        servers and can be used to identify specific server-side log entries
+        that correspond to this client.
+    config
+        Kafka connection and auth settings.
+    """
     auth = config.auth_settings
     match auth:
-        case KafkaTlsSettings():
+        case KafkaSslSettings():
             return AIOKafkaConsumer(
                 client_id=client_id,
                 group_id=group_id,
@@ -49,6 +61,7 @@ def _sasl(
     auth_config: KafkaSaslSettings,
     group_id: str | None = None,
 ) -> AIOKafkaConsumer:
+    """Construct a consumer from SASL auth settings."""
     match auth_config.security_protocol:
         case KafkaSecurityProtocol.SASL_PLAINTEXT:
             ssl_context = None
