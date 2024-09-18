@@ -13,5 +13,8 @@ SCHEMA_REGISTRY_DOCKER_IMAGE = (
 )
 """Docker image for schema registry Testcontainer"""
 
+CERT_MAKER_DOCKER_IMAGE = KAFKA_DOCKER_IMAGE
+"""Docker image for the cert maker Testcontainer"""
+
 DATA_DIR = Path(__file__).parent / "data"
 """Absolute path to the test data directory"""

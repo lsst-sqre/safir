@@ -139,3 +139,7 @@ async def test_ssl(monkeypatch: pytest.MonkeyPatch) -> None:
         settings = KafkaConnectionSettings()
 
         await make_clients(settings)
+
+
+def test_certs(kafka_cert_path) -> None:
+    breakpoint()

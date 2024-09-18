@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -42,6 +43,25 @@ def kafka_docker_network() -> Iterator[Network]:
     """Provide a network object to link session-scoped testcontainers."""
     with Network() as network:
         yield network
+
+
+@pytest.fixture(scope="session")
+def full_kafka_container(
+    kafka_docker_network: Network,
+    tmp_path_factory,
+) -> Iterator[FullKafkaContainer]:
+    container = FullKafkaContainer(
+        host_cert_path=tmp_path_factory.mktemp("certs")
+    )
+    with container as kafka:
+        yield kafka
+
+
+@pytest.fixture(scope="session")
+def kafka_cert_path(
+    full_kafka_container: FullKafkaContainer,
+) -> Path:
+    return full_kafka_container.get_cert_path()
 
 
 @pytest.fixture(scope="session")
