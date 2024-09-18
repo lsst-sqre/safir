@@ -8,10 +8,10 @@ from testcontainers.core.waiting_utils import wait_container_is_ready
 
 from ..constants import SCHEMA_REGISTRY_DOCKER_IMAGE
 
-__all__ = ["NetworkedSchemaRegistryContainer"]
+__all__ = ["SchemaRegistryContainer"]
 
 
-class NetworkedSchemaRegistryContainer(DockerContainer):
+class SchemaRegistryContainer(DockerContainer):
     def __init__(
         self,
         network: Network,
@@ -30,8 +30,6 @@ class NetworkedSchemaRegistryContainer(DockerContainer):
         self.with_env(
             "SCHEMA_REGISTRY_HOST_NAME", self.get_container_host_ip()
         )
-        self.with_network(network)
-        self.with_network_aliases("schemaregistry")
 
     def start(self, *args: list[Any], **kwargs: dict[str, Any]) -> Self:
         super().start(*args, **kwargs)

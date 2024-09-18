@@ -14,7 +14,7 @@ from .config import (
 
 
 def make_kafka_admin_client(
-    client_id: str, config: KafkaConnectionSettings
+    config: KafkaConnectionSettings, client_id: str = "safir-admin-client"
 ) -> AIOKafkaAdminClient:
     """Create an `aiokafka admin client <https://github.com/aio-libs/aiokafka/blob/master/aiokafka/admin/client.py>`_.
 

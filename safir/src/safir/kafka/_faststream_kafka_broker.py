@@ -20,7 +20,7 @@ from .config import (
 
 
 def make_kafka_broker(
-    config: KafkaConnectionSettings, client_id: str
+    config: KafkaConnectionSettings, client_id: str = "safir-faststream-broker"
 ) -> KafkaBroker:
     """Create a `FastStream Kafka broker <https://faststream.airt.ai/latest/kafka/#faststream-kafkabroker>`_.
 

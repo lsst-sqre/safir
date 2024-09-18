@@ -15,8 +15,8 @@ from .config import (
 
 def make_kafka_consumer(
     config: KafkaConnectionSettings,
-    client_id: str,
     group_id: str | None = None,
+    client_id: str = "safir-consumer",
 ) -> AIOKafkaConsumer:
     """Create an `aoikafka consumer <https://aiokafka.readthedocs.io/en/stable/consumer.html>`_.
 

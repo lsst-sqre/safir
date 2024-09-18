@@ -34,8 +34,7 @@ from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
 from .support.experiment.kafka import FullKafkaContainer
-from .support.kafka import NetworkedKafkaContainer
-from .support.schema_registry import NetworkedSchemaRegistryContainer
+from .support.schema_registry import SchemaRegistryContainer
 
 
 @pytest.fixture(scope="session")
@@ -46,37 +45,11 @@ def kafka_docker_network() -> Iterator[Network]:
 
 
 @pytest.fixture(scope="session")
-def full_kafka_container(
+def kafka_container(
     kafka_docker_network: Network,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[FullKafkaContainer]:
-    container = FullKafkaContainer(
-        host_cert_path=tmp_path_factory.mktemp("certs")
-    )
-    with container as kafka:
-        yield kafka
-
-
-@pytest.fixture(scope="session")
-def kafka_cert_path(
-    full_kafka_container: FullKafkaContainer,
-) -> Path:
-    return full_kafka_container.get_cert_path()
-
-
-@pytest.fixture(scope="session")
-def kafka_ssl_bootstrap_server(
-    full_kafka_container: FullKafkaContainer,
-) -> str:
-    return full_kafka_container.get_ssl_bootstrap_server()
-
-
-@pytest.fixture(scope="session")
-def kafka_container(
-    kafka_docker_network: Network,
-) -> Iterator[NetworkedKafkaContainer]:
-    """Provide a session-scoped schema kafka container that can talk to the
-    containers in other docker-based kafka fixtures.
+    """Provide a session-scoped kafka container.
 
     You proably want one of the dependent test-scoped fixtures that clears
     kafka data, like:
@@ -84,16 +57,44 @@ def kafka_container(
     * ``kafka_consumer``
     * ``kafka_admin_client``
     """
-    container = NetworkedKafkaContainer(network=kafka_docker_network)
+    container = FullKafkaContainer(
+        host_cert_path=tmp_path_factory.mktemp("certs")
+    )
+    container.with_network(kafka_docker_network)
+    container.with_network_aliases("kafka")
     with container as kafka:
         yield kafka
 
 
+@pytest.fixture
+def kafka_cert_path(
+    kafka_container: FullKafkaContainer,
+) -> Iterator[Path]:
+    yield kafka_container.get_cert_path()
+    kafka_container.reset()
+
+
+@pytest.fixture(scope="session")
+def kafka_ssl_bootstrap_server(
+    kafka_container: FullKafkaContainer,
+) -> Iterator[str]:
+    yield kafka_container.get_ssl_bootstrap_server()
+    kafka_container.reset()
+
+
+@pytest.fixture(scope="session")
+def kafka_bootstrap_server(
+    kafka_container: FullKafkaContainer,
+) -> Iterator[str]:
+    yield kafka_container.get_bootstrap_server()
+    kafka_container.reset()
+
+
 @pytest.fixture(scope="session")
 def schema_registry_container(
-    kafka_container: NetworkedKafkaContainer,
+    kafka_container: FullKafkaContainer,
     kafka_docker_network: Network,
-) -> Iterator[NetworkedSchemaRegistryContainer]:
+) -> Iterator[SchemaRegistryContainer]:
     """Provide a session-scoped schema registry container that can talk to the
     containers in other docker-based kafka fixtures.
 
@@ -101,7 +102,9 @@ def schema_registry_container(
     registry data, like ``schema_registry_connection_settings`` or
     ``schema_manager``.
     """
-    container = NetworkedSchemaRegistryContainer(network=kafka_docker_network)
+    container = SchemaRegistryContainer(network=kafka_docker_network)
+    container.with_network(kafka_docker_network)
+    container.with_network_aliases("schemaregistry")
     with container as schema_registry:
         yield schema_registry
 
@@ -119,9 +122,7 @@ async def kafka_consumer(
         client_id="pytest-consumer",
     )
     await consumer.start()
-
     yield consumer
-
     await consumer.stop()
 
 
@@ -138,9 +139,7 @@ async def kafka_broker(
         config=kafka_connection_settings, client_id="pytest-broker"
     )
     await broker.start()
-
     yield broker
-
     await broker.close()
 
 
@@ -157,9 +156,7 @@ async def kafka_admin_client(
         config=kafka_connection_settings, client_id="pytest-admin"
     )
     await client.start()
-
     yield client
-
     await client.close()
 
 
@@ -180,7 +177,7 @@ def schema_manager(
 
 @pytest.fixture
 def kafka_connection_settings(
-    kafka_container: NetworkedKafkaContainer,
+    kafka_container: FullKafkaContainer,
 ) -> Iterator[KafkaConnectionSettings]:
     """Provide a url to a session-scoped kafka container.
 
@@ -195,7 +192,7 @@ def kafka_connection_settings(
 
 @pytest.fixture
 def schema_registry_connection_settings(
-    schema_registry_container: NetworkedSchemaRegistryContainer,
+    schema_registry_container: SchemaRegistryContainer,
 ) -> Iterator[SchemaRegistryConnectionSettings]:
     """Provide a URL to a session-scoped schema registry.
 

@@ -38,19 +38,19 @@ keytool \
 # Server keystore
 keytool \
   -keystore server.keystore.jks \
-  -alias server-cert \
+  -alias server \
   -validity 365 \
   -genkey \
   -keyalg RSA \
   -storepass ${PASSWORD} \
   -keypass ${PASSWORD} \
-  -dname "CN=kafka" \
+  -dname "CN=localhost" \
   -ext SAN=DNS:kafka
 
 # Client keystore
 keytool \
   -keystore client.keystore.jks \
-  -alias client-cert \
+  -alias client \
   -validity 365 \
   -genkey \
   -keyalg RSA \
@@ -62,7 +62,7 @@ keytool \
 # Server CSR
 keytool \
   -keystore server.keystore.jks \
-  -alias server-cert \
+  -alias server \
   -storepass ${PASSWORD} \
   -certreq \
   -file server.csr
@@ -70,7 +70,7 @@ keytool \
 # Client CSR
 keytool \
   -keystore client.keystore.jks \
-  -alias client-cert \
+  -alias client \
   -storepass ${PASSWORD} \
   -certreq \
   -file client.csr
@@ -137,7 +137,7 @@ keytool -importkeystore \
   -srcstorepass ${PASSWORD} \
   -destkeystore client.keystore.p12 \
   -deststoretype PKCS12 \
-  -srcalias client-cert \
+  -srcalias client \
   -deststorepass ${PASSWORD} \
   -destkeypass ${PASSWORD}
 

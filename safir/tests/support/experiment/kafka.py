@@ -227,6 +227,12 @@ class FullKafkaContainer(DockerContainer):
         wait_for_logs(self, self.wait_for, timeout=timeout)
         return self
 
+    def reset(self) -> None:
+        self.exec(
+            "/bin/kafka-topics --bootstrap-server localhost:9092 --delete"
+            " --topic '.*'"
+        )
+
     def create_file(self, content: bytes, path: str) -> None:
         with (
             BytesIO() as archive,
