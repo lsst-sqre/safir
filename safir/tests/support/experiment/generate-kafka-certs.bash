@@ -143,3 +143,6 @@ keytool -importkeystore \
 
 # Convert to PEM
 openssl pkcs12 -in client.keystore.p12 -nodes -nocerts -out client.key -passin pass:${PASSWORD}
+
+# Credentials (password) file
+echo ${PASSWORD} >credentials

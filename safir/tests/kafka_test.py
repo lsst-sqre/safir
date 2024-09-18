@@ -1,6 +1,7 @@
 """Tests for the safir.kafka module."""
 
 import os
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -141,5 +142,41 @@ async def test_ssl(monkeypatch: pytest.MonkeyPatch) -> None:
         await make_clients(settings)
 
 
-def test_certs(kafka_cert_path) -> None:
-    breakpoint()
+@pytest.mark.asyncio
+async def test_certs(
+    kafka_cert_path: Path, kafka_ssl_bootstrap_server: str
+) -> None:
+    print(kafka_cert_path)
+    print(kafka_ssl_bootstrap_server)
+    cluster_ca_path = kafka_cert_path / "ca.crt"
+    client_cert_path = kafka_cert_path / "client.crt"
+    client_key_path = kafka_cert_path / "client.key"
+
+    settings = KafkaConnectionSettings(
+        bootstrap_servers=kafka_ssl_bootstrap_server,
+        security_protocol=KafkaSecurityProtocol.SSL,
+        cluster_ca_path=cluster_ca_path,
+        client_cert_path=client_cert_path,
+        client_key_path=client_key_path,
+    )
+    broker = None
+    admin = None
+    try:
+        broker = make_kafka_broker(settings, client_id="broker")
+
+        await broker.start()
+        result = await broker.ping(timeout=5)
+        print(f"Broker ping result: {result}")
+
+        admin = make_kafka_admin_client(settings, client_id="admin")
+        await admin.start()
+        topics = await admin.list_topics()
+        print(f"Admin topics: {topics}")
+    except Exception as e:
+        print(e)
+        breakpoint()
+    finally:
+        if broker:
+            await broker.close()
+        if admin:
+            await admin.close()

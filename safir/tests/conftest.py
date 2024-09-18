@@ -48,7 +48,7 @@ def kafka_docker_network() -> Iterator[Network]:
 @pytest.fixture(scope="session")
 def full_kafka_container(
     kafka_docker_network: Network,
-    tmp_path_factory,
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[FullKafkaContainer]:
     container = FullKafkaContainer(
         host_cert_path=tmp_path_factory.mktemp("certs")
@@ -62,6 +62,13 @@ def kafka_cert_path(
     full_kafka_container: FullKafkaContainer,
 ) -> Path:
     return full_kafka_container.get_cert_path()
+
+
+@pytest.fixture(scope="session")
+def kafka_ssl_bootstrap_server(
+    full_kafka_container: FullKafkaContainer,
+) -> str:
+    return full_kafka_container.get_ssl_bootstrap_server()
 
 
 @pytest.fixture(scope="session")

@@ -49,6 +49,9 @@ class FullKafkaContainer(DockerContainer):
             # Using KRaft protocol
             >>> with KafkaContainer().with_kraft() as kafka:
             ...     connection = kafka.get_bootstrap_server()
+
+    Changes from the in-tree module:
+    * Always uses Kraft, no more Zookeeper
     """
 
     TC_START_SCRIPT = "/tc-start.sh"
@@ -58,13 +61,14 @@ class FullKafkaContainer(DockerContainer):
         self,
         image: str = "confluentinc/cp-kafka:7.6.0",
         port: int = 9093,
+        ssl_port: int = 29093,
         host_cert_path: Path | None = None,
         **kwargs: Any,
     ) -> None:
         raise_for_deprecated_parameter(kwargs, "port_to_expose", "port")
         super().__init__(image, **kwargs)
         self.host_cert_path = host_cert_path
-        self.container_cert_path = Path("/home/appuser/certs")
+        self.container_cert_path = Path("/etc/kafka/secrets")
         self.host_cert_script_path = Path(__file__).parent
         self.container_cert_script_path = Path(
             "/var/generate-kafka-certs.bash"
@@ -81,16 +85,18 @@ class FullKafkaContainer(DockerContainer):
             mode="rw",
         )
         self.port = port
+        self.ssl_port = ssl_port
         self.kraft_enabled = False
         self.wait_for = r".*\[KafkaServer id=\d+\] started.*"
         self.boot_command = ""
         self.cluster_id = "MkU3OEVBNTcwNTJENDM2Qk"
-        self.listeners = (
-            f"PLAINTEXT://0.0.0.0:{self.port},BROKER://0.0.0.0:9092"
+        self.listeners = f"PLAINTEXT://0.0.0.0:{self.port},BROKER://0.0.0.0:9092,SSL://0.0.0.0:{self.ssl_port}"
+        self.security_protocol_map = (
+            "BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL"
         )
-        self.security_protocol_map = "BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
 
         self.with_exposed_ports(self.port)
+        self.with_exposed_ports(self.ssl_port)
         self.with_env("KAFKA_LISTENERS", self.listeners)
         self.with_env(
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", self.security_protocol_map
@@ -103,10 +109,20 @@ class FullKafkaContainer(DockerContainer):
         self.with_env("KAFKA_LOG_FLUSH_INTERVAL_MESSAGES", "10000000")
         self.with_env("KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0")
 
-    def with_kraft(self) -> Self:
+        self.with_env(
+            "KAFKA_SSL_KEYSTORE_FILENAME",
+            "server.keystore.jks",
+        )
+        self.with_env("KAFKA_SSL_KEYSTORE_CREDENTIALS", "credentials")
+        self.with_env("KAFKA_SSL_KEY_CREDENTIALS", "credentials")
+        self.with_env(
+            "KAFKA_SSL_TRUSTSTORE_FILENAME",
+            "server.truststore.jks",
+        )
+        self.with_env("KAFKA_SSL_TRUSTSTORE_CREDENTIALS", "credentials")
+
         self._verify_min_kraft_version()
         self.kraft_enabled = True
-        return self
 
     def _verify_min_kraft_version(self):
         actual_version = self.image.split(":")[-1]
@@ -122,13 +138,7 @@ class FullKafkaContainer(DockerContainer):
         self.cluster_id = cluster_id
         return self
 
-    def configure(self):
-        if self.kraft_enabled:
-            self._configure_kraft()
-        else:
-            self._configure_zookeeper()
-
-    def _configure_kraft(self) -> None:
+    def configure(self) -> None:
         self.wait_for = r".*Kafka Server started.*"
 
         self.with_env("CLUSTER_ID", self.cluster_id)
@@ -167,18 +177,14 @@ class FullKafkaContainer(DockerContainer):
 
         return "localhost"
 
-    def _configure_zookeeper(self) -> None:
-        self.boot_command = """
-                echo 'clientPort=2181' > zookeeper.properties
-                echo 'dataDir=/var/lib/zookeeper/data' >> zookeeper.properties
-                echo 'dataLogDir=/var/lib/zookeeper/log' >> zookeeper.properties
-                zookeeper-server-start zookeeper.properties &
-                export KAFKA_ZOOKEEPER_CONNECT='localhost:2181'
-        """
-
     def get_bootstrap_server(self) -> str:
         host = self.get_container_host_ip()
         port = self.get_exposed_port(self.port)
+        return f"{host}:{port}"
+
+    def get_ssl_bootstrap_server(self) -> str:
+        host = self.get_container_host_ip()
+        port = self.get_exposed_port(self.ssl_port)
         return f"{host}:{port}"
 
     def get_cert_path(self) -> Path:
@@ -187,12 +193,11 @@ class FullKafkaContainer(DockerContainer):
     def tc_start(self) -> None:
         host = self.get_container_host_ip()
         port = self.get_exposed_port(self.port)
+        ssl_port = self.get_exposed_port(self.ssl_port)
         if kafka_config.limit_broker_to_first_host:
-            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i | cut -d' ' -f1):9092"
+            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i | cut -d' ' -f1):9092,SSL://{host}:{ssl_port}"
         else:
-            listeners = (
-                f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i):9092"
-            )
+            listeners = f"PLAINTEXT://{host}:{port},BROKER://$(hostname -i):9092,SSL://{host}:{port}"
         data = (
             dedent(
                 f"""
