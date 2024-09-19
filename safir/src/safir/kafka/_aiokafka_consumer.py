@@ -5,8 +5,8 @@ from aiokafka import AIOKafkaConsumer
 from .config import (
     KafkaConnectionSettings,
     KafkaPlaintextSettings,
-    KafkaSaslSettings,
-    KafkaSecurityProtocol,
+    KafkaSaslPlaintextSettings,
+    KafkaSaslSslSettings,
     KafkaSslSettings,
 )
 
@@ -37,12 +37,12 @@ def make_kafka_consumer(
                 security_protocol="SSL",
                 ssl_context=auth.ssl_context,
             )
-        case KafkaSaslSettings():
+        case KafkaSaslSslSettings() | KafkaSaslPlaintextSettings():
             return _sasl(
                 client_id=client_id,
                 group_id=group_id,
                 bootstrap_servers=config.bootstrap_servers,
-                auth_config=auth,
+                config=auth,
             )
         case KafkaPlaintextSettings():
             return AIOKafkaConsumer(
@@ -56,23 +56,23 @@ def make_kafka_consumer(
 def _sasl(
     client_id: str,
     bootstrap_servers: str,
-    auth_config: KafkaSaslSettings,
+    config: KafkaSaslSslSettings | KafkaSaslPlaintextSettings,
     group_id: str | None = None,
 ) -> AIOKafkaConsumer:
     """Construct a consumer from SASL auth settings."""
-    match auth_config.security_protocol:
-        case KafkaSecurityProtocol.SASL_PLAINTEXT:
+    match config:
+        case KafkaSaslSslSettings():
+            ssl_context = config.ssl_context
+        case KafkaSaslPlaintextSettings():
             ssl_context = None
-        case KafkaSecurityProtocol.SASL_SSL:
-            ssl_context = auth_config.ssl_context
 
     return AIOKafkaConsumer(
         bootstrap_servers=bootstrap_servers,
         client_id=client_id,
         group_id=group_id,
-        security_protocol=auth_config.security_protocol,
-        sasl_mechanism=auth_config.sasl_mechanism,
-        sasl_plain_username=auth_config.sasl_username,
-        sasl_plain_password=auth_config.sasl_password.get_secret_value(),
+        security_protocol=config.security_protocol,
+        sasl_mechanism=config.sasl_mechanism,
+        sasl_plain_username=config.sasl_username,
+        sasl_plain_password=config.sasl_password.get_secret_value(),
         ssl_context=ssl_context,
     )

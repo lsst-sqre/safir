@@ -91,7 +91,7 @@ class FullKafkaContainer(DockerContainer):
         )
         self.host_cert_path = host_cert_path
         self.container_cert_path = Path("/etc/kafka/secrets")
-        self.host_cert_script_path = Path(__file__).parent
+        self.host_cert_script_path = Path(__file__).parent / "data"
         self.container_cert_script_path = Path(
             "/var/generate-kafka-certs.bash"
         )

@@ -33,7 +33,7 @@ from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
-from .support.experiment.kafka import FullKafkaContainer
+from .support.kafka.container import FullKafkaContainer
 from .support.schema_registry import SchemaRegistryContainer
 
 

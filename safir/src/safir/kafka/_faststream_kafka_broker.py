@@ -12,8 +12,8 @@ from .config import (
     KafkaConnectionSettings,
     KafkaPlaintextSettings,
     KafkaSaslMechanism,
-    KafkaSaslSettings,
-    KafkaSecurityProtocol,
+    KafkaSaslPlaintextSettings,
+    KafkaSaslSslSettings,
     KafkaSslSettings,
 )
 
@@ -36,7 +36,7 @@ def make_kafka_broker(
     match auth:
         case KafkaSslSettings():
             security = BaseSecurity(ssl_context=auth.ssl_context)
-        case KafkaSaslSettings():
+        case KafkaSaslSslSettings() | KafkaSaslPlaintextSettings():
             security = _sasl(auth)
         case KafkaPlaintextSettings():
             security = BaseSecurity()
@@ -49,9 +49,9 @@ def make_kafka_broker(
 
 
 def _sasl(
-    config: KafkaSaslSettings,
+    config: KafkaSaslSslSettings | KafkaSaslPlaintextSettings,
 ) -> SASLScram512 | SASLScram256 | SASLPlaintext:
-    """Create a Faststream Security for SASL authentication."""
+    """Create a FastStream Security for SASL authentication."""
     cls: type[SASLScram512 | SASLScram256 | SASLPlaintext]
     match config.sasl_mechanism:
         case KafkaSaslMechanism.SCRAM_SHA_512:
@@ -61,10 +61,12 @@ def _sasl(
         case KafkaSaslMechanism.PLAIN:
             cls = SASLPlaintext
 
-    if config.security_protocol == KafkaSecurityProtocol.SASL_PLAINTEXT:
-        ssl_context = None
-    else:
-        ssl_context = config.ssl_context
+    match config:
+        case KafkaSaslSslSettings():
+            ssl_context = config.ssl_context
+        case KafkaSaslPlaintextSettings():
+            ssl_context = None
+
     return cls(
         username=config.sasl_username,
         password=config.sasl_password.get_secret_value(),

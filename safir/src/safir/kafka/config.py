@@ -75,8 +75,22 @@ class KafkaSslSettings(BaseModel):
         )
 
 
-class KafkaSaslSettings(BaseModel):
-    """Subset of settings required for SASL auth."""
+class KafkaSaslPlaintextSettings(BaseModel):
+    """Subset of settings required for SASL SSLauth."""
+
+    security_protocol: Literal[
+        KafkaSecurityProtocol.SASL_PLAINTEXT, KafkaSecurityProtocol.SASL_SSL
+    ]
+
+    sasl_mechanism: KafkaSaslMechanism
+
+    sasl_username: str
+
+    sasl_password: SecretStr
+
+
+class KafkaSaslSslSettings(BaseModel):
+    """Subset of settings required for SASL PLAINTEXT auth."""
 
     security_protocol: Literal[
         KafkaSecurityProtocol.SASL_PLAINTEXT, KafkaSecurityProtocol.SASL_SSL
@@ -90,29 +104,17 @@ class KafkaSaslSettings(BaseModel):
 
     cluster_ca_path: FilePath | None
 
-    client_cert_path: FilePath | None
-
-    client_key_path: FilePath | None
-
     @property
     def ssl_context(self) -> ssl.SSLContext:
         """An SSL context for connecting to Kafka, if the Kafka connection is
         configured to use TLS authentication.
         """
         cafile = None
-        certfile = None
-        keyfile = None
 
         if self.cluster_ca_path:
             cafile = str(self.cluster_ca_path)
-        if self.client_cert_path:
-            certfile = str(self.client_cert_path)
-        if self.client_key_path:
-            keyfile = str(self.client_key_path)
         return helpers.create_ssl_context(
             cafile=cafile,
-            certfile=certfile,
-            keyfile=keyfile,
         )
 
 
@@ -129,9 +131,7 @@ class KafkaConnectionSettings(BaseSettings):
     have different sets of required settings. All of these settings can be
     provided in ``KAFKA_`` prefixed environment variables. The
     ``auth_settings`` property enforces at runtime that the correct settings
-    were provided for the desired authentication method, and provides
-    non-optional attributes to access those settings::
-
+    were provided for the desired authentication method, and provides non-optional attributes to access those settings::
     An instance of this model can be passed directly to the various client
     constructor functions in this module. This allows for succinct kafka setup
     in applications::
@@ -238,7 +238,12 @@ class KafkaConnectionSettings(BaseSettings):
     @property
     def auth_settings(
         self,
-    ) -> KafkaSslSettings | KafkaSaslSettings | KafkaPlaintextSettings:
+    ) -> (
+        KafkaSslSettings
+        | KafkaSaslSslSettings
+        | KafkaSaslPlaintextSettings
+        | KafkaPlaintextSettings
+    ):
         """Return a model representing a paricular Kafka auth method.
 
         This method will fail with a ValidationError if an invalid set of
@@ -247,10 +252,9 @@ class KafkaConnectionSettings(BaseSettings):
         match self.security_protocol:
             case KafkaSecurityProtocol.PLAINTEXT:
                 return KafkaPlaintextSettings(**self.model_dump())
-            case (
-                KafkaSecurityProtocol.SASL_SSL
-                | KafkaSecurityProtocol.SASL_PLAINTEXT
-            ):
-                return KafkaSaslSettings(**self.model_dump())
+            case KafkaSecurityProtocol.SASL_SSL:
+                return KafkaSaslSslSettings(**self.model_dump())
+            case KafkaSecurityProtocol.SASL_PLAINTEXT:
+                return KafkaSaslPlaintextSettings(**self.model_dump())
             case KafkaSecurityProtocol.SSL:
                 return KafkaSslSettings(**self.model_dump())

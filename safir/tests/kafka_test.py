@@ -16,7 +16,8 @@ from safir.kafka.config import (
     KafkaSaslMechanism,
     KafkaSecurityProtocol,
 )
-from tests.support.experiment.kafka import FullKafkaContainer
+
+from .support.kafka.container import FullKafkaContainer
 
 logger = logging.getLogger("aiokafka")
 logger.setLevel(logging.DEBUG)
