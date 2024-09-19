@@ -24,12 +24,4 @@ Read more about Safir at https://safir.lsst.io.
 
 ## Developing Safir
 
-The best way to start contributing to Safir is by cloning this repository creating a virtual environment, and running the init command:
-
-```sh
-git clone https://github.com/lsst-sqre/safir.git
-cd safir
-make init
-```
-
-For details, see https://safir.lsst.io/dev/development.html.
+See https://safir.lsst.io/dev/development.html.
