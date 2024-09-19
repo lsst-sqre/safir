@@ -18,7 +18,7 @@ from structlog.stdlib import BoundLogger
 
 from safir.metrics.config import MetricsConfiguration
 
-from ..kafka import make_kafka_admin_client, make_kafka_broker
+from ..kafka.clients import make_kafka_admin_client, make_kafka_broker
 from ..kafka.config import KafkaConnectionSettings
 from ..schema_manager.config import SchemaManagerSettings
 from ..schema_manager.pydantic_schema_manager import (

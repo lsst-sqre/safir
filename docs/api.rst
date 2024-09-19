@@ -54,6 +54,12 @@ API reference
 .. automodapi:: safir.github.webhooks
    :include-all-objects:
 
+.. automodapi:: safir.kafka.clients
+   :include-all-objects:
+
+.. automodapi:: safir.kafka.config
+   :include-all-objects:
+
 .. automodapi:: safir.kubernetes
    :include-all-objects:
 

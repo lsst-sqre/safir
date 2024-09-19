@@ -18,7 +18,7 @@ from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from safir.kafka import (
+from safir.kafka.clients import (
     make_kafka_admin_client,
     make_kafka_broker,
     make_kafka_consumer,

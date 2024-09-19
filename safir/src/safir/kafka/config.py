@@ -15,10 +15,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
     "KafkaConnectionSettings",
-    "KafkaSecurityProtocol",
-    "KafkaSaslMechanism",
     "KafkaConnectionSettings",
     "KafkaPlaintextSettings",
+    "KafkaPlaintextSettings",
+    "KafkaSaslMechanism",
+    "KafkaSaslPlaintextSettings",
+    "KafkaSaslSslSettings",
+    "KafkaSecurityProtocol",
+    "KafkaSslSettings",
     "KafkaSslSettings",
 ]
 
@@ -55,6 +59,8 @@ class KafkaSaslMechanism(StrEnum):
 class KafkaSslSettings(BaseModel):
     """Subset of settings required for SSL auth."""
 
+    bootstrap_servers: str
+
     security_protocol: Literal[KafkaSecurityProtocol.SSL]
 
     cluster_ca_path: FilePath
@@ -65,9 +71,7 @@ class KafkaSslSettings(BaseModel):
 
     @property
     def ssl_context(self) -> ssl.SSLContext:
-        """An SSL context for connecting to Kafka, if the Kafka connection is
-        configured to use TLS authentication.
-        """
+        """An SSL context for connecting to Kafka."""
         return helpers.create_ssl_context(
             cafile=str(self.cluster_ca_path),
             certfile=str(self.client_cert_path),
@@ -77,6 +81,8 @@ class KafkaSslSettings(BaseModel):
 
 class KafkaSaslPlaintextSettings(BaseModel):
     """Subset of settings required for SASL SSLauth."""
+
+    bootstrap_servers: str
 
     security_protocol: Literal[
         KafkaSecurityProtocol.SASL_PLAINTEXT, KafkaSecurityProtocol.SASL_SSL
@@ -92,6 +98,8 @@ class KafkaSaslPlaintextSettings(BaseModel):
 class KafkaSaslSslSettings(BaseModel):
     """Subset of settings required for SASL PLAINTEXT auth."""
 
+    bootstrap_servers: str
+
     security_protocol: Literal[
         KafkaSecurityProtocol.SASL_PLAINTEXT, KafkaSecurityProtocol.SASL_SSL
     ]
@@ -106,9 +114,7 @@ class KafkaSaslSslSettings(BaseModel):
 
     @property
     def ssl_context(self) -> ssl.SSLContext:
-        """An SSL context for connecting to Kafka, if the Kafka connection is
-        configured to use TLS authentication.
-        """
+        """An SSL context for connecting to Kafka."""
         cafile = None
 
         if self.cluster_ca_path:
@@ -121,6 +127,8 @@ class KafkaSaslSslSettings(BaseModel):
 class KafkaPlaintextSettings(BaseModel):
     """Subset of settings required for Plaintext auth."""
 
+    bootstrap_servers: str
+
     security_protocol: Literal[KafkaSecurityProtocol.PLAINTEXT]
 
 
@@ -129,20 +137,45 @@ class KafkaConnectionSettings(BaseSettings):
 
     This settings model supports different authentication methods, which each
     have different sets of required settings. All of these settings can be
-    provided in ``KAFKA_`` prefixed environment variables. The
-    ``auth_settings`` property enforces at runtime that the correct settings
-    were provided for the desired authentication method, and provides non-optional attributes to access those settings::
-    An instance of this model can be passed directly to the various client
-    constructor functions in this module. This allows for succinct kafka setup
-    in applications::
+    provided in ``KAFKA_`` prefixed environment variables. An instance of this
+    model can be passed directly to the various client constructor functions in
+    this module. This allows for succinct kafka setup in applications::
 
     .. code-block:: python
 
        from safir.kafka.config import KafkaConnectionSettings
-       from safir.kafka import make_kafka_broker
+       from safir.kafka.clients import make_kafka_broker
 
        config = KafkaConnectionSettings()
        kafka_broker = make_kafka_broker(config)
+
+    When using this model directly, The ``validated`` property enforces at
+    runtime that the correct settings were provided for the desired
+    authentication method, and returns models to access those settings in a
+    type-safe way::.
+
+    .. code-block:: python
+
+       from safir.kafka.config import KafkaConnectionSettings
+       from pathlib import Path
+
+       # ValidationError at runtime: ``client_key_path`` is not provided
+       config = KafkaConnectionSettings(
+           bootstrap_servers = "something:1234"
+           security_protocol = KafkaSecurityProtocol.SSL
+           cluster_ca_path = Path(/some/cert.crt)
+           client_cert_path = Path(/some/other/cert.crt)
+       )
+
+       config = KafkaConnectionSettings(
+           bootstrap_servers = "something:1234"
+           security_protocol = KafkaSecurityProtocol.SSL
+           cluster_ca_path = Path(/some/path/ca.crt)
+           client_cert_path = Path(/some/path/user.crt)
+           client_key_path = Path(/some/path/user.key)
+       )
+
+       blah = config.validated.sasl_username # Static type error
     """
 
     bootstrap_servers: str = Field(
@@ -153,8 +186,8 @@ class KafkaConnectionSettings(BaseSettings):
             "This should be a list of hostnames or IP addresses, "
             "each optionally followed by a port number, separated by "
             "commas. "
-            "For example: ``kafka-1:9092,kafka-2:9092,kafka-3:9092``."
         ),
+        examples=["kafka-1:9092,kafka-2:9092,kafka-3:9092", "kafka:9092"],
     )
 
     security_protocol: KafkaSecurityProtocol = Field(
@@ -168,32 +201,36 @@ class KafkaConnectionSettings(BaseSettings):
         default=None,
         title="Path to CA certificate file",
         description=(
-            "The path to the CA certificate file to use for verifying the "
-            "broker's certificate. "
-            "This is only needed if the broker's certificate is not signed "
-            "by a CA trusted by the operating system."
+            "The path to the PEM-formatted CA certificate file to use for "
+            "verifying the broker's certificate. "
+            "This is only needed for SSL and SASL_SSL security protocols, and"
+            "even in those cases, only when the broker's certificate is not "
+            "signed by a CA trusted by the operating system."
         ),
+        examples=["/some/dir/ca.crt"],
     )
 
     client_cert_path: FilePath | None = Field(
         default=None,
         title="Path to client certificate file",
         description=(
-            "The path to the client certificate file to use for "
+            "The path to the PEM-formated client certificate file to use for "
             "authentication. "
             "This is only needed if the broker is configured to require "
             "SSL client authentication."
         ),
+        examples=["/some/dir/user.crt"],
     )
 
     client_key_path: FilePath | None = Field(
         default=None,
         title="Path to client key file",
         description=(
-            "The path to the client key file to use for authentication. "
-            "This is only needed if the broker is configured to require "
-            "SSL client authentication."
+            "The path to the PEM-formatted client key file to use for "
+            "authentication. This is only needed if for the SSL security"
+            "protocol."
         ),
+        examples=["/some/dir/user.key"],
     )
 
     sasl_mechanism: KafkaSaslMechanism | None = Field(
@@ -201,7 +238,8 @@ class KafkaConnectionSettings(BaseSettings):
         title="SASL mechanism",
         description=(
             "The SASL mechanism to use for authentication. "
-            "This is only needed if SASL authentication is enabled."
+            "This is only needed for the SASL_SSL and SASL_PLAINTEXT security"
+            "protocols."
         ),
     )
 
@@ -210,7 +248,8 @@ class KafkaConnectionSettings(BaseSettings):
         title="SASL username",
         description=(
             "The username to use for SASL authentication. "
-            "This is only needed if SASL authentication is enabled."
+            "This is only needed for the SASL_SSL and SASL_PLAINTEXT security"
+            "protocols."
         ),
     )
 
@@ -219,7 +258,8 @@ class KafkaConnectionSettings(BaseSettings):
         title="SASL password",
         description=(
             "The password to use for SASL authentication. "
-            "This is only needed if SASL authentication is enabled."
+            "This is only needed for the SASL_SSL and SASL_PLAINTEXT security"
+            "protocols."
         ),
     )
 
@@ -228,15 +268,13 @@ class KafkaConnectionSettings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def check_auth_settings(self) -> Self:
-        """Validate that the correct parameters are specified for the correct
-        auth method.
-        """
-        _ = self.auth_settings
+    def validate_auth_settings(self) -> Self:
+        """Validate that the correct combination of parameters is specified."""
+        _ = self.validated
         return self
 
     @property
-    def auth_settings(
+    def validated(
         self,
     ) -> (
         KafkaSslSettings
@@ -244,7 +282,7 @@ class KafkaConnectionSettings(BaseSettings):
         | KafkaSaslPlaintextSettings
         | KafkaPlaintextSettings
     ):
-        """Return a model representing a paricular Kafka auth method.
+        """Return a model with a subset of settings for a Kafka auth method.
 
         This method will fail with a ValidationError if an invalid set of
         settings were provided.

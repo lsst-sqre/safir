@@ -8,7 +8,7 @@ from faststream.security import (
     SASLScram512,
 )
 
-from .config import (
+from ..config import (
     KafkaConnectionSettings,
     KafkaPlaintextSettings,
     KafkaSaslMechanism,
@@ -16,6 +16,8 @@ from .config import (
     KafkaSaslSslSettings,
     KafkaSslSettings,
 )
+
+__all__ = ["make_kafka_broker"]
 
 
 def make_kafka_broker(
@@ -25,24 +27,24 @@ def make_kafka_broker(
 
     Parameters
     ----------
+    config
+        Kafka connection and auth settings.
     client_id
         A name for this client. This string is passed in each request to
         servers and can be used to identify specific server-side log entries
         that correspond to this client.
-    config
-        Kafka connection and auth settings.
     """
-    auth = config.auth_settings
-    match auth:
+    validated = config.validated
+    match validated:
         case KafkaSslSettings():
-            security = BaseSecurity(ssl_context=auth.ssl_context)
+            security = BaseSecurity(ssl_context=validated.ssl_context)
         case KafkaSaslSslSettings() | KafkaSaslPlaintextSettings():
-            security = _sasl(auth)
+            security = _sasl(validated)
         case KafkaPlaintextSettings():
             security = BaseSecurity()
 
     return KafkaBroker(
-        bootstrap_servers=config.bootstrap_servers,
+        bootstrap_servers=validated.bootstrap_servers,
         client_id=client_id,
         security=security,
     )

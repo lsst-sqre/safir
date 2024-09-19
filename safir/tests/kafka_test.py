@@ -8,9 +8,11 @@ from unittest import mock
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from safir.kafka import make_kafka_broker
-from safir.kafka._aiokafka_admin_client import make_kafka_admin_client
-from safir.kafka._aiokafka_consumer import make_kafka_consumer
+from safir.kafka.clients import (
+    make_kafka_admin_client,
+    make_kafka_broker,
+    make_kafka_consumer,
+)
 from safir.kafka.config import (
     KafkaConnectionSettings,
     KafkaSaslMechanism,
