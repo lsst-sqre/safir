@@ -9,12 +9,15 @@ package = "safir"
 rst_epilog_file = "_rst_epilog.rst"
 nitpicky = true
 nitpick_ignore_regex = [
+    ['py:.*', 'faststream.*'],
     ['py:.*', 'fastapi.*'],
     ['py:.*', 'kubernetes_asyncio.*'],
     ['py:.*', 'httpx.*'],
     ['py:.*', 'pydantic.*'],
     ['py:.*', 'respx.*'],
     ['py:.*', 'starlette.*'],
+    # Bug in autodoc_pydantic re: models with validators
+    ["py:obj", ".*\\.all fields"],
 ]
 nitpick_ignore = [
     # These don't appear to have documentation but show up in the inheritance
@@ -22,6 +25,8 @@ nitpick_ignore = [
     ["py:class", "unittest.mock.Base"],
     ["py:class", "unittest.mock.CallableMixin"],
     # autodoc_pydantic generates some spurious links that can't be resolved.
+    ['py:class', 'unittest.mock.Base'],
+    ['py:class', 'unittest.mock.CallableMixin'],
     ["py:obj", "ComputedFieldInfo"],
     ["py:class", "lambda"],
     # arq doesn't provide documentation for all of its types.
@@ -47,12 +52,16 @@ nitpick_ignore = [
     ["py:class", "_orm.registry"],
     ["py:class", "_schema.MetaData"],
     ["py:class", "_schema.Table"],
+    # The AOIKafkaAdminClient is considered experimental and not officially
+    # exported
+    ['py:class', 'aiokafka.admin.client.AIOKafkaAdminClient'],
 ]
 extensions = [
     "sphinxcontrib.autodoc_pydantic",
 ]
 
 [sphinx.intersphinx.projects]
+aiokafka = "https://aiokafka.readthedocs.io/en/stable/"
 arq = "https://arq-docs.helpmanual.io"
 click = "https://click.palletsprojects.com/"
 cryptography = "https://cryptography.io/en/latest/"

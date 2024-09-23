@@ -4,17 +4,144 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
 import respx
+from aiokafka import AIOKafkaConsumer
+from aiokafka.admin.client import AIOKafkaAdminClient
+from faststream.kafka import KafkaBroker
 from redis.asyncio import Redis
+from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
+from safir.kafka import KafkaConnectionSettings, KafkaSecurityProtocol
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
+
+from .support.kafka.container import FullKafkaContainer
+
+
+@pytest.fixture(scope="session")
+def kafka_docker_network() -> Iterator[Network]:
+    """Provide a network object to link session-scoped testcontainers."""
+    with Network() as network:
+        yield network
+
+
+@pytest.fixture(scope="session")
+def kafka_cert_path(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Path:
+    return tmp_path_factory.mktemp("kafka-certs")
+
+
+@pytest.fixture(scope="session")
+def global_kafka_container(
+    kafka_docker_network: Network,
+    kafka_cert_path: Path,
+) -> Iterator[FullKafkaContainer]:
+    """Provide a session-scoped kafka container.
+
+    You proably want one of the dependent test-scoped fixtures that clears
+    kafka data, like:
+    * ``kafka_container``
+    * ``kafka_broker``
+    * ``kafka_consumer``
+    * ``kafka_admin_client``
+    """
+    container = FullKafkaContainer(limit_broker_to_first_host=True)
+    container.with_network(kafka_docker_network)
+    container.with_network_aliases("kafka")
+    with container as kafka:
+        (kafka_cert_path / "ca.crt").write_text(
+            container.get_secret_file_contents("ca.crt")
+        )
+        (kafka_cert_path / "client.crt").write_text(
+            container.get_secret_file_contents("client.crt")
+        )
+        (kafka_cert_path / "client.key").write_text(
+            container.get_secret_file_contents("client.key")
+        )
+        yield kafka
+
+
+@pytest.fixture
+def kafka_container(
+    global_kafka_container: FullKafkaContainer,
+) -> Iterator[FullKafkaContainer]:
+    """Yield the global kafka container, but rid it of data post-test."""
+    yield global_kafka_container
+    global_kafka_container.reset()
+
+
+@pytest.fixture
+def kafka_connection_settings(
+    kafka_container: FullKafkaContainer,
+) -> KafkaConnectionSettings:
+    """Provide a url to a session-scoped kafka container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    return KafkaConnectionSettings(
+        bootstrap_servers=kafka_container.get_bootstrap_server(),
+        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+    )
+
+
+@pytest_asyncio.fixture
+async def kafka_consumer(
+    kafka_connection_settings: KafkaConnectionSettings,
+) -> AsyncIterator[AIOKafkaConsumer]:
+    """Provide an AOIKafkaConsumer pointed at a session-scoped kafka container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    consumer = AIOKafkaConsumer(
+        **kafka_connection_settings.aiokafka_params,
+        client_id="pytest-consumer",
+    )
+    await consumer.start()
+    yield consumer
+    await consumer.stop()
+
+
+@pytest_asyncio.fixture
+async def kafka_broker(
+    kafka_connection_settings: KafkaConnectionSettings,
+) -> AsyncIterator[KafkaBroker]:
+    """Provide a fast stream KafkaBroker pointed at a session-scoped kafka
+    container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    broker = KafkaBroker(
+        **kafka_connection_settings.faststream_params,
+        client_id="pytest-broker",
+    )
+    await broker.start()
+    yield broker
+    await broker.close()
+
+
+@pytest_asyncio.fixture
+async def kafka_admin_client(
+    kafka_connection_settings: KafkaConnectionSettings,
+) -> AsyncIterator[AIOKafkaAdminClient]:
+    """Provide an AOIKafkaAdmin client pointed at a session-scoped kafka
+    container.
+
+    All data is cleared from the kafka instance at the end of the test.
+    """
+    client = AIOKafkaAdminClient(
+        **kafka_connection_settings.aiokafka_params, client_id="pytest-admin"
+    )
+    await client.start()
+    yield client
+    await client.close()
 
 
 @pytest.fixture(scope="session")
