@@ -12,17 +12,24 @@ import respx
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient
 from faststream.kafka import KafkaBroker
+from pydantic import AnyUrl
 from redis.asyncio import Redis
+from schema_registry.client import AsyncSchemaRegistryClient
 from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 from safir.kafka import KafkaConnectionSettings, KafkaSecurityProtocol
+from safir.schema_manager import (
+    PydanticSchemaManager,
+    SchemaRegistryConnectionSettings,
+)
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
 from .support.kafka.container import FullKafkaContainer
+from .support.schema_registry import SchemaRegistryContainer
 
 
 @pytest.fixture(scope="session")
@@ -142,6 +149,62 @@ async def kafka_admin_client(
     await client.start()
     yield client
     await client.close()
+
+
+@pytest.fixture(scope="session")
+def global_schema_registry_container(
+    global_kafka_container: FullKafkaContainer,
+    kafka_docker_network: Network,
+) -> Iterator[SchemaRegistryContainer]:
+    """Provide a session-scoped schema registry container that can talk to the
+    containers in other docker-based kafka fixtures.
+
+    You probably want one of the dependent test-scoped fixtures that clears
+    registry data, like ``schema_registry_connection_settings`` or
+    ``schema_manager``.
+    """
+    container = SchemaRegistryContainer(network=kafka_docker_network)
+    container.with_network(kafka_docker_network)
+    container.with_network_aliases("schemaregistry")
+    with container as schema_registry:
+        yield schema_registry
+
+
+@pytest.fixture
+def schema_registry_container(
+    global_schema_registry_container: SchemaRegistryContainer,
+) -> Iterator[SchemaRegistryContainer]:
+    """Yield the global schema registry container and rid of data post-test."""
+    yield global_schema_registry_container
+    global_schema_registry_container.reset()
+
+
+@pytest.fixture
+def schema_registry_connection_settings(
+    schema_registry_container: SchemaRegistryContainer,
+) -> SchemaRegistryConnectionSettings:
+    """Provide a URL to a session-scoped schema registry.
+
+    All data is cleared from it at the end of the test.
+    """
+    return SchemaRegistryConnectionSettings(
+        url=AnyUrl(schema_registry_container.get_url())
+    )
+
+
+@pytest_asyncio.fixture
+def schema_manager(
+    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+) -> PydanticSchemaManager:
+    """Provide a PydanticSchemaManager pointed at a session-scoped schema
+    registry container.
+
+    All data is cleared from the registry at the end of the test.
+    """
+    registry = AsyncSchemaRegistryClient(
+        **schema_registry_connection_settings.schema_registry_client_params
+    )
+    return PydanticSchemaManager(registry=registry)
 
 
 @pytest.fixture(scope="session")

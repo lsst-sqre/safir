@@ -24,6 +24,7 @@ User guide
    kafka
    kubernetes
    pydantic
+   pydantic-schema-manager
    pydantic-redis
    gcs
    fastapi-errors
