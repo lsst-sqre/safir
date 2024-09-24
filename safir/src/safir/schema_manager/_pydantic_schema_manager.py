@@ -95,7 +95,7 @@ class PydanticSchemaManager:
         self._logger = logging.getLogger(__name__)
 
         # A mapping of subjects to registered schema ids.
-        self._models: dict[str, int] = {}
+        self._subjects_to_ids: dict[str, int] = {}
 
     async def register_model(
         self,
@@ -151,7 +151,7 @@ class PydanticSchemaManager:
             raise IncompatibleSchemaError(result["messages"])
 
         schema_id = await self._registry.register(subject, schema)
-        self._models[subject] = schema_id
+        self._subjects_to_ids[subject] = schema_id
 
         return SchemaInfo(schema=schema, schema_id=schema_id, subject=subject)
 
@@ -173,13 +173,12 @@ class PydanticSchemaManager:
         """
         subject = self._get_subject(data)
         try:
-            schema_id = self._models[subject]
+            schema_id = self._subjects_to_ids[subject]
         except KeyError:
             raise UnknownSchemaError(
                 f"Schema for model: {data} with subject: {subject} is not"
-                " known to the manager. ``evolve_model`` or ``verify_model``"
-                " must be called before you try to serialize instances of this"
-                " model."
+                " known to the manager. ``register`` must be called before you"
+                " try to serialize instances of this model."
             ) from None
         return await self._serializer.encode_record_with_schema_id(
             schema_id, data.model_dump()
