@@ -23,6 +23,7 @@ User guide
    ivoa
    kafka/index
    kubernetes
+   metrics/index
    pydantic
    pydantic-redis
    gcs

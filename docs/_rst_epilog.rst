@@ -8,17 +8,21 @@
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
 .. _Gidgethub: https://gidgethub.readthedocs.io/en/latest/
 .. _HTTPX: https://www.python-httpx.org/
+.. _Kafka: https://kafka.apache.org/
 .. _kubernetes_asyncio: https://github.com/tomplus/kubernetes_asyncio
 .. _mypy: https://www.mypy-lang.org
 .. _nox: https://nox.thea.codes/en/stable/
 .. _Phalanx: https://phalanx.lsst.io
 .. _pre-commit: https://pre-commit.com
 .. _Pydantic: https://docs.pydantic.dev/latest/
+.. _Pydantic BaseSettings: https://docs.pydantic.dev/latest/concepts/pydantic_settings
 .. _PyPI: https://pypi.org/project/safir/
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _redis-py: https://redis.readthedocs.io/en/stable/
 .. _respx: https://lundberg.github.io/respx/
 .. _Roundtable: https://roundtable.lsst.io
+.. _Sasquatch: https://sasquatch.lsst.io
+.. _schema registry: https://docs.confluent.io/platform/current/schema-registry/index.html
 .. _scriv: https://scriv.readthedocs.io/en/stable/
 .. _semver: https://semver.org/
 .. _SQLAlchemy: https://www.sqlalchemy.org/
