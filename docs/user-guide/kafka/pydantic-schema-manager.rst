@@ -12,7 +12,6 @@ Specifically, it can:
 Interactions with the remote registry are cached, so your app will rarely have to make calls to it after initialization.
 
 .. _Avro: https://avro.apache.org/
-.. _schema registry: https://docs.confluent.io/platform/current/schema-registry/index.html
 
 Constructing the manager
 ========================
