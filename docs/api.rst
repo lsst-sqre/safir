@@ -88,8 +88,6 @@ API reference
    :include-all-objects:
    :inherited-members:
 
-.. automodapi:: safir.schema_manager
-
 .. automodapi:: safir.slack.blockkit
    :include-all-objects:
 

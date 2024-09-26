@@ -1,4 +1,4 @@
-"""Tests for the safir.schema_manager module."""
+"""Tests for the schema management functionality in the safir.kafka module."""
 
 from typing import Any
 
@@ -10,7 +10,7 @@ from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
 )
 
-from safir.schema_manager import (
+from safir.kafka import (
     IncompatibleSchemaError,
     InvalidAvroNameError,
     PydanticSchemaManager,

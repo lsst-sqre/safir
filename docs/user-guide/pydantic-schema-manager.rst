@@ -26,7 +26,7 @@ The ``SchemaRegistryConnectionSettings`` model will try to find its attributes f
    $ export SCHEMA_REGISTRY_URL=https://sasquatch-schema-registry.sasquatch:8081
 .. code-block:: python
 
-   from safir.schema_manager import SchemaRegistryConnectionSettings
+   from safir.kafka import SchemaRegistryConnectionSettings
    from schema_registry.client import AsyncSchemaRegistryClient
 
    config = SchemaRegistryConnectionSettings()
@@ -47,7 +47,7 @@ Models must be subclasses of `AvroBaseModel`_ from `dataclasses-avroschema`_. Th
    import asyncio
 
    from dataclasses_avroschema.pydantic import AvroBaseModel
-   from safir.schema_manager import (
+   from safir.kafka import (
        SchemaRegistryConnectionSettings,
        PydanticSchemaManager,
    )
@@ -104,7 +104,7 @@ Once the initial version of the schema is created, if you change the model in yo
 
 .. code-block:: python
 
-   from safir.schema_manager import (
+   from safir.kafka import (
        IncompatibleSchemaError,
        SchemaRegistryCompatibility,
        PydanticSchemaManager,

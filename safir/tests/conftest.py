@@ -19,8 +19,9 @@ from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from safir.kafka import KafkaConnectionSettings, KafkaSecurityProtocol
-from safir.schema_manager import (
+from safir.kafka import (
+    KafkaConnectionSettings,
+    KafkaSecurityProtocol,
     PydanticSchemaManager,
     SchemaRegistryConnectionSettings,
 )
