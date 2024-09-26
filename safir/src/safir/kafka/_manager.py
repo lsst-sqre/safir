@@ -23,7 +23,6 @@ from schema_registry.serializers.message_serializer import (
 from ._exceptions import (
     IncompatibleSchemaError,
     InvalidAvroNameError,
-    InvalidMetadataError,
     UnknownSchemaError,
 )
 
@@ -203,16 +202,12 @@ class PydanticSchemaManager:
         klass = model if inspect.isclass(model) else model.__class__
 
         try:
-            name = klass.Meta.schema_name  # type: ignore [union-attr]
-            if not isinstance(name, str):
-                raise InvalidMetadataError("Meta.schema_name must be a str")
+            name = str(klass.Meta.schema_name)  # type: ignore [union-attr]
         except AttributeError:
             name = klass.__name__
 
         try:
-            namespace = klass.Meta.namespace  # type: ignore [union-attr]
-            if not isinstance(namespace, str):
-                raise InvalidMetadataError("Meta.namespace must be a str")
+            namespace = str(klass.Meta.namespace)  # type: ignore [union-attr]
         except AttributeError:
             namespace = None
 
