@@ -1,6 +1,6 @@
-############################################################
-Managing remote schema registry schemas with Pydantic Models
-############################################################
+#####################################################
+Managing schema registry schemas with Pydantic Models
+#####################################################
 
 Safir provides a `~safir.kafka.PydanticSchemaManager` to register and evolve Avro schemas in a Confluent-compatible `schema registry`_ via `Pydantic`_ models.
 Specifically, it can:

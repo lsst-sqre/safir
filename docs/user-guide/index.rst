@@ -21,10 +21,9 @@ User guide
    gafaelfawr
    x-forwarded
    ivoa
-   kafka
+   kafka/index
    kubernetes
    pydantic
-   pydantic-schema-manager
    pydantic-redis
    gcs
    fastapi-errors
