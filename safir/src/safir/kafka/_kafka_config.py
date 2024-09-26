@@ -90,28 +90,25 @@ class KafkaSslSettings(BaseModel):
 
     client_key_path: FilePath
 
-    @property
-    def ssl_context(self) -> ssl.SSLContext:
-        """An SSL context for connecting to Kafka."""
+    def to_ssl_context(self) -> ssl.SSLContext:
+        """Create an SSL context for connecting to Kafka."""
         return helpers.create_ssl_context(
             cafile=str(self.cluster_ca_path),
             certfile=str(self.client_cert_path),
             keyfile=str(self.client_key_path),
         )
 
-    @property
-    def faststream_params(self) -> FastStreamBrokerParams:
+    def to_faststream_params(self) -> FastStreamBrokerParams:
         return {
             "bootstrap_servers": self.bootstrap_servers,
-            "security": BaseSecurity(ssl_context=self.ssl_context),
+            "security": BaseSecurity(ssl_context=self.to_ssl_context()),
         }
 
-    @property
-    def aiokafka_params(self) -> AIOKafkaParams:
+    def to_aiokafka_params(self) -> AIOKafkaParams:
         return {
             "bootstrap_servers": self.bootstrap_servers,
             "security_protocol": self.security_protocol,
-            "ssl_context": self.ssl_context,
+            "ssl_context": self.to_ssl_context(),
         }
 
 
@@ -130,8 +127,7 @@ class KafkaSaslPlaintextSettings(BaseModel):
 
     sasl_password: SecretStr
 
-    @property
-    def faststream_params(self) -> FastStreamBrokerParams:
+    def to_faststream_params(self) -> FastStreamBrokerParams:
         cls: type[SASLScram512 | SASLScram256 | SASLPlaintext]
         match self.sasl_mechanism:
             case KafkaSaslMechanism.SCRAM_SHA_512:
@@ -149,8 +145,7 @@ class KafkaSaslPlaintextSettings(BaseModel):
             ),
         }
 
-    @property
-    def aiokafka_params(self) -> AIOKafkaParams:
+    def to_aiokafka_params(self) -> AIOKafkaParams:
         return {
             "bootstrap_servers": self.bootstrap_servers,
             "security_protocol": self.security_protocol,
@@ -177,9 +172,8 @@ class KafkaSaslSslSettings(BaseModel):
 
     cluster_ca_path: FilePath | None
 
-    @property
-    def ssl_context(self) -> ssl.SSLContext:
-        """An SSL context for connecting to Kafka."""
+    def to_ssl_context(self) -> ssl.SSLContext:
+        """Make an SSL context for connecting to Kafka."""
         cafile = None
 
         if self.cluster_ca_path:
@@ -188,8 +182,7 @@ class KafkaSaslSslSettings(BaseModel):
             cafile=cafile,
         )
 
-    @property
-    def faststream_params(self) -> FastStreamBrokerParams:
+    def to_faststream_params(self) -> FastStreamBrokerParams:
         cls: type[SASLScram512 | SASLScram256 | SASLPlaintext]
         match self.sasl_mechanism:
             case KafkaSaslMechanism.SCRAM_SHA_512:
@@ -204,16 +197,15 @@ class KafkaSaslSslSettings(BaseModel):
             "security": cls(
                 username=self.sasl_username,
                 password=self.sasl_password.get_secret_value(),
-                ssl_context=self.ssl_context,
+                ssl_context=self.to_ssl_context(),
             ),
         }
 
-    @property
-    def aiokafka_params(self) -> AIOKafkaParams:
+    def to_aiokafka_params(self) -> AIOKafkaParams:
         return {
             "bootstrap_servers": self.bootstrap_servers,
             "security_protocol": self.security_protocol,
-            "ssl_context": self.ssl_context,
+            "ssl_context": self.to_ssl_context(),
             "sasl_mechanism": self.sasl_mechanism,
             "sasl_plain_username": self.sasl_username,
             "sasl_plain_password": self.sasl_password.get_secret_value(),
@@ -227,15 +219,13 @@ class KafkaPlaintextSettings(BaseModel):
 
     security_protocol: Literal[KafkaSecurityProtocol.PLAINTEXT]
 
-    @property
-    def faststream_params(self) -> FastStreamBrokerParams:
+    def to_faststream_params(self) -> FastStreamBrokerParams:
         return {
             "bootstrap_servers": self.bootstrap_servers,
             "security": BaseSecurity(),
         }
 
-    @property
-    def aiokafka_params(self) -> AIOKafkaParams:
+    def to_aiokafka_params(self) -> AIOKafkaParams:
         return {
             "bootstrap_servers": self.bootstrap_servers,
             "security_protocol": self.security_protocol,
@@ -409,10 +399,8 @@ class KafkaConnectionSettings(BaseSettings):
             case KafkaSecurityProtocol.SSL:
                 return KafkaSslSettings(**self.model_dump())
 
-    @property
-    def faststream_params(self) -> FastStreamBrokerParams:
-        return self.validated.faststream_params
+    def to_faststream_params(self) -> FastStreamBrokerParams:
+        return self.validated.to_faststream_params()
 
-    @property
-    def aiokafka_params(self) -> AIOKafkaParams:
-        return self.validated.aiokafka_params
+    def to_aiokafka_params(self) -> AIOKafkaParams:
+        return self.validated.to_aiokafka_params()

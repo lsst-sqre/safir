@@ -108,7 +108,7 @@ async def kafka_consumer(
     All data is cleared from the kafka instance at the end of the test.
     """
     consumer = AIOKafkaConsumer(
-        **kafka_connection_settings.aiokafka_params,
+        **kafka_connection_settings.to_aiokafka_params,
         client_id="pytest-consumer",
     )
     await consumer.start()
@@ -126,7 +126,7 @@ async def kafka_broker(
     All data is cleared from the kafka instance at the end of the test.
     """
     broker = KafkaBroker(
-        **kafka_connection_settings.faststream_params,
+        **kafka_connection_settings.to_faststream_params(),
         client_id="pytest-broker",
     )
     await broker.start()
@@ -144,7 +144,8 @@ async def kafka_admin_client(
     All data is cleared from the kafka instance at the end of the test.
     """
     client = AIOKafkaAdminClient(
-        **kafka_connection_settings.aiokafka_params, client_id="pytest-admin"
+        **kafka_connection_settings.to_aiokafka_params,
+        client_id="pytest-admin",
     )
     await client.start()
     yield client

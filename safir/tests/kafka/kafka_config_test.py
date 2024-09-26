@@ -25,14 +25,14 @@ async def assert_clients(settings: KafkaConnectionSettings) -> None:
     consumer = None
 
     try:
-        admin = AIOKafkaAdminClient(**settings.aiokafka_params)
+        admin = AIOKafkaAdminClient(**settings.to_aiokafka_params())
         await admin.start()
         await admin.list_topics()
 
-        consumer = AIOKafkaConsumer(**settings.aiokafka_params)
+        consumer = AIOKafkaConsumer(**settings.to_aiokafka_params())
         await consumer.start()
 
-        broker = KafkaBroker(**settings.faststream_params)
+        broker = KafkaBroker(**settings.to_faststream_params())
         await broker.start()
         result = await broker.ping(timeout=5)
         assert result
