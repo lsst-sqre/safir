@@ -305,7 +305,13 @@ async def test_unmanaged_error(
         str_field: str
         int_field: int
 
+        class Meta:
+            namespace = "what.ever"
+
     original = MyModel(str_field="somestring", int_field=123)
 
-    with pytest.raises(UnknownSchemaError):
+    with pytest.raises(
+        UnknownSchemaError,
+        match="model: MyModel with subject: what.ever.MyModel",
+    ):
         await schema_manager.serialize(original)

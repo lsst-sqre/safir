@@ -16,7 +16,7 @@ from ._kafka_config import (
     KafkaSecurityProtocol,
     KafkaSslSettings,
 )
-from ._pydantic_schema_manager import (
+from ._manager import (
     PydanticSchemaManager,
     SchemaInfo,
     SchemaRegistryCompatibility,

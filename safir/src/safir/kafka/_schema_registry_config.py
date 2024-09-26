@@ -4,7 +4,7 @@ from pydantic import AnyUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from schema_registry.client import AsyncSchemaRegistryClient
 
-from safir.kafka._pydantic_schema_manager import PydanticSchemaManager
+from safir.kafka._manager import PydanticSchemaManager
 
 __all__ = [
     "SchemaManagerSettings",

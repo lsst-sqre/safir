@@ -53,8 +53,13 @@ class SchemaInfo:
     """Schema and registry metadata."""
 
     schema: dict[str, Any]
+    """The Avro schema as a Python dict."""
+
     schema_id: int
+    """The ID of the schema in the schema registry."""
+
     subject: str
+    """The subject that the schema is registered under in the registry."""
 
 
 class PydanticSchemaManager:
@@ -84,7 +89,6 @@ class PydanticSchemaManager:
 
     def __init__(
         self,
-        *,
         registry: AsyncSchemaRegistryClient,
         suffix: str = "",
     ) -> None:
@@ -104,10 +108,6 @@ class PydanticSchemaManager:
     ) -> SchemaInfo:
         """Register the model with the registry.
 
-        * The model's schema will be checked for compatibility with the latest
-          version in the registry
-        * An exception will be raised if it's not
-
         Parameters
         ----------
         model
@@ -116,9 +116,15 @@ class PydanticSchemaManager:
             The registry `compatibility type <https://docs.confluent.io/platform/current/schema-registry/fundamentals/schema-evolution.html#compatibility-types>`__
             for this model. If not provided, it will default to the default
             type configured in the registry.
+
+        Raises
+        ------
+        IncompatibleSchemaError
+            If the schema is incompatible with the latest version of schema in
+            the registry, according to the subject's compatibility type.
         """
         subject = self._get_subject(model)
-        if compatibility is not None:
+        if compatibility:
             await self._registry.update_compatibility(
                 subject=subject,
                 level=compatibility,
@@ -142,11 +148,20 @@ class PydanticSchemaManager:
         result = await self._registry.test_compatibility(
             subject=subject, schema=schema, verbose=True
         )
+        # This is here just to satisfy the type checker. The test_compatibility
+        # method returns a bool if verbose == False, and a dict if verbose ==
+        # True.
         if not isinstance(result, dict):
             raise TypeError(
-                "There seems to be a bug in the python-schema-registry-client"
-                " library!"
+                f"test_compatibility returned {type(result).__name__}, not"
+                " dict"
             )
+        if "is_compatible" not in result:
+            raise ValueError(
+                "test_compatibility returned a dict without the"
+                "'is_compatible' key: {result}"
+            )
+
         if result["is_compatible"] is False:
             raise IncompatibleSchemaError(result["messages"])
 
@@ -175,11 +190,7 @@ class PydanticSchemaManager:
         try:
             schema_id = self._subjects_to_ids[subject]
         except KeyError:
-            raise UnknownSchemaError(
-                f"Schema for model: {data} with subject: {subject} is not"
-                " known to the manager. ``register`` must be called before you"
-                " try to serialize instances of this model."
-            ) from None
+            raise UnknownSchemaError(data, subject) from None
         return await self._serializer.encode_record_with_schema_id(
             schema_id, data.model_dump()
         )

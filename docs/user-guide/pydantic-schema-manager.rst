@@ -92,6 +92,11 @@ If you don't specify a compatibility type, the subject will have the default com
 
 Once the initial version of the schema is created, if you change the model in your app in an incompatible way and try to register it again, the manager will throw an `~safir.kafka.IncompatibleSchemaError`.
 
+.. warning::
+
+   Do not deploy your application to an ``int`` or ``dev`` environment until any changes to your schema are finalized!
+   If an incorrect version of a schema gets registered in one of these environments, and the corrected schema is incompatible with the the incorrect one, you will have to manually delete the incorrect version from the registry.
+
 .. code-block:: python
 
    from safir.kafka import (
