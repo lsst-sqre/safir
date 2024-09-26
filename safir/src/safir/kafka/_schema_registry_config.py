@@ -36,7 +36,7 @@ class SchemaManagerSettings(BaseSettings):
 
     suffix: str = Field(
         default="",
-        title="Prefix",
+        title="Suffix",
         description=(
             "A suffix that is added to the schema name (and thus the subject"
             " name). The suffix creates alternate subjects in the Schema"

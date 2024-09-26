@@ -3,7 +3,7 @@ Kafka connection settings
 #########################
 
 Safir provides a `Pydantic BaseSettings <https://docs.pydantic.dev/latest/concepts/pydantic_settings/>`__ model to get correct and valid Kafka connection settings into an application.
-The ``kafka.config.KafkaConnectionSettings`` model supports different authentication methods, which each have different sets of required settings.
+The `~safir.kafka.KafkaConnectionSettings` model supports different authentication methods, which each have different sets of required settings.
 All of these settings can be provided in ``KAFKA_`` prefixed environment variables.
 Instances of this model have properties that can be used to construct different types of kafka clients:
 

@@ -2,7 +2,7 @@
 Managing remote schema registry schemas with Pydantic Models
 ############################################################
 
-Safir provides a ``PydanticSchemaManager`` to register and evolve Avro schemas in a Confluent-compatible `schema registry`_ via `Pydantic`_ models.
+Safir provides a `~safir.kafka.PydanticSchemaManager` to register and evolve Avro schemas in a Confluent-compatible `schema registry`_ via `Pydantic`_ models.
 Specifically, it can:
 
 * Create schemas in the registry
@@ -17,13 +17,14 @@ Interactions with the remote registry are cached, so your app will rarely have t
 Configuring a schema registry client
 ====================================
 
-The ``PydanticSchemaManager`` interacts with the schema registry through a `python-schema-registry-client`_ `AsyncSchemaRegistryClient`_.
-You can use the ``SchemaRegistryConnectionSettings`` `Pydantic settings`_ model to take settings from environment variables and construct this client.
-The ``SchemaRegistryConnectionSettings`` model will try to find its attributes from ``SCHEMA_REGISTRY_``-prefixed environment variables:
+The `~safir.kafka.PydanticSchemaManager` interacts with the schema registry through a `~schema_registry.client.AsyncSchemaRegistryClient`.
+You can use the `~safir.kafka.SchemaRegistryConnectionSettings` `Pydantic settings`_ model to take settings from environment variables and construct this client.
+The `~safir.kafka.SchemaRegistryConnectionSettings` model will try to find its attributes from ``SCHEMA_REGISTRY_``-prefixed environment variables:
 
 .. code-block:: shell-session
 
    $ export SCHEMA_REGISTRY_URL=https://sasquatch-schema-registry.sasquatch:8081
+
 .. code-block:: python
 
    from safir.kafka import SchemaRegistryConnectionSettings
@@ -33,8 +34,6 @@ The ``SchemaRegistryConnectionSettings`` model will try to find its attributes f
    registry = AsyncSchemaRegistryClient(**config.schema_registry_client_params)
 
 .. _Pydantic settings: https://docs.pydantic.dev/latest/concepts/pydantic_settings/
-.. _python-schema-registry-client: https://github.com/marcosschroh/python-schema-registry-client
-.. _AsyncSchemaRegistryClient: https://marcosschroh.github.io/python-schema-registry-client/client/#schema_registry.client.AsyncSchemaRegistryClient
 
 Using the manager
 =================
@@ -100,7 +99,7 @@ The specific changes that are incompatible could vary from subject to subject, a
 You can specify the compatibility type when registering a model.
 If you don't specify a compatibility type, the subject will have the default compatibility type set on the schema registry server.
 
-Once the initial version of the schema is created, if you change the model in your app in an incompatible way and try to register it again, the manager will throw an ``IncompatibleSchemaError``.
+Once the initial version of the schema is created, if you change the model in your app in an incompatible way and try to register it again, the manager will throw an `~safir.kafka.IncompatibleSchemaError`.
 
 .. code-block:: python
 
@@ -194,7 +193,7 @@ Subject suffixes for development
 ================================
 
 When you're developing and testing your app, you probably don't want to register new versions of its schemas in the subjects that actual deployed versions of the app are using.
-You can instantiate the ``PydanticSchemaManager`` with a ``suffix`` argument to add that suffix onto all subjects used by the manager:
+You can instantiate the `~safir.kafka.PydanticSchemaManager` with a ``suffix`` argument to add that suffix onto all subjects used by the manager:
 
 .. code-block:: python
 
