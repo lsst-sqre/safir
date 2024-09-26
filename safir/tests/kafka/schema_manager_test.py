@@ -16,15 +16,15 @@ from safir.kafka import (
     PydanticSchemaManager,
     SchemaInfo,
     SchemaRegistryCompatibility,
-    SchemaRegistryConnectionSettings,
     UnknownSchemaError,
 )
+from safir.kafka._schema_registry_config import SchemaManagerSettings
 
 
 async def assert_round_trip(
     manager: PydanticSchemaManager,
     model: type[AvroBaseModel],
-    registry_settings: SchemaRegistryConnectionSettings,
+    settings: SchemaManagerSettings,
     **kwargs: Any,
 ) -> SchemaInfo:
     info = await manager.register_model(model)
@@ -33,7 +33,7 @@ async def assert_round_trip(
 
     # deserialize by getting the schema from the registry
     fresh_registry_client = AsyncSchemaRegistryClient(
-        **registry_settings.schema_registry_client_params
+        **settings.to_registry_params()
     )
     fresh_serializer = AsyncAvroMessageSerializer(fresh_registry_client)
     raw = await fresh_serializer.decode_message(serialized)
@@ -46,7 +46,7 @@ async def assert_round_trip(
 @pytest.mark.asyncio
 async def test_no_metadata(
     schema_manager: PydanticSchemaManager,
-    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
 ) -> None:
     class MyBareModel(AvroBaseModel):
         str_field: str
@@ -55,7 +55,7 @@ async def test_no_metadata(
     info = await assert_round_trip(
         schema_manager,
         MyBareModel,
-        schema_registry_connection_settings,
+        schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -67,7 +67,7 @@ async def test_no_metadata(
 @pytest.mark.asyncio
 async def test_name_only_metadata(
     schema_manager: PydanticSchemaManager,
-    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
 ) -> None:
     class MyModel(AvroBaseModel):
         str_field: str
@@ -79,7 +79,7 @@ async def test_name_only_metadata(
     info = await assert_round_trip(
         schema_manager,
         MyModel,
-        schema_registry_connection_settings,
+        schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -91,7 +91,7 @@ async def test_name_only_metadata(
 @pytest.mark.asyncio
 async def test_name_and_namespace_metadata(
     schema_manager: PydanticSchemaManager,
-    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
 ) -> None:
     class MyOtherModel(AvroBaseModel):
         str_field: str
@@ -104,7 +104,7 @@ async def test_name_and_namespace_metadata(
     info = await assert_round_trip(
         schema_manager,
         MyOtherModel,
-        schema_registry_connection_settings,
+        schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -116,7 +116,7 @@ async def test_name_and_namespace_metadata(
 @pytest.mark.asyncio
 async def test_namespace_only_metadata(
     schema_manager: PydanticSchemaManager,
-    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
 ) -> None:
     class YetAnotherModel(AvroBaseModel):
         str_field: str
@@ -128,7 +128,7 @@ async def test_namespace_only_metadata(
     info = await assert_round_trip(
         schema_manager,
         YetAnotherModel,
-        schema_registry_connection_settings,
+        schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -139,10 +139,10 @@ async def test_namespace_only_metadata(
 
 @pytest.mark.asyncio
 async def test_suffix(
-    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
 ) -> None:
     registry = AsyncSchemaRegistryClient(
-        **schema_registry_connection_settings.schema_registry_client_params
+        **schema_manager_settings.to_registry_params()
     )
     schema_manager = PydanticSchemaManager(
         registry=registry,
@@ -160,7 +160,7 @@ async def test_suffix(
     info = await assert_round_trip(
         schema_manager,
         MyModel,
-        schema_registry_connection_settings,
+        schema_manager_settings,
         str_field="blah",
         int_field=123,
     )

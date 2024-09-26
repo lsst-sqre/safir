@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 __all__ = [
     "SchemaManagerSettings",
     "SchemaRegistryClientParams",
-    "SchemaRegistryConnectionSettings",
 ]
 
 
@@ -14,25 +13,16 @@ class SchemaRegistryClientParams(TypedDict):
     """Kwargs used to construct an AsyncSchemaRegistryClient."""
 
     url: str
-
-
-class SchemaRegistryConnectionSettings(BaseSettings):
-    """Settings for connecting to a confluent-compatible schema registry."""
-
-    url: AnyUrl = Field(title="URL", description="URL for the schema registry")
-
-    @property
-    def schema_registry_client_params(self) -> SchemaRegistryClientParams:
-        """Return kwargs to instantiate an AsyncSchemaRegistryClient."""
-        return {"url": str(self.url)}
-
-    model_config = SettingsConfigDict(
-        env_prefix="SCHEMA_REGISTRY_", case_sensitive=False
-    )
+    """URL of a a Confluent-compatible schema registry."""
 
 
 class SchemaManagerSettings(BaseSettings):
     """Settings for constructing a PydanticSchemaManager."""
+
+    registry_url: AnyUrl = Field(
+        title="Schema Registry URL",
+        description="URL of a a Confluent-compatible schema registry.",
+    )
 
     suffix: str = Field(
         default="",
@@ -46,6 +36,10 @@ class SchemaManagerSettings(BaseSettings):
         ),
         examples=["_dev1"],
     )
+
+    def to_registry_params(self) -> SchemaRegistryClientParams:
+        """Return kwargs to instantiate an AsyncSchemaRegistryClient."""
+        return {"url": str(self.registry_url)}
 
     model_config = SettingsConfigDict(
         env_prefix="SCHEMA_MANAGER_", case_sensitive=False

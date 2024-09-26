@@ -18,20 +18,20 @@ Configuring a schema registry client
 ====================================
 
 The `~safir.kafka.PydanticSchemaManager` interacts with the schema registry through a `~schema_registry.client.AsyncSchemaRegistryClient`.
-You can use the `~safir.kafka.SchemaRegistryConnectionSettings` `Pydantic settings`_ model to take settings from environment variables and construct this client.
-The `~safir.kafka.SchemaRegistryConnectionSettings` model will try to find its attributes from ``SCHEMA_REGISTRY_``-prefixed environment variables:
+You can use the `~safir.kafka.SchemaManagerSettings` `Pydantic settings`_ model to take settings from environment variables and construct this client.
+The `~safir.kafka.SchemaManagerSettings` model will try to find its attributes from ``SCHEMA_MANAGER``-prefixed environment variables:
 
 .. code-block:: shell-session
 
-   $ export SCHEMA_REGISTRY_URL=https://sasquatch-schema-registry.sasquatch:8081
+   $ export SCHEMA_MANAGER_REGISTRY_URL=https://sasquatch-schema-registry.sasquatch:8081
 
 .. code-block:: python
 
-   from safir.kafka import SchemaRegistryConnectionSettings
+   from safir.kafka import SchemaManagerSettings
    from schema_registry.client import AsyncSchemaRegistryClient
 
-   config = SchemaRegistryConnectionSettings()
-   registry = AsyncSchemaRegistryClient(**config.schema_registry_client_params)
+   config = SchemaManagerSettings()
+   registry = AsyncSchemaRegistryClient(**config.to_registry_params())
 
 .. _Pydantic settings: https://docs.pydantic.dev/latest/concepts/pydantic_settings/
 
@@ -47,7 +47,7 @@ Models must be subclasses of `AvroBaseModel`_ from `dataclasses-avroschema`_. Th
 
    from dataclasses_avroschema.pydantic import AvroBaseModel
    from safir.kafka import (
-       SchemaRegistryConnectionSettings,
+       SchemaManagerSettings,
        PydanticSchemaManager,
    )
    from schema_registry.client import AsyncSchemaRegistryClient
@@ -55,11 +55,9 @@ Models must be subclasses of `AvroBaseModel`_ from `dataclasses-avroschema`_. Th
 
    async def main() -> None:
        # Construct a manager
-       config = SchemaRegistryConnectionSettings()
-       registry = AsyncSchemaRegistryClient(
-           **config.schema_registry_client_params
-       )
-       manager = PydanticSchemaManager(registry=registry)
+       config = SchemaManagerSettings()
+       registry = AsyncSchemaRegistryClient(**config.to_registry_params())
+       manager = PydanticSchemaManager(registry=registry, suffix=config.suffix)
 
        # Define a model
        class MyModel(AvroBaseModel):
@@ -70,7 +68,7 @@ Models must be subclasses of `AvroBaseModel`_ from `dataclasses-avroschema`_. Th
        #
        # * Create the schema in the registry if it doesn't exist
        # * Create a new version of the schema in the registry if this model has
-       #   changed since #   the last time it was registered
+       #   changed since the last time it was registered
        # * Do nothing if the schema already exists in the registry and the
        #   model hasn't changed.
        await manager.register(MyModel)
@@ -121,12 +119,10 @@ Once the initial version of the schema is created, if you change the model in yo
        MyModel, compatibility=SchemaManagerCompatibility.FORWARD
    )
 
+Sometime in the future, if the model changes like this, an exception will be raised upon registration:
+
 .. code-block:: python
 
-   manager: PydanticSchemaManager
-
-
-   # sometime in the future, this model changes like this
    class MyModel(AvroBaseModel):
        field1: int
 
@@ -167,7 +163,7 @@ The record name and namespace come from the name of the model class, and/or cert
 
 .. code-block:: python
 
-   # subject: my.namespace.mymodelcustom
+   # subject: "my.namespace.mymodelcustom"
    class MyModel(AvroBaseModel):
        str_field: str
        int_field: int
@@ -178,7 +174,7 @@ The record name and namespace come from the name of the model class, and/or cert
 
 .. code-block:: python
 
-   # subject: my.namespace.MyModel
+   # subject: "my.namespace.MyModel"
    class MyModel(AvroBaseModel):
        str_field: str
        int_field: int

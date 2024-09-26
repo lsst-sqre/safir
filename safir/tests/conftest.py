@@ -23,8 +23,8 @@ from safir.kafka import (
     KafkaConnectionSettings,
     KafkaSecurityProtocol,
     PydanticSchemaManager,
-    SchemaRegistryConnectionSettings,
 )
+from safir.kafka._schema_registry_config import SchemaManagerSettings
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
@@ -181,21 +181,21 @@ def schema_registry_container(
 
 
 @pytest.fixture
-def schema_registry_connection_settings(
+def schema_manager_settings(
     schema_registry_container: SchemaRegistryContainer,
-) -> SchemaRegistryConnectionSettings:
+) -> SchemaManagerSettings:
     """Provide a URL to a session-scoped schema registry.
 
     All data is cleared from it at the end of the test.
     """
-    return SchemaRegistryConnectionSettings(
-        url=AnyUrl(schema_registry_container.get_url())
+    return SchemaManagerSettings(
+        registry_url=AnyUrl(schema_registry_container.get_url())
     )
 
 
 @pytest_asyncio.fixture
 def schema_manager(
-    schema_registry_connection_settings: SchemaRegistryConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
 ) -> PydanticSchemaManager:
     """Provide a PydanticSchemaManager pointed at a session-scoped schema
     registry container.
@@ -203,9 +203,11 @@ def schema_manager(
     All data is cleared from the registry at the end of the test.
     """
     registry = AsyncSchemaRegistryClient(
-        **schema_registry_connection_settings.schema_registry_client_params
+        **schema_manager_settings.to_registry_params()
     )
-    return PydanticSchemaManager(registry=registry)
+    return PydanticSchemaManager(
+        registry=registry, suffix=schema_manager_settings.suffix
+    )
 
 
 @pytest.fixture(scope="session")

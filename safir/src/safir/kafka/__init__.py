@@ -24,7 +24,6 @@ from ._pydantic_schema_manager import (
 from ._schema_registry_config import (
     SchemaManagerSettings,
     SchemaRegistryClientParams,
-    SchemaRegistryConnectionSettings,
 )
 
 __all__ = [
@@ -49,8 +48,6 @@ __all__ = [
     "SchemaRegistryClientParams",
     "SchemaRegistryClientParams",
     "SchemaRegistryCompatibility",
-    "SchemaRegistryConnectionSettings",
-    "SchemaRegistryConnectionSettings",
     "UnknownDeserializeError",
     "UnknownSchemaError",
 ]
