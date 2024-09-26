@@ -14,11 +14,10 @@ Interactions with the remote registry are cached, so your app will rarely have t
 .. _Avro: https://avro.apache.org/
 .. _schema registry: https://docs.confluent.io/platform/current/schema-registry/index.html
 
-Configuring a schema registry client
-====================================
+Constructing the manager
+========================
 
-The `~safir.kafka.PydanticSchemaManager` interacts with the schema registry through a `~schema_registry.client.AsyncSchemaRegistryClient`.
-You can use the `~safir.kafka.SchemaManagerSettings` `Pydantic settings`_ model to take settings from environment variables and construct this client.
+You can use the `~safir.kafka.SchemaManagerSettings` `Pydantic settings`_ model to take settings from environment variables and construct a .`~safir.kafka.PydanticSchemaManager` with the `~safir.kafka.SchemaManagerSettings.make_manager` method.
 The `~safir.kafka.SchemaManagerSettings` model will try to find its attributes from ``SCHEMA_MANAGER``-prefixed environment variables:
 
 .. code-block:: shell-session
@@ -28,10 +27,19 @@ The `~safir.kafka.SchemaManagerSettings` model will try to find its attributes f
 .. code-block:: python
 
    from safir.kafka import SchemaManagerSettings
-   from schema_registry.client import AsyncSchemaRegistryClient
 
    config = SchemaManagerSettings()
-   registry = AsyncSchemaRegistryClient(**config.to_registry_params())
+   manager = config.make_manager()
+
+You can also construct the manager manually by giving it an instance of `~schema_registry.client.AsyncSchemaRegistryClient`:
+
+.. code-block:: python
+
+   from safir.kafka import PydanticSchemaManager
+   from schema_registry.client import AsyncSchemaRegistryClient
+
+   registry = AsyncSchemaRegistryClient(url="https://some.url")
+   manager = PydanticSchemaManager(registry=registry)
 
 .. _Pydantic settings: https://docs.pydantic.dev/latest/concepts/pydantic_settings/
 
@@ -43,42 +51,27 @@ Models must be subclasses of `AvroBaseModel`_ from `dataclasses-avroschema`_. Th
 
 .. code-block:: python
 
-   import asyncio
-
    from dataclasses_avroschema.pydantic import AvroBaseModel
-   from safir.kafka import (
-       SchemaManagerSettings,
-       PydanticSchemaManager,
-   )
-   from schema_registry.client import AsyncSchemaRegistryClient
 
 
-   async def main() -> None:
-       # Construct a manager
-       config = SchemaManagerSettings()
-       registry = AsyncSchemaRegistryClient(**config.to_registry_params())
-       manager = PydanticSchemaManager(registry=registry, suffix=config.suffix)
-
-       # Define a model
-       class MyModel(AvroBaseModel):
-           field1: int = Field(default=0)
-           field2: str
-
-       # Register your model, which will:
-       #
-       # * Create the schema in the registry if it doesn't exist
-       # * Create a new version of the schema in the registry if this model has
-       #   changed since the last time it was registered
-       # * Do nothing if the schema already exists in the registry and the
-       #   model hasn't changed.
-       await manager.register(MyModel)
-
-       # Serialize an instance
-       instance = MyModel(field1=1, field2="woohoo!")
-       avro: bytes = manager.serialize(instance)
+   # Define a model
+   class MyModel(AvroBaseModel):
+       field1: int = Field(default=0)
+       field2: str
 
 
-   asyncio.run(main())
+   # Register your model, which will:
+   #
+   # * Create the schema in the registry if it doesn't exist
+   # * Create a new version of the schema in the registry if this model has
+   #   changed since the last time it was registered
+   # * Do nothing if the schema already exists in the registry and the
+   #   model hasn't changed.
+   await manager.register(MyModel)
+
+   # Serialize an instance
+   instance = MyModel(field1=1, field2="woohoo!")
+   avro: bytes = manager.serialize(instance)
 
 You probably want to register all of your models at the start of your application so that:
 
@@ -106,8 +99,6 @@ Once the initial version of the schema is created, if you change the model in yo
        SchemaRegistryCompatibility,
        PydanticSchemaManager,
    )
-
-   manager: PydanticSchemaManager
 
 
    class MyModel(AvroBaseModel):
@@ -196,6 +187,23 @@ You can instantiate the `~safir.kafka.PydanticSchemaManager` with a ``suffix`` a
    registry: AsyncSchemaRegistryClient
    manager = PydanticSchemaManager(registry=registry, suffix="_testing")
 
+Or by using the helper:
+
+.. code-block:: shell-session
+
+   $ export SCHEMA_MANAGER_REGISTRY_URL=https://sasquatch-schema-registry.sasquatch:8081
+   $ export SCHEMA_MANAGER_SUFFIX=_testing
+
+.. code-block:: python
+
+   from safir.kafka import SchemaManagerSettings
+
+   config = SchemaManagerSettings()
+   manager = config.make_manager()
+
+Then the subjects are modified like this:
+
+.. code-block:: python
 
    # subject: my.namespace.mymodelcustom_testing
    class MyModel(AvroBaseModel):

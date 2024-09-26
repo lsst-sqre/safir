@@ -14,7 +14,6 @@ from aiokafka.admin.client import AIOKafkaAdminClient
 from faststream.kafka import KafkaBroker
 from pydantic import AnyUrl
 from redis.asyncio import Redis
-from schema_registry.client import AsyncSchemaRegistryClient
 from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
@@ -202,12 +201,7 @@ def schema_manager(
 
     All data is cleared from the registry at the end of the test.
     """
-    registry = AsyncSchemaRegistryClient(
-        **schema_manager_settings.to_registry_params()
-    )
-    return PydanticSchemaManager(
-        registry=registry, suffix=schema_manager_settings.suffix
-    )
+    return schema_manager_settings.make_manager()
 
 
 @pytest.fixture(scope="session")

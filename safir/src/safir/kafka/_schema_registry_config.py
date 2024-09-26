@@ -2,6 +2,9 @@ from typing import TypedDict
 
 from pydantic import AnyUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from schema_registry.client import AsyncSchemaRegistryClient
+
+from safir.kafka._pydantic_schema_manager import PydanticSchemaManager
 
 __all__ = [
     "SchemaManagerSettings",
@@ -38,8 +41,13 @@ class SchemaManagerSettings(BaseSettings):
     )
 
     def to_registry_params(self) -> SchemaRegistryClientParams:
-        """Return kwargs to instantiate an AsyncSchemaRegistryClient."""
+        """Make a dict of params to construct an AsyncSchemaRegistryClient."""
         return {"url": str(self.registry_url)}
+
+    def make_manager(self) -> PydanticSchemaManager:
+        """Construct a PydanticSchemaManager from the fields of this model."""
+        registry = AsyncSchemaRegistryClient(**self.to_registry_params())
+        return PydanticSchemaManager(registry=registry, suffix=self.suffix)
 
     model_config = SettingsConfigDict(
         env_prefix="SCHEMA_MANAGER_", case_sensitive=False
