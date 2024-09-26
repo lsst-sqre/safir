@@ -29,13 +29,13 @@ from ._exceptions import (
 __all__ = [
     "PydanticSchemaManager",
     "SchemaInfo",
-    "SchemaRegistryCompatibility",
+    "Compatibility",
 ]
 
 P = TypeVar("P", bound=AvroBaseModel)
 
 
-class SchemaRegistryCompatibility(StrEnum):
+class Compatibility(StrEnum):
     """Schema registry compatibility types."""
 
     BACKWARD = "BACKWARD"
@@ -103,7 +103,7 @@ class PydanticSchemaManager:
     async def register_model(
         self,
         model: type[AvroBaseModel],
-        compatibility: SchemaRegistryCompatibility | None = None,
+        compatibility: Compatibility | None = None,
     ) -> SchemaInfo:
         """Register the model with the registry.
 

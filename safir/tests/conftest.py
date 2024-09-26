@@ -20,8 +20,8 @@ from testcontainers.redis import RedisContainer
 
 from safir.kafka import (
     KafkaConnectionSettings,
-    KafkaSecurityProtocol,
     PydanticSchemaManager,
+    SecurityProtocol,
 )
 from safir.kafka._schema_registry_config import SchemaManagerSettings
 from safir.testing.gcs import MockStorageClient, patch_google_storage
@@ -95,7 +95,7 @@ def kafka_connection_settings(
     """
     return KafkaConnectionSettings(
         bootstrap_servers=kafka_container.get_bootstrap_server(),
-        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+        security_protocol=SecurityProtocol.PLAINTEXT,
     )
 
 

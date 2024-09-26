@@ -23,18 +23,18 @@ __all__ = [
     "AIOKafkaParams",
     "FastStreamBrokerParams",
     "KafkaConnectionSettings",
-    "KafkaPlaintextSettings",
-    "KafkaPlaintextSettings",
-    "KafkaSaslMechanism",
-    "KafkaSaslPlaintextSettings",
-    "KafkaSaslSslSettings",
-    "KafkaSecurityProtocol",
-    "KafkaSslSettings",
-    "KafkaSslSettings",
+    "PlaintextSettings",
+    "PlaintextSettings",
+    "SaslMechanism",
+    "SaslPlaintextSettings",
+    "SaslSslSettings",
+    "SecurityProtocol",
+    "SslSettings",
+    "SslSettings",
 ]
 
 
-class KafkaSecurityProtocol(StrEnum):
+class SecurityProtocol(StrEnum):
     """Kafka SASL security protocols."""
 
     SASL_PLAINTEXT = "SASL_PLAINTEXT"
@@ -50,7 +50,7 @@ class KafkaSecurityProtocol(StrEnum):
     """SSL-encrypted SSL-authenticated connection."""
 
 
-class KafkaSaslMechanism(StrEnum):
+class SaslMechanism(StrEnum):
     """Kafka SASL mechanisms."""
 
     PLAIN = "PLAIN"
@@ -77,12 +77,12 @@ class AIOKafkaParams(TypedDict):
     ssl_context: NotRequired[ssl.SSLContext]
 
 
-class KafkaSslSettings(BaseModel):
+class SslSettings(BaseModel):
     """Subset of settings required for SSL auth."""
 
     bootstrap_servers: str
 
-    security_protocol: Literal[KafkaSecurityProtocol.SSL]
+    security_protocol: Literal[SecurityProtocol.SSL]
 
     cluster_ca_path: FilePath
 
@@ -112,16 +112,16 @@ class KafkaSslSettings(BaseModel):
         }
 
 
-class KafkaSaslPlaintextSettings(BaseModel):
+class SaslPlaintextSettings(BaseModel):
     """Subset of settings required for SASL SSLauth."""
 
     bootstrap_servers: str
 
     security_protocol: Literal[
-        KafkaSecurityProtocol.SASL_PLAINTEXT, KafkaSecurityProtocol.SASL_SSL
+        SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL
     ]
 
-    sasl_mechanism: KafkaSaslMechanism = KafkaSaslMechanism.SCRAM_SHA_512
+    sasl_mechanism: SaslMechanism = SaslMechanism.SCRAM_SHA_512
 
     sasl_username: str
 
@@ -130,11 +130,11 @@ class KafkaSaslPlaintextSettings(BaseModel):
     def to_faststream_params(self) -> FastStreamBrokerParams:
         cls: type[SASLScram512 | SASLScram256 | SASLPlaintext]
         match self.sasl_mechanism:
-            case KafkaSaslMechanism.SCRAM_SHA_512:
+            case SaslMechanism.SCRAM_SHA_512:
                 cls = SASLScram512
-            case KafkaSaslMechanism.SCRAM_SHA_256:
+            case SaslMechanism.SCRAM_SHA_256:
                 cls = SASLScram256
-            case KafkaSaslMechanism.PLAIN:
+            case SaslMechanism.PLAIN:
                 cls = SASLPlaintext
 
         return {
@@ -155,16 +155,16 @@ class KafkaSaslPlaintextSettings(BaseModel):
         }
 
 
-class KafkaSaslSslSettings(BaseModel):
+class SaslSslSettings(BaseModel):
     """Subset of settings required for SASL PLAINTEXT auth."""
 
     bootstrap_servers: str
 
     security_protocol: Literal[
-        KafkaSecurityProtocol.SASL_PLAINTEXT, KafkaSecurityProtocol.SASL_SSL
+        SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL
     ]
 
-    sasl_mechanism: KafkaSaslMechanism = KafkaSaslMechanism.SCRAM_SHA_512
+    sasl_mechanism: SaslMechanism = SaslMechanism.SCRAM_SHA_512
 
     sasl_username: str
 
@@ -185,11 +185,11 @@ class KafkaSaslSslSettings(BaseModel):
     def to_faststream_params(self) -> FastStreamBrokerParams:
         cls: type[SASLScram512 | SASLScram256 | SASLPlaintext]
         match self.sasl_mechanism:
-            case KafkaSaslMechanism.SCRAM_SHA_512:
+            case SaslMechanism.SCRAM_SHA_512:
                 cls = SASLScram512
-            case KafkaSaslMechanism.SCRAM_SHA_256:
+            case SaslMechanism.SCRAM_SHA_256:
                 cls = SASLScram256
-            case KafkaSaslMechanism.PLAIN:
+            case SaslMechanism.PLAIN:
                 cls = SASLPlaintext
 
         return {
@@ -212,12 +212,12 @@ class KafkaSaslSslSettings(BaseModel):
         }
 
 
-class KafkaPlaintextSettings(BaseModel):
+class PlaintextSettings(BaseModel):
     """Subset of settings required for Plaintext auth."""
 
     bootstrap_servers: str
 
-    security_protocol: Literal[KafkaSecurityProtocol.PLAINTEXT]
+    security_protocol: Literal[SecurityProtocol.PLAINTEXT]
 
     def to_faststream_params(self) -> FastStreamBrokerParams:
         return {
@@ -292,7 +292,7 @@ class KafkaConnectionSettings(BaseSettings):
         examples=["kafka-1:9092,kafka-2:9092,kafka-3:9092", "kafka:9092"],
     )
 
-    security_protocol: KafkaSecurityProtocol = Field(
+    security_protocol: SecurityProtocol = Field(
         title="Security Protocol",
         description=(
             "The authentication and encryption mode for the connection."
@@ -335,7 +335,7 @@ class KafkaConnectionSettings(BaseSettings):
         examples=["/some/dir/user.key"],
     )
 
-    sasl_mechanism: KafkaSaslMechanism | None = Field(
+    sasl_mechanism: SaslMechanism | None = Field(
         default=None,
         title="SASL mechanism",
         description=(
@@ -379,10 +379,10 @@ class KafkaConnectionSettings(BaseSettings):
     def validated(
         self,
     ) -> (
-        KafkaSslSettings
-        | KafkaSaslSslSettings
-        | KafkaSaslPlaintextSettings
-        | KafkaPlaintextSettings
+        SslSettings
+        | SaslSslSettings
+        | SaslPlaintextSettings
+        | PlaintextSettings
     ):
         """Return a model with a subset of settings for a Kafka auth method.
 
@@ -390,14 +390,14 @@ class KafkaConnectionSettings(BaseSettings):
         settings were provided.
         """
         match self.security_protocol:
-            case KafkaSecurityProtocol.PLAINTEXT:
-                return KafkaPlaintextSettings(**self.model_dump())
-            case KafkaSecurityProtocol.SASL_SSL:
-                return KafkaSaslSslSettings(**self.model_dump())
-            case KafkaSecurityProtocol.SASL_PLAINTEXT:
-                return KafkaSaslPlaintextSettings(**self.model_dump())
-            case KafkaSecurityProtocol.SSL:
-                return KafkaSslSettings(**self.model_dump())
+            case SecurityProtocol.PLAINTEXT:
+                return PlaintextSettings(**self.model_dump())
+            case SecurityProtocol.SASL_SSL:
+                return SaslSslSettings(**self.model_dump())
+            case SecurityProtocol.SASL_PLAINTEXT:
+                return SaslPlaintextSettings(**self.model_dump())
+            case SecurityProtocol.SSL:
+                return SslSettings(**self.model_dump())
 
     def to_faststream_params(self) -> FastStreamBrokerParams:
         return self.validated.to_faststream_params()

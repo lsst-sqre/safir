@@ -11,11 +11,11 @@ from schema_registry.serializers.message_serializer import (
 )
 
 from safir.kafka import (
+    Compatibility,
     IncompatibleSchemaError,
     InvalidAvroNameError,
     PydanticSchemaManager,
     SchemaInfo,
-    SchemaRegistryCompatibility,
     UnknownSchemaError,
 )
 from safir.kafka._schema_registry_config import SchemaManagerSettings
@@ -193,7 +193,7 @@ async def test_forward_compatibility(
         field2: str
 
     await schema_manager.register_model(
-        MyForwardModel, compatibility=SchemaRegistryCompatibility.FORWARD
+        MyForwardModel, compatibility=Compatibility.FORWARD
     )
 
     # Adding a field is forward compatible
@@ -262,7 +262,7 @@ async def test_backward_compatibility(
         field2: str
 
     await schema_manager.register_model(
-        MyBackwardModel, compatibility=SchemaRegistryCompatibility.BACKWARD
+        MyBackwardModel, compatibility=Compatibility.BACKWARD
     )
 
     # Removing fields is backwards compatible
