@@ -134,49 +134,23 @@ Subject names
 The `subject`_ that a schema is registered under is completely independent of any Kafka topics that serialized messages may or may not be published to.
 In other words, it uses the `RecordNameStrategy`_.
 The manager uses the combined Avro namespace and record name as the subject name.
-The record name and namespace come from the name of the model class, and/or certain fields on an inner class named ``Meta``:
+The record name and namespace come from certain fields on an inner class named ``Meta``:
 
 * ``schema_name``
 * ``namespace``
 
 .. code-block:: python
+   :caption: Subject: my.namespace.mymodelcustom
 
-   # subject: "MyModel"
-   class MyModel(AvroBaseModel):
-       str_field: str
-       int_field: int
-
-
-.. code-block:: python
-
-   # subject: "mymodelcustom"
    class MyModel(AvroBaseModel):
        str_field: str
        int_field: int
 
        class Meta:
-           schema_name = "mymodelcustom"
-
-.. code-block:: python
-
-   # subject: "my.namespace.mymodelcustom"
-   class MyModel(AvroBaseModel):
-       str_field: str
-       int_field: int
-
-       class Meta:
-           schema_name = "mymodelcustom"
+           schema_name = "mymodel"
            namespace = "my.namespace"
 
-.. code-block:: python
-
-   # subject: "my.namespace.MyModel"
-   class MyModel(AvroBaseModel):
-       str_field: str
-       int_field: int
-
-       class Meta:
-           namespace = "my.namespace"
+If ``Meta.namespace`` is absent, then the avro record will have no namespace. You should always include it unless you have a very good reason not to, so that your record names won't conflict with any other record names in the schema registry. If ``Meta.schema_name`` is absent, then the class name will be used as the schema name, but it is good practice to explicitly define ``Meta.schema_name`` to avoid unintentionaly changing the schema_name and subject in the process of otherwise routine code refactoring.
 
 .. _subject: https://docs.confluent.io/platform/current/schema-registry/fundamentals/index.html#schemas-subjects-and-topics
 .. _RecordNameStrategy: https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#sr-schemas-subject-name-strategy
