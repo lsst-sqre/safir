@@ -18,6 +18,7 @@ nitpick_ignore_regex = [
     ['py:.*', 'starlette.*'],
     # Bug in autodoc_pydantic re: models with validators
     ["py:obj", ".*\\.all fields"],
+    ['py:.*', 'dataclasses_avroschema.*'],
 ]
 nitpick_ignore = [
     # These don't appear to have documentation but show up in the inheritance
@@ -68,6 +69,7 @@ cryptography = "https://cryptography.io/en/latest/"
 gidgethub = "https://gidgethub.readthedocs.io/en/latest/"
 python = "https://docs.python.org/3/"
 redis = "https://redis-py.readthedocs.io/en/stable/"
+schema_registry = "https://marcosschroh.github.io/python-schema-registry-client/"
 structlog = "https://www.structlog.org/en/stable/"
 sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
 vomodels = "https://vo-models.readthedocs.io/latest/"

@@ -12,11 +12,11 @@ from pydantic import SecretStr, ValidationError
 
 from safir.kafka import (
     KafkaConnectionSettings,
-    KafkaSaslMechanism,
-    KafkaSecurityProtocol,
+    SaslMechanism,
+    SecurityProtocol,
 )
 
-from .support.kafka.container import FullKafkaContainer
+from ..support.kafka.container import FullKafkaContainer
 
 
 async def assert_clients(settings: KafkaConnectionSettings) -> None:
@@ -25,14 +25,14 @@ async def assert_clients(settings: KafkaConnectionSettings) -> None:
     consumer = None
 
     try:
-        admin = AIOKafkaAdminClient(**settings.aiokafka_params)
+        admin = AIOKafkaAdminClient(**settings.to_aiokafka_params())
         await admin.start()
         await admin.list_topics()
 
-        consumer = AIOKafkaConsumer(**settings.aiokafka_params)
+        consumer = AIOKafkaConsumer(**settings.to_aiokafka_params())
         await consumer.start()
 
-        broker = KafkaBroker(**settings.faststream_params)
+        broker = KafkaBroker(**settings.to_faststream_params())
         await broker.start()
         result = await broker.ping(timeout=5)
         assert result
@@ -53,7 +53,7 @@ async def test_plaintext(
     bootstrap_server = kafka_container.get_bootstrap_server()
     settings = KafkaConnectionSettings(
         bootstrap_servers=bootstrap_server,
-        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+        security_protocol=SecurityProtocol.PLAINTEXT,
     )
     await assert_clients(settings)
 
@@ -76,17 +76,17 @@ async def test_sasl_plaintext(
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
             bootstrap_servers=bootstrap_server,
-            security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
-            sasl_mechanism=KafkaSaslMechanism.SCRAM_SHA_512,
+            security_protocol=SecurityProtocol.SASL_PLAINTEXT,
+            sasl_mechanism=SaslMechanism.SCRAM_SHA_512,
             sasl_username="username",
         )
 
     settings = KafkaConnectionSettings(
         bootstrap_servers=bootstrap_server,
-        security_protocol=KafkaSecurityProtocol.SASL_PLAINTEXT,
+        security_protocol=SecurityProtocol.SASL_PLAINTEXT,
         sasl_username="admin",
         sasl_password=SecretStr("admin"),
-        sasl_mechanism=KafkaSaslMechanism.SCRAM_SHA_512,
+        sasl_mechanism=SaslMechanism.SCRAM_SHA_512,
     )
 
     await assert_clients(settings)
@@ -118,7 +118,7 @@ async def test_sasl_ssl(
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
             bootstrap_servers=bootstrap_server,
-            security_protocol=KafkaSecurityProtocol.SASL_SSL,
+            security_protocol=SecurityProtocol.SASL_SSL,
             sasl_username="admin",
             sasl_password=SecretStr("admin"),
             cluster_ca_path=cluster_ca_path,
@@ -126,10 +126,10 @@ async def test_sasl_ssl(
 
     settings = KafkaConnectionSettings(
         bootstrap_servers=bootstrap_server,
-        security_protocol=KafkaSecurityProtocol.SASL_SSL,
+        security_protocol=SecurityProtocol.SASL_SSL,
         sasl_username="admin",
         sasl_password=SecretStr("admin"),
-        sasl_mechanism=KafkaSaslMechanism.SCRAM_SHA_512,
+        sasl_mechanism=SaslMechanism.SCRAM_SHA_512,
         cluster_ca_path=cluster_ca_path,
     )
 
@@ -165,14 +165,14 @@ async def test_ssl(
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
             bootstrap_servers=bootstrap_server,
-            security_protocol=KafkaSecurityProtocol.SSL,
+            security_protocol=SecurityProtocol.SSL,
             cluster_ca_path=cluster_ca_path,
             client_cert_path=client_cert_path,
         )
 
     settings = KafkaConnectionSettings(
         bootstrap_servers=bootstrap_server,
-        security_protocol=KafkaSecurityProtocol.SSL,
+        security_protocol=SecurityProtocol.SSL,
         cluster_ca_path=cluster_ca_path,
         client_cert_path=client_cert_path,
         client_key_path=client_key_path,

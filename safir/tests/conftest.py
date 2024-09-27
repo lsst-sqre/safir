@@ -12,17 +12,24 @@ import respx
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient
 from faststream.kafka import KafkaBroker
+from pydantic import AnyUrl
 from redis.asyncio import Redis
 from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from safir.kafka import KafkaConnectionSettings, KafkaSecurityProtocol
+from safir.kafka import (
+    KafkaConnectionSettings,
+    PydanticSchemaManager,
+    SecurityProtocol,
+)
+from safir.kafka._schema_registry_config import SchemaManagerSettings
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
 from .support.kafka.container import FullKafkaContainer
+from .support.schema_registry import SchemaRegistryContainer
 
 
 @pytest.fixture(scope="session")
@@ -88,7 +95,7 @@ def kafka_connection_settings(
     """
     return KafkaConnectionSettings(
         bootstrap_servers=kafka_container.get_bootstrap_server(),
-        security_protocol=KafkaSecurityProtocol.PLAINTEXT,
+        security_protocol=SecurityProtocol.PLAINTEXT,
     )
 
 
@@ -101,7 +108,7 @@ async def kafka_consumer(
     All data is cleared from the kafka instance at the end of the test.
     """
     consumer = AIOKafkaConsumer(
-        **kafka_connection_settings.aiokafka_params,
+        **kafka_connection_settings.to_aiokafka_params,
         client_id="pytest-consumer",
     )
     await consumer.start()
@@ -119,7 +126,7 @@ async def kafka_broker(
     All data is cleared from the kafka instance at the end of the test.
     """
     broker = KafkaBroker(
-        **kafka_connection_settings.faststream_params,
+        **kafka_connection_settings.to_faststream_params(),
         client_id="pytest-broker",
     )
     await broker.start()
@@ -137,11 +144,65 @@ async def kafka_admin_client(
     All data is cleared from the kafka instance at the end of the test.
     """
     client = AIOKafkaAdminClient(
-        **kafka_connection_settings.aiokafka_params, client_id="pytest-admin"
+        **kafka_connection_settings.to_aiokafka_params,
+        client_id="pytest-admin",
     )
     await client.start()
     yield client
     await client.close()
+
+
+@pytest.fixture(scope="session")
+def global_schema_registry_container(
+    global_kafka_container: FullKafkaContainer,
+    kafka_docker_network: Network,
+) -> Iterator[SchemaRegistryContainer]:
+    """Provide a session-scoped schema registry container that can talk to the
+    containers in other docker-based kafka fixtures.
+
+    You probably want one of the dependent test-scoped fixtures that clears
+    registry data, like ``schema_registry_connection_settings`` or
+    ``schema_manager``.
+    """
+    container = SchemaRegistryContainer(network=kafka_docker_network)
+    container.with_network(kafka_docker_network)
+    container.with_network_aliases("schemaregistry")
+    with container as schema_registry:
+        yield schema_registry
+
+
+@pytest.fixture
+def schema_registry_container(
+    global_schema_registry_container: SchemaRegistryContainer,
+) -> Iterator[SchemaRegistryContainer]:
+    """Yield the global schema registry container and rid of data post-test."""
+    yield global_schema_registry_container
+    global_schema_registry_container.reset()
+
+
+@pytest.fixture
+def schema_manager_settings(
+    schema_registry_container: SchemaRegistryContainer,
+) -> SchemaManagerSettings:
+    """Provide a URL to a session-scoped schema registry.
+
+    All data is cleared from it at the end of the test.
+    """
+    return SchemaManagerSettings(
+        registry_url=AnyUrl(schema_registry_container.get_url())
+    )
+
+
+@pytest_asyncio.fixture
+def schema_manager(
+    schema_manager_settings: SchemaManagerSettings,
+) -> PydanticSchemaManager:
+    """Provide a PydanticSchemaManager pointed at a session-scoped schema
+    registry container.
+
+    All data is cleared from the registry at the end of the test.
+    """
+    return schema_manager_settings.make_manager()
 
 
 @pytest.fixture(scope="session")

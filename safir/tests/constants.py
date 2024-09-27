@@ -5,3 +5,8 @@ CONFLUENT_VERSION_TAG = "7.6.0"
 
 KAFKA_DOCKER_IMAGE = f"confluentinc/cp-kafka:{CONFLUENT_VERSION_TAG}"
 """Docker image for Kafka Testcontainer"""
+
+SCHEMA_REGISTRY_DOCKER_IMAGE = (
+    f"confluentinc/cp-schema-registry:{CONFLUENT_VERSION_TAG}"
+)
+"""Docker image for schema registry Testcontainer"""

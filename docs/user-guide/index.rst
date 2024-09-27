@@ -21,7 +21,7 @@ User guide
    gafaelfawr
    x-forwarded
    ivoa
-   kafka
+   kafka/index
    kubernetes
    pydantic
    pydantic-redis

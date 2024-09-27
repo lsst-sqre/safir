@@ -3,7 +3,7 @@ Kafka connection settings
 #########################
 
 Safir provides a `Pydantic BaseSettings <https://docs.pydantic.dev/latest/concepts/pydantic_settings/>`__ model to get correct and valid Kafka connection settings into an application.
-The ``kafka.config.KafkaConnectionSettings`` model supports different authentication methods, which each have different sets of required settings.
+The `~safir.kafka.KafkaConnectionSettings` model supports different authentication methods, which each have different sets of required settings.
 All of these settings can be provided in ``KAFKA_`` prefixed environment variables.
 Instances of this model have properties that can be used to construct different types of kafka clients:
 
@@ -18,9 +18,9 @@ Instances of this model have properties that can be used to construct different 
 
    config = KafkaConnectionSettings()
 
-   broker = KafkaBroker(**config.faststream_broker_params)
-   consumer = AIOKafkaConsumer(**config.aiokafka_params)
-   admin = AIOKafkaAdminClient(**config.aiokafka_params)
+   broker = KafkaBroker(**config.to_faststream_params())
+   consumer = AIOKafkaConsumer(**config.to_aiokafka_params)
+   admin = AIOKafkaAdminClient(**config.to_aiokafka_params)
 
 This model supports four security protocols.
 If your application is running in Phalanx, you likely should be using the Sasquatch-managed Kafka cluster, and generating the necessary values `like this <https://sasquatch.lsst.io/user-guide/directconnection.html>`__.
