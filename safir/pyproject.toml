@@ -87,7 +87,7 @@ uws = [
     "python-multipart",
     "safir-arq<7",
     "sqlalchemy[asyncio]>=1.4.18,<3",
-    "vo-models<1",
+    "vo-models>=0.4.1,<1",
 ]
 
 [[project.authors]]
