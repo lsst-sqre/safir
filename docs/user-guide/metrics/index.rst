@@ -122,7 +122,12 @@ See the :ref:`event-dependency` section for more details.
    from datetime import timedelta
 
    from pydantic import Field
-   from safir.metrics import EventManager, EventPayload, EventDependency
+   from safir.metrics import (
+       EventMaker,
+       EventManager,
+       EventPayload,
+       EventDependency,
+   )
 
 
    class QueryEvent(EventPayload):
@@ -137,13 +142,13 @@ See the :ref:`event-dependency` section for more details.
        )
 
 
-   class Events:
-       def __init__(manager: EventManager) -> None:
-           self.query = manager.create_publisher("query", QueryEvent)
+   class Events(EventMaker):
+       def initialize(manager: EventManager) -> None:
+           self.query = await manager.create_publisher("query", QueryEvent)
 
 
    # We'll call .initalize on this in our app start up
-   events_dependency = EventDependency(Events)
+   events_dependency = EventDependency(Events())
 
 Initialize
 ----------
@@ -167,11 +172,12 @@ In more complex apps, this would probably use the `ProcessContext`_ pattern.
    @asynccontextmanager
    async def lifespan(app: FastAPI):
        event_manager = config.metrics.make_manager()
+       await event_manager.initialize()
        await events_dependency.initialize(event_manager)
 
        yield
 
-       await events_dependency.aclose()
+       await event_manager.aclose()
 
 
    app = FastAPI(lifespan=lifespan)
@@ -305,7 +311,12 @@ However you instantiate your `~safir.metrics.EventManager`, the `safir.metrics.E
    from datetime import timedelta
 
    from pydantic import Field
-   from safir.metrics import EventManager, EventPayload, EventDependency
+   from safir.metrics import (
+       EventMaker,
+       EventManager,
+       EventPayload,
+       EventDependency,
+   )
 
 
    class QueryEvent(EventPayload):
@@ -320,13 +331,14 @@ However you instantiate your `~safir.metrics.EventManager`, the `safir.metrics.E
        )
 
 
-   class Events:
-       def __init__(manager: EventManager) -> None:
-           self.query = manager.create_publisher("query", QueryEvent)
+   class Events(EventMaker):
+       def initialize(manager: EventManager) -> None:
+           self.query = await manager.create_publisher("query", QueryEvent)
 
 
-   events_dependency = EventDependency(Events)
+   events_dependency = EventDependency(Events())
    event_manager = EventManager(...)
+   await event_manager.initialize()
    await events_dependency.initialize(event_manager)
 
    # Publish events
@@ -337,14 +349,17 @@ However you instantiate your `~safir.metrics.EventManager`, the `safir.metrics.E
    events.query.publish(QueryEvent(...))
 
 Constructing the singleton dependency requires one "event maker" argument.
-This argument should be a class (not an instance of the class!) with a constructor that:
+This argument should be an instance of an implementation of the `~safir.metrics.EventMaker` `abstract base class`_.
+This means it must at least define a single async ``initialize`` method that:
 
 * Takes a single parameter, an `~safir.metrics.EventManager`
 * Uses that event manager create event publishers and assign them to instance variables
 
-Then, `~safir.metrics.EventDependency.initialize` (which itself takes an `safir.metrics.EventManager`) will initialize the event manager and construct an instance of the event maker class, which will create all of the publishers.
+Then, `~safir.metrics.EventDependency.initialize` (which itself takes an `safir.metrics.EventManager`) will call that initialize on the event maker instance, which will create all of the publishers.
 
-Finally, you can access your instantiated event maker object in one of two ways:
+Finally, you can access your initialized event maker object in one of two ways:
 
 * Via the `~safir.metrics.EventDependency.events` attribute
 * By calling the dependency singleton, usually via injecting it as dependency in a FastAPI handler
+
+.. _abstract base class: https://docs.python.org/3/library/abc.html

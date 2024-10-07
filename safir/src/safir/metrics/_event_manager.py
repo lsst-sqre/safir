@@ -17,8 +17,8 @@ from structlog.stdlib import BoundLogger
 
 from ..kafka import PydanticSchemaManager, SchemaInfo
 from ._exceptions import (
-    CreateAfterRegisterError,
     DuplicateEventError,
+    EventManagerUnintializedError,
     KafkaTopicError,
 )
 from ._models import EventMetadata, EventPayload
@@ -57,14 +57,12 @@ class EventPublisher(Generic[P]):
         manager: EventManager,
         event_class: type[AvroBaseModel],
         publisher: AsyncAPIDefaultPublisher,
+        schema_info: SchemaInfo,
     ) -> None:
         self.manager = manager
         self.event_class = event_class
         self.publisher = publisher
-
-        # These get populated when the manager's ``register_and_initialize`
-        # method is called
-        self.schema_info: SchemaInfo | None = None
+        self.schema_info = schema_info
 
     async def publish(self, payload: P) -> AvroBaseModel:
         """Pass the payload and event info to the EventManager to publish.
@@ -180,7 +178,7 @@ class EventManager:
         self._publishers: dict[str, EventPublisher] = {}
         self._initialized = False
 
-    def create_publisher(
+    async def create_publisher(
         self, name: str, payload_model: type[P]
     ) -> EventPublisher[P]:
         """Create an EventPublisher that can publish an event of type ``P``.
@@ -205,17 +203,20 @@ class EventManager:
 
         Raises
         ------
-        CreateAfterRegisterError
-            Upon an attempt to create a publisher after
-            ``register_and_initialize`` was called
         DuplicateEventError
             Upon an attempt to register a publisher with the same name as one
             that was already registered.
+        EventManagerUnintializedError
+            Upon an attempt to create a publisher before calling ``initialize``
+            on this ``EventManager`` instance.
+        KafkaTopicError
+            If the topic for publishing events doesn't exist, or we don't have
+            access to it.
         """
-        if self._initialized:
-            raise CreateAfterRegisterError(
-                "All events must be registered before register_and_initialize"
-                " is called"
+        if not self._initialized:
+            raise EventManagerUnintializedError(
+                "EventManager instance must be initialized before creating"
+                " event publishers"
             )
 
         if name in self._publishers:
@@ -243,23 +244,40 @@ class EventManager:
                 "This can never happen, but mypy can't figure that out."
             )
 
-        publisher: EventPublisher[P] = EventPublisher(
+        publisher: EventPublisher[P]
+
+        if self._noop:
+            publisher = EventPublisher(
+                event_class=event_class,
+                publisher=async_publisher,
+                manager=self,
+                schema_info=SchemaInfo(
+                    schema=event_class.avro_schema_to_python(),
+                    schema_id=0,
+                    subject="noop",
+                ),
+            )
+            return publisher
+
+        topic_info = await self._admin_client.describe_topics([self._topic])
+        if not self._is_topic_ok(topic_info):
+            raise KafkaTopicError(self._topic)
+
+        schema_info = await self._schema_manager.register_model(event_class)
+
+        publisher = EventPublisher(
             event_class=event_class,
             publisher=async_publisher,
             manager=self,
+            schema_info=schema_info,
         )
 
         self._publishers[name] = publisher
         return publisher
 
-    async def register_and_initialize(self) -> None:
-        """Register all event schemas and kafka storage (if managed).
-
-        Raises
-        ------
-        KafkaTopicError
-            If the topic for publishing events doesn't exist, or we don't have
-            access to it.
+    async def initialize(self) -> None:
+        """Initialize Kafka clients (if this ``EventManager`` is manaing
+        them).
         """
         if self._noop:
             self._logger.warning(
@@ -272,15 +290,6 @@ class EventManager:
         if self._manage_kafka:
             await self._broker.start()
             await self._admin_client.start()
-
-        topic_info = await self._admin_client.describe_topics([self._topic])
-        if not self._is_topic_ok(topic_info):
-            raise KafkaTopicError(self._topic)
-
-        for publisher in self._publishers.values():
-            publisher.schema_info = await self._schema_manager.register_model(
-                publisher.event_class
-            )
 
         self._initialized = True
 
@@ -310,10 +319,18 @@ class EventManager:
 
         You shouldn't call this method directly, it will usually be called from
         the ``publish`` method of an ``EventPublisher``.
+
+        Raises
+        ------
+        EventManagerUnintializedError
+            Upon an attempt to create a publisher before calling ``initialize``
+            on this ``EventManager`` instance.
+
         """
-        if not self._noop and not schema_info:
-            raise RuntimeError(
-                "``register_and_initialize`` must be called before publishing"
+        if not self._initialized:
+            raise EventManagerUnintializedError(
+                "EventManager instance must be initialized before creating"
+                " event publishers"
             )
 
         time_ns = time.time_ns()

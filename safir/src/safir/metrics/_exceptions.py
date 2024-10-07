@@ -1,13 +1,13 @@
 """Metrics exceptions."""
 
 __all__ = [
-    "CreateAfterRegisterError",
+    "EventManagerUnintializedError",
     "DuplicateEventError",
     "KafkaTopicError",
 ]
 
 
-class CreateAfterRegisterError(Exception):
+class EventManagerUnintializedError(Exception):
     """An attempt to create a publisher after manager has been initialized."""
 
 

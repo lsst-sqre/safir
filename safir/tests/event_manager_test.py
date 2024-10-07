@@ -21,18 +21,17 @@ from safir.kafka import (
     SecurityProtocol,
 )
 from safir.metrics import (
+    DuplicateEventError,
     EventDependency,
+    EventMaker,
     EventManager,
+    EventManagerUnintializedError,
     EventMetadata,
     EventPayload,
     EventPublisher,
+    KafkaTopicError,
     MetricsConfiguration,
     MetricsConfigurationWithKafka,
-)
-from safir.metrics._exceptions import (
-    CreateAfterRegisterError,
-    DuplicateEventError,
-    KafkaTopicError,
 )
 
 
@@ -42,28 +41,11 @@ class MyEvent(EventPayload):
     foo: str
 
 
-class Events:
+class Events(EventMaker):
     """A class to hold event publishers."""
 
-    def __init__(self, manager: EventManager) -> None:
-        self.my_event = manager.create_publisher("myevent", MyEvent)
-
-
-def dummy_manager(*, noop: bool = False) -> EventManager:
-    "Create a manager with bunk kafka creds."
-    config = MetricsConfigurationWithKafka(
-        metrics_events=MetricsConfiguration(
-            app_name="testapp", topic_prefix="what.ever", noop=noop
-        ),
-        kafka=KafkaConnectionSettings(
-            bootstrap_servers="whatever",
-            security_protocol=SecurityProtocol.PLAINTEXT,
-        ),
-        schema_manager=SchemaManagerSettings(
-            registry_url=AnyUrl("http://whatever.code")
-        ),
-    )
-    return config.make_manager()
+    async def initialize(self, manager: EventManager) -> None:
+        self.my_event = await manager.create_publisher("myevent", MyEvent)
 
 
 async def subscribe_and_wait(consumer: AIOKafkaConsumer, pattern: str) -> None:
@@ -97,6 +79,7 @@ async def assert_from_kafka(
 
     # dataclasses-avroschema serializes python ``datetime``s into avro
     # ``timestamp-millis``s
+    """Publish events to actual storage and read them back and verify them."""
     assert (
         math.trunc(deserialized.timestamp_ns / 1e6)
         == deserialized.timestamp.timestamp() * 1e3
@@ -129,15 +112,17 @@ async def integration_test(
         )
         await kafka_admin_client.create_topics([topic])
 
+    # Initialize the event manager
+    await manager.initialize()
+
     # Create an events dependency and initialize it with the transport config
-    events_dependency = EventDependency(Events)
+    events_dependency = EventDependency(Events())
     await events_dependency.initialize(manager=manager)
 
     # Publish events
     event = events_dependency.events.my_event
     await event.publish(MyEvent(foo="bar1"))
     await event.publish(MyEvent(foo="bar2"))
-    await events_dependency.aclose()
 
     # Set up a kafka consumer
     expected_topic = "what.ever.testapp"
@@ -236,9 +221,7 @@ async def test_topic_not_created(
 
 
 @pytest.mark.asyncio
-async def test_create_after_register(
-    schema_manager_settings: SchemaManagerSettings,
-    kafka_consumer: AIOKafkaConsumer,
+async def test_create_before_initialize(
     kafka_broker: KafkaBroker,
     kafka_admin_client: AIOKafkaAdminClient,
     schema_manager: PydanticSchemaManager,
@@ -260,44 +243,29 @@ async def test_create_after_register(
         noop=False,
     )
 
-    class MyOtherEvent(EventPayload):
-        blah: int
-
-    manager.create_publisher("myevent", MyEvent)
-    await manager.register_and_initialize()
-
-    with pytest.raises(CreateAfterRegisterError):
-        await integration_test(
-            manager,
-            schema_manager_settings,
-            kafka_consumer,
-            kafka_admin_client,
-        )
-        manager.create_publisher("myotherevent", MyOtherEvent)
+    with pytest.raises(EventManagerUnintializedError):
+        await manager.create_publisher("myevent", MyEvent)
 
 
 @pytest.mark.asyncio
-async def test_duplicate_event() -> None:
+async def test_duplicate_event(event_manager: EventManager) -> None:
     class MyOtherEvent(EventPayload):
         blah: int
 
-    manager = dummy_manager()
-    manager.create_publisher("myevent", MyEvent)
+    await event_manager.create_publisher("myevent", MyEvent)
     with pytest.raises(DuplicateEventError):
-        manager.create_publisher("myevent", MyOtherEvent)
+        await event_manager.create_publisher("myevent", MyOtherEvent)
 
 
 @pytest.mark.asyncio
-async def test_invalid_payload() -> None:
-    manager = dummy_manager()
-
+async def test_invalid_payload(event_manager: EventManager) -> None:
     class MyInvalidEvent(EventPayload):
         good_field: str = Field()
         bad_field: list[str] = Field()
         another_bad_field: dict[str, str] = Field()
 
     with pytest.raises(ValueError, match="Unsupported Avro Schema") as excinfo:
-        manager.create_publisher("myinvalidevent", MyInvalidEvent)
+        await event_manager.create_publisher("myinvalidevent", MyInvalidEvent)
     err = str(excinfo.value)
 
     assert "bad_field" in err
@@ -307,10 +275,22 @@ async def test_invalid_payload() -> None:
 
 @pytest.mark.asyncio
 async def test_noop() -> None:
-    manager = dummy_manager(noop=True)
+    config = MetricsConfigurationWithKafka(
+        metrics_events=MetricsConfiguration(
+            app_name="testapp", topic_prefix="what.ever", noop=True
+        ),
+        kafka=KafkaConnectionSettings(
+            bootstrap_servers="whatever",
+            security_protocol=SecurityProtocol.PLAINTEXT,
+        ),
+        schema_manager=SchemaManagerSettings(
+            registry_url=AnyUrl("http://whatever.code")
+        ),
+    )
+    manager = config.make_manager()
 
-    event = manager.create_publisher("myevent", MyEvent)
-    await manager.register_and_initialize()
+    await manager.initialize()
+    event = await manager.create_publisher("myevent", MyEvent)
 
     await event.publish(MyEvent(foo="bar1"))
     await event.publish(MyEvent(foo="bar2"))

@@ -1,12 +1,31 @@
-from collections.abc import Callable
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 from ._event_manager import EventManager
 
-__all__ = ["EventDependency"]
+__all__ = ["EventDependency", "EventMaker"]
 
-E = TypeVar("E")
+E = TypeVar("E", bound="EventMaker")
 """Generic event maker type."""
+
+
+class EventMaker(ABC):
+    """A blueprint for an event publisher container class."""
+
+    @abstractmethod
+    async def initialize(self, manager: EventManager) -> None:
+        """Create event publishers and assign to instance attributes.
+
+        Use ``manager.create_publisher`` to assign event publishers to
+        instance attributes.
+
+        Parameters
+        ----------
+        manager
+            An ``EventManager`` to create event publishers
+        """
 
 
 class EventDependency(Generic[E]):
@@ -16,6 +35,7 @@ class EventDependency(Generic[E]):
        :caption: myapp.dependencies.events_dependency
 
        from safir.metrics import (
+           EventMaker,
            EventManager,
            EventPayload,
            EventsDependency,
@@ -33,13 +53,13 @@ class EventDependency(Generic[E]):
            buz: str
 
 
-       class AppEvents:
-           def __init__(self, manager: EventManager) -> None:
-               self.event1 = manager.create_publisher("event1", Event1)
-               self.event2 = manager.create_publisher("event2", Event2)
+       class Events(EventMaker):
+           async def initialize(self, manager: EventManager) -> None:
+               self.event1 = await manager.create_publisher("event1", Event1)
+               self.event2 = await manager.create_publisher("event2", Event2)
 
 
-       dependency = EventsDependency(AppEvents)
+       dependency = EventsDependency(AppEvents())
 
     .. code-block:: python
        :caption: myapp.main
@@ -48,6 +68,7 @@ class EventDependency(Generic[E]):
 
        # In application init, maybe a lifecycle method in a FastAPI app
        manager = MetricsConfigurationWithKafka().make_manager()
+       await manager.initialize()
        await events.initialize(manager)
 
     .. code-block:: python
@@ -59,38 +80,32 @@ class EventDependency(Generic[E]):
        events = ed()
 
        # In app code
-       events.event1.publish(Event1(foo="foo", bar="bar"))
-       events.event2.publish(Event2(baz=123, buz="buz"))
+       await events.event1.publish(Event1(foo="foo", bar="bar"))
+       await events.event2.publish(Event2(baz=123, buz="buz"))
 
     Parameters
     ----------
     event_maker
-        A callable that takes and ``EventManager``. This callable is expected
-        to register events with the event manager when called. It is probably
-        a class that calls ``EventManager.create_publisher`` and assigns the
-        results to instance variables.
+        An instance of an implementation of ``EventMaker``
     """
 
-    def __init__(self, event_maker: Callable[[EventManager], E]) -> None:
-        self._events: E | None = None
-        self._event_maker = event_maker
-        self._manager: EventManager
+    def __init__(self, event_maker: E) -> None:
+        self._events = event_maker
+        self._initialized = False
 
     async def initialize(
         self,
-        *,
         manager: EventManager,
     ) -> None:
-        """Construct the event maker callable with the passed in ``manager``.
+        """Initialize the event maker and set the attribute.
 
         Parameters
         ----------
         manager
             An ``EventManager`` to register and publish events.
         """
-        self._events = self._event_maker(manager)
-        self._manager = manager
-        await manager.register_and_initialize()
+        await self._events.initialize(manager)
+        self._initialized = True
 
     @property
     def events(self) -> E:
@@ -101,16 +116,12 @@ class EventDependency(Generic[E]):
         RuntimeError
             If this ``EventsDependency`` hasn't been intialized yet.
         """
-        if not self._events:
+        if not self._initialized:
             raise RuntimeError("EventsDependency not initialized")
         return self._events
 
     async def __call__(self) -> E:
-        """Return the instantiated event maker for use as a FastAPI
+        """Return the initialized event maker for use as a FastAPI
         dependency.
         """
         return self.events
-
-    async def aclose(self) -> None:
-        """Clean up the ``EventManager``."""
-        await self._manager.aclose()
