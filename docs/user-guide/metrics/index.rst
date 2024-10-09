@@ -2,8 +2,8 @@
 Application metrics
 ===================
 
-Safir provides helpers for publishing application metrics to `Sasquatch`_.
-Using these helpers, your can instrument your app to push custom events to a Sasquatch-managed `InfluxDB`_ instance, and then use the Sasquatch-managed `Chronograf`_ to query and `graph them`_.
+Safir provides helpers for publishing application metrics to Sasquatch_.
+Using these helpers, your can instrument your app to push custom events to a Sasquatch-managed InfluxDB_ instance, and then use the Sasquatch-managed `Chronograf`_ to query and `graph them`_.
 
 .. _InfluxDB: https://www.influxdata.com
 .. _Chronograf: https://www.influxdata.com/time-series-platform/chronograf
@@ -28,7 +28,7 @@ Metrics, which this system deals with, are things like:
 
   * This event might include the username, and type of query (sync vs async)
 
-* A user starts a `Nublado`_ lab
+* A user starts a Nublado_ lab
 
   * This event might include the username, the size of the pod, and the image used
 
@@ -58,7 +58,7 @@ Config
 ------
 
 We need to put some config in our environment for the metrics functionality, a Kafka connection, and a schema registry connection.
-The Kafka and schema manager values come from the Sasquatch configuration that you did and they usually are set in a Kubernetes ``Deployment`` template in your app's `Phalanx`_ config.
+The Kafka and schema manager values come from the Sasquatch configuration that you did and they usually are set in a Kubernetes ``Deployment`` template in your app's Phalanx_ config.
 
 .. code-block:: shell
 
@@ -155,7 +155,7 @@ Initialize
 
 Then, in a `FastAPI lifespan`_ function, we'll create an `safir.metrics.EventManager` and initialize our ``events_dependency`` with it.
 We need to do this in a lifespan function, because we need to do it only once for our whole application, not once for each request.
-In more complex apps, this would probably use the `ProcessContext`_ pattern.
+In more complex apps, this would probably use the ProcessContext_ pattern.
 
 .. code-block:: python
    :caption: main.py
@@ -194,8 +194,8 @@ It is statically checked that calls to the publishers' `~safir.metrics.EventPubl
 
 In real apps:
 
-* The injection would probably happen via a `RequestContext`_
-* The request handling and event publishing would probably happen in a `Service`_
+* The injection would probably happen via a RequestContext_
+* The request handling and event publishing would probably happen in a Service_
 
 But the principle remains the same:
 
@@ -230,7 +230,7 @@ But the principle remains the same:
 Configuration details
 =====================
 
-Initializing an ``EventManager`` requires some information about your app (currently just the name, and both `Kafka`_ and a `schema registry`_ clients.
+Initializing an ``EventManager`` requires some information about your app (currently just the name, and both Kafka_ and a `schema registry`_ clients.
 Safir provides some `Pydantic BaseSettings`_ models to help get the necessary config for these things into your app via environment variables.
 
 You'll need to provide some metrics-specific info, Kafka connection settings, and schema registry connection settings:
@@ -263,7 +263,7 @@ If your app won't use Kafka for anything except publishing metrics, there is ano
 Your app uses Kafka
 -------------------
 
-If your app uses Kafka for things other than metrics publishing (maybe it's a `FastStream`_ app), you can use the :ref:`Safir Kafka connection helpers <kafka-integration>` to create clients and pass them to the `~safir.metrics.EventManager` constructor.
+If your app uses Kafka for things other than metrics publishing (maybe it's a FastStream_ app), you can use the :ref:`Safir Kafka connection helpers <kafka-integration>` to create clients and pass them to the `~safir.metrics.EventManager` constructor.
 
 .. note::
 
