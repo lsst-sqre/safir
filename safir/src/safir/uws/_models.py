@@ -17,6 +17,7 @@ from vo_models.uws import (
     Parameter,
     Parameters,
     ResultReference,
+    Results,
     ShortJobDescription,
 )
 from vo_models.uws.types import ErrorType, ExecutionPhase, UWSVersion
@@ -307,7 +308,7 @@ class UWSJob:
         """Convert to a Pydantic XML model."""
         results = None
         if self.results:
-            results = [r.to_xml_model() for r in self.results]
+            results = Results(results=[r.to_xml_model() for r in self.results])
         return JobSummary(
             job_id=self.job_id,
             run_id=self.run_id,

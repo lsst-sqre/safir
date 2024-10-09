@@ -163,10 +163,10 @@ class JobStore:
             return Availability(available=True)
         except OperationalError:
             note = "cannot query UWS job database"
-            return Availability(available=False, notes=[note])
+            return Availability(available=False, note=[note])
         except Exception as e:
             note = f"{type(e).__name__}: {e!s}"
-            return Availability(available=False, notes=[note])
+            return Availability(available=False, note=[note])
 
     async def delete(self, job_id: str) -> None:
         """Delete a job by ID."""
