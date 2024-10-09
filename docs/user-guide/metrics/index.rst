@@ -74,7 +74,7 @@ See :ref:`configuration-details` for more info.
 
    from pydantic import Field, HttpUrl
    from pydantic_settings import BaseSettings, SettingsConfigDict
-   from safir.metrics import MetricsConfigurationWithKafka
+   from safir.metrics import KafkaMetricsConfiguration
 
 
    class Configuration(BaseSettings):
@@ -83,8 +83,8 @@ See :ref:`configuration-details` for more info.
            title="URL to something important",
        )
 
-       metrics: MetricsConfigurationWithKafka(
-           default_factory=MetricsConfigurationWithKafka
+       metrics: KafkaMetricsConfiguration(
+           default_factory=KafkaMetricsConfiguration
        )
 
        model_config = SettingsConfigDict(
@@ -245,14 +245,14 @@ You'll need to provide some metrics-specific info, Kafka connection settings, an
 Your app doesn't use Kafka
 --------------------------
 
-If your app won't use Kafka for anything except publishing metrics, there is another config helper, `~safir.metrics.MetricsConfigurationWithKafka` that will construct an ``EventManager`` and all of its Kafka dependencies:
+If your app won't use Kafka for anything except publishing metrics, there is another config helper, `~safir.metrics.KafkaMetricsConfiguration` that will construct an ``EventManager`` and all of its Kafka dependencies:
 
 
 .. code-block:: python
 
    from safir.metrics import EventManager, MetricsConfiguration
 
-   config = MetricsConfigurationWithKafka()
+   config = KafkaMetricsConfiguration()
    manager = config.make_manager()
 
 Your app uses Kafka

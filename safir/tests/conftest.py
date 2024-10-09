@@ -25,8 +25,8 @@ from safir.kafka import (
 )
 from safir.kafka._schema_registry_config import SchemaManagerSettings
 from safir.metrics._config import (
+    KafkaMetricsConfiguration,
     MetricsConfiguration,
-    MetricsConfigurationWithKafka,
 )
 from safir.metrics._event_manager import EventManager
 from safir.testing.gcs import MockStorageClient, patch_google_storage
@@ -216,7 +216,7 @@ async def event_manager(
     schema_manager_settings: SchemaManagerSettings,
 ) -> AsyncIterator[EventManager]:
     """Provide an event manager and create a matching Kafka topic."""
-    config = MetricsConfigurationWithKafka(
+    config = KafkaMetricsConfiguration(
         metrics_events=MetricsConfiguration(
             app_name="testapp",
             topic_prefix="what.ever",

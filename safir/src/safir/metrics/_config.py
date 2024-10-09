@@ -10,7 +10,7 @@ from safir.kafka import KafkaConnectionSettings, SchemaManagerSettings
 
 from ._event_manager import EventManager
 
-__all__ = ["MetricsConfigurationWithKafka", "MetricsConfiguration"]
+__all__ = ["KafkaMetricsConfiguration", "MetricsConfiguration"]
 
 
 class MetricsConfiguration(BaseSettings):
@@ -44,7 +44,7 @@ class MetricsConfiguration(BaseSettings):
     )
 
 
-class MetricsConfigurationWithKafka(BaseSettings):
+class KafkaMetricsConfiguration(BaseSettings):
     """A config model you can pass directly to an EventManager constructor.
 
     This may be easier to use if you don't need to use kafka, the schema

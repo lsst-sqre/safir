@@ -1,4 +1,4 @@
-from ._config import MetricsConfiguration, MetricsConfigurationWithKafka
+from ._config import KafkaMetricsConfiguration, MetricsConfiguration
 from ._dependencies import EventDependency, EventMaker
 from ._event_manager import EventManager, EventPublisher
 from ._exceptions import (
@@ -21,5 +21,5 @@ __all__ = [
     "KafkaTopicError",
     "KafkaTopicError",
     "MetricsConfiguration",
-    "MetricsConfigurationWithKafka",
+    "KafkaMetricsConfiguration",
 ]

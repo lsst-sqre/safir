@@ -29,9 +29,9 @@ from safir.metrics import (
     EventMetadata,
     EventPayload,
     EventPublisher,
+    KafkaMetricsConfiguration,
     KafkaTopicError,
     MetricsConfiguration,
-    MetricsConfigurationWithKafka,
 )
 
 
@@ -145,7 +145,7 @@ async def test_managed_storage(
     kafka_admin_client: AIOKafkaAdminClient,
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
-    config = MetricsConfigurationWithKafka(
+    config = KafkaMetricsConfiguration(
         metrics_events=MetricsConfiguration(
             app_name="testapp",
             topic_prefix="what.ever",
@@ -275,7 +275,7 @@ async def test_invalid_payload(event_manager: EventManager) -> None:
 
 @pytest.mark.asyncio
 async def test_noop() -> None:
-    config = MetricsConfigurationWithKafka(
+    config = KafkaMetricsConfiguration(
         metrics_events=MetricsConfiguration(
             app_name="testapp", topic_prefix="what.ever", noop=True
         ),
