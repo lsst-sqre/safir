@@ -20,17 +20,12 @@ Telemetry includes things like:
 
 Metrics, which this system deals with, are things like:
 
-* A user generated a token
-
-  * This event might include the username and token details
-
-* A user made a database query
-
-  * This event might include the username, and type of query (sync vs async)
-
-* A user starts a Nublado_ lab
-
-  * This event might include the username, the size of the pod, and the image used
+* A user generated a token.
+  This event might include the username and token details.
+* A user made a database query.
+  This event might include the username, and type of query (sync vs async).
+* A user starts a Nublado_ lab.
+  This event might include the username, the size of the pod, and the image used.
 
 For more details and examples of the difference between metrics and telemetery, see https://sqr-089.lsst.io/ (still in progress).
 
