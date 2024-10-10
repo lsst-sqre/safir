@@ -1,7 +1,7 @@
 """Manage remote Confluent schema registry schemas via Pydantic models.
 
-Taken from Jonathan Sick's work in `Kafkit`_, with all
-of the hard parts replaced with `python-schema-registry-client`_.
+Taken from Jonathan Sick's work in Kafkit_, with all
+of the hard parts replaced with python-schema-registry-client_.
 
 .. _Kafkit: https://kafkit.lsst.io/
 .. _python-schema-registry-client: https://marcosschroh.github.io/python-schema-registry-client/
