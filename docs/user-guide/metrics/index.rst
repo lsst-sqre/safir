@@ -114,6 +114,7 @@ See the :ref:`event-dependency` section for more details.
 .. code-block:: python
    :caption: metrics.py
 
+   from enum import Enum
    from datetime import timedelta
 
    from pydantic import Field
@@ -125,10 +126,15 @@ See the :ref:`event-dependency` section for more details.
    )
 
 
+   class QueryType(Enum):
+       async_ = "async"
+       sync = "sync"
+
+
    class QueryEvent(EventPayload):
        """Information about a user-submitted query."""
 
-       type: Literal["sync"] | Literal["async"] = Field(
+       type: QueryType = Field(
            title="Query type", description="The kind of query"
        )
 
@@ -303,6 +309,7 @@ However you instantiate your `~safir.metrics.EventManager`, the `safir.metrics.E
 
 .. code-block:: python
 
+   from enum import Enum
    from datetime import timedelta
 
    from pydantic import Field
@@ -314,10 +321,15 @@ However you instantiate your `~safir.metrics.EventManager`, the `safir.metrics.E
    )
 
 
+   class QueryType(Enum):
+       async_ = "async"
+       sync = "sync"
+
+
    class QueryEvent(EventPayload):
        """Information about a user-submitted query."""
 
-       type: Literal["sync"] | Literal["async"] = Field(
+       type: QueryType = Field(
            title="Query type", description="The kind of query"
        )
 

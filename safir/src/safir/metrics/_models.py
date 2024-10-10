@@ -50,13 +50,14 @@ class EventPayload(AvroBaseModel):
         (InfluxDB at the moment).
         """
         valids = [
-            "string",
+            "boolean",
+            "double",
+            "enum",
+            "float",
             "int",
             "long",
-            "boolean",
-            "float",
-            "double",
             "null",
+            "string",
         ]
         errors: list[str] = []
         schema = cls.avro_schema_to_python()
