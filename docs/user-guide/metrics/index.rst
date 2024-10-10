@@ -238,7 +238,7 @@ You'll need to provide some metrics-specific info, Kafka connection settings, an
 .. code-block:: shell
 
    export METRICS_APP_NAME=myapp
-   export METRICS_NOOP=false
+   export METRICS_DISABLE=false
    export KAFKA_SECURITY_PROTOCOL=SSL
    export KAFKA_BOOSTRAP_SERVERS=sasquatch.kafka-1:9092,sasquatcy.kafka2-9092
    export KAFKA_CLUSTER_CA_PATH=/some/path/ca.crt
@@ -294,7 +294,7 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
        kafka_admin_client=admin_client,
        schema_manager=schema_manager,
        manage_kafka=False,
-       noop=self.metrics_events.noop,
+       disable=self.metrics_events.disable,
    )
 
 .. _FastStream: https://faststream.airt.ai

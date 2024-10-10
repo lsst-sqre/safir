@@ -33,9 +33,9 @@ class MetricsConfiguration(BaseSettings):
         ),
     )
 
-    noop: bool = Field(
+    disable: bool = Field(
         default=False,
-        title="No-op",
+        title="Disable",
         description='Set to "True" to prevent actually publishing metrics',
     )
 
@@ -93,6 +93,6 @@ class KafkaMetricsConfiguration(BaseSettings):
             kafka_admin_client=admin_client,
             schema_manager=schema_manager,
             manage_kafka=True,
-            noop=self.metrics_events.noop,
+            disable=self.metrics_events.disable,
             logger=logger,
         )

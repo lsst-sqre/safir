@@ -181,7 +181,7 @@ async def test_unmanaged_storage(
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
         manage_kafka=False,
-        noop=False,
+        disable=False,
     )
     await integration_test(
         manager, schema_manager_settings, kafka_consumer, kafka_admin_client
@@ -207,7 +207,7 @@ async def test_topic_not_created(
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
         manage_kafka=False,
-        noop=False,
+        disable=False,
     )
 
     with pytest.raises(KafkaTopicError):
@@ -240,7 +240,7 @@ async def test_create_before_initialize(
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
         manage_kafka=False,
-        noop=False,
+        disable=False,
     )
 
     with pytest.raises(EventManagerUnintializedError):
@@ -274,10 +274,10 @@ async def test_invalid_payload(event_manager: EventManager) -> None:
 
 
 @pytest.mark.asyncio
-async def test_noop() -> None:
+async def test_disable() -> None:
     config = KafkaMetricsConfiguration(
         metrics_events=MetricsConfiguration(
-            app_name="testapp", topic_prefix="what.ever", noop=True
+            app_name="testapp", topic_prefix="what.ever", disable=True
         ),
         kafka=KafkaConnectionSettings(
             bootstrap_servers="whatever",

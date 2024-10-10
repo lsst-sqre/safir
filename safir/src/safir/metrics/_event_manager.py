@@ -147,7 +147,7 @@ class EventManager:
         metrics events, then this should be ``True``. If you have a FastStream
         app that already configures some of these clients, this should probably
         be ``False``, and you should pass pre-configured clients in.
-    noop
+    disable
         If ``False``, don't actually do anything. No Kafka or Schema Registry
         interactions will happen. This is useful for running apps locally.
     logger
@@ -163,7 +163,7 @@ class EventManager:
         kafka_admin_client: AIOKafkaAdminClient,
         schema_manager: PydanticSchemaManager,
         manage_kafka: bool = False,
-        noop: bool = False,
+        disable: bool = False,
         logger: BoundLogger | None = None,
     ) -> None:
         self._app_name = app_name
@@ -172,7 +172,7 @@ class EventManager:
         self._admin_client = kafka_admin_client
         self._schema_manager = schema_manager
         self._manage_kafka = manage_kafka
-        self._noop = noop
+        self._disable = disable
         self._logger = logger or structlog.get_logger("metrics_event_manager")
 
         self._publishers: dict[str, EventPublisher] = {}
@@ -246,7 +246,7 @@ class EventManager:
 
         publisher: EventPublisher[P]
 
-        if self._noop:
+        if self._disable:
             publisher = EventPublisher(
                 event_class=event_class,
                 publisher=async_publisher,
@@ -254,7 +254,7 @@ class EventManager:
                 schema_info=SchemaInfo(
                     schema=event_class.avro_schema_to_python(),
                     schema_id=0,
-                    subject="noop",
+                    subject="disabled",
                 ),
             )
             return publisher
@@ -279,7 +279,7 @@ class EventManager:
         """Initialize Kafka clients (if this ``EventManager`` is manaing
         them).
         """
-        if self._noop:
+        if self._disable:
             self._logger.warning(
                 "Called register on a no-op event manager. No events will"
                 " actually be published."
@@ -303,7 +303,7 @@ class EventManager:
 
     async def aclose(self) -> None:
         """Clean up the Kafka clients, if we're managing them."""
-        if not self._noop and self._manage_kafka:
+        if not self._disable and self._manage_kafka:
             await self._broker.close()
             await self._admin_client.close()
 
@@ -342,7 +342,7 @@ class EventManager:
         )
         event = event_class(**metadata.model_dump(), **payload.model_dump())
 
-        if self._noop:
+        if self._disable:
             self._logger.debug(
                 "Would have published event",
                 metrics_event=event.model_dump(),
