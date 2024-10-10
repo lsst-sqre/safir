@@ -94,6 +94,35 @@ class EventManager:
     EventManager will manage those schemas and throw an exception if the event
     payloads evolve in an incompatible way.
 
+
+    Parameters
+    ----------
+    app_name
+        The name of the application that is generating events
+    base_topic_prefix
+        The Kafka topic prefix for the metrics events topic for this
+        application
+    kafka_broker
+        Does the Kafka publishing
+    kafka_admin_client
+        Ensures that Kafka is prepared for event publishing; that the topic
+        exists, for example.
+    schema_manager
+        Handles all Confluent Schema Registry interactions
+    manage_kafka
+        If ``True``, close the ``kafka_broker`` and ``kafka_admin_client`` when
+        ``aclose`` is called. If your app's only use of Kafka is to publish
+        metrics events, then this should be ``True``. If you have a FastStream
+        app that already configures some of these clients, this should probably
+        be ``False``, and you should pass pre-configured clients in.
+    disable
+        If ``False``, don't actually do anything. No Kafka or Schema Registry
+        interactions will happen. This is useful for running apps locally.
+    logger
+        A logger to use for internal logging
+
+    Examples
+    --------
     .. code-block:: python
 
        from safir.metrics import MetricsConfigurationWithKafka
@@ -127,31 +156,6 @@ class EventManager:
 
        await manager.aclose()
 
-    Paramaters
-    ----------
-    app_name
-        The name of the application that is generating events
-    base_topic_prefix
-        The Kafka topic prefix for the metrics events topic for this
-        application
-    kafka_broker
-        Does the Kafka publishing
-    kafka_admin_client
-        Ensures that Kafka is prepared for event publishing; that the topic
-        exists, for example.
-    schema_manager
-        Handles all Confluent Schema Registry interactions
-    manage_kafka
-        If ``True``, close the ``kafka_broker`` and ``kafka_admin_client`` when
-        ``aclose`` is called. If your app's only use of Kafka is to publish
-        metrics events, then this should be ``True``. If you have a FastStream
-        app that already configures some of these clients, this should probably
-        be ``False``, and you should pass pre-configured clients in.
-    disable
-        If ``False``, don't actually do anything. No Kafka or Schema Registry
-        interactions will happen. This is useful for running apps locally.
-    logger
-        A logger to use for internal logging
     """
 
     def __init__(

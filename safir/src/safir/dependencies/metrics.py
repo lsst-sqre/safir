@@ -33,6 +33,14 @@ class EventMaker(ABC):
 class EventDependency(Generic[E]):
     """Provides EventManager-managed events for apps to publish.
 
+
+    Parameters
+    ----------
+    event_maker
+        An instance of an implementation of ``EventMaker``
+
+    Examples
+    --------
     .. code-block:: python
        :caption: myapp.dependencies.events_dependency
 
@@ -84,11 +92,6 @@ class EventDependency(Generic[E]):
        # In app code
        await events.event1.publish(Event1(foo="foo", bar="bar"))
        await events.event2.publish(Event2(baz=123, buz="buz"))
-
-    Parameters
-    ----------
-    event_maker
-        An instance of an implementation of ``EventMaker``
     """
 
     def __init__(self, event_maker: E) -> None:
