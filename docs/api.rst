@@ -39,6 +39,9 @@ API reference
 .. automodapi:: safir.dependencies.logger
    :include-all-objects:
 
+.. automodapi:: safir.dependencies.metrics
+   :include-all-objects:
+
 .. automodapi:: safir.fastapi
    :include-all-objects:
 

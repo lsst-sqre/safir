@@ -14,6 +14,7 @@ from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
 )
 
+from safir.dependencies.metrics import EventDependency, EventMaker
 from safir.kafka import (
     KafkaConnectionSettings,
     PydanticSchemaManager,
@@ -22,8 +23,6 @@ from safir.kafka import (
 )
 from safir.metrics import (
     DuplicateEventError,
-    EventDependency,
-    EventMaker,
     EventManager,
     EventManagerUnintializedError,
     EventMetadata,

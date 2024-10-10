@@ -1,11 +1,13 @@
+"""Dependencies for metrics functionality."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from ._event_manager import EventManager
+from safir.metrics import EventManager
 
-__all__ = ["EventDependency", "EventMaker"]
+__all__ = ["EventDependency", "EventMaker", "E"]
 
 E = TypeVar("E", bound="EventMaker")
 """Generic event maker type."""

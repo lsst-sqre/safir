@@ -1,5 +1,4 @@
 from ._config import KafkaMetricsConfiguration, MetricsConfiguration
-from ._dependencies import EventDependency, EventMaker
 from ._event_manager import EventManager, EventPublisher
 from ._exceptions import (
     DuplicateEventError,
@@ -9,17 +8,14 @@ from ._exceptions import (
 from ._models import EventMetadata, EventPayload
 
 __all__ = [
-    "EventManagerUnintializedError",
     "DuplicateEventError",
-    "EventDependency",
-    "EventDependency",
-    "EventMaker",
     "EventManager",
+    "EventManagerUnintializedError",
     "EventMetadata",
     "EventPayload",
     "EventPublisher",
+    "KafkaMetricsConfiguration",
     "KafkaTopicError",
     "KafkaTopicError",
     "MetricsConfiguration",
-    "KafkaMetricsConfiguration",
 ]

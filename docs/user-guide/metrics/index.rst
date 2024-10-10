@@ -101,7 +101,7 @@ Next, we need to:
 
 * Define our event payloads
 * Define and an events container that takes an `~safir.metrics.EventManager` and creates a publisher for each event our app will ever publish
-* Instantiate an `~safir.metrics.EventDependency`, which we'll initialize in our app start up laster.
+* Instantiate an `~safir.dependencies.metrics.EventDependency`, which we'll initialize in our app start up laster.
 
 We can do this all in an ``events.py`` file.
 
@@ -118,11 +118,10 @@ We can do this all in an ``events.py`` file.
 
    from pydantic import Field
    from safir.metrics import (
-       EventMaker,
        EventManager,
        EventPayload,
-       EventDependency,
    )
+   from safir.dependencies.metrics import EventDependency, EventMaker
 
 
    class QueryType(Enum):
