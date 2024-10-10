@@ -104,7 +104,6 @@ Next, we need to:
 * Instantiate an `~safir.metrics.EventDependency`, which we'll initialize in our app start up laster.
 
 We can do this all in an ``events.py`` file.
-See the :ref:`event-dependency` section for more details.
 
 .. note::
 
@@ -299,74 +298,3 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
    )
 
 .. _FastStream: https://faststream.airt.ai
-
-.. _event-dependency:
-
-EventDependency
-===============
-
-However you instantiate your `~safir.metrics.EventManager`, the `safir.metrics.EventDependency` will help you use it in your app.
-
-.. code-block:: python
-
-   from enum import Enum
-   from datetime import timedelta
-
-   from pydantic import Field
-   from safir.metrics import (
-       EventMaker,
-       EventManager,
-       EventPayload,
-       EventDependency,
-   )
-
-
-   class QueryType(Enum):
-       async_ = "async"
-       sync = "sync"
-
-
-   class QueryEvent(EventPayload):
-       """Information about a user-submitted query."""
-
-       type: QueryType = Field(
-           title="Query type", description="The kind of query"
-       )
-
-       duration: timedelta = Field(
-           title="Query duration", description="How long the query took to run"
-       )
-
-
-   class Events(EventMaker):
-       def initialize(manager: EventManager) -> None:
-           self.query = await manager.create_publisher("query", QueryEvent)
-
-
-   events_dependency = EventDependency(Events())
-   event_manager = EventManager(...)
-   await event_manager.initialize()
-   await events_dependency.initialize(event_manager)
-
-   # Publish events
-   events_dependency.events.query.publish(QueryEvent(...))
-
-   # Or...
-   events = await events_dependency()
-   events.query.publish(QueryEvent(...))
-
-Constructing the singleton dependency requires one "event maker" argument.
-This argument should be an instance of an implementation of the `~safir.metrics.EventMaker` `abstract base class`_.
-This means it must at least define a single async ``initialize`` method that:
-
-* Takes a single parameter, an `~safir.metrics.EventManager`
-* Uses that event manager create event publishers and assign them to instance variables
-
-Then, `~safir.metrics.EventDependency.initialize` (which itself takes an `safir.metrics.EventManager`) will call that initialize on the event maker instance, which will create all of the publishers.
-
-Finally, you can access your initialized event maker object in one of two ways:
-
-* Via the `~safir.metrics.EventDependency.events` attribute
-* By calling the dependency singleton, usually via injecting it as dependency in a FastAPI handler
-
-.. _abstract base class: https://docs.python.org/3/library/abc.html
