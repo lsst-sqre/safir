@@ -6,8 +6,8 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
 
-from safir.kafka import KafkaConnectionSettings, SchemaManagerSettings
-
+from ..kafka import KafkaConnectionSettings, SchemaManagerSettings
+from ._constants import ADMIN_CLIENT_PREFIX, BROKER_PREFIX
 from ._event_manager import EventManager
 
 __all__ = ["KafkaMetricsConfiguration", "MetricsConfiguration"]
@@ -77,11 +77,11 @@ class KafkaMetricsConfiguration(BaseSettings):
 
         """
         broker = KafkaBroker(
-            client_id=f"safir-metrics-faststream-broker-{self.metrics_events.app_name}",
+            client_id=f"{BROKER_PREFIX}-{self.metrics_events.app_name}",
             **self.kafka.to_faststream_params(),
         )
         admin_client = AIOKafkaAdminClient(
-            client_id=f"safir-metrics-admin-client-{self.metrics_events.app_name}",
+            client_id=f"{ADMIN_CLIENT_PREFIX}-{self.metrics_events.app_name}",
             **self.kafka.to_aiokafka_params(),
         )
         schema_manager = self.schema_manager.make_manager()
