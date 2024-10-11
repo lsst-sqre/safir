@@ -10,7 +10,7 @@ import pytest
 import pytest_asyncio
 import respx
 from aiokafka import AIOKafkaConsumer
-from aiokafka.admin.client import AIOKafkaAdminClient
+from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from faststream.kafka import KafkaBroker
 from pydantic import AnyUrl
 from redis.asyncio import Redis
@@ -24,6 +24,11 @@ from safir.kafka import (
     SecurityProtocol,
 )
 from safir.kafka._schema_registry_config import SchemaManagerSettings
+from safir.metrics._config import (
+    KafkaMetricsConfiguration,
+    MetricsConfiguration,
+)
+from safir.metrics._event_manager import EventManager
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
@@ -108,7 +113,7 @@ async def kafka_consumer(
     All data is cleared from the kafka instance at the end of the test.
     """
     consumer = AIOKafkaConsumer(
-        **kafka_connection_settings.to_aiokafka_params,
+        **kafka_connection_settings.to_aiokafka_params(),
         client_id="pytest-consumer",
     )
     await consumer.start()
@@ -144,7 +149,7 @@ async def kafka_admin_client(
     All data is cleared from the kafka instance at the end of the test.
     """
     client = AIOKafkaAdminClient(
-        **kafka_connection_settings.to_aiokafka_params,
+        **kafka_connection_settings.to_aiokafka_params(),
         client_id="pytest-admin",
     )
     await client.start()
@@ -203,6 +208,33 @@ def schema_manager(
     All data is cleared from the registry at the end of the test.
     """
     return schema_manager_settings.make_manager()
+
+
+@pytest_asyncio.fixture
+async def event_manager(
+    kafka_connection_settings: KafkaConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
+) -> AsyncIterator[EventManager]:
+    """Provide an event manager and create a matching Kafka topic."""
+    config = KafkaMetricsConfiguration(
+        metrics_events=MetricsConfiguration(
+            app_name="testapp",
+            topic_prefix="what.ever",
+        ),
+        kafka=kafka_connection_settings,
+        schema_manager=schema_manager_settings,
+    )
+
+    manager = config.make_manager()
+    await manager.initialize()
+    topic = NewTopic(
+        name="what.ever.testapp",
+        num_partitions=1,
+        replication_factor=1,
+    )
+    await manager._admin_client.create_topics([topic])
+    yield manager
+    await manager.aclose()
 
 
 @pytest.fixture(scope="session")

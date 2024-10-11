@@ -2,17 +2,16 @@
 Managing schema registry schemas with Pydantic Models
 #####################################################
 
-Safir provides a `~safir.kafka.PydanticSchemaManager` to register and evolve Avro schemas in a Confluent-compatible `schema registry`_ via `Pydantic`_ models.
+Safir provides a `~safir.kafka.PydanticSchemaManager` to register and evolve Avro schemas in a Confluent-compatible `schema registry`_ via Pydantic_ models.
 Specifically, it can:
 
 * Create schemas in the registry
 * Create new versions of schemas in the registry from changes in the Pydantic models, while validating that those changes are compatible with the compatibility strategies specified in the registry
-* Serialize Pydantic model instances to `Avro`_ schemas with the registry's schema ID
+* Serialize Pydantic model instances to Avro_ schemas with the registry's schema ID
 
 Interactions with the remote registry are cached, so your app will rarely have to make calls to it after initialization.
 
 .. _Avro: https://avro.apache.org/
-.. _schema registry: https://docs.confluent.io/platform/current/schema-registry/index.html
 
 Constructing the manager
 ========================
@@ -47,7 +46,7 @@ Using the manager
 =================
 
 Before you can serialize model instances, you need to register the model class with the manager.
-Models must be subclasses of `AvroBaseModel`_ from `dataclasses-avroschema`_. Then, you can serialize instances of the model into Avro messages with the registry schema ID embeded in them.
+Models must be subclasses of AvroBaseModel_ from dataclasses-avroschema_. Then, you can serialize instances of the model into Avro messages with the registry schema ID embeded in them.
 
 .. code-block:: python
 
@@ -131,8 +130,8 @@ Sometime in the future, if the model changes like this, an exception will be rai
 Subject names
 -------------
 
-The `subject`_ that a schema is registered under is completely independent of any Kafka topics that serialized messages may or may not be published to.
-In other words, it uses the `RecordNameStrategy`_.
+The subject_ that a schema is registered under is completely independent of any Kafka topics that serialized messages may or may not be published to.
+In other words, it uses the RecordNameStrategy_.
 The manager uses the combined Avro namespace and record name as the subject name.
 The record name and namespace come from certain fields on an inner class named ``Meta``:
 

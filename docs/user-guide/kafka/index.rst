@@ -1,3 +1,5 @@
+.. _kafka-integration:
+
 ======================
 Integrating with Kafka
 ======================
