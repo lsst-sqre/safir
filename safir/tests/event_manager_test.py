@@ -8,7 +8,7 @@ import pytest
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from faststream.kafka import KafkaBroker
-from pydantic import AnyUrl, Field
+from pydantic import Field
 from schema_registry.client.client import AsyncSchemaRegistryClient
 from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
@@ -19,7 +19,6 @@ from safir.kafka import (
     KafkaConnectionSettings,
     PydanticSchemaManager,
     SchemaManagerSettings,
-    SecurityProtocol,
 )
 from safir.metrics import (
     DuplicateEventError,
@@ -28,10 +27,10 @@ from safir.metrics import (
     EventMetadata,
     EventPayload,
     EventPublisher,
-    KafkaMetricsConfiguration,
+    KafkaMetricsConfigurationDisabled,
     KafkaTopicError,
-    MetricsConfiguration,
 )
+from safir.metrics._config import KafkaMetricsConfigurationEnabled
 
 
 class MyEvent(EventPayload):
@@ -141,13 +140,12 @@ async def test_managed_storage(
     kafka_admin_client: AIOKafkaAdminClient,
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
-    config = KafkaMetricsConfiguration(
-        metrics_events=MetricsConfiguration(
-            app_name="testapp",
-            topic_prefix="what.ever",
-        ),
+    config = KafkaMetricsConfigurationEnabled(
+        app_name="testapp",
+        topic_prefix="what.ever",
         kafka=kafka_connection_settings,
         schema_manager=schema_manager_settings,
+        disable=False,
     )
 
     # Construct an event manager and intialize our events dependency
@@ -271,17 +269,8 @@ async def test_invalid_payload(event_manager: EventManager) -> None:
 
 @pytest.mark.asyncio
 async def test_disable() -> None:
-    config = KafkaMetricsConfiguration(
-        metrics_events=MetricsConfiguration(
-            app_name="testapp", topic_prefix="what.ever", disable=True
-        ),
-        kafka=KafkaConnectionSettings(
-            bootstrap_servers="whatever",
-            security_protocol=SecurityProtocol.PLAINTEXT,
-        ),
-        schema_manager=SchemaManagerSettings(
-            registry_url=AnyUrl("http://whatever.code")
-        ),
+    config = KafkaMetricsConfigurationDisabled(
+        app_name="testapp", topic_prefix="what.ever", disable=True
     )
     manager = config.make_manager()
 

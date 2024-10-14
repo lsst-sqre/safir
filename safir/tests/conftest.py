@@ -24,10 +24,7 @@ from safir.kafka import (
     SecurityProtocol,
 )
 from safir.kafka._schema_registry_config import SchemaManagerSettings
-from safir.metrics._config import (
-    KafkaMetricsConfiguration,
-    MetricsConfiguration,
-)
+from safir.metrics._config import KafkaMetricsConfigurationEnabled
 from safir.metrics._event_manager import EventManager
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
@@ -216,13 +213,12 @@ async def event_manager(
     schema_manager_settings: SchemaManagerSettings,
 ) -> AsyncIterator[EventManager]:
     """Provide an event manager and create a matching Kafka topic."""
-    config = KafkaMetricsConfiguration(
-        metrics_events=MetricsConfiguration(
-            app_name="testapp",
-            topic_prefix="what.ever",
-        ),
+    config = KafkaMetricsConfigurationEnabled(
+        app_name="testapp",
+        topic_prefix="what.ever",
         kafka=kafka_connection_settings,
         schema_manager=schema_manager_settings,
+        disable=False,
     )
 
     manager = config.make_manager()
