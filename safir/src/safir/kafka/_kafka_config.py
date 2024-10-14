@@ -16,7 +16,14 @@ from faststream.security import (
     SASLScram256,
     SASLScram512,
 )
-from pydantic import BaseModel, Field, FilePath, SecretStr, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    Field,
+    FilePath,
+    SecretStr,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
@@ -64,11 +71,15 @@ class SaslMechanism(StrEnum):
 
 
 class FastStreamBrokerParams(TypedDict):
+    """Type for parameters to the constructor of a FastStream broker."""
+
     bootstrap_servers: str
     security: BaseSecurity
 
 
 class AIOKafkaParams(TypedDict):
+    """Type for parameters to the constructor of an aiokafka client."""
+
     bootstrap_servers: str
     security_protocol: str
     sasl_mechanism: NotRequired[str]
@@ -287,15 +298,21 @@ class KafkaConnectionSettings(BaseSettings):
             "A comma-separated list of Kafka brokers to connect to. "
             "This should be a list of hostnames or IP addresses, "
             "each optionally followed by a port number, separated by "
-            "commas. "
+            "commas."
         ),
         examples=["kafka-1:9092,kafka-2:9092,kafka-3:9092", "kafka:9092"],
+        validation_alias=AliasChoices(
+            "bootstrapServers", "KAFKA_BOOTSTRAP_SERVERS"
+        ),
     )
 
     security_protocol: SecurityProtocol = Field(
         title="Security Protocol",
         description=(
             "The authentication and encryption mode for the connection."
+        ),
+        validation_alias=AliasChoices(
+            "securityProtocol", "KAFKA_SECURITY_PROTOCOL"
         ),
     )
 
@@ -310,6 +327,9 @@ class KafkaConnectionSettings(BaseSettings):
             "signed by a CA trusted by the operating system."
         ),
         examples=["/some/dir/ca.crt"],
+        validation_alias=AliasChoices(
+            "clusterCaPath", "KAFKA_CLUSTER_CA_PATH"
+        ),
     )
 
     client_cert_path: FilePath | None = Field(
@@ -322,6 +342,9 @@ class KafkaConnectionSettings(BaseSettings):
             "SSL client authentication."
         ),
         examples=["/some/dir/user.crt"],
+        validation_alias=AliasChoices(
+            "clientCertPath", "KAFKA_CLIENT_CERT_PATH"
+        ),
     )
 
     client_key_path: FilePath | None = Field(
@@ -333,6 +356,9 @@ class KafkaConnectionSettings(BaseSettings):
             "protocol."
         ),
         examples=["/some/dir/user.key"],
+        validation_alias=AliasChoices(
+            "clientKeyPath", "KAFKA_CLIENT_KEY_PATH"
+        ),
     )
 
     sasl_mechanism: SaslMechanism | None = Field(
@@ -343,6 +369,7 @@ class KafkaConnectionSettings(BaseSettings):
             "This is only needed for the SASL_SSL and SASL_PLAINTEXT security"
             "protocols."
         ),
+        validation_alias=AliasChoices("saslMechanism", "KAFKA_SASL_MECHANISM"),
     )
 
     sasl_username: str | None = Field(
@@ -353,6 +380,7 @@ class KafkaConnectionSettings(BaseSettings):
             "This is only needed for the SASL_SSL and SASL_PLAINTEXT security"
             "protocols."
         ),
+        validation_alias=AliasChoices("saslUsername", "KAFKA_SASL_USERNAME"),
     )
 
     sasl_password: SecretStr | None = Field(
@@ -363,10 +391,13 @@ class KafkaConnectionSettings(BaseSettings):
             "This is only needed for the SASL_SSL and SASL_PLAINTEXT security"
             "protocols."
         ),
+        validation_alias=AliasChoices("saslPassword", "KAFKA_SASL_PASSWORD"),
     )
 
     model_config = SettingsConfigDict(
-        env_prefix="KAFKA_", case_sensitive=False
+        case_sensitive=False,
+        env_prefix="KAFKA_",
+        populate_by_name=True,
     )
 
     @model_validator(mode="after")
