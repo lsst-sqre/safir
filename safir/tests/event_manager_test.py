@@ -2,6 +2,7 @@
 
 import asyncio
 import math
+from enum import Enum
 from uuid import UUID
 
 import pytest
@@ -255,18 +256,29 @@ async def test_duplicate_event(event_manager: EventManager) -> None:
 
 @pytest.mark.asyncio
 async def test_invalid_payload(event_manager: EventManager) -> None:
+    class MyEnum(Enum):
+        case1 = "case1"
+        case2 = "case2"
+
     class MyInvalidEvent(EventPayload):
-        good_field: str = Field()
-        bad_field: list[str] = Field()
-        another_bad_field: dict[str, str] = Field()
+        good_simple_field: str = Field()
+        good_union_field: str | None = Field()
+        good_enum_field: MyEnum = Field()
+        bad_list_field: list[str] = Field()
+        bad_union_field: dict[str, str] | None = Field()
+        bad_dict_field: dict[str, str] = Field()
 
     with pytest.raises(ValueError, match="Unsupported Avro Schema") as excinfo:
         await event_manager.create_publisher("myinvalidevent", MyInvalidEvent)
     err = str(excinfo.value)
 
-    assert "bad_field" in err
-    assert "another_bad_field" in err
-    assert "good_field" not in err
+    assert "bad_list_field" in err
+    assert "bad_union_field" in err
+    assert "bad_dict_field" in err
+
+    assert "good_simple_field" not in err
+    assert "good_union_field" not in err
+    assert "good_enum_field" not in err
 
 
 @pytest.mark.asyncio

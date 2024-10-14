@@ -64,19 +64,31 @@ class EventPayload(AvroBaseModel):
         for field in schema["fields"]:
             field_type = field["type"]
             name = field["name"]
+
+            # Unions are represented by a list
+            if isinstance(field_type, list):
+                if not all(subtype in valids for subtype in field_type):
+                    errors.append(
+                        f"{name}\n   is a union with a type that is"
+                        f" unsupported by InfluxDB: {field_type}"
+                    )
+                continue
+
+            # Some complex types like enums are represented by a dict, not a
+            # string.
             if isinstance(field_type, dict):
                 field_type = field["type"]["type"]
-            if not isinstance(field_type, str):
-                errors.append(
-                    f"{name}\n   Couldn't validate avro schema"
-                    f"compatibility: {field_type}"
-                )
+
             if field_type not in valids:
                 errors.append(
-                    f"{name}\n   Serializes to an unsupported avro type:"
-                    f" {field_type}"
+                    f"{name}\n   Serializes to an avro type that is"
+                    f" unsupported by InfluxDB: {field_type}"
                 )
+
         if errors:
             errors = ["Unsupported Avro Schema", *errors]
-            errors.append(f"Supported avro types are: {valids}")
+            errors.append(
+                f"Supported avro types are these (or unions of these):"
+                f" {valids}"
+            )
             raise ValueError("\n".join(errors))
