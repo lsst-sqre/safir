@@ -1,4 +1,8 @@
-from ._config import KafkaMetricsConfiguration, MetricsConfiguration
+from ._config import (
+    KafkaMetricsConfigurationDisabled,
+    KafkaMetricsConfigurationEnabled,
+    MetricsConfiguration,
+)
 from ._event_manager import EventManager, EventPublisher
 from ._exceptions import (
     DuplicateEventError,
@@ -14,8 +18,10 @@ __all__ = [
     "EventMetadata",
     "EventPayload",
     "EventPublisher",
-    "KafkaMetricsConfiguration",
+    "KafkaMetricsConfigurationDisabled",
+    "KafkaMetricsConfigurationEnabled",
     "KafkaTopicError",
     "KafkaTopicError",
+    "MetricsConfiguration",
     "MetricsConfiguration",
 ]
