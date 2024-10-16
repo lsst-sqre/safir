@@ -119,7 +119,10 @@ async def integration_test(
     # Publish events
     event = events_dependency.events.my_event
     await event.publish(MyEvent(foo="bar1"))
-    await event.publish(MyEvent(foo="bar2"))
+    published = await event.publish(MyEvent(foo="bar2"))
+    schema = published.avro_schema_to_python()
+    assert schema["name"] == "myevent"
+    assert schema["namespace"] == "what.ever.testapp"
 
     # Set up a kafka consumer
     expected_topic = "what.ever.testapp"

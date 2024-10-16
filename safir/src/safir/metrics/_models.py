@@ -1,7 +1,7 @@
 """Models for representing metrics events."""
 
 from dataclasses_avroschema.pydantic import AvroBaseModel
-from pydantic import UUID4, AwareDatetime, Field
+from pydantic import UUID4, AwareDatetime, Field, create_model
 
 __all__ = ["EventMetadata", "EventPayload"]
 
@@ -60,7 +60,24 @@ class EventPayload(AvroBaseModel):
             "string",
         ]
         errors = []
-        schema = cls.avro_schema_to_python()
+
+        # Calling cls.avro_schema_to_python() sets a _metadata class variable
+        # on this class that memoizes the metadata that comes from any inner
+        # Meta class:
+        # (https://marcosschroh.github.io/dataclasses-avroschema/records/?h=meta#class-meta)
+        #
+        # We don't have a Meta class on this payload, but later, we mix this
+        # payload into another class that DOES have an inner Meta class that
+        # contains the schema name and namespace. If _metadata is already set
+        # on this class, that later class will not get that metadata when we
+        # eventually call avro_schema_to_python on it.
+        #
+        # This makes a throw-away class where _metadata will get set, which
+        # means the metadata will be generated fresh on the big mixed-in class
+        # when we need it.
+        tmp_cls = create_model("Temp", __base__=cls)
+
+        schema = tmp_cls.avro_schema_to_python()
         for field in schema["fields"]:
             field_type = field["type"]
             name = field["name"]
