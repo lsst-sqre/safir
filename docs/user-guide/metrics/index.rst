@@ -110,6 +110,13 @@ We can do this all in an ``events.py`` file.
    Fields in metrics events can't be other models or other nested types like dicts, because the current event datastore (InfluxDB) does not support this.
    Basing our event payloads on `safir.metrics.EventPayload` will enable the `~safir.metrics.EventManager` to ensure at runtime when our events are registered that they don't contain incompatible fields.
 
+.. warning::
+
+   `dataclasses-avroschema`_ does not currently support timedelta fields, and will throw an exception if you define a field of type ``timedelta`` in your event payload model.
+   To work around this, you can declare any ``timedelta`` fields as type `~safir.metrics.EventDuration`.
+   You can pass a ``timedelta`` object as a value, and the field will serialize to the float number of seconds represented by the duration.
+   You can only use this type in models that are subclasses of `~safir.metrics.EventPayload`.
+
 .. code-block:: python
    :caption: metrics.py
 
@@ -118,6 +125,7 @@ We can do this all in an ``events.py`` file.
 
    from pydantic import Field
    from safir.metrics import (
+       EventDuration,
        EventManager,
        EventPayload,
    )
@@ -136,7 +144,7 @@ We can do this all in an ``events.py`` file.
            title="Query type", description="The kind of query"
        )
 
-       duration: timedelta = Field(
+       duration: EventDuration = Field(
            title="Query duration", description="How long the query took to run"
        )
 
@@ -148,6 +156,8 @@ We can do this all in an ``events.py`` file.
 
    # We'll call .initalize on this in our app start up
    events_dependency = EventDependency(Events())
+
+.. _dataclasses-avroschema: https://marcosschroh.github.io/dataclasses-avroschema
 
 Initialize
 ----------

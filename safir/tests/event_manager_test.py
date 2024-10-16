@@ -2,6 +2,7 @@
 
 import asyncio
 import math
+from datetime import timedelta
 from enum import Enum
 from uuid import UUID
 
@@ -24,6 +25,7 @@ from safir.kafka import (
 )
 from safir.metrics import (
     DuplicateEventError,
+    EventDuration,
     EventManager,
     EventManagerUnintializedError,
     EventMetadata,
@@ -39,6 +41,7 @@ class MyEvent(EventPayload):
     """An event payload."""
 
     foo: str
+    duration: EventDuration
 
 
 class Events(EventMaker):
@@ -64,6 +67,7 @@ async def assert_from_kafka(
     schema_registry: AsyncSchemaRegistryClient,
     event: EventPublisher[MyEvent],
     foo: str,
+    duration: timedelta,
 ) -> None:
     """Grab a message from kafka, deserialize it, and assert stuff about it."""
     message = await consumer.getone()
@@ -86,6 +90,7 @@ async def assert_from_kafka(
     # AND MyEvent as bases, so let's pretend we don't know either :(
     # https://github.com/python/mypy/issues/12314
     assert getattr(deserialized, "foo", None) == foo
+    assert getattr(deserialized, "duration", None) == duration
 
 
 async def integration_test(
@@ -118,8 +123,18 @@ async def integration_test(
 
     # Publish events
     event = events_dependency.events.my_event
-    await event.publish(MyEvent(foo="bar1"))
-    published = await event.publish(MyEvent(foo="bar2"))
+    await event.publish(
+        MyEvent(
+            foo="bar1",
+            duration=timedelta(seconds=2, milliseconds=123),
+        )
+    )
+    published = await event.publish(
+        MyEvent(
+            foo="bar2",
+            duration=timedelta(seconds=2, milliseconds=456),
+        )
+    )
     schema = published.avro_schema_to_python()
     assert schema["name"] == "myevent"
     assert schema["namespace"] == "what.ever.testapp"
@@ -131,8 +146,20 @@ async def integration_test(
 
     # Assert stuff
     assert event.publisher.topic == expected_topic
-    await assert_from_kafka(kafka_consumer, schema_registry, event, "bar1")
-    await assert_from_kafka(kafka_consumer, schema_registry, event, "bar2")
+    await assert_from_kafka(
+        kafka_consumer,
+        schema_registry,
+        event,
+        "bar1",
+        timedelta(seconds=2.123),
+    )
+    await assert_from_kafka(
+        kafka_consumer,
+        schema_registry,
+        event,
+        "bar2",
+        timedelta(seconds=2.456),
+    )
 
     await manager.aclose()
 
@@ -303,8 +330,8 @@ async def test_disable() -> None:
     await manager.initialize()
     event = await manager.create_publisher("myevent", MyEvent)
 
-    await event.publish(MyEvent(foo="bar1"))
-    await event.publish(MyEvent(foo="bar2"))
+    await event.publish(MyEvent(foo="bar1", duration=timedelta(seconds=1)))
+    await event.publish(MyEvent(foo="bar2", duration=timedelta(seconds=1)))
     await manager.aclose()
 
     topic = "what.ever.testapp"
