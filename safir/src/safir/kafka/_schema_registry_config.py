@@ -1,6 +1,10 @@
+"""Configuration for the Kafka Schema Registry."""
+
+from __future__ import annotations
+
 from typing import TypedDict
 
-from pydantic import AnyUrl, Field
+from pydantic import AliasChoices, AnyUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from schema_registry.client import AsyncSchemaRegistryClient
 
@@ -20,11 +24,14 @@ class SchemaRegistryClientParams(TypedDict):
 
 
 class SchemaManagerSettings(BaseSettings):
-    """Settings for constructing a PydanticSchemaManager."""
+    """Settings for constructing a `~safir.kafka.PydanticSchemaManager`."""
 
     registry_url: AnyUrl = Field(
-        title="Schema Registry URL",
-        description="URL of a a Confluent-compatible schema registry.",
+        title="Schema registry URL",
+        description="URL of a a Confluent-compatible schema registry",
+        validation_alias=AliasChoices(
+            "registryUrl", "SCHEMA_MANAGER_REGISTRY_URL"
+        ),
     )
 
     suffix: str = Field(
@@ -40,6 +47,12 @@ class SchemaManagerSettings(BaseSettings):
         examples=["_dev1"],
     )
 
+    model_config = SettingsConfigDict(
+        case_sensitive=False,
+        env_prefix="SCHEMA_MANAGER_",
+        populate_by_name=True,
+    )
+
     def to_registry_params(self) -> SchemaRegistryClientParams:
         """Make a dict of params to construct an AsyncSchemaRegistryClient."""
         return {"url": str(self.registry_url)}
@@ -48,7 +61,3 @@ class SchemaManagerSettings(BaseSettings):
         """Construct a PydanticSchemaManager from the fields of this model."""
         registry = AsyncSchemaRegistryClient(**self.to_registry_params())
         return PydanticSchemaManager(registry=registry, suffix=self.suffix)
-
-    model_config = SettingsConfigDict(
-        env_prefix="SCHEMA_MANAGER_", case_sensitive=False
-    )

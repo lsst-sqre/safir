@@ -1,8 +1,11 @@
 """Configuration for publishing events."""
 
+from __future__ import annotations
+
 from aiokafka.admin.client import AIOKafkaAdminClient
 from faststream.kafka import KafkaBroker
-from pydantic import Field
+from pydantic import AliasChoices, Field
+from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
 
@@ -23,6 +26,7 @@ class MetricsConfiguration(BaseSettings):
             "You probably should use the default here. It could be useful in"
             " development scenarios to change this."
         ),
+        validation_alias=AliasChoices("topicPrefix", "METRICS_TOPIC_PREFIX"),
     )
 
     app_name: str = Field(
@@ -31,6 +35,7 @@ class MetricsConfiguration(BaseSettings):
         description=(
             "The name of the application that is emitting these metrics"
         ),
+        validation_alias=AliasChoices("appName", "METRICS_APP_NAME"),
     )
 
     disable: bool = Field(
@@ -40,7 +45,9 @@ class MetricsConfiguration(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_prefix="METRICS_", case_sensitive=False
+        case_sensitive=False,
+        env_prefix="METRICS_",
+        populate_by_name=True,
     )
 
 
@@ -52,15 +59,21 @@ class KafkaMetricsConfiguration(BaseSettings):
     """
 
     metrics_events: MetricsConfiguration = Field(
-        default_factory=MetricsConfiguration
+        default_factory=MetricsConfiguration, title="Events configuration"
     )
 
     schema_manager: SchemaManagerSettings = Field(
-        default_factory=SchemaManagerSettings
+        default_factory=SchemaManagerSettings,
+        title="Kafka schema manager settings",
     )
 
     kafka: KafkaConnectionSettings = Field(
-        default_factory=KafkaConnectionSettings
+        default_factory=KafkaConnectionSettings,
+        title="Kafka connection settings",
+    )
+
+    model_config = SettingsConfigDict(
+        alias_generator=to_camel, populate_by_name=True
     )
 
     def make_manager(self, logger: BoundLogger | None = None) -> EventManager:
