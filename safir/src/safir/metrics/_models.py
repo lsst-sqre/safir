@@ -1,86 +1,44 @@
 """Models for representing metrics events."""
 
+import dataclasses
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
 
+import fastavro
+from dataclasses_avroschema.fields.fields import ImmutableField
+from dataclasses_avroschema.fields.mapper import LOGICAL_TYPES_FIELDS_CLASSES
 from dataclasses_avroschema.pydantic import AvroBaseModel
-from pydantic import (
-    UUID4,
-    AwareDatetime,
-    ConfigDict,
-    Field,
-    GetCoreSchemaHandler,
-    create_model,
+from pydantic import UUID4, AwareDatetime, Field, create_model
+
+__all__ = ["EventMetadata", "EventPayload"]
+
+fastavro.write.LOGICAL_WRITERS["double-timedelta"] = (
+    lambda x, *args, **kwargs: x.total_seconds()
 )
-from pydantic_core import CoreSchema, core_schema
-
-__all__ = ["EventDuration", "EventMetadata", "EventPayload"]
-
-
-if TYPE_CHECKING:
-    EventDuration = timedelta
-else:
-
-    class EventDuration(timedelta):
-        """A dataclasses-avroschema-compatible timedelta field that serializes
-        to float seconds.
-
-        .. note::
-
-           Models that use fields of this type must be subclasses of
-           `~safir.metrics.EventPayload`.
-
-        dataclasses-avroschema has no built-in support for timedelta fields
-        (even though Pydantic does), and if you declare one in your event
-        payload model, an exception will be thrown when you try to serialize
-        it. By declaring your field with this type, you'll be able to use
-        timedeltas, and they will serialze to a float number of seconds.
-
-        Examples
-        --------
-        .. code-block:: python
-
-           from datetime import datetime, timedelta, timezone
-           from safir.metrics import EventDuration, EventPayload
+fastavro.read.LOGICAL_READERS["double-timedelta"] = lambda x, *args: timedelta(
+    seconds=x
+)
 
 
-           class MyEvent(EventPayload):
-               some_field: str = Field()
-               duration: EventDuration = Field()
+@dataclasses.dataclass
+class TimedeltaField(ImmutableField):
+    @property
+    def avro_type(self) -> dict:
+        return {"type": "double", "logicalType": "timedelta"}
 
+    def default_to_avro(self, delta: timedelta) -> float:
+        """blah.
 
-           start_time = datetime.now(timezone.utc)
-           do_some_stuff()
-           duration: timedelta = datetime.now(timezone.utc) - start_time
+        Arguments:
+            timedelta (datetime.timedelta)
 
-           payload = MyEvent(some_field="woohoo", duration=duration)
+        Returns
+        -------
+            float
         """
+        return delta.total_seconds()
 
-        @classmethod
-        def __get_pydantic_core_schema__(
-            cls, source_type: Any, handler: GetCoreSchemaHandler
-        ) -> CoreSchema:
-            """Pretend we're a timedelta.
 
-            We need this because dataclasses-avroschema explicitly looks for
-            this method when trying to serialize a custom Pydantic type.
-            """
-
-            def validate(v: Any) -> EventDuration:
-                if isinstance(v, timedelta):
-                    return EventDuration(seconds=v.total_seconds())
-                elif isinstance(v, EventDuration):
-                    return v
-                else:
-                    raise TypeError("Must be a timedelta or EventDuration")
-
-            return core_schema.no_info_after_validator_function(
-                validate, core_schema.timedelta_schema()
-            )
-
-        def __float__(self) -> float:
-            """Convert to a float number of seconds."""
-            return self.total_seconds()
+LOGICAL_TYPES_FIELDS_CLASSES[timedelta] = TimedeltaField
 
 
 class EventMetadata(AvroBaseModel):
@@ -118,14 +76,6 @@ class EventMetadata(AvroBaseModel):
 
 class EventPayload(AvroBaseModel):
     """All event payloads should inherit from this."""
-
-    # json_encoders is deprecated in Pydantic v2, but dataclasses-avroschema
-    # insists that it is defined for custom types, and that the value for a
-    # custom type is one of the built-in dataclasses-avroschema base types
-    # (which is why __float__ needs to be defined on the EventDuration class):
-    #
-    # https://github.com/marcosschroh/dataclasses-avroschema/blob/b8f7b8dfa877fea58887e4cd34d34e2ab6551afa/dataclasses_avroschema/fields/fields.py#L1000-L1038
-    model_config = ConfigDict(json_encoders={EventDuration: float})
 
     @classmethod
     def validate_structure(cls) -> None:

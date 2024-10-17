@@ -25,7 +25,6 @@ from safir.kafka import (
 )
 from safir.metrics import (
     DuplicateEventError,
-    EventDuration,
     EventManager,
     EventManagerUnintializedError,
     EventMetadata,
@@ -41,7 +40,7 @@ class MyEvent(EventPayload):
     """An event payload."""
 
     foo: str
-    duration: EventDuration
+    duration: timedelta
 
 
 class Events(EventMaker):
@@ -336,3 +335,35 @@ async def test_disable() -> None:
 
     topic = "what.ever.testapp"
     assert event.publisher.topic == topic
+
+
+@pytest.mark.asyncio
+async def test_timedelta() -> None:
+    class TimedeltaEvent(EventPayload):
+        """An event payload."""
+
+        foo: str = Field()
+        duration: timedelta = Field(default=timedelta(seconds=1))
+
+    config = KafkaMetricsConfiguration(
+        metrics_events=MetricsConfiguration(
+            app_name="testapp", topic_prefix="what.ever", disable=True
+        ),
+        kafka=KafkaConnectionSettings(
+            bootstrap_servers="whatever",
+            security_protocol=SecurityProtocol.PLAINTEXT,
+        ),
+        schema_manager=SchemaManagerSettings(
+            registry_url=AnyUrl("http://whatever.code")
+        ),
+    )
+    manager = config.make_manager()
+
+    await manager.initialize()
+    event = await manager.create_publisher("myevent", TimedeltaEvent)
+
+    published = await event.publish(
+        TimedeltaEvent(foo="bar1", duration=timedelta(seconds=1))
+    )
+    published = await event.publish(TimedeltaEvent(foo="bar1"))
+    published.serialize()
