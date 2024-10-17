@@ -1,5 +1,19 @@
-from ._config import KafkaMetricsConfiguration, MetricsConfiguration
-from ._event_manager import EventManager, EventPublisher
+from ._config import (
+    BaseMetricsConfiguration,
+    DisabledMetricsConfiguration,
+    EventsConfiguration,
+    KafkaMetricsConfiguration,
+    MetricsConfiguration,
+    metrics_configuration_factory,
+)
+from ._event_manager import (
+    EventManager,
+    EventPublisher,
+    KafkaEventManager,
+    KafkaEventPublisher,
+    NoopEventManager,
+    NoopEventPublisher,
+)
 from ._exceptions import (
     DuplicateEventError,
     EventManagerUnintializedError,
@@ -8,15 +22,23 @@ from ._exceptions import (
 from ._models import EventDuration, EventMetadata, EventPayload
 
 __all__ = [
+    "BaseMetricsConfiguration",
+    "DisabledMetricsConfiguration",
     "DuplicateEventError",
     "EventDuration",
+    "EventsConfiguration",
     "EventManager",
     "EventManagerUnintializedError",
     "EventMetadata",
     "EventPayload",
     "EventPublisher",
+    "KafkaEventManager",
+    "KafkaEventPublisher",
     "KafkaMetricsConfiguration",
     "KafkaTopicError",
     "KafkaTopicError",
     "MetricsConfiguration",
+    "NoopEventManager",
+    "NoopEventPublisher",
+    "metrics_configuration_factory",
 ]
