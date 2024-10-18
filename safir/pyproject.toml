@@ -137,10 +137,6 @@ exclude_lines = [
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "strict"
 filterwarnings = [
-    # The point of this test is to test handling of datetime-naive UTC
-    # objects, which is what the deprecation warning is about. We want to
-    # continue doing this until the support has been removed entirely.
-    "ignore:datetime.datetime.utcnow:DeprecationWarning:tests.pydantic_test",
     # Temporary until we can get timedelta support into dataclasses-avroschema.
     "ignore:.*json_encoders.*is deprecated.*",
 ]
