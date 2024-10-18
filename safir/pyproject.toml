@@ -141,8 +141,8 @@ filterwarnings = [
     # objects, which is what the deprecation warning is about. We want to
     # continue doing this until the support has been removed entirely.
     "ignore:datetime.datetime.utcnow:DeprecationWarning:tests.pydantic_test",
-    # Deprecated use of Pydantic v1 features in vo-models.
-    "ignore:Support for class-based `config`:DeprecationWarning",
+    # Temporary until we can get timedelta support into dataclasses-avroschema.
+    "ignore:.*json_encoders.*is deprecated.*",
 ]
 python_files = [
     "tests/*.py",
