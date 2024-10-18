@@ -210,8 +210,8 @@ class EventManager(metaclass=ABCMeta):
         ----------
         name
             Name of the event. This will be used as the name of the Avro
-            schema and record and the name of the event in the event storage
-            backend.
+            schema, the Avro namespace for the record, and the name of the
+            event in the event storage backend.
         topic
             Kafka topic to which these events will be published.
         payload_model
