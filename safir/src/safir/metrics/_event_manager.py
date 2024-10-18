@@ -189,72 +189,45 @@ class EventManager(metaclass=ABCMeta):
     ----------
     topic
         Kafka topic to which events will be published.
+
+    Attributes
+    ----------
+    topic
+        Kafka topic to which events will be published.
     """
 
-    def build_validated_model(
-        self, name: str, topic: str, payload_model: type[P]
-    ) -> type[P]:
-        """Construct a validated model class for the actual event.
+    def __init__(self, topic: str) -> None:
+        self.topic = topic
+        self._publishers: dict[str, EventPublisher] = {}
+        self._initialized = False
 
-        Construct the full, metadata-enriched event model. This constructs the
-        actual model that will be used for publication, which merges the
-        user-provided model, a standard model containing event metadata common
-        to every event, and configuration for dataclasses-avroschema to set
-        the Avro name and namespace. It also validates that the model can be
-        serialized.
+    async def aclose(self) -> None:
+        """Shut down any internal state or managed clients."""
+        self._publishers = {}
+        self._initialized = False
 
-        It is intended as a utility method for subclasses and will normally
-        not be called from outside the event manager implementations.
+    @abstractmethod
+    async def build_publisher_for_model(
+        self, model: type[P]
+    ) -> EventPublisher[P]:
+        """Implementation-specific construction of the event publisher.
+
+        This class must be overridden by child classes to do the
+        implementation-specific work of constructing an appropriate child
+        instance of `~safir.metrics.EventPublisher`.
 
         Parameters
         ----------
-        name
-            Name of the event. This will be used as the name of the Avro
-            schema, the Avro namespace for the record, and the name of the
-            event in the event storage backend.
-        topic
-            Kafka topic to which these events will be published.
-        payload_model
-            A type derived from `~safir.metrics.EventPayload`. This defines
-            the type of models that will be passed into the
-            `~safir.metrics.EventPublisher.publish` method of the resulting
-            publisher.
+        model
+            Enriched and configured model representing the event that will be
+            published.
 
         Returns
         -------
-        dataclasses_avroschema.pydantic.AvroBaseModel
-            Constructed model based on the provided payload model.
-
-        Raises
-        ------
-        ValueError
-            Raised if the resulting class does not validate as an Avro schema.
+        EventPublisher
+            An appropriate event publisher implementation instance.
         """
 
-        class MetaBase(AvroBaseModel):
-            class Meta:
-                schema_name = name
-                namespace = topic
-
-        event_class = cast(
-            type[P],
-            create_model(
-                "EventModel",
-                __base__=(payload_model, EventMetadata, MetaBase),
-            ),
-        )
-
-        # Validate the structure of the model. This verifies that it can be
-        # serialized correctly and will raise an exception if it cannot be.
-        event_class.validate_structure()
-
-        return event_class
-
-    @abstractmethod
-    async def aclose(self) -> None:
-        """Shut down any internal state or managed clients."""
-
-    @abstractmethod
     async def create_publisher(
         self, name: str, payload_model: type[P]
     ) -> EventPublisher[P]:
@@ -273,7 +246,8 @@ class EventManager(metaclass=ABCMeta):
             A type derived from `~safir.metrics.EventPayload`. This defines
             the type of models that will be passed into the
             `~safir.metrics.EventPublisher.publish` method of the resulting
-            publisher.
+            publisher. The events as published will include the information in
+            this model plus the fields of `~safir.metrics.EventMetadata`.
 
         Returns
         -------
@@ -291,14 +265,43 @@ class EventManager(metaclass=ABCMeta):
             Raised if the topic for publishing events doesn't exist or we
             don't have access to it.
         """
+        if not self._initialized:
+            msg = "Initialize EventManager before creating event publishers"
+            raise EventManagerUnintializedError(msg)
+        if name in self._publishers:
+            raise DuplicateEventError(name)
 
-    @abstractmethod
+        # Mixin used to configure dataclasses-avroschema.
+        class MetaBase(AvroBaseModel):
+            class Meta:
+                schema_name = name
+                namespace = self.topic
+
+        # Construct the event model.
+        model = cast(
+            type[P],
+            create_model(
+                "EventModel",
+                __base__=(payload_model, EventMetadata, MetaBase),
+            ),
+        )
+
+        # Validate the structure of the model. This verifies that it can be
+        # serialized correctly and will raise an exception if it cannot be.
+        model.validate_structure()
+
+        # Build the publisher, store it to detect duplicates, and return it.
+        publisher = await self.build_publisher_for_model(model)
+        self._publishers[name] = publisher
+        return publisher
+
     async def initialize(self) -> None:
         """Initialize any internal state or managed clients.
 
         This method must be called before calling
         `~safir.metrics.EventManager.create_publisher`.
         """
+        self._initialized = True
 
 
 class KafkaEventManager(EventManager):
@@ -384,54 +387,54 @@ class KafkaEventManager(EventManager):
         manage_kafka: bool = False,
         logger: BoundLogger | None = None,
     ) -> None:
+        super().__init__(f"{topic_prefix}.{application}")
         self._application = application
-        self._topic = f"{topic_prefix}.{application}"
         self._broker = kafka_broker
         self._admin_client = kafka_admin_client
         self._schema_manager = schema_manager
         self._manage_kafka = manage_kafka
         self._logger = logger or structlog.get_logger("safir.metrics")
 
-        self._publishers: dict[str, EventPublisher] = {}
-        self._initialized = False
-
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
         if self._manage_kafka:
             await self._broker.close()
             await self._admin_client.close()
-        self._initialized = False
+        await super().aclose()
 
-    async def create_publisher(
-        self, name: str, payload_model: type[P]
+    async def build_publisher_for_model(
+        self, model: type[P]
     ) -> EventPublisher[P]:
-        if not self._initialized:
-            msg = "Initialize EventManager before creating event publishers"
-            raise EventManagerUnintializedError(msg)
-        if name in self._publishers:
-            raise DuplicateEventError(name)
+        """Build a Kafka publisher for a specific enriched model.
 
-        # Construct the event model and Kafka publisher.
-        model = self.build_validated_model(name, self._topic, payload_model)
-        async_publisher = self._broker.publisher(self._topic, schema=model)
+        Parameters
+        ----------
+        model
+            Enriched and configured model representing the event that will be
+            published.
+
+        Returns
+        -------
+        EventPublisher
+            An appropriate event publisher implementation instance.
+        """
+        async_publisher = self._broker.publisher(self.topic, schema=model)
 
         # Verify that the topic exists.
-        if not await self._is_topic_ok(self._topic):
-            raise KafkaTopicError(self._topic)
+        if not await self._is_topic_ok(self.topic):
+            raise KafkaTopicError(self.topic)
 
         # Register the Avro schema if necessary and get the schema details.
         schema_info = await self._schema_manager.register_model(model)
 
-        # Create, store, and return the event publisher for this name.
-        publisher = KafkaEventPublisher[P](
+        # Return the corresponding event publisher.
+        return KafkaEventPublisher[P](
             application=self._application,
             event_class=model,
             publisher=async_publisher,
             manager=self,
             schema_info=schema_info,
         )
-        self._publishers[name] = publisher
-        return publisher
 
     async def initialize(self) -> None:
         """Initialize the Kafka clients if they are managed."""
@@ -523,34 +526,24 @@ class NoopEventManager(EventManager):
         topic_prefix: str,
         logger: BoundLogger | None = None,
     ) -> None:
+        super().__init__(f"{topic_prefix}.{application}")
         self._application = application
-        self._topic = f"{topic_prefix}.{application}"
         self._logger = logger or structlog.get_logger("safir.metrics")
 
-        self._publishers: dict[str, EventPublisher] = {}
-        self._initialized = False
-
-    async def aclose(self) -> None:
-        self._initialized = False
-
-    async def create_publisher(
-        self, name: str, payload_model: type[P]
+    async def build_publisher_for_model(
+        self, model: type[P]
     ) -> EventPublisher[P]:
-        if not self._initialized:
-            msg = "Initialize EventManager before creating event publishers"
-            raise EventManagerUnintializedError(msg)
-        if name in self._publishers:
-            raise DuplicateEventError(name)
+        """Build a no-op publisher for a specific enriched model.
 
-        # Construct the event model.
-        model = self.build_validated_model(name, self._topic, payload_model)
+        Parameters
+        ----------
+        model
+            Enriched and configured model representing the event that will be
+            published.
 
-        # Create, store, and return the event publisher for this name.
-        publisher = NoopEventPublisher[P](
-            self._application, model, self._logger
-        )
-        self._publishers[name] = publisher
-        return publisher
-
-    async def initialize(self) -> None:
-        self._initialized = True
+        Returns
+        -------
+        EventPublisher
+            An appropriate event publisher implementation instance.
+        """
+        return NoopEventPublisher[P](self._application, model, self._logger)
