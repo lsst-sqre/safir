@@ -50,6 +50,7 @@ class SchemaManagerSettings(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=False,
         env_prefix="SCHEMA_MANAGER_",
+        extra="forbid",
         populate_by_name=True,
     )
 

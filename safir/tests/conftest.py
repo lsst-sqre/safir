@@ -21,14 +21,14 @@ from testcontainers.redis import RedisContainer
 from safir.kafka import (
     KafkaConnectionSettings,
     PydanticSchemaManager,
+    SchemaManagerSettings,
     SecurityProtocol,
 )
-from safir.kafka._schema_registry_config import SchemaManagerSettings
-from safir.metrics._config import (
+from safir.metrics import (
+    EventManager,
+    EventsConfiguration,
     KafkaMetricsConfiguration,
-    MetricsConfiguration,
 )
-from safir.metrics._event_manager import EventManager
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
@@ -217,10 +217,9 @@ async def event_manager(
 ) -> AsyncIterator[EventManager]:
     """Provide an event manager and create a matching Kafka topic."""
     config = KafkaMetricsConfiguration(
-        metrics_events=MetricsConfiguration(
-            app_name="testapp",
-            topic_prefix="what.ever",
-        ),
+        application="testapp",
+        enabled=True,
+        events=EventsConfiguration(topic_prefix="what.ever"),
         kafka=kafka_connection_settings,
         schema_manager=schema_manager_settings,
     )

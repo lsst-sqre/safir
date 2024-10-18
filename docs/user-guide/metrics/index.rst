@@ -36,8 +36,8 @@ Full example
 
 Here's an example of how you might use these tools in `typical FastAPI app`_. Individual components in this example are detailed in subsequent sections.
 
-To publish events, you'll instantiate an `~safir.metrics.EventManager`.
-When your app starts up, you'll use it to create an event publisher for every kind of event that your app will publish.
+To publish events, you'll instantiate one of the subclasses of `~safir.metrics.EventManager`, generally `~safir.metrics.KafkaEventManager`.
+When your app starts up, you'll use it to create an event publisher for every type of event that your app will publish.
 Then, throughout your app, you'll call the `~safir.metrics.EventPublisher.publish` method on these publishers to publish individual events.
 
 .. _typical FastAPI app: https://sqr-072.lsst.io/#one-design-pattern-for-fastapi-web-applications
@@ -57,7 +57,7 @@ The Kafka and schema manager values come from the Sasquatch configuration that y
 
 .. code-block:: shell
 
-   METRICS_APP_NAME=myapp
+   METRICS_APPLICATION=myapp
    KAFKA_SECURITY_PROTOCOL=SSL
    KAFKA_BOOSTRAP_SERVERS=sasquatch.kafka-1:9092,sasquatcy.kafka2-9092
    KAFKA_CLUSTER_CA_PATH=/some/path/ca.crt
@@ -65,7 +65,7 @@ The Kafka and schema manager values come from the Sasquatch configuration that y
    KAFKA_CLIENT_KEY_PATH=/some/path/user.key
    SCHEMA_MANAGER_REGISTRY_URL=https://sasquatch-schema-registry.sasquatch:8081
 
-Then we can use the metrics config helpers and the :ref:`Safir Kafka connection helpers <kafka-integration>` to write a Pydantic BaseSettings config model and singleton for our app.
+Then we can use the metrics config helpers and the :ref:`Safir Kafka connection helpers <kafka-integration>` to write a Pydantic ``BaseSettings`` config model and singleton for our app.
 Instantiating the model will pull values from the above environment variables.
 See :ref:`configuration-details` for more info.
 
@@ -74,17 +74,18 @@ See :ref:`configuration-details` for more info.
 
    from pydantic import Field, HttpUrl
    from pydantic_settings import BaseSettings, SettingsConfigDict
-   from safir.metrics import KafkaMetricsConfiguration
+   from safir.metrics import KafkaMetricsConfiguration, MetricsConfiguration
 
 
-   class Configuration(BaseSettings):
+   class Config(BaseSettings):
        an_important_url: HttpUrl = Field(
            ...,
            title="URL to something important",
        )
 
-       metrics: KafkaMetricsConfiguration(
-           default_factory=KafkaMetricsConfiguration
+       metrics: MetricsConfiguration = Field(
+           default_factory=KafkaMetricsConfiguration,
+           title="Metrics configuration",
        )
 
        model_config = SettingsConfigDict(
@@ -92,7 +93,7 @@ See :ref:`configuration-details` for more info.
        )
 
 
-   config = Configuration()
+   config = Config()
 
 Define events
 -------------
@@ -103,7 +104,7 @@ Next, we need to:
 * Define and an events container that takes an `~safir.metrics.EventManager` and creates a publisher for each event our app will ever publish
 * Instantiate an `~safir.dependencies.metrics.EventDependency`, which we'll initialize in our app start up laster.
 
-We can do this all in an ``events.py`` file.
+We can do this all in an :file:`events.py` file.
 
 .. note::
 
@@ -150,7 +151,7 @@ We can do this all in an ``events.py`` file.
 
 
    class Events(EventMaker):
-       def initialize(manager: EventManager) -> None:
+       async def initialize(manager: EventManager) -> None:
            self.query = await manager.create_publisher("query", QueryEvent)
 
 
@@ -240,14 +241,13 @@ Configuration details
 =====================
 
 Initializing an ``EventManager`` requires some information about your app (currently just the name, and both Kafka_ and a `schema registry`_ clients.
-Safir provides some `Pydantic BaseSettings`_ models to help get the necessary config for these things into your app via environment variables.
+Safir provides a configuration type and some `Pydantic BaseSettings`_ models to help get the necessary config for these things into your app via environment variables.
 
 You'll need to provide some metrics-specific info, Kafka connection settings, and schema registry connection settings:
 
 .. code-block:: shell
 
-   export METRICS_APP_NAME=myapp
-   export METRICS_DISABLE=false
+   export METRICS_APPLICATION=myapp
    export KAFKA_SECURITY_PROTOCOL=SSL
    export KAFKA_BOOSTRAP_SERVERS=sasquatch.kafka-1:9092,sasquatcy.kafka2-9092
    export KAFKA_CLUSTER_CA_PATH=/some/path/ca.crt
@@ -255,19 +255,38 @@ You'll need to provide some metrics-specific info, Kafka connection settings, an
    export KAFKA_CLIENT_KEY_PATH=/some/path/user.key
    export SCHEMA_MANAGER_REGISTRY_URL=https://sasquatch-schema-registry.sasquatch:8081
 
+To disable metrics at runtime, set ``METRICS_ENABLED`` to ``false``.
+This will still verify that the event objects are valid, but will then discard them rather than trying to record them.
 
 Your app doesn't use Kafka
 --------------------------
 
-If your app won't use Kafka for anything except publishing metrics, there is another config helper, `~safir.metrics.KafkaMetricsConfiguration` that will construct an ``EventManager`` and all of its Kafka dependencies:
-
+If your app won't use Kafka for anything except publishing metrics, add a ``metrics`` member to your applications ``BaseSettings`` class with the type `~safir.metrics.MetricsConfiguration`.
+This will become an appropriate instance of `~safir.metrics.BaseMetricsConfiguration` at runtime, based on the configuration from any of the normal sources that ``BaseSettings`` supports.
 
 .. code-block:: python
+   :caption: config.py
 
-   from safir.metrics import EventManager, MetricsConfiguration
+   from pydantic_settings import BaseSettings
+   from safir.metrics import (
+       MetricsConfiguration,
+       metrics_configuration_factory,
+   )
 
-   config = KafkaMetricsConfiguration()
-   manager = config.make_manager()
+
+   class Config(BaseSettings):
+       metrics: MetricsConfiguration = Field(
+           default_factory=metrics_configuration_factory,
+           title="Metrics configuration",
+       )
+
+
+   config = Config()
+   manager = config.metrics.make_manager()
+
+Unfortunately, due to limitations in Pydantic, you need to specify `~safir.metrics.metrics_configuration_factory` as a default factory.
+This will choose an appropriate metrics configuration based on which environment variables are set.
+This ``default_factory`` setting is not required if the configuration is provided via a YAML file or similar input with a ``metrics`` key, rather than purely via the environment.
 
 Your app uses Kafka
 -------------------
@@ -276,7 +295,7 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
 
 .. note::
 
-   The ``manage_kafaka`` parameter is ``False`` here.  This means that calling `~safir.metrics.EventManager.aclose` on your `~safir.metrics.EventManager` will NOT stop the Kafka clients.
+   The ``manage_kafaka`` parameter is `False` here.  This means that calling `~safir.metrics.EventManager.aclose` on your `~safir.metrics.EventManager` will NOT stop the Kafka clients.
    You are expected to do this yourself somewhere else in your app.
 
 .. code-block:: python
@@ -286,7 +305,7 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
 
    kafka_config = KafkaConnectionSettings()
    schema_manager_config = SchemaManagerSettings()
-   metrics_config = MetricsConfiguration()
+   events_config = EventsConfiguration()
 
    # You can use this in all parts of your app
    broker = KafkaBroker(**kafka_config.to_faststream_params())
@@ -297,13 +316,12 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
    schema_manager = schema_manager_config.make_manager()
 
    return EventManager(
-       app_name=metrics_config.app_name,
-       base_topic_prefix=metrics_config.topic_prefix,
+       application="myapp",
+       topic_prefix=events_config.topic_prefix,
        kafka_broker=broker,
        kafka_admin_client=admin_client,
        schema_manager=schema_manager,
        manage_kafka=False,
-       disable=self.metrics_events.disable,
    )
 
 .. _FastStream: https://faststream.airt.ai

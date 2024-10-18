@@ -1,16 +1,20 @@
 """Test metrics tooling."""
 
+from __future__ import annotations
+
 import asyncio
 import math
 from datetime import timedelta
 from enum import Enum
+from typing import cast
 from uuid import UUID
 
 import pytest
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
+from dataclasses_avroschema.pydantic import AvroBaseModel
 from faststream.kafka import KafkaBroker
-from pydantic import AnyUrl, Field
+from pydantic import Field
 from schema_registry.client.client import AsyncSchemaRegistryClient
 from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
@@ -21,9 +25,9 @@ from safir.kafka import (
     KafkaConnectionSettings,
     PydanticSchemaManager,
     SchemaManagerSettings,
-    SecurityProtocol,
 )
 from safir.metrics import (
+    DisabledMetricsConfiguration,
     DuplicateEventError,
     EventDuration,
     EventManager,
@@ -31,9 +35,11 @@ from safir.metrics import (
     EventMetadata,
     EventPayload,
     EventPublisher,
+    EventsConfiguration,
+    KafkaEventManager,
+    KafkaEventPublisher,
     KafkaMetricsConfiguration,
     KafkaTopicError,
-    MetricsConfiguration,
 )
 
 
@@ -75,11 +81,12 @@ async def assert_from_kafka(
     serializer = AsyncAvroMessageSerializer(schema_registry)
     deserialized_dict = await serializer.decode_message(message.value)
     assert deserialized_dict is not None
-    deserialized = event.event_class(**deserialized_dict)
+    event_class = cast(type[AvroBaseModel], event._event_class)
+    deserialized = event_class(**deserialized_dict)
 
     assert isinstance(deserialized, EventMetadata)
     assert isinstance(deserialized.id, UUID)
-    assert deserialized.app_name == "testapp"
+    assert deserialized.application == "testapp"
 
     # dataclasses-avroschema serializes python datetime's into avro
     # timestamp-millis's
@@ -145,7 +152,8 @@ async def integration_test(
     await kafka_consumer.seek_to_beginning()
 
     # Assert stuff
-    assert event.publisher.topic == expected_topic
+    assert isinstance(event, KafkaEventPublisher)
+    assert event._publisher.topic == expected_topic
     await assert_from_kafka(
         kafka_consumer,
         schema_registry,
@@ -173,10 +181,8 @@ async def test_managed_storage(
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
     config = KafkaMetricsConfiguration(
-        metrics_events=MetricsConfiguration(
-            app_name="testapp",
-            topic_prefix="what.ever",
-        ),
+        application="testapp",
+        events=EventsConfiguration(topic_prefix="what.ever"),
         kafka=kafka_connection_settings,
         schema_manager=schema_manager_settings,
     )
@@ -201,14 +207,13 @@ async def test_unmanaged_storage(
     schema_manager: PydanticSchemaManager,
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
-    manager = EventManager(
-        app_name="testapp",
-        base_topic_prefix="what.ever",
+    manager = KafkaEventManager(
+        application="testapp",
+        topic_prefix="what.ever",
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
         manage_kafka=False,
-        disable=False,
     )
     await integration_test(
         manager, schema_manager_settings, kafka_consumer, kafka_admin_client
@@ -227,14 +232,13 @@ async def test_topic_not_created(
     kafka_admin_client: AIOKafkaAdminClient,
     schema_manager: PydanticSchemaManager,
 ) -> None:
-    manager = EventManager(
-        app_name="testapp",
-        base_topic_prefix="what.ever",
+    manager = KafkaEventManager(
+        application="testapp",
+        topic_prefix="what.ever",
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
         manage_kafka=False,
-        disable=False,
     )
 
     with pytest.raises(KafkaTopicError):
@@ -260,14 +264,13 @@ async def test_create_before_initialize(
     )
     await kafka_admin_client.create_topics([topic])
 
-    manager = EventManager(
-        app_name="testapp",
-        base_topic_prefix="what.ever",
+    manager = KafkaEventManager(
+        application="testapp",
+        topic_prefix="what.ever",
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
         manage_kafka=False,
-        disable=False,
     )
 
     with pytest.raises(EventManagerUnintializedError):
@@ -313,17 +316,10 @@ async def test_invalid_payload(event_manager: EventManager) -> None:
 
 @pytest.mark.asyncio
 async def test_disable() -> None:
-    config = KafkaMetricsConfiguration(
-        metrics_events=MetricsConfiguration(
-            app_name="testapp", topic_prefix="what.ever", disable=True
-        ),
-        kafka=KafkaConnectionSettings(
-            bootstrap_servers="whatever",
-            security_protocol=SecurityProtocol.PLAINTEXT,
-        ),
-        schema_manager=SchemaManagerSettings(
-            registry_url=AnyUrl("http://whatever.code")
-        ),
+    config = DisabledMetricsConfiguration(
+        enabled=False,
+        application="testapp",
+        events=EventsConfiguration(topic_prefix="what.ever"),
     )
     manager = config.make_manager()
 
@@ -333,6 +329,3 @@ async def test_disable() -> None:
     await event.publish(MyEvent(foo="bar1", duration=timedelta(seconds=1)))
     await event.publish(MyEvent(foo="bar2", duration=timedelta(seconds=1)))
     await manager.aclose()
-
-    topic = "what.ever.testapp"
-    assert event.publisher.topic == topic
