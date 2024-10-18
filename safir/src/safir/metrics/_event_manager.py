@@ -189,15 +189,26 @@ class EventManager(metaclass=ABCMeta):
     ----------
     topic
         Kafka topic to which events will be published.
+    logger
+        Logger to use. The ``safir.metrics`` logger will be used if none is
+        provided.
 
     Attributes
     ----------
     topic
         Kafka topic to which events will be published.
+    logger
+        Logger that subclasses should use. This should not be used outside of
+        subclasses of this class.
     """
 
-    def __init__(self, topic: str) -> None:
+    def __init__(
+        self,
+        topic: str,
+        logger: BoundLogger | None = None,
+    ) -> None:
         self.topic = topic
+        self.logger = logger or structlog.get_logger("safir.metrics")
         self._publishers: dict[str, EventPublisher] = {}
         self._initialized = False
 
@@ -387,13 +398,12 @@ class KafkaEventManager(EventManager):
         manage_kafka: bool = False,
         logger: BoundLogger | None = None,
     ) -> None:
-        super().__init__(f"{topic_prefix}.{application}")
+        super().__init__(f"{topic_prefix}.{application}", logger)
         self._application = application
         self._broker = kafka_broker
         self._admin_client = kafka_admin_client
         self._schema_manager = schema_manager
         self._manage_kafka = manage_kafka
-        self._logger = logger or structlog.get_logger("safir.metrics")
 
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
@@ -474,7 +484,7 @@ class KafkaEventManager(EventManager):
             raise EventManagerUnintializedError(msg)
         encoded = await self._schema_manager.serialize(event)
         await publisher.publish(encoded)
-        self._logger.debug(
+        self.logger.debug(
             "Published metrics event",
             metrics_event=event.model_dump(),
             topic=publisher.topic,
@@ -526,9 +536,8 @@ class NoopEventManager(EventManager):
         topic_prefix: str,
         logger: BoundLogger | None = None,
     ) -> None:
-        super().__init__(f"{topic_prefix}.{application}")
+        super().__init__(f"{topic_prefix}.{application}", logger)
         self._application = application
-        self._logger = logger or structlog.get_logger("safir.metrics")
 
     async def build_publisher_for_model(
         self, model: type[P]
@@ -546,4 +555,4 @@ class NoopEventManager(EventManager):
         EventPublisher
             An appropriate event publisher implementation instance.
         """
-        return NoopEventPublisher[P](self._application, model, self._logger)
+        return NoopEventPublisher[P](self._application, model, self.logger)
