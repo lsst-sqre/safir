@@ -9,6 +9,18 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-6.5.0'></a>
+## 6.5.0 (2024-10-18)
+
+### New features
+
+- Add new `safir.kafka` module to simplify configuring and constructing Kafka clients. Included in this module is `safir.kafka.PydanticSchemaManager`, which supports registering and evolving Avro schemas in the Confluent schema registry via Pydantic models. Based on @jonathansick's [kafkit](https://kafkit.lsst.io/) work.
+- Add new `safir.metrics` module to enable publishing app metrics events.
+
+### Bug fixes
+
+- Fix integration issues with [vo-models](https://github.com/spacetelescope/vo-models) in the UWS support.
+
 <a id='changelog-6.4.0'></a>
 ## 6.4.0 (2024-09-16)
 
