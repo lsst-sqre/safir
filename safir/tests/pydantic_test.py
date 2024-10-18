@@ -175,6 +175,7 @@ def test_seconds_timedelta() -> None:
         TestModel.model_validate({"delta": "P1DT12H"})
 
 
+@pytest.mark.filterwarnings("ignore:.*datetime.utcnow.*:DeprecationWarning")
 def test_normalize_datetime() -> None:
     class TestModel(BaseModel):
         time: datetime | None
