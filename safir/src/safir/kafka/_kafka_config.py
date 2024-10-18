@@ -292,7 +292,6 @@ class KafkaConnectionSettings(BaseSettings):
     """
 
     bootstrap_servers: str = Field(
-        ...,
         title="Kafka bootstrap servers",
         description=(
             "A comma-separated list of Kafka brokers to connect to. "
@@ -395,9 +394,7 @@ class KafkaConnectionSettings(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        case_sensitive=False,
-        env_prefix="KAFKA_",
-        populate_by_name=True,
+        case_sensitive=False, extra="forbid", populate_by_name=True
     )
 
     @model_validator(mode="after")
