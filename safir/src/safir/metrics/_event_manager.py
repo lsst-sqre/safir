@@ -44,15 +44,15 @@ class EventPublisher(Generic[P], metaclass=ABCMeta):
 
     Parameters
     ----------
-    app_name
+    application
         Name of the application to include in events.
     event_class
         Fully-enriched class to which payloads will be converted before
         publication.
     """
 
-    def __init__(self, app_name: str, event_class: type[P]) -> None:
-        self._app_name = app_name
+    def __init__(self, application: str, event_class: type[P]) -> None:
+        self._application = application
         self._event_class = event_class
 
     def construct_event(self, payload: P) -> P:
@@ -72,7 +72,7 @@ class EventPublisher(Generic[P], metaclass=ABCMeta):
         time_ns = time.time_ns()
         metadata = EventMetadata(
             id=uuid4(),
-            app_name=self._app_name,
+            application=self._application,
             timestamp=self._ns_to_datetime(time_ns),
             timestamp_ns=time_ns,
         )
@@ -116,7 +116,7 @@ class KafkaEventPublisher(EventPublisher, Generic[P]):
 
     Parameters
     ----------
-    app_name
+    application
         Name of the application publishing events.
     manager
         The EventManager that will actually publish the event to Kafka
@@ -134,13 +134,13 @@ class KafkaEventPublisher(EventPublisher, Generic[P]):
     def __init__(
         self,
         *,
-        app_name: str,
+        application: str,
         manager: KafkaEventManager,
         event_class: type[AvroBaseModel],
         publisher: AsyncAPIDefaultPublisher,
         schema_info: SchemaInfo,
     ) -> None:
-        super().__init__(app_name, event_class)
+        super().__init__(application, event_class)
         self._manager = manager
         self._publisher = publisher
         self._schema_info = schema_info
@@ -161,11 +161,11 @@ class NoopEventPublisher(EventPublisher, Generic[P]):
 
     def __init__(
         self,
-        app_name: str,
+        application: str,
         event_class: type[AvroBaseModel],
         logger: BoundLogger,
     ) -> None:
-        super().__init__(app_name, event_class)
+        super().__init__(application, event_class)
         self._logger = logger
 
     async def publish(self, payload: P) -> EventMetadata:
@@ -311,7 +311,7 @@ class KafkaEventManager(EventManager):
 
     Parameters
     ----------
-    app_name
+    application
         Name of the application that is generating events.
     topic_prefix
         Kafka topic prefix for the metrics events topic for this application.
@@ -346,7 +346,7 @@ class KafkaEventManager(EventManager):
 
        config = KafkaMetricsConfiguration(
            events=EventsConfiguration(
-               app_name="myapp",
+               application="myapp",
                topic_prefix="what.ever",
            ),
            kafka=KafkaConnectionSettings(
@@ -376,7 +376,7 @@ class KafkaEventManager(EventManager):
     def __init__(
         self,
         *,
-        app_name: str,
+        application: str,
         topic_prefix: str,
         kafka_broker: KafkaBroker,
         kafka_admin_client: AIOKafkaAdminClient,
@@ -384,8 +384,8 @@ class KafkaEventManager(EventManager):
         manage_kafka: bool = False,
         logger: BoundLogger | None = None,
     ) -> None:
-        self._app_name = app_name
-        self._topic = f"{topic_prefix}.{app_name}"
+        self._application = application
+        self._topic = f"{topic_prefix}.{application}"
         self._broker = kafka_broker
         self._admin_client = kafka_admin_client
         self._schema_manager = schema_manager
@@ -424,7 +424,7 @@ class KafkaEventManager(EventManager):
 
         # Create, store, and return the event publisher for this name.
         publisher = KafkaEventPublisher[P](
-            app_name=self._app_name,
+            application=self._application,
             event_class=model,
             publisher=async_publisher,
             manager=self,
@@ -509,7 +509,7 @@ class NoopEventManager(EventManager):
 
     Parameters
     ----------
-    app_name
+    application
         Name of the application that is generating events.
     topic_prefix
         Kafka topic prefix for the metrics events topic for this application.
@@ -519,12 +519,12 @@ class NoopEventManager(EventManager):
 
     def __init__(
         self,
-        app_name: str,
+        application: str,
         topic_prefix: str,
         logger: BoundLogger | None = None,
     ) -> None:
-        self._app_name = app_name
-        self._topic = f"{topic_prefix}.{app_name}"
+        self._application = application
+        self._topic = f"{topic_prefix}.{application}"
         self._logger = logger or structlog.get_logger("safir.metrics")
 
         self._publishers: dict[str, EventPublisher] = {}
@@ -546,7 +546,9 @@ class NoopEventManager(EventManager):
         model = self.build_validated_model(name, self._topic, payload_model)
 
         # Create, store, and return the event publisher for this name.
-        publisher = NoopEventPublisher[P](self._app_name, model, self._logger)
+        publisher = NoopEventPublisher[P](
+            self._application, model, self._logger
+        )
         self._publishers[name] = publisher
         return publisher
 

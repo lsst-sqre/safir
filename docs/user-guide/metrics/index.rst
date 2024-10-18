@@ -57,7 +57,7 @@ The Kafka and schema manager values come from the Sasquatch configuration that y
 
 .. code-block:: shell
 
-   METRICS_APP_NAME=myapp
+   METRICS_APPLICATION=myapp
    KAFKA_SECURITY_PROTOCOL=SSL
    KAFKA_BOOSTRAP_SERVERS=sasquatch.kafka-1:9092,sasquatcy.kafka2-9092
    KAFKA_CLUSTER_CA_PATH=/some/path/ca.crt
@@ -247,7 +247,7 @@ You'll need to provide some metrics-specific info, Kafka connection settings, an
 
 .. code-block:: shell
 
-   export METRICS_APP_NAME=myapp
+   export METRICS_APPLICATION=myapp
    export KAFKA_SECURITY_PROTOCOL=SSL
    export KAFKA_BOOSTRAP_SERVERS=sasquatch.kafka-1:9092,sasquatcy.kafka2-9092
    export KAFKA_CLUSTER_CA_PATH=/some/path/ca.crt
@@ -316,7 +316,7 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
    schema_manager = schema_manager_config.make_manager()
 
    return EventManager(
-       app_name="myapp",
+       application="myapp",
        topic_prefix=events_config.topic_prefix,
        kafka_broker=broker,
        kafka_admin_client=admin_client,

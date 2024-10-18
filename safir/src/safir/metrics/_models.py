@@ -96,7 +96,7 @@ class EventMetadata(AvroBaseModel):
         description="A globally unique value that identifies this event",
     )
 
-    app_name: str = Field(
+    application: str = Field(
         description="The application generating this event.",
         examples=["gafaelfawr", "mobu"],
     )

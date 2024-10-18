@@ -73,13 +73,13 @@ class BaseMetricsConfiguration(BaseSettings, ABC):
     clients.
     """
 
-    app_name: str = Field(
+    application: str = Field(
         ...,
         title="Application name",
         description=(
             "The name of the application that is emitting these metrics"
         ),
-        validation_alias=AliasChoices("appName", "METRICS_APP_NAME"),
+        validation_alias=AliasChoices("appName", "METRICS_APPLICATION"),
     )
 
     events: EventsConfiguration = Field(
@@ -131,7 +131,7 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
         if not logger:
             logger = structlog.get_logger("safir.metrics")
         return NoopEventManager(
-            self.app_name, self.events.topic_prefix, logger
+            self.application, self.events.topic_prefix, logger
         )
 
 
@@ -181,17 +181,17 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
             An event manager appropriate to the configuration.
         """
         broker = KafkaBroker(
-            client_id=f"{BROKER_PREFIX}-{self.app_name}",
+            client_id=f"{BROKER_PREFIX}-{self.application}",
             **self.kafka.to_faststream_params(),
         )
         admin_client = AIOKafkaAdminClient(
-            client_id=f"{ADMIN_CLIENT_PREFIX}-{self.app_name}",
+            client_id=f"{ADMIN_CLIENT_PREFIX}-{self.application}",
             **self.kafka.to_aiokafka_params(),
         )
         schema_manager = self.schema_manager.make_manager()
 
         return KafkaEventManager(
-            app_name=self.app_name,
+            application=self.application,
             topic_prefix=self.events.topic_prefix,
             kafka_broker=broker,
             kafka_admin_client=admin_client,

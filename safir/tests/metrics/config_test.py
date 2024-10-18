@@ -23,7 +23,7 @@ class Config(BaseSettings):
 
 
 def test_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("METRICS_APP_NAME", "test")
+    monkeypatch.setenv("METRICS_APPLICATION", "test")
     monkeypatch.setenv("METRICS_ENABLED", "false")
 
     config = Config()
@@ -34,7 +34,7 @@ def test_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_kafka(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("METRICS_APP_NAME", "test")
+    monkeypatch.setenv("METRICS_APPLICATION", "test")
     monkeypatch.setenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
     monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "kafka-1.sasquatch:9092")
     monkeypatch.setenv("SCHEMA_MANAGER_REGISTRY_URL", "https://example.com/")

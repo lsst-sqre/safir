@@ -217,7 +217,7 @@ async def event_manager(
 ) -> AsyncIterator[EventManager]:
     """Provide an event manager and create a matching Kafka topic."""
     config = KafkaMetricsConfiguration(
-        app_name="testapp",
+        application="testapp",
         enabled=True,
         events=EventsConfiguration(topic_prefix="what.ever"),
         kafka=kafka_connection_settings,

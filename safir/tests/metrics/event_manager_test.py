@@ -86,7 +86,7 @@ async def assert_from_kafka(
 
     assert isinstance(deserialized, EventMetadata)
     assert isinstance(deserialized.id, UUID)
-    assert deserialized.app_name == "testapp"
+    assert deserialized.application == "testapp"
 
     # dataclasses-avroschema serializes python datetime's into avro
     # timestamp-millis's
@@ -181,7 +181,7 @@ async def test_managed_storage(
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
     config = KafkaMetricsConfiguration(
-        app_name="testapp",
+        application="testapp",
         events=EventsConfiguration(topic_prefix="what.ever"),
         kafka=kafka_connection_settings,
         schema_manager=schema_manager_settings,
@@ -208,7 +208,7 @@ async def test_unmanaged_storage(
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
     manager = KafkaEventManager(
-        app_name="testapp",
+        application="testapp",
         topic_prefix="what.ever",
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
@@ -233,7 +233,7 @@ async def test_topic_not_created(
     schema_manager: PydanticSchemaManager,
 ) -> None:
     manager = KafkaEventManager(
-        app_name="testapp",
+        application="testapp",
         topic_prefix="what.ever",
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
@@ -265,7 +265,7 @@ async def test_create_before_initialize(
     await kafka_admin_client.create_topics([topic])
 
     manager = KafkaEventManager(
-        app_name="testapp",
+        application="testapp",
         topic_prefix="what.ever",
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
@@ -318,7 +318,7 @@ async def test_invalid_payload(event_manager: EventManager) -> None:
 async def test_disable() -> None:
     config = DisabledMetricsConfiguration(
         enabled=False,
-        app_name="testapp",
+        application="testapp",
         events=EventsConfiguration(topic_prefix="what.ever"),
     )
     manager = config.make_manager()
