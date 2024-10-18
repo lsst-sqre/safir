@@ -23,18 +23,18 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "aiokafka>=0.11",
+    "aiokafka>=0.11,<1",
     "click<9",
     "cryptography<44",
-    "dataclasses-avroschema>0.62",
+    "dataclasses-avroschema>0.62,<1",
     "fastapi<1",
     "faststream>0.5,<0.6",
     "gidgethub<6",
     "httpx>=0.20.0,<1",
     "pydantic>2,<3",
     "pydantic-core",
-    "pydantic-settings!=2.6.0",
-    "python-schema-registry-client>=2.6",
+    "pydantic-settings!=2.6.0,<3",
+    "python-schema-registry-client>=2.6,<3",
     "safir-logging<7",
     "starlette<1",
     "structlog>=21.2.0",
@@ -86,7 +86,7 @@ uws = [
     "jinja2<4",
     "python-multipart",
     "safir-arq<7",
-    "sqlalchemy[asyncio]>=1.4.18,<3",
+    "sqlalchemy[asyncio]>=2.0.0,<3",
     "vo-models>=0.4.1,<1",
 ]
 
