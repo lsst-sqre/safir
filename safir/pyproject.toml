@@ -56,7 +56,7 @@ dev = [
     "fastapi>=0.93.0",
     "mypy",
     "pre-commit",
-    "pytest",
+    "pytest>=6.2.0",
     "pytest-asyncio",
     "pytest-cov",
     "redis>=5,<6",
