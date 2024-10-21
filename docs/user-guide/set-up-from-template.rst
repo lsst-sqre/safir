@@ -109,7 +109,7 @@ Now `create your application's repository on GitHub <https://docs.github.com/en/
 The first push to GitHub will fail.
 That's because the Docker build step doesn't credentials for Docker Hub.
 
-To set those credentials, follow GitHub's help page `Creating and storing encrypted secrets <https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions>`__.
+To set those credentials, follow GitHub's help page `Creating and storing encrypted secrets <https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions>`__.
 The variables are:
 
 ``DOCKER_USERNAME``
