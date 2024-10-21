@@ -87,12 +87,6 @@ class BaseMetricsConfiguration(BaseSettings, ABC):
         title="Events configuration",
     )
 
-    model_config = SettingsConfigDict(
-        alias_generator=to_camel,
-        extra="forbid",
-        populate_by_name=True,
-    )
-
     @abstractmethod
     def make_manager(self, logger: BoundLogger | None = None) -> EventManager:
         """Construct an EventManager.
@@ -124,6 +118,8 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
         ),
         validation_alias=AliasChoices("enabled", "METRICS_ENABLED"),
     )
+
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     def make_manager(
         self, logger: BoundLogger | None = None
@@ -158,6 +154,12 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
     schema_manager: SchemaManagerSettings = Field(
         default_factory=SchemaManagerSettings,
         title="Kafka schema manager settings",
+    )
+
+    model_config = SettingsConfigDict(
+        alias_generator=to_camel,
+        extra="forbid",
+        populate_by_name=True,
     )
 
     def make_manager(
