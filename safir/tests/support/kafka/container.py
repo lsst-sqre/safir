@@ -322,12 +322,12 @@ class FullKafkaContainer(DockerContainer):
         for chunk in bits:
             raw.write(chunk)
         raw.seek(0)
-        tf = tarfile.open(fileobj=raw)
-        stream = tf.extractfile(name)
-        assert stream
-        data = stream.read()
-        assert data
-        return data.decode()
+        with tarfile.open(fileobj=raw) as tf:
+            stream = tf.extractfile(name)
+            assert stream
+            data = stream.read()
+            assert data
+            return data.decode()
 
     def reset(self) -> None:
         self.exec(
