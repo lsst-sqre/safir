@@ -41,7 +41,7 @@ def _install_dev(session: nox.Session, bin_prefix: str = "") -> None:
 
     # Install dev dependencies
     session.run(python, "-m", "pip", "install", "uv", external=True)
-    uv_install = (python, "-m", "uv", "pip", "install")
+    uv_install = (python, "-m", "uv", "pip", "install", "--upgrade")
     session.run(*uv_install, "nox[uv]", "pre-commit", external=True)
     for deps in PIP_DEPENDENCIES:
         session.run(*uv_install, *deps, external=True)
