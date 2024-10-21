@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-6.5.1'></a>
+## 6.5.1 (2024-10-21)
+
+### Bug fixes
+
+- Allow and ignore extra attributes to `MetricsConfiguration` when metrics are disabled. This allows passing a partial metrics configuration even when they are disabled, which simplifies the structure of Phalanx configurations based on dumping the Helm values into a YAML configuraiton file.
+
 <a id='changelog-6.5.0'></a>
 ## 6.5.0 (2024-10-18)
 
