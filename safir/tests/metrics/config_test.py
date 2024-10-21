@@ -32,6 +32,23 @@ def test_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(manager, NoopEventManager)
 
 
+def test_disabled_extra() -> None:
+    config = Config.model_validate(
+        {
+            "metrics": {
+                "enabled": False,
+                "application": "example",
+                "events": {"topicPrefix": "lsst.square.metrics.events"},
+                "schemaManager": {
+                    "registryUrl": "https://example.com",
+                    "suffix": "",
+                },
+            }
+        }
+    )
+    assert isinstance(config.metrics, DisabledMetricsConfiguration)
+
+
 @pytest.mark.asyncio
 async def test_kafka(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("METRICS_APPLICATION", "test")
