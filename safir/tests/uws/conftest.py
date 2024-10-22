@@ -5,13 +5,14 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from typing import Annotated
 
 import pytest
 import pytest_asyncio
 import respx
 import structlog
 from asgi_lifespan import LifespanManager
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Body, FastAPI
 from httpx import ASGITransport, AsyncClient
 from structlog.stdlib import BoundLogger
 
@@ -22,10 +23,28 @@ from safir.slack.webhook import SlackRouteErrorHandler
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 from safir.testing.uws import MockUWSJobRunner
-from safir.uws import UWSApplication, UWSConfig
+from safir.uws import UWSApplication, UWSConfig, UWSJobParameter
 from safir.uws._dependencies import UWSFactory, uws_dependency
 
 from ..support.uws import build_uws_config
+
+
+@pytest.fixture
+def post_params_router() -> APIRouter:
+    """Return a router that echoes the parameters passed in the request."""
+    router = APIRouter()
+
+    @router.post("/params")
+    async def post_params(
+        params: Annotated[list[UWSJobParameter], Body()],
+    ) -> dict[str, list[dict[str, str]]]:
+        return {
+            "params": [
+                {"id": p.parameter_id, "value": p.value} for p in params
+            ]
+        }
+
+    return router
 
 
 @pytest_asyncio.fixture
@@ -33,6 +52,7 @@ async def app(
     arq_queue: MockArqQueue,
     uws_config: UWSConfig,
     logger: BoundLogger,
+    post_params_router: APIRouter,
 ) -> AsyncIterator[FastAPI]:
     """Return a configured test application for UWS.
 
@@ -56,6 +76,7 @@ async def app(
     router = APIRouter(route_class=SlackRouteErrorHandler)
     uws.install_handlers(router)
     app.include_router(router, prefix="/test")
+    app.include_router(post_params_router, prefix="/test")
     uws.install_error_handlers(app)
 
     async with LifespanManager(app):
