@@ -187,7 +187,7 @@ async def uws_post_params_dependency(
     if request.method != "POST":
         raise ValueError("uws_post_params_dependency used for non-POST route")
     parameters = []
-    for key, value in (await request.form()).items():
+    for key, value in (await request.form()).multi_items():
         if not isinstance(value, str):
             raise TypeError("File upload not supported")
         parameters.append(
