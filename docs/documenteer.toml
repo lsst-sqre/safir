@@ -63,17 +63,17 @@ extensions = [
 ]
 
 [sphinx.intersphinx.projects]
-aiokafka = "https://aiokafka.readthedocs.io/en/stable/"
+aiokafka = "https://aiokafka.readthedocs.io/en/stable"
 arq = "https://arq-docs.helpmanual.io"
-click = "https://click.palletsprojects.com/"
-cryptography = "https://cryptography.io/en/latest/"
-gidgethub = "https://gidgethub.readthedocs.io/en/latest/"
-python = "https://docs.python.org/3/"
-redis = "https://redis-py.readthedocs.io/en/stable/"
-schema_registry = "https://marcosschroh.github.io/python-schema-registry-client/"
-structlog = "https://www.structlog.org/en/stable/"
-sqlalchemy = "https://docs.sqlalchemy.org/en/latest/"
-vomodels = "https://vo-models.readthedocs.io/latest/"
+click = "https://click.palletsprojects.com"
+cryptography = "https://cryptography.io/en/latest"
+gidgethub = "https://gidgethub.readthedocs.io/en/latest"
+python = "https://docs.python.org/3"
+redis = "https://redis-py.readthedocs.io/en/stable"
+schema_registry = "https://marcosschroh.github.io/python-schema-registry-client"
+structlog = "https://www.structlog.org/en/stable"
+sqlalchemy = "https://docs.sqlalchemy.org/en/latest"
+vomodels = "https://vo-models.readthedocs.io/latest"
 
 [sphinx.linkcheck]
 ignore = [
