@@ -33,7 +33,7 @@ Here is a basic set up:
 
 
    redis_client = redis.Redis("redis://localhost:6379/0")
-   mymodel_storage = PydanticRedisStorage(MyModel, redis_client)
+   mymodel_storage = PydanticRedisStorage(datatype=MyModel, redis=redis_client)
 
 Use the `~safir.redis.PydanticRedisStorage.store` method to store a Pydantic object in Redis with a specific key:
 
