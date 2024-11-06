@@ -29,7 +29,6 @@ from safir.kafka import (
 from safir.metrics import (
     DisabledMetricsConfiguration,
     DuplicateEventError,
-    EventDuration,
     EventManager,
     EventManagerUnintializedError,
     EventMetadata,
@@ -47,7 +46,7 @@ class MyEvent(EventPayload):
     """An event payload."""
 
     foo: str
-    duration: EventDuration
+    duration: timedelta
 
 
 class Events(EventMaker):

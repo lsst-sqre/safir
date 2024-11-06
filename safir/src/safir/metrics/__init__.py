@@ -19,13 +19,12 @@ from ._exceptions import (
     EventManagerUnintializedError,
     KafkaTopicError,
 )
-from ._models import EventDuration, EventMetadata, EventPayload
+from ._models import EventMetadata, EventPayload
 
 __all__ = [
     "BaseMetricsConfiguration",
     "DisabledMetricsConfiguration",
     "DuplicateEventError",
-    "EventDuration",
     "EventsConfiguration",
     "EventManager",
     "EventManagerUnintializedError",
