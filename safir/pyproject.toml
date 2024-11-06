@@ -26,7 +26,7 @@ dependencies = [
     "aiokafka>=0.11,<1",
     "click<9",
     "cryptography<44",
-    "dataclasses-avroschema>0.62,<1",
+    "dataclasses-avroschema>=0.65,<1",
     "fastapi<1",
     "faststream>0.5,<0.6",
     "gidgethub<6",
@@ -136,10 +136,6 @@ exclude_lines = [
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "strict"
-filterwarnings = [
-    # Temporary until we can get timedelta support into dataclasses-avroschema.
-    "ignore:.*json_encoders.*is deprecated.*",
-]
 python_files = [
     "tests/*.py",
     "tests/*/*.py"
