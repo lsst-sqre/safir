@@ -9,6 +9,19 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-7.0.0'></a>
+## 7.0.0 (2024-11-08)
+
+### Backwards-incompatible changes
+
+- `EventDuration` has been removed from `safir.metrics`. You can now use Python's built-in `timedelta` as the type for any field you were previously using `EventDuration`. It will be serialized the same way, as an Avro `double` number of seconds.
+
+### Bug fixes
+
+- Change uws_post_params_dependency to support reading in multiple of the same param
+
+- Add a py.typed to the `metrics` package
+
 <a id='changelog-6.5.1'></a>
 ## 6.5.1 (2024-10-21)
 
