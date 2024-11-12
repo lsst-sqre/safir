@@ -440,7 +440,7 @@ You're now ready to create the database migration.
       op.execute("ALTER TYPE tokentype ADD VALUE 'oidc' IF NOT EXISTS")
 
    You may want to connect to the PostgreSQL database with the :command:`psql` command-line tool so that you can examine the schema to understand what the migration needs to do.
-   For example, you can see a description of a table with :samp:`\d {table}`, which will tell you the name of an enum type that you may need to modify.
+   For example, you can see a description of a table with :samp:`\\d {table}`, which will tell you the name of an enum type that you may need to modify.
    To do this, run:
 
    .. prompt:: bash

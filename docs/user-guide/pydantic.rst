@@ -62,7 +62,7 @@ Normalizing datetime fields
 Pydantic supports several input formats for `~datetime.datetime` fields, but the resulting `~datetime.datetime` object may be timezone-naive.
 Best practice for Python code is to only use timezone-aware `~datetime.datetime` objects in the UTC time zone.
 
-Pydantic provides a utility function, `~safir.pydantic.normalize_datetime`, that can be used as a field validator for a `~datetime.datetime` model field.
+Safir provides a utility function, `~safir.pydantic.normalize_datetime`, that can be used as a field validator for a `~datetime.datetime` model field.
 It ensures that any input is converted to UTC and is always timezone-aware.
 
 Here's an example of how to use it:
