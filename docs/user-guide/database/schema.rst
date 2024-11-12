@@ -221,6 +221,13 @@ Here is one way to implement that:
 
 
    @main.command()
+   @click.option(
+       "--alembic-config-path",
+       envvar="EXAMPLE_ALEMBIC_CONFIG_PATH",
+       type=click.Path(path_type=Path),
+       default=Path("/app/alembic.ini"),
+       help="Alembic configuration file.",
+   )
    @run_with_asyncio
    async def validate_schema(*, alembic_config_path: Path) -> None:
        """Validate that the database schema is current."""
@@ -243,7 +250,7 @@ Delete any line like that.
 Then, in :file:`main.py`, add code to check the database schema in the application's lifespan hook before initializing the database session dependency.
 
 .. code-block:: python
-   :emphasize-lines: 4,5,14-20
+   :emphasize-lines: 6-7,14-20
 
    from collections.abc import AsyncIterator
    from contextlib import asynccontextmanager
@@ -360,6 +367,7 @@ In :ref:`database-alembic-config`, you created an ``alembic`` tox environment.
 Add the environment variable settings to that environment that tell your application to use the PostgreSQL instance started by :command:`docker-compose`:
 
 .. code-block:: toml
+   :emphasize-lines: 5-7
    :force:
 
    [testenv:alembic]
@@ -372,7 +380,7 @@ Add the environment variable settings to that environment that tell your applica
 
 Change the database name, username, and environment variable prefix to match your application.
 
-You will also need a tox environment that runs your application.
+You will also need a tox environment that runs your application's command-line interface.
 This will look something like the following:
 
 .. code-block:: toml
