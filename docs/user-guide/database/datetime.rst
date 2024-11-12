@@ -4,13 +4,20 @@ Handling datetimes in database tables
 
 When a database column is defined using the SQLAlchemy ORM using the `~sqlalchemy.types.DateTime` generic type, it cannot store a timezone.
 The SQL standard type `~sqlalchemy.types.DATETIME` may include a timezone with some database backends, but it is database-specific.
-It is therefore normally easier to store times in the database in UTC without timezone information.
+For PostgreSQL, if the column is timezone-aware, PostgreSQL will convert the time to what it believes to be the local timezone rather than leaving it in UTC.
+
+It is therefore less error-prone to set a strict standard that all times must be stored in the database in UTC without timezone information.
+This ensures the database always returns times in UTC.
 
 However, `~datetime.datetime` objects in regular Python code should always be timezone-aware and use the UTC timezone.
 Timezone-naive datetime objects are often interpreted as being in the local timezone, whatever that happens to be.
 Keeping all datetime objects as timezone-aware in the UTC timezone will minimize surprises from unexpected timezone conversions.
 
 This unfortunately means that the code for storing and retrieving datetime objects from the database needs a conversion layer.
+
+Converting datetimes
+====================
+
 asyncpg_ wisely declines to convert datetime objects.
 It therefore returns timezone-naive objects from the database, and raises an exception if a timezone-aware datetime object is stored in a `~sqlalchemy.types.DateTime` field.
 The conversion must therefore be done in the code making SQLAlchemy calls.
