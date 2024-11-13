@@ -145,14 +145,20 @@ def test_human_timedelta() -> None:
 
     model = TestModel.model_validate({"delta": timedelta(seconds=5)})
     assert model.delta == timedelta(seconds=5)
+    assert model.model_dump(mode="python") == {"delta": timedelta(seconds=5)}
+    assert model.model_dump(mode="json") == {"delta": 5}
     model = TestModel.model_validate({"delta": "4h5m18s"})
     assert model.delta == timedelta(hours=4, minutes=5, seconds=18)
     model = TestModel.model_validate({"delta": 600})
     assert model.delta == timedelta(seconds=600)
+    assert model.model_dump(mode="python") == {"delta": timedelta(seconds=600)}
     model = TestModel.model_validate({"delta": 4.5})
     assert model.delta.total_seconds() == 4.5
+    assert model.model_dump(mode="json") == {"delta": 4.5}
     model = TestModel.model_validate({"delta": "300"})
     assert model.delta == timedelta(seconds=300)
+    model = TestModel.model_validate({"delta": "10.5"})
+    assert model.delta.total_seconds() == 10.5
 
     with pytest.raises(ValidationError):
         TestModel.model_validate({"delta": "P1DT12H"})
@@ -164,12 +170,18 @@ def test_seconds_timedelta() -> None:
 
     model = TestModel.model_validate({"delta": timedelta(seconds=5)})
     assert model.delta == timedelta(seconds=5)
+    assert model.model_dump(mode="python") == {"delta": timedelta(seconds=5)}
+    assert model.model_dump(mode="json") == {"delta": 5}
     model = TestModel.model_validate({"delta": 600})
     assert model.delta == timedelta(seconds=600)
+    assert model.model_dump(mode="python") == {"delta": timedelta(seconds=600)}
     model = TestModel.model_validate({"delta": 4.5})
     assert model.delta.total_seconds() == 4.5
+    assert model.model_dump(mode="json") == {"delta": 4.5}
     model = TestModel.model_validate({"delta": "300"})
     assert model.delta == timedelta(seconds=300)
+    model = TestModel.model_validate({"delta": "10.5"})
+    assert model.delta.total_seconds() == 10.5
 
     with pytest.raises(ValidationError):
         TestModel.model_validate({"delta": "P1DT12H"})
