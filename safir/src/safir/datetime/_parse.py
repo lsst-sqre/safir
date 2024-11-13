@@ -5,6 +5,11 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 
+_IVOA_TIMESTAMP_PATTERN = re.compile(
+    r"(?P<timestamp>\d{4}-\d\d-\d\d(?P<time>T\d\d:\d\d:\d\d(\.\d\d\d)?)?)Z?$"
+)
+"""Regular expression matching an IVOA DALI timestamp."""
+
 _TIMEDELTA_PATTERN = re.compile(
     r"((?P<weeks>\d+?)\s*(weeks|week|w))?\s*"
     r"((?P<days>\d+?)\s*(days|day|d))?\s*"
@@ -26,30 +31,34 @@ def parse_isodatetime(time_string: str) -> datetime:
     Parameters
     ----------
     time_string
-        Date and time formatted as an ISO 8601 date and time using ``Z`` as
-        the time zone. This is the same format produced by `isodatetime` and
-        is compatible with Kubernetes and the IVOA UWS standard.
+        Date and time formatted as an ISO 8601 date and time, either using
+        ``Z`` as the timezone or without timezone information. This is the
+        same format produced by `isodatetime` and is compatible with
+        Kubernetes and the IVOA DALI standard.
 
     Returns
     -------
     datetime.datetime
-        The corresponding `datetime.datetime`.
+        The corresponding `~datetime.datetime`.
 
     Raises
     ------
     ValueError
-        The provided ``time_string`` is not in the correct format.
+        Raised if the provided time string is not in the correct format.
 
     Notes
     -----
-    When parsing input for a model, use `safir.pydantic.normalize_isodatetime`
-    instead of this function. Using a model will be the normal case; this
-    function is primarily useful in tests or for the special parsing cases
-    required by the IVOA UWS standard.
+    When parsing input for a model, use the `~safir.pydantic.IvoaIsoDatetime`
+    type instead of this function. Using a model will be the normal case; this
+    function is primarily useful in tests.
     """
-    if not time_string.endswith("Z"):
-        raise ValueError(f"{time_string} does not end with Z")
-    return datetime.fromisoformat(time_string[:-1] + "+00:00")
+    if m := re.match(_IVOA_TIMESTAMP_PATTERN, time_string):
+        timestamp = m.group("timestamp")
+        if not m.group("time"):
+            timestamp += "T00:00:00"
+        return datetime.fromisoformat(timestamp + "+00:00")
+    else:
+        raise ValueError(f"{time_string} does not match IVOA format")
 
 
 def parse_timedelta(text: str) -> timedelta:

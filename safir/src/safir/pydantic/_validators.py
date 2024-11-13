@@ -8,6 +8,8 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
+from safir.datetime import parse_isodatetime
+
 T = TypeVar("T")
 
 __all__ = [
@@ -35,6 +37,16 @@ def normalize_datetime(v: Any) -> datetime | None:
     datetime.datetime or None
         The timezone-aware `~datetime.datetime` or `None` if the input was
         `None`.
+
+    Raises
+    ------
+    ValueError
+        Raised if the input could not be parsed as a `~datetime.datetime`.
+
+    Notes
+    -----
+    Prefer to use the `~safir.pydantic.UtcDatetime` type instead of using this
+    function as a validator.
 
     Examples
     --------
@@ -66,26 +78,39 @@ def normalize_datetime(v: Any) -> datetime | None:
         return v.replace(tzinfo=UTC)
 
 
-def normalize_isodatetime(v: str | None) -> datetime | None:
+def normalize_isodatetime(v: Any) -> datetime | None:
     """Pydantic field validator for datetime fields in ISO format.
 
-    This field validator requires the ISO 8601 date and time format with ``Z``
-    as the time zone (``YYYY-MM-DDTHH:MM:SSZ``). This format is compatible
-    with Kubernetes and the ISO UWS standard and is the same format produced
-    by `safir.datetime.isodatetime`. It should be used when the ambiguous
-    formats supported by Pydantic by default (such as dates and times without
-    time zone information) shouldn't be allowed.
+    This field validator requires a subset of the ISO 8601 date and time
+    format, ``YYYY-MM-DD[THH:MM:SS[.mmm]][Z]``. Regardless of whether the
+    trailing ``Z`` is included, the date and time are interpreted as being in
+    UTC, not local time. This format is compatible with Kubernetes, the IVOA
+    DALI standard, and the format produced by `safir.datetime.isodatetime`.
+
+    It should be used when the other formats supported by Pydantic by default
+    (such as dates and times in other timezones) shouldn't be allowed, such as
+    when strict conformance with the IVOA standard is desired.
 
     Parameters
     ----------
     v
-        The field representing a `~datetime.datetime`.
+        Field representing a `~datetime.datetime`.
 
     Returns
     -------
     datetime.datetime or None
         The timezone-aware `~datetime.datetime` or `None` if the input was
         `None`.
+
+    Raises
+    ------
+    ValueError
+        Raised if the provided time string is not in the correct format.
+
+    Notes
+    -----
+    Prefer to use the `~safir.pydantic.IvoaIsoDatetime` type instead of using
+    this function as a validator.
 
     Examples
     --------
@@ -107,12 +132,10 @@ def normalize_isodatetime(v: str | None) -> datetime | None:
     """
     if v is None:
         return None
-    if not isinstance(v, str) or not v.endswith("Z"):
-        raise ValueError("Must be a string in YYYY-MM-DDTHH:MM[:SS]Z format")
-    try:
-        return datetime.fromisoformat(v[:-1] + "+00:00")
-    except Exception as e:
-        raise ValueError(f"Invalid date {v}: {e!s}") from e
+    if not isinstance(v, str):
+        msg = "Must be a string in YYYY-MM-DD[THH:MM:SS[:mmm]][Z] format"
+        raise ValueError(msg)
+    return parse_isodatetime(v)
 
 
 def validate_exactly_one_of(

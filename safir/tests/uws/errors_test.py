@@ -117,10 +117,11 @@ async def test_errors(
         PostTest("/test/jobs/1/destruction", {"destruction": "next tuesday"}),
         PostTest("/test/jobs/1/destruction", {"DESTruction": "next tuesday"}),
         PostTest(
-            "/test/jobs/1/destruction", {"destruction": "2021-09-10T10:01:02"}
+            "/test/jobs/1/destruction", {"destruction": "2021-09-10 10:01:02"}
         ),
         PostTest(
-            "/test/jobs/1/destruction", {"destrucTION": "2021-09-10T10:01:02"}
+            "/test/jobs/1/destruction",
+            {"destrucTION": "2021-09-10T10:01:02+00:00:00"},
         ),
         PostTest("/test/jobs/1/executionduration", {"executionduration": "0"}),
         PostTest("/test/jobs/1/executionduration", {"executionDUration": "0"}),
@@ -141,8 +142,8 @@ async def test_errors(
         r = await client.post(
             test.url, data=test.data, headers={"X-Auth-Request-User": "user"}
         )
-        assert r.status_code == 422
-        assert r.text.startswith("UsageError")
+        assert r.status_code == 422, f"{test.url} {test.data}"
+        assert r.text.startswith("UsageError"), r.text
 
     # Test bogus phase for async job creation.
     r = await client.post(

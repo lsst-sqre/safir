@@ -41,28 +41,13 @@ ISO 8601 is a large and complex standard that supports numerous partial date or 
 However, its most basic date and time format, ``YYYY-MM-DDTHH:MM:SSZ`` (where the ``T`` and ``Z`` are fixed letters and the other letters represent their normal date and time components), provides a good balance of unambiguous parsing and human readability.
 The trailing ``Z`` indicates UTC.
 
-This subset of ISO 8601 is used by both Kubernetes and the IVOA UWS standard.
+This subset of ISO 8601 is used by both Kubernetes and the IVOA DALI standard, but the IVOA DALI standard allows omitting ``Z`` (the time is still interpreted as UTC) and omitting the time portion entirely.
 
-Safir provides two utility functions for this date and time serialization format.
+Safir provides two utility functions for this subset of ISO 8601.
 `safir.datetime.isodatetime` converts a `~datetime.datetime` to this format.
 `safir.datetime.parse_isodatetime` goes the opposite direction, converting this format to a time zone aware `~datetime.datetime` in UTC.
 
-To use this format as the serialized representation of any `~datetime.datetime` objects in a Pydantic model, use the following Pydantic configuration:
-
-.. code-block:: python
-
-   from datetime import datetime
-
-   from pydantic import BaseModel, field_serializer
-   from safir.datetime import isodatetime
-
-
-   class Example(BaseModel):
-       some_time: datetime
-
-       _serialize_some_time = field_serializer("some_time")(isodatetime)
-
-Also see the Pydantic validation function `safir.pydantic.normalize_isodatetime`, discussed further at :ref:`pydantic-datetime`.
+If, as is more often the case, you are accepting or generating `~datetime.datetime` fields as part of a Pydantic model, see :ref:`pydantic-datetime`.
 
 Formatting datetimes for logging
 ================================

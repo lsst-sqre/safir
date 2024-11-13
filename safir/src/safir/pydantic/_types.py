@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Annotated, TypeAlias
 
 from pydantic import (
@@ -14,13 +14,17 @@ from pydantic import (
 )
 from pydantic_core import Url
 
-from safir.datetime import parse_timedelta
+from safir.datetime import isodatetime, parse_timedelta
+
+from ._validators import normalize_datetime, normalize_isodatetime
 
 __all__ = [
     "EnvAsyncPostgresDsn",
     "EnvRedisDsn",
     "HumanTimedelta",
+    "IvoaIsoDatetime",
     "SecondsTimedelta",
+    "UtcDatetime",
 ]
 
 
@@ -153,4 +157,31 @@ Accepts as input an integer or float (or stringified integer or float) number
 of seconds or an already-parsed `~datetime.timedelta`. Compared to the
 built-in Pydantic handling of `~datetime.timedelta`, an integer number of
 seconds as a string is accepted, and ISO 8601 durations are not supported.
+"""
+
+UtcDatetime: TypeAlias = Annotated[
+    datetime, AfterValidator(normalize_datetime)
+]
+"""Coerce a `~datetime.datetime` to UTC.
+
+Accepts as input all of the normal Pydantic representations of a
+`~datetime.datetime`, but then forces the result to be timezone-aware and in
+UTC.
+"""
+
+IvoaIsoDatetime: TypeAlias = Annotated[
+    datetime,
+    BeforeValidator(normalize_isodatetime),
+    PlainSerializer(isodatetime, return_type=str, when_used="json"),
+]
+"""Accept the ISO datetime format required by IVOA standards.
+
+The IVOA DALI standard requires timestamps to be formatted as in ISO 8601 but
+without full timezone information. Either the timezone should be omitted or
+the time portion should end in ``Z``, and in either case the timestamp should
+be interpreted as UTC.
+
+This type accepts the input formats that DALI accepts, provides a
+timezone-aware `~datetime.datetime` in UTC, and always serializes to the ISO
+8601 format ending in ``Z``.
 """
