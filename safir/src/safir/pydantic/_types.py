@@ -6,7 +6,12 @@ import os
 from datetime import timedelta
 from typing import Annotated, TypeAlias
 
-from pydantic import AfterValidator, BeforeValidator, UrlConstraints
+from pydantic import (
+    AfterValidator,
+    BeforeValidator,
+    PlainSerializer,
+    UrlConstraints,
+)
 from pydantic_core import Url
 
 from safir.datetime import parse_timedelta
@@ -110,7 +115,11 @@ def _validate_human_timedelta(v: str | float | timedelta) -> float | timedelta:
 
 
 HumanTimedelta: TypeAlias = Annotated[
-    timedelta, BeforeValidator(_validate_human_timedelta)
+    timedelta,
+    BeforeValidator(_validate_human_timedelta),
+    PlainSerializer(
+        lambda t: t.total_seconds(), return_type=float, when_used="json"
+    ),
 ]
 """Parse a human-readable string into a `datetime.timedelta`.
 
@@ -133,7 +142,10 @@ minutes), and ``5w4d`` (five weeks and four days).
 
 SecondsTimedelta: TypeAlias = Annotated[
     timedelta,
-    BeforeValidator(lambda v: v if not isinstance(v, str) else int(v)),
+    BeforeValidator(lambda v: v if not isinstance(v, str) else float(v)),
+    PlainSerializer(
+        lambda t: t.total_seconds(), return_type=float, when_used="json"
+    ),
 ]
 """Parse a float number of seconds into a `datetime.timedelta`.
 
