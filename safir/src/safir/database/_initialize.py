@@ -10,14 +10,32 @@ from sqlalchemy.schema import CreateSchema
 from sqlalchemy.sql.schema import MetaData
 from structlog.stdlib import BoundLogger
 
+from ._alembic import unstamp_database
+
 __all__ = [
     "DatabaseInitializationError",
+    "drop_database",
     "initialize_database",
 ]
 
 
 class DatabaseInitializationError(Exception):
     """Database initialization failed."""
+
+
+async def drop_database(engine: AsyncEngine, schema: MetaData) -> None:
+    """Drop all tables from the database.
+
+    Parameters
+    ----------
+    engine
+        Engine to use to issue the SQL commands.
+    schema
+        Database ORM schema.
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(schema.drop_all)
+    await unstamp_database(engine)
 
 
 async def initialize_database(

@@ -11,7 +11,11 @@ from ._alembic import (
 )
 from ._connection import create_async_session, create_database_engine
 from ._datetime import datetime_from_db, datetime_to_db
-from ._initialize import DatabaseInitializationError, initialize_database
+from ._initialize import (
+    DatabaseInitializationError,
+    drop_database,
+    initialize_database,
+)
 from ._retry import RetryP, RetryT, retry_async_transaction
 
 __all__ = [
@@ -21,6 +25,7 @@ __all__ = [
     "create_database_engine",
     "datetime_from_db",
     "datetime_to_db",
+    "drop_database",
     "initialize_database",
     "is_database_current",
     "retry_async_transaction",

@@ -23,6 +23,7 @@ from safir.database import (
     create_database_engine,
     datetime_from_db,
     datetime_to_db,
+    drop_database,
     initialize_database,
     is_database_current,
     retry_async_transaction,
@@ -36,7 +37,7 @@ from .support.alembic import BaseV1, BaseV2, UserV1, UserV2, config
 
 
 @pytest.mark.asyncio
-async def test_database_init(
+async def test_initialize_database(
     database_url: str, database_password: str
 ) -> None:
     logger = structlog.get_logger(__name__)
@@ -68,6 +69,27 @@ async def test_database_init(
     async with session.begin():
         result = await session.scalars(select(UserV2.username))
         assert result.all() == []
+    await session.remove()
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_drop_database(
+    database_url: str, database_password: str
+) -> None:
+    logger = structlog.get_logger(__name__)
+    engine = create_database_engine(database_url, database_password)
+    await initialize_database(engine, logger, schema=BaseV2.metadata)
+    session = await create_async_session(engine, logger)
+    async with session.begin():
+        session.add(UserV2(username="someuser"))
+    await session.remove()
+
+    await drop_database(engine, BaseV2.metadata)
+    session = await create_async_session(engine, logger)
+    with pytest.raises(ProgrammingError):
+        async with session.begin():
+            await session.scalars(select(UserV2.username))
     await session.remove()
     await engine.dispose()
 

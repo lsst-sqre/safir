@@ -7,6 +7,8 @@ While support for SQLite could be added, testing against the database that will 
 
 The recommended strategy for testing applications that use a database is to start a real PostgreSQL server for the tests.
 
+Also see :ref:`database-alembic-testing` for information on how to test Alembic schema management.
+
 Using tox-docker
 ================
 
