@@ -328,10 +328,11 @@ This ensures that the checks for the schema will pass when executing tests.
 When cleaning out the test database between tests, call `~safir.database.unstamp_database` after dropping the application's database tables if you want to fully reset the database to its state before running the test.
 The ``reset=True`` flag of `~safir.database.initialize_database` does not do this.
 
-Creating database migrations
-============================
+Create the initial database migration
+=====================================
 
-Whenever the database schema changes, you will need to create an Alembic migration.
+Alembic works more smoothly if the first release of the service has an initial database migration, at the head of the migration dependency chain, that creates the full database schema.
+You should therefore generate an Alembic database migration from an empty database once you've configured Alembic for the first time.
 
 Add a docker-compose configuration
 ----------------------------------
@@ -380,7 +381,7 @@ Add the environment variable settings to that environment that tell your applica
 
 Change the database name, username, and environment variable prefix to match your application.
 
-You will also need a tox environment that runs your application's command-line interface.
+For later migrations (although not for the first migration), you will also need a tox environment that runs your application's command-line interface.
 This will look something like the following:
 
 .. code-block:: toml
@@ -397,10 +398,33 @@ This will look something like the following:
 
 As above, change the database name, username, command name, and environment variable prefix to match your application.
 
-Create the migration
---------------------
+Create the initial migration
+----------------------------
 
-You're now ready to create the database migration.
+#. Start a PostgreSQL server with an empty database.
+
+   .. prompt:: bash
+
+      docker-compose -f alembic/docker-compose.yaml up
+
+#. Ask Alembic to autogenerate a database migration from that empty database to the initial schema.
+
+   .. prompt:: bash
+
+      tox run -e alembic -- revision --autogenerate -m "Initial schema."
+
+   This will create a new file in :file:`alembic/versions`.
+
+#. Stop the running PostgreSQL container.
+
+   .. prompt:: bash
+
+      docker-compose -f alembic/docker-compose.yaml down
+
+Creating database migrations
+============================
+
+Whenever the database schema changes, you will need to create an Alembic migration.
 
 #. Start a PostgreSQL server into which the current database schema can be created.
 
@@ -471,3 +495,45 @@ The details of how to set up this Helm hook will depend on the details of your a
 Applications that use CloudSQL will need some special support for running the CloudSQL sidedar.
 
 See `the Gafaelfawr Helm chart in Phalanx <https://github.com/lsst-sqre/phalanx/tree/main/applications/gafaelfawr>`__ for an example.
+
+.. _database-alembic-testing:
+
+Testing database migrations
+===========================
+
+Now that your application is using Alembic, you will want to test that you do not accidentally introduce a database schema change.
+
+The easiest way to do this is to add a schema test that fails if the schema created by applying all Alembic migrations does not match the current SQLAlchemy ORM schema definition.
+This will require adding an Alembic migration at the same time as a schema change, which is generally what you want.
+
+The following test can be dropped into :file:`tests/schema_test.py` and should work for most applications that follow the Safir documentation.
+
+.. code-block:: python
+
+   import subprocess
+
+   import pytest
+   from safir.database import create_database_engine, drop_database
+
+   from example.config import config
+   from example.schema import SchemaBase
+
+
+   @pytest.mark.asyncio
+   async def test_schema() -> None:
+       engine = create_database_engine(
+           config.database_url, config.database_password
+       )
+       await drop_database(engine, SchemaBase.metadata)
+       await engine.dispose()
+       subprocess.run(["alembic", "upgrade", "head"], check=True)
+       subprocess.run(["alembic", "check"], check=True)
+
+As always, replace ``example`` with the module of your application.
+This assumes that ``example.schema.SchemaBase`` is the declarative base of your SQLAlchemy ORM schema.
+Adjust as needed for your application.
+
+.. warning::
+
+   This test can only catch schema changes that Alembic knows how to generate migrations for.
+   Changes that Alembic misses, such as changes to the membership of an enum, will not be caught by this test.
