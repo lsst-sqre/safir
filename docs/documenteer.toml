@@ -40,7 +40,9 @@ nitpick_ignore = [
     ["py:obj", "safir.pydantic.EnvAsyncPostgresDsn"],
     ["py:obj", "safir.pydantic.EnvRedisDsn"],
     ["py:obj", "safir.pydantic.HumanTimedelta"],
+    ["py:obj", "safir.pydantic.IvoaIsoDatetime"],
     ["py:obj", "safir.pydantic.SecondsTimedelta"],
+    ["py:obj", "safir.pydantic.UtcDatetime"],
     # TypeVar references used as parameters to Generic seem to create target
     # not found errors even if they are exported when they are used in private
     # submodules.

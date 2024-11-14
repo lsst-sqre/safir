@@ -51,6 +51,9 @@ extend = "ruff-shared.toml"
 "*/src/safir/**" = [
     "N818",    # Exception is correct in some cases, others are part of API
 ]
+"safir/src/safir/pydantic/_validators.py" = [
+    "TRY004",  # pydantic requires ValueError, not TypeError
+]
 "safir/src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
 ]

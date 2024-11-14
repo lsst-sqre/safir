@@ -18,7 +18,9 @@ from safir.pydantic import (
     EnvAsyncPostgresDsn,
     EnvRedisDsn,
     HumanTimedelta,
+    IvoaIsoDatetime,
     SecondsTimedelta,
+    UtcDatetime,
     normalize_datetime,
     normalize_isodatetime,
     to_camel_case,
@@ -188,6 +190,58 @@ def test_seconds_timedelta() -> None:
 
 
 @pytest.mark.filterwarnings("ignore:.*datetime.utcnow.*:DeprecationWarning")
+def test_utcdatetime() -> None:
+    class TestModel(BaseModel):
+        time: UtcDatetime
+
+    date = datetime.fromtimestamp(1668814932, tz=UTC)
+    model = TestModel.model_validate({"time": 1668814932})
+    assert model.time == date
+    assert model.model_dump(mode="python") == {"time": date}
+    round_trip = datetime.fromisoformat(model.model_dump(mode="json")["time"])
+    assert round_trip == date
+
+    mst_zone = timezone(-timedelta(hours=7))
+    mst_date = datetime.now(tz=mst_zone)
+    utc_date = mst_date.astimezone(UTC)
+    assert TestModel.model_validate({"time": mst_date}).time == utc_date
+
+    naive_date = datetime.utcnow()  # noqa: DTZ003
+    aware_date = TestModel.model_validate({"time": naive_date}).time
+    assert aware_date == naive_date.replace(tzinfo=UTC)
+    assert aware_date.tzinfo == UTC
+
+    model = TestModel.model_validate({"time": "2023-01-25T15:44:00+00:00"})
+    assert model.time == datetime.fromisoformat("2023-01-25T15:44:00+00:00")
+    assert model.time.tzinfo == UTC
+
+
+def test_ivoaisodatetime() -> None:
+    class TestModel(BaseModel):
+        time: IvoaIsoDatetime
+
+    date = datetime.fromisoformat("2023-01-25T15:44:34+00:00")
+    model = TestModel.model_validate({"time": "2023-01-25T15:44:34Z"})
+    assert model.time == date
+    assert model.model_dump(mode="python") == {"time": date}
+    assert model.model_dump(mode="json") == {"time": "2023-01-25T15:44:34Z"}
+    model = TestModel.model_validate({"time": "2023-01-25T15:44:34"})
+    assert model.time == date
+
+    date = datetime.fromisoformat("2023-01-25").replace(tzinfo=UTC)
+    assert TestModel.model_validate({"time": "2023-01-25"}).time == date
+
+    with pytest.raises(ValidationError, match="does not match IVOA format"):
+        TestModel.model_validate({"time": "2023-01-25T15:44:00+00:00"})
+
+    with pytest.raises(ValidationError, match="Must be a string in"):
+        TestModel.model_validate({"time": 1668814932})
+
+    with pytest.raises(ValidationError, match="does not match IVOA format"):
+        TestModel.model_validate({"time": "next thursday"})
+
+
+@pytest.mark.filterwarnings("ignore:.*datetime.utcnow.*:DeprecationWarning")
 def test_normalize_datetime() -> None:
     class TestModel(BaseModel):
         time: datetime | None
@@ -197,7 +251,7 @@ def test_normalize_datetime() -> None:
     assert TestModel(time=None).time is None
 
     date = datetime.fromtimestamp(1668814932, tz=UTC)
-    model = TestModel(time=1668814932)  # type: ignore[arg-type]
+    model = TestModel.model_validate({"time": 1668814932})
     assert model.time == date
 
     mst_zone = timezone(-timedelta(hours=7))
@@ -211,7 +265,7 @@ def test_normalize_datetime() -> None:
     assert aware_date.tzinfo == UTC
 
     with pytest.raises(ValueError, match=r"Must be a datetime or seconds .*"):
-        TestModel(time="2023-01-25T15:44:00+00:00")  # type: ignore[arg-type]
+        TestModel.model_validate({"time": "2023-01-25T15:44:00+00:00"})
 
 
 def test_normalize_isodatetime() -> None:
@@ -223,21 +277,24 @@ def test_normalize_isodatetime() -> None:
     assert TestModel(time=None).time is None
 
     date = datetime.fromisoformat("2023-01-25T15:44:34+00:00")
-    model = TestModel(time="2023-01-25T15:44:34Z")  # type: ignore[arg-type]
+    model = TestModel.model_validate({"time": "2023-01-25T15:44:34Z"})
     assert model.time == date
 
     date = datetime.fromisoformat("2023-01-25T15:44:00+00:00")
-    model = TestModel(time="2023-01-25T15:44Z")  # type: ignore[arg-type]
+    model = TestModel.model_validate({"time": "2023-01-25T15:44:00"})
     assert model.time == date
 
-    with pytest.raises(ValueError, match=r"Must be a string in .* format"):
-        TestModel(time="2023-01-25T15:44:00+00:00")  # type: ignore[arg-type]
+    date = datetime.fromisoformat("2023-01-25").replace(tzinfo=UTC)
+    assert TestModel.model_validate({"time": "2023-01-25"}).time == date
 
-    with pytest.raises(ValueError, match=r"Must be a string in .* format"):
-        TestModel(time=1668814932)  # type: ignore[arg-type]
+    with pytest.raises(ValidationError, match="does not match IVOA format"):
+        TestModel.model_validate({"time": "2023-01-25T15:44:00+00:00"})
 
-    with pytest.raises(ValueError, match=r"Must be a string in .* format"):
-        TestModel(time="next thursday")  # type: ignore[arg-type]
+    with pytest.raises(ValidationError, match="Must be a string in"):
+        TestModel.model_validate({"time": 1668814932})
+
+    with pytest.raises(ValidationError, match="does not match IVOA format"):
+        TestModel.model_validate({"time": "1668814932"})
 
 
 def test_to_camel_case() -> None:

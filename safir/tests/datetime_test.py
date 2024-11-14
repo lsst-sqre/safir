@@ -54,8 +54,12 @@ def test_parse_isodatetime() -> None:
     assert time == datetime(2022, 9, 16, 12, 3, 45, tzinfo=UTC)
     now = current_datetime()
     assert parse_isodatetime(isodatetime(now)) == now
+    time = parse_isodatetime("2022-09-16T12:03:45")
+    assert time == datetime(2022, 9, 16, 12, 3, 45, tzinfo=UTC)
+    time = parse_isodatetime("2022-09-16")
+    assert time == datetime(2022, 9, 16, 0, 0, 0, tzinfo=UTC)
 
-    with pytest.raises(ValueError, match=r".* does not end with Z"):
+    with pytest.raises(ValueError, match="does not match IVOA format"):
         parse_isodatetime("2022-09-16T12:03:45+00:00")
 
 

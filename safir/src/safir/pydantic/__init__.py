@@ -5,7 +5,9 @@ from ._types import (
     EnvAsyncPostgresDsn,
     EnvRedisDsn,
     HumanTimedelta,
+    IvoaIsoDatetime,
     SecondsTimedelta,
+    UtcDatetime,
 )
 from ._validators import (
     normalize_datetime,
@@ -18,7 +20,9 @@ __all__ = [
     "EnvAsyncPostgresDsn",
     "EnvRedisDsn",
     "HumanTimedelta",
+    "IvoaIsoDatetime",
     "SecondsTimedelta",
+    "UtcDatetime",
     "normalize_datetime",
     "normalize_isodatetime",
     "to_camel_case",
