@@ -5,20 +5,29 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 from urllib.parse import unquote, urlparse
 
 import pytest
 import structlog
 from pydantic import BaseModel, SecretStr
 from pydantic_core import Url
-from sqlalchemy import Column, MetaData, String, Table
+from sqlalchemy import Column, MetaData, String, Table, select
 from sqlalchemy.exc import OperationalError, ProgrammingError
-from sqlalchemy.future import select
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    InstrumentedAttribute,
+    Mapped,
+    mapped_column,
+)
+from starlette.datastructures import URL
 
 from safir.database import (
+    DatetimeIdCursor,
+    PaginatedQueryRunner,
     create_async_session,
     create_database_engine,
     datetime_from_db,
@@ -32,6 +41,7 @@ from safir.database import (
     unstamp_database,
 )
 from safir.database._connection import build_database_url
+from safir.pydantic import UtcDatetime
 
 from .support.alembic import BaseV1, BaseV2, UserV1, UserV2, config
 
@@ -316,3 +326,163 @@ def test_alembic(
     assert not event_loop.run_until_complete(check(config_path))
     event_loop.run_until_complete(stamp_database_async(engine, config_path))
     assert event_loop.run_until_complete(check(config_path))
+
+
+class PaginationBase(DeclarativeBase):
+    pass
+
+
+class PaginationTable(PaginationBase):
+    __tablename__ = "table"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    time: Mapped[datetime]
+
+    def __repr__(self) -> str:
+        return f"PaginationTable(id={self.id}, time={self.time})"
+
+
+class PaginationModel(BaseModel):
+    id: int
+    time: UtcDatetime
+
+
+@dataclass
+class TableCursor(DatetimeIdCursor[PaginationModel]):
+    @staticmethod
+    def id_column() -> InstrumentedAttribute:
+        return PaginationTable.id
+
+    @staticmethod
+    def time_column() -> InstrumentedAttribute:
+        return PaginationTable.time
+
+    @classmethod
+    def from_entry(
+        cls, entry: PaginationModel, *, reverse: bool = False
+    ) -> Self:
+        return cls(time=entry.time, id=entry.id, previous=reverse)
+
+
+def naive_datetime(timestamp: float) -> datetime:
+    """Construct timezone-naive datetimes for tests."""
+    return datetime_to_db(datetime.fromtimestamp(timestamp, tz=UTC))
+
+
+def assert_model_lists_equal(
+    a: list[PaginationModel], b: list[PaginationTable]
+) -> None:
+    assert len(a) == len(b)
+    for index, entry in enumerate(a):
+        assert entry.id == b[index].id, f"element {index} id"
+        orm_time = b[index].time.replace(tzinfo=UTC)
+        assert entry.time == orm_time, f"element {index} time"
+
+
+@pytest.mark.asyncio
+async def test_pagination(database_url: str, database_password: str) -> None:
+    logger = structlog.get_logger(__name__)
+    engine = create_database_engine(database_url, database_password)
+    await initialize_database(
+        engine, logger, schema=PaginationBase.metadata, reset=True
+    )
+    session = await create_async_session(engine, logger)
+
+    rows = [
+        PaginationTable(time=naive_datetime(1500000000)),
+        PaginationTable(time=naive_datetime(1510000000)),
+        PaginationTable(time=naive_datetime(1520000000)),
+        PaginationTable(time=naive_datetime(1520000000)),
+        PaginationTable(time=naive_datetime(1600000000.5)),
+        PaginationTable(time=naive_datetime(1600000000.5)),
+        PaginationTable(time=naive_datetime(1610000000)),
+    ]
+    async with session.begin():
+        for row in rows:
+            session.add(row)
+
+    # Rows will be returned from the database in reverse order, so change the
+    # rows data structure to match.
+    rows.reverse()
+
+    # Query by object and test the pagination cursors going backwards and
+    # forwards.
+    builder = PaginatedQueryRunner(PaginationModel, TableCursor)
+    async with session.begin():
+        result = await builder.query_object(
+            session, select(PaginationTable), limit=2
+        )
+        assert_model_lists_equal(result.entries, rows[:2])
+        assert result.count == 7
+        assert not result.prev_cursor
+        assert result.link_header(URL("https://example.com/query")) == (
+            '<https://example.com/query>; rel="first", '
+            f"<https://example.com/query?cursor={result.next_cursor}>;"
+            ' rel="next"'
+        )
+        assert str(result.next_cursor) == "1600000000.5_5"
+        result = await builder.query_object(
+            session,
+            select(PaginationTable),
+            cursor=result.next_cursor,
+            limit=3,
+        )
+        assert_model_lists_equal(result.entries, rows[2:5])
+        assert result.count == 7
+        assert str(result.next_cursor) == "1510000000_2"
+        assert str(result.prev_cursor) == "p1600000000.5_5"
+        assert result.link_header(
+            URL("https://example.com/query?foo=bar&cursor=xxxx")
+        ) == (
+            '<https://example.com/query?foo=bar>; rel="first", '
+            f"<https://example.com/query?foo=bar&cursor={result.next_cursor}>;"
+            ' rel="next", '
+            f"<https://example.com/query?foo=bar&cursor={result.prev_cursor}>;"
+            ' rel="prev"'
+        )
+        next_cursor = result.next_cursor
+        result = await builder.query_object(
+            session, select(PaginationTable), cursor=result.prev_cursor
+        )
+        assert_model_lists_equal(result.entries, rows[:2])
+        assert result.count == 7
+        result = await builder.query_object(
+            session, select(PaginationTable), cursor=next_cursor
+        )
+        assert_model_lists_equal(result.entries, rows[5:])
+        assert result.count == 7
+        assert not result.next_cursor
+        result = await builder.query_object(
+            session, select(PaginationTable), cursor=result.prev_cursor
+        )
+        assert_model_lists_equal(result.entries, rows[:5])
+        assert result.count == 7
+
+    # Perform one of the queries by attribute instead to test the query_row
+    # function.
+    async with session.begin():
+        result = await builder.query_row(
+            session, select(PaginationTable.time, PaginationTable.id), limit=2
+        )
+        assert_model_lists_equal(result.entries, rows[:2])
+        assert result.count == 7
+
+    # Querying for the entire table should return the everything with no
+    # pagination cursors. Try this with both an object query and an attribute
+    # query.
+    async with session.begin():
+        result = await builder.query_object(session, select(PaginationTable))
+        assert_model_lists_equal(result.entries, rows)
+        assert result.count == 7
+        assert not result.next_cursor
+        assert not result.prev_cursor
+        result = await builder.query_row(
+            session, select(PaginationTable.id, PaginationTable.time)
+        )
+        assert_model_lists_equal(result.entries, rows)
+        assert result.count == 7
+        assert not result.next_cursor
+        assert not result.prev_cursor
+        assert result.link_header(URL("https://example.com/query?foo=b")) == (
+            '<https://example.com/query?foo=b>; rel="first"'
+        )

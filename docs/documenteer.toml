@@ -47,6 +47,10 @@ nitpick_ignore = [
     # not found errors even if they are exported when they are used in private
     # submodules.
     ["py:obj", "safir.asyncio._multiqueue.T"],
+    ["py:obj", "safir.asyncio._run.F"],
+    ["py:obj", "safir.asyncio._run.P"],
+    ["py:obj", "safir.database._pagination.C"],
+    ["py:obj", "safir.database._pagination.E"],
     ["py:obj", "safir.redis._storage.S"],
     ["py:obj", "safir.metrics._event_manager.P"],
     # SQLAlchemy DeclarativeBase documentation has references that Sphinx
@@ -56,6 +60,10 @@ nitpick_ignore = [
     ["py:class", "_orm.registry"],
     ["py:class", "_schema.MetaData"],
     ["py:class", "_schema.Table"],
+    # Pydantic FilePath types create a reference to Path that is unresolved
+    # unless Path is imported locally, but the import is removed because the
+    # symbol isn't referenced.
+    ["py:class", "pathlib._local.Path"],
     # The AOIKafkaAdminClient is considered experimental and not officially
     # exported
     ['py:class', 'aiokafka.admin.client.AIOKafkaAdminClient'],
