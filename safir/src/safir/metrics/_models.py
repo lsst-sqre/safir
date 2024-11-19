@@ -1,5 +1,7 @@
 """Models for representing metrics events."""
 
+from typing import Any
+
 from dataclasses_avroschema.pydantic import AvroBaseModel
 from pydantic import UUID4, AwareDatetime, Field, create_model
 
@@ -84,17 +86,17 @@ class EventPayload(AvroBaseModel):
 
             # Unions are represented by a list
             if isinstance(field_type, list):
-                if not all(subtype in valids for subtype in field_type):
+                if not all(
+                    cls._extract_type(subtype) in valids
+                    for subtype in field_type
+                ):
                     errors.append(
                         f"{name}\n   is a union with a type that is"
                         f" unsupported by InfluxDB: {field_type}"
                     )
                 continue
 
-            # Some complex types like enums are represented by a dict, not a
-            # string.
-            if isinstance(field_type, dict):
-                field_type = field["type"]["type"]
+            field_type = cls._extract_type(field_type)
 
             if field_type not in valids:
                 errors.append(
@@ -109,3 +111,23 @@ class EventPayload(AvroBaseModel):
                 f" {valids}"
             )
             raise ValueError("\n".join(errors))
+
+    @classmethod
+    def _extract_type(cls, spec: str | dict[str, dict[str, Any]]) -> str:
+        """Extract avro base type from container type.
+
+        Raises
+        ------
+        ValueError
+           If a base type can not be extracted
+        """
+        # Some complex types like enums are represented by a dict, not a
+        # string.
+        avro_type: str | dict = spec
+        if isinstance(spec, dict):
+            avro_type = spec["type"]
+        if not isinstance(avro_type, str):
+            # Ignore suggestion to make this a type error to keep consistent
+            # with the ValueError in the calling method.
+            raise ValueError(f"{spec} is not a supported Avro type")  # noqa: TRY004
+        return avro_type

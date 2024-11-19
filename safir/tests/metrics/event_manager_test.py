@@ -47,6 +47,7 @@ class MyEvent(EventPayload):
 
     foo: str
     duration: timedelta
+    duration_union: timedelta | None
 
 
 class Events(EventMaker):
@@ -133,12 +134,14 @@ async def integration_test(
         MyEvent(
             foo="bar1",
             duration=timedelta(seconds=2, milliseconds=123),
+            duration_union=None,
         )
     )
     published = await event.publish(
         MyEvent(
             foo="bar2",
             duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
         )
     )
     schema = published.avro_schema_to_python()
@@ -325,6 +328,10 @@ async def test_disable() -> None:
     await manager.initialize()
     event = await manager.create_publisher("myevent", MyEvent)
 
-    await event.publish(MyEvent(foo="bar1", duration=timedelta(seconds=1)))
-    await event.publish(MyEvent(foo="bar2", duration=timedelta(seconds=1)))
+    await event.publish(
+        MyEvent(foo="bar1", duration=timedelta(seconds=1), duration_union=None)
+    )
+    await event.publish(
+        MyEvent(foo="bar2", duration=timedelta(seconds=1), duration_union=None)
+    )
     await manager.aclose()

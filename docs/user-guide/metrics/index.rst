@@ -148,7 +148,7 @@ We can do this all in an :file:`events.py` file.
 
 
    class Events(EventMaker):
-       async def initialize(manager: EventManager) -> None:
+       async def initialize(self, manager: EventManager) -> None:
            self.query = await manager.create_publisher("query", QueryEvent)
 
 
