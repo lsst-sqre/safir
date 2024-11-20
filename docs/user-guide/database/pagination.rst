@@ -35,6 +35,7 @@ To use the generic paginated query support, first you must define the cursor tha
 The cursor class defines the following information needed for paginated queries:
 
 #. How to construct a cursor to get all entries before or after a given entry.
+   Forward cursors must include the entry provided as a basis for the cursor, and reverse curors must exclude it.
 #. How to serialize to and deserialize from a string so that the cursor can be returned to an API client and sent back to retrieve the next batch of results.
 #. The sort order the cursor represents.
    A cursor class represents one and only one sort order, since keyset cursors rely on the sort order not changing.
@@ -159,6 +160,10 @@ Among other things, this means that all necessary attributes must be present and
 If the model includes any timestamps, the model validation must be able to convert them from the time format stored in the database (see :doc:`datetime`) to an appropriate Python `~datetime.datetime`.
 The easiest way to do this is to declare those fields as having the `safir.pydantic.UtcDatetime` type.
 See :ref:`pydantic-datetime` for more information.
+
+This query will be run twice for any request that contains a cursor or a limit, once with those restrictions to get the data and again without restrictions to count the total number of rows.
+The count query therefore should be fast or you may see performance issues with paginated queries.
+In practice, this means the query should use indexed columns or only query small tables.
 
 Run the query
 -------------

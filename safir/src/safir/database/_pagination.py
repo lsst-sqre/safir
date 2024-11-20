@@ -51,7 +51,11 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
         """Construct a cursor with an entry as a bound.
 
         Builds a cursor to get the entries after the provided entry, or before
-        the provided entry if ``reverse`` is set to `True`.
+        the provided entry if ``reverse`` is set to `True`. When the cursor is
+        later applied with `apply_cursor`, forward cursors (the default) must
+        include the entry the cursor was based on. Reverse cursors must
+        exclude the given entry and return data starting with the entry
+        immediately previous.
 
         Parameters
         ----------
@@ -117,6 +121,10 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
     def apply_cursor(self, stmt: Select) -> Select:
         """Apply the restrictions from the cursor to a select statement.
 
+        Forward cursors (the default) must include the entry the cursor was
+        based on. Reverse cursors must exclude that entry and return data
+        beginning with the entry immediately previous.
+
         Parameters
         ----------
         stmt
@@ -148,9 +156,10 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
     """Pagination cursor using a `~datetime.datetime` and unique column ID.
 
-    Cursors that first order by time and then by unique column ID can subclass
-    this class and only define the ``id_column`` and ``time_column`` static
-    methods to return the ORM model fields for the timestamp and column ID.
+    Cursors that first order by time and then by a unique integer column ID
+    can subclass this class and only define the ``id_column`` and
+    ``time_column`` static methods to return the ORM model fields for the
+    timestamp and column ID.
 
     Examples
     --------
