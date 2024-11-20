@@ -18,7 +18,7 @@ First, your application will construct a SQL query that returns the full, unpagi
 This may use other query parameters or information from the client to filter the results in ways unrelated to pagination.
 This SQL query should not order or apply a ``LIMIT`` to the results; the order and limit will be applied when the paginated query is done.
 
-Second, your application optionally may provide either a limit on the number of results to return or a cursor indicating where in the overall list of results to pick up from.
+Second, your application optionally may provide a limit on the number of results to return, a cursor indicating where in the overall list of results to pick up from, or both.
 If neither a limit nor a cursor is provided, the query is not paginated; you can still use the facilities discussed here for simplicity (and to avoid needing special cases for the non-paginated case), but pagination will not be done.
 
 Third, your application passes the SQL query and any limit or cursor, along with a database session, into `~safir.database.PaginatedQueryRunner` to perform the query.

@@ -239,6 +239,8 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
         timestamp = self.time.timestamp()
 
         # Remove a trailing .0, but keep the fractional portion if it matters.
+        # This is entirely unnecessary, but it looks nicer in the common case
+        # where the database doesn't store milliseconds.
         if int(timestamp) == timestamp:
             timestamp = int(timestamp)
 
@@ -250,13 +252,13 @@ class PaginatedList(Generic[E, C]):
     """Paginated SQL results with accompanying pagination metadata.
 
     Holds a paginated list of any Pydantic type, complete with a count and
-    cursors. Can hold any type of entry and any type of cursor, but
-    implicitly requires the entry type be one that is meaningfully paginated by that
-    type of cursor.
+    cursors. Can hold any type of entry and any type of cursor, but implicitly
+    requires the entry type be one that is meaningfully paginated by that type
+    of cursor.
     """
 
     entries: list[E]
-    """The history entries."""
+    """A batch of entries."""
 
     count: int
     """Total available entries."""
