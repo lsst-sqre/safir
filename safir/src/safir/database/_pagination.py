@@ -78,7 +78,7 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
         Returns
         -------
-        DatetimeIdCursor
+        PaginationCursor
             The cursor represented as an object.
 
         Raises
