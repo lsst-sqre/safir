@@ -278,24 +278,83 @@ class PaginatedList(Generic[E, C]):
     prev_cursor: C | None = None
     """Cursor for the previous batch of entries."""
 
-    def link_header(self, base_url: URL) -> str:
+    def first_url(self, current_url: URL) -> str:
+        """Construct a URL to the first group of results for this query.
+
+        Parameters
+        ----------
+        current_url
+            The starting URL of the current group of entries.
+
+        Returns
+        -------
+        str
+            URL to the first group of entries for this query.
+        """
+        return str(current_url.remove_query_params("cursor"))
+
+    def next_url(self, current_url: URL) -> str | None:
+        """Construct a URL to the next group of results for this query.
+
+        Parameters
+        ----------
+        current_url
+            The starting URL of the current group of entries.
+
+        Returns
+        -------
+        str or None
+            URL to the next group of entries for this query or `None` if there
+            are no further entries.
+        """
+        if not self.next_cursor:
+            return None
+        first_url = current_url.remove_query_params("cursor")
+        params = parse_qs(first_url.query)
+        params["cursor"] = [str(self.next_cursor)]
+        return str(first_url.replace(query=urlencode(params, doseq=True)))
+
+    def prev_url(self, current_url: URL) -> str | None:
+        """Construct a URL to the previous group of results for this query.
+
+        Parameters
+        ----------
+        current_url
+            The starting URL of the current group of entries.
+
+        Returns
+        -------
+        str or None
+            URL to the previous group of entries for this query or `None` if
+            there are no further entries.
+        """
+        if not self.prev_cursor:
+            return None
+        first_url = current_url.remove_query_params("cursor")
+        params = parse_qs(first_url.query)
+        params["cursor"] = [str(self.prev_cursor)]
+        return str(first_url.replace(query=urlencode(params, doseq=True)))
+
+    def link_header(self, current_url: URL) -> str:
         """Construct an RFC 8288 ``Link`` header for a paginated result.
 
         Parameters
         ----------
-        base_url
+        current_url
             The starting URL of the current group of entries.
+
+        Returns
+        -------
+        str
+            Contents of an RFC 8288 ``Link`` header.
         """
-        first_url = base_url.remove_query_params("cursor")
+        first_url = self.first_url(current_url)
+        next_url = self.next_url(current_url)
+        prev_url = self.prev_url(current_url)
         header = f'<{first_url!s}>; rel="first"'
-        params = parse_qs(first_url.query)
-        if self.next_cursor:
-            params["cursor"] = [str(self.next_cursor)]
-            next_url = first_url.replace(query=urlencode(params, doseq=True))
+        if next_url:
             header += f', <{next_url!s}>; rel="next"'
-        if self.prev_cursor:
-            params["cursor"] = [str(self.prev_cursor)]
-            prev_url = first_url.replace(query=urlencode(params, doseq=True))
+        if prev_url:
             header += f', <{prev_url!s}>; rel="prev"'
         return header
 

@@ -418,10 +418,13 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert result.count == 7
         assert not result.prev_cursor
         base_url = URL("https://example.com/query")
+        next_url = f"{base_url!s}?cursor={result.next_cursor}"
         assert result.link_header(base_url) == (
-            f'<{base_url!s}>; rel="first", '
-            f'<{base_url!s}?cursor={result.next_cursor}>; rel="next"'
+            f'<{base_url!s}>; rel="first", ' f'<{next_url}>; rel="next"'
         )
+        assert result.first_url(base_url) == str(base_url)
+        assert result.next_url(base_url) == next_url
+        assert result.prev_url(base_url) is None
         assert str(result.next_cursor) == "1600000000.5_1"
 
         result = await builder.query_object(
@@ -434,13 +437,18 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert result.count == 7
         assert str(result.next_cursor) == "1510000000_2"
         assert str(result.prev_cursor) == "p1600000000.5_1"
-        base_url = URL("https://example.com/query?foo=bar&cursor=xxxx")
-        stripped_url = "https://example.com/query?foo=bar"
+        base_url = URL("https://example.com/query?foo=bar&foo=baz&cursor=xxxx")
+        stripped_url = "https://example.com/query?foo=bar&foo=baz"
+        next_url = f"{stripped_url}&cursor={result.next_cursor}"
+        prev_url = f"{stripped_url}&cursor={result.prev_cursor}"
         assert result.link_header(base_url) == (
             f'<{stripped_url}>; rel="first", '
-            f'<{stripped_url}&cursor={result.next_cursor}>; rel="next", '
-            f'<{stripped_url}&cursor={result.prev_cursor}>; rel="prev"'
+            f'<{next_url}>; rel="next", '
+            f'<{prev_url}>; rel="prev"'
         )
+        assert result.first_url(base_url) == stripped_url
+        assert result.next_url(base_url) == next_url
+        assert result.prev_url(base_url) == prev_url
         next_cursor = result.next_cursor
 
         result = await builder.query_object(
@@ -461,6 +469,7 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert result.count == 7
         assert not result.next_cursor
         base_url = URL("https://example.com/query")
+        assert result.next_url(base_url) is None
         assert result.link_header(base_url) == (
             f'<{base_url!s}>; rel="first", '
             f'<{base_url!s}?cursor={result.prev_cursor}>; rel="prev"'

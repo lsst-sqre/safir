@@ -190,6 +190,9 @@ Either way, the results will be a `~safir.database.PaginatedList` wrapping a lis
 Returning paginated results
 ===========================
 
+Using the HTTP headers
+----------------------
+
 HTTP provides the ``Link`` header (:rfc:`8288`) to declare relationships between multiple web responses.
 Using a ``Link`` header with relation types ``first``, ``next``, and ``prev`` is a standard way of providing the client with pagination information.
 
@@ -232,3 +235,12 @@ A real route handler would have more query parameters and more documentation.
 Note that this example also sets a non-standard ``X-Total-Count`` header containing the total count of entries returned by the underlying query without pagination.
 `~safir.database.PaginatedQueryRunner` obtains this information by default, since the count query is often fast for databases to perform.
 There is no standard way to return this information to the client, but ``X-Total-Count`` is a widely-used informal standard.
+
+Including links in the response
+-------------------------------
+
+Alternately, some web services may instead wish to return the paginated results inside a JSON data structure that includes the pagination information.
+This follows the `HATEOS <https://en.wikipedia.org/wiki/HATEOAS>`__ design principle of embedding links inside the returned data.
+
+In this case, the application should call the `~safir.database.PaginatedList.first_url`, `~safir.database.PaginatedList.next_url`, and `~safir.database.PaginatedList.prev_url` methods with the current URL (generally ``request.url``) as an argument to retrieve the links to the first, next, and previous blocks of results.
+Those links can then be embedded in the response model wherever is appropriate for the API of that application.
