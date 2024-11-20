@@ -250,8 +250,8 @@ class PaginatedList(Generic[E, C]):
     """Paginated SQL results with accompanying pagination metadata.
 
     Holds a paginated list of any Pydantic type, complete with a count and
-    cursors. Can hold any type of entry, but uses a `DatetimeIdCursor`, so
-    implicitly requires the type be one that is meaningfully paginated by that
+    cursors. Can hold any type of entry and any type of cursor, but
+    implicitly requires the entry type be one that is meaningfully paginated by that
     type of cursor.
     """
 
