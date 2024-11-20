@@ -16,7 +16,7 @@ A paginated query is a fairly complex operation that usually goes through multip
 
 First, your application will construct a SQL query that returns the full, unpaginated data set.
 This may use other query parameters or information from the client to filter the results in ways unrelated to pagination.
-This SQL query should not order the results; the order will be applied when the paginated query is done.
+This SQL query should not order or apply a ``LIMIT`` to the results; the order and limit will be applied when the paginated query is done.
 
 Second, your application optionally may provide either a limit on the number of results to return or a cursor indicating where in the overall list of results to pick up from.
 If neither a limit nor a cursor is provided, the query is not paginated; you can still use the facilities discussed here for simplicity (and to avoid needing special cases for the non-paginated case), but pagination will not be done.
