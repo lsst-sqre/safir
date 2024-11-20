@@ -501,12 +501,11 @@ class PaginatedQueryRunner(Generic[E, C]):
         prev_cursor = None
         next_cursor = None
         if cursor and cursor.previous:
-            if limit:
-                next_cursor = cursor.invert()
-                if len(entries) > limit:
-                    prev = entries[limit - 1]
-                    prev_cursor = self._cursor_type.from_entry(prev)
-                    entries = entries[:limit]
+            next_cursor = cursor.invert()
+            if limit and len(entries) > limit:
+                prev = entries[limit - 1]
+                prev_cursor = self._cursor_type.from_entry(prev, reverse=True)
+                entries = entries[:limit]
 
             # Reverse the results again if we did a reverse sort because we
             # were using a previous cursor.
