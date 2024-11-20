@@ -25,5 +25,6 @@ Guides
    session
    datetime
    retry
+   pagination
    testing
    schema
