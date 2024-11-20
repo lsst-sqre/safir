@@ -8,17 +8,19 @@ of the hard parts replaced with python-schema-registry-client_.
 """
 
 import inspect
-import logging
 import re
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, TypeVar
 
+import structlog
 from dataclasses_avroschema.pydantic import AvroBaseModel
 from schema_registry.client import AsyncSchemaRegistryClient
+from schema_registry.client.errors import ClientError
 from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
 )
+from structlog.stdlib import BoundLogger
 
 from ._exceptions import (
     IncompatibleSchemaError,
@@ -84,18 +86,22 @@ class PydanticSchemaManager:
         compatibility continuity of a production subject.
 
         For production, it's best to not set a suffix.
+    logger
+        Logger to use for internal logging. If not given, the
+        ``safir.kafka.manager`` logger will be used.
     """
 
     def __init__(
         self,
         registry: AsyncSchemaRegistryClient,
         suffix: str = "",
+        logger: BoundLogger | None = None,
     ) -> None:
         self._registry = registry
         self._serializer = AsyncAvroMessageSerializer(self._registry)
         self._suffix = suffix
 
-        self._logger = logging.getLogger(__name__)
+        self._logger = logger or structlog.get_logger("safir.kafka.manager")
 
         # A mapping of subjects to registered schema ids.
         self._subjects_to_ids: dict[str, int] = {}
@@ -164,7 +170,16 @@ class PydanticSchemaManager:
         if result["is_compatible"] is False:
             raise IncompatibleSchemaError(result["messages"])
 
-        schema_id = await self._registry.register(subject, schema)
+        try:
+            schema_id = await self._registry.register(subject, schema)
+        except ClientError as e:
+            self._logger.exception(
+                "schema registry ClientError",
+                msg=e.message,
+                http_code=e.http_code,
+                server_traceback=e.server_traceback,
+            )
+            raise
         self._subjects_to_ids[subject] = schema_id
 
         return SchemaInfo(schema=schema, schema_id=schema_id, subject=subject)

@@ -190,7 +190,7 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
             client_id=f"{ADMIN_CLIENT_PREFIX}-{self.application}",
             **self.kafka.to_aiokafka_params(),
         )
-        schema_manager = self.schema_manager.make_manager()
+        schema_manager = self.schema_manager.make_manager(logger=logger)
 
         return KafkaEventManager(
             application=self.application,
