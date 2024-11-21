@@ -7,6 +7,7 @@ from typing import TypedDict
 from pydantic import AliasChoices, AnyUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from schema_registry.client import AsyncSchemaRegistryClient
+from structlog.stdlib import BoundLogger
 
 from safir.kafka._manager import PydanticSchemaManager
 
@@ -58,7 +59,11 @@ class SchemaManagerSettings(BaseSettings):
         """Make a dict of params to construct an AsyncSchemaRegistryClient."""
         return {"url": str(self.registry_url)}
 
-    def make_manager(self) -> PydanticSchemaManager:
+    def make_manager(
+        self, logger: BoundLogger | None = None
+    ) -> PydanticSchemaManager:
         """Construct a PydanticSchemaManager from the fields of this model."""
         registry = AsyncSchemaRegistryClient(**self.to_registry_params())
-        return PydanticSchemaManager(registry=registry, suffix=self.suffix)
+        return PydanticSchemaManager(
+            registry=registry, suffix=self.suffix, logger=logger
+        )
