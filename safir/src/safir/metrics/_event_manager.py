@@ -483,7 +483,7 @@ class KafkaEventManager(EventManager):
             msg = "Initialize EventManager before creating event publishers"
             raise EventManagerUnintializedError(msg)
         encoded = await self._schema_manager.serialize(event)
-        await publisher.publish(encoded)
+        await publisher.publish(encoded, no_confirm=True)
         self.logger.debug(
             "Published metrics event",
             metrics_event=event.model_dump(),
