@@ -15,7 +15,7 @@ import pytest
 import structlog
 from pydantic import BaseModel, SecretStr
 from pydantic_core import Url
-from sqlalchemy import Column, MetaData, String, Table, select
+from sqlalchemy import Column, MetaData, Select, String, Table, select
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -411,11 +411,10 @@ async def test_pagination(database_url: str, database_password: str) -> None:
     # forwards.
     builder = PaginatedQueryRunner(PaginationModel, TableCursor)
     async with session.begin():
-        result = await builder.query_object(
-            session, select(PaginationTable), limit=2
-        )
+        stmt: Select[tuple] = select(PaginationTable)
+        assert await builder.query_count(session, stmt) == 7
+        result = await builder.query_object(session, stmt, limit=2)
         assert_model_lists_equal(result.entries, rows[:2])
-        assert result.count == 7
         assert not result.prev_cursor
         base_url = URL("https://example.com/query")
         next_url = f"{base_url!s}?cursor={result.next_cursor}"
@@ -428,13 +427,9 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert str(result.next_cursor) == "1600000000.5_1"
 
         result = await builder.query_object(
-            session,
-            select(PaginationTable),
-            cursor=result.next_cursor,
-            limit=3,
+            session, stmt, cursor=result.next_cursor, limit=3
         )
         assert_model_lists_equal(result.entries, rows[2:5])
-        assert result.count == 7
         assert str(result.next_cursor) == "1510000000_2"
         assert str(result.prev_cursor) == "p1600000000.5_1"
         base_url = URL("https://example.com/query?foo=bar&foo=baz&cursor=xxxx")
@@ -452,21 +447,17 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         next_cursor = result.next_cursor
 
         result = await builder.query_object(
-            session, select(PaginationTable), cursor=result.prev_cursor
+            session, stmt, cursor=result.prev_cursor
         )
         assert_model_lists_equal(result.entries, rows[:2])
-        assert result.count == 7
         base_url = URL("https://example.com/query?limit=2")
         assert result.link_header(base_url) == (
             f'<{base_url!s}>; rel="first", '
             f'<{base_url!s}&cursor={result.next_cursor}>; rel="next"'
         )
 
-        result = await builder.query_object(
-            session, select(PaginationTable), cursor=next_cursor
-        )
+        result = await builder.query_object(session, stmt, cursor=next_cursor)
         assert_model_lists_equal(result.entries, rows[5:])
-        assert result.count == 7
         assert not result.next_cursor
         base_url = URL("https://example.com/query")
         assert result.next_url(base_url) is None
@@ -476,21 +467,17 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         )
         prev_cursor = result.prev_cursor
 
-        result = await builder.query_object(
-            session, select(PaginationTable), cursor=prev_cursor
-        )
+        result = await builder.query_object(session, stmt, cursor=prev_cursor)
         assert_model_lists_equal(result.entries, rows[:5])
-        assert result.count == 7
         assert result.link_header(base_url) == (
             f'<{base_url!s}>; rel="first", '
             f'<{base_url!s}?cursor={result.next_cursor}>; rel="next"'
         )
 
         result = await builder.query_object(
-            session, select(PaginationTable), cursor=prev_cursor, limit=2
+            session, stmt, cursor=prev_cursor, limit=2
         )
         assert_model_lists_equal(result.entries, rows[3:5])
-        assert result.count == 7
         assert str(result.prev_cursor) == "p1520000000_5"
         assert result.link_header(base_url) == (
             f'<{base_url!s}>; rel="first", '
@@ -501,11 +488,10 @@ async def test_pagination(database_url: str, database_password: str) -> None:
     # Perform one of the queries by attribute instead to test the query_row
     # function.
     async with session.begin():
-        result = await builder.query_row(
-            session, select(PaginationTable.time, PaginationTable.id), limit=2
-        )
+        stmt = select(PaginationTable.time, PaginationTable.id)
+        result = await builder.query_row(session, stmt, limit=2)
         assert_model_lists_equal(result.entries, rows[:2])
-        assert result.count == 7
+        assert await builder.query_count(session, stmt) == 7
 
     # Querying for the entire table should return the everything with no
     # pagination cursors. Try this with both an object query and an attribute
@@ -513,14 +499,11 @@ async def test_pagination(database_url: str, database_password: str) -> None:
     async with session.begin():
         result = await builder.query_object(session, select(PaginationTable))
         assert_model_lists_equal(result.entries, rows)
-        assert result.count == 7
         assert not result.next_cursor
         assert not result.prev_cursor
-        result = await builder.query_row(
-            session, select(PaginationTable.id, PaginationTable.time)
-        )
+        stmt = select(PaginationTable.id, PaginationTable.time)
+        result = await builder.query_row(session, stmt)
         assert_model_lists_equal(result.entries, rows)
-        assert result.count == 7
         assert not result.next_cursor
         assert not result.prev_cursor
         base_url = URL("https://example.com/query?foo=b")

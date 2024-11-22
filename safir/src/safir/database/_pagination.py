@@ -269,9 +269,6 @@ class PaginatedList(Generic[E, C]):
     entries: list[E]
     """A batch of entries."""
 
-    count: int
-    """Total available entries."""
-
     next_cursor: C | None = None
     """Cursor for the next batch of entries."""
 
@@ -379,6 +376,30 @@ class PaginatedQueryRunner(Generic[E, C]):
     def __init__(self, entry_type: type[E], cursor_type: type[C]) -> None:
         self._entry_type = entry_type
         self._cursor_type = cursor_type
+
+    async def query_count(
+        self, session: async_scoped_session, stmt: Select[tuple]
+    ) -> int:
+        """Count the number of objects that match a query.
+
+        There is nothing particular to pagination about this query, but it is
+        often used in conjunction with pagination to provide the total count
+        of matching entries, often in an ``X-Total-Count`` HTTP header.
+
+        Parameters
+        ----------
+        session
+            Database session within which to run the query.
+        stmt
+            Select statement to execute.
+
+        Returns
+        -------
+        int
+            Count of matching rows.
+        """
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        return await session.scalar(count_stmt) or 0
 
     async def query_object(
         self,
@@ -506,10 +527,7 @@ class PaginatedQueryRunner(Generic[E, C]):
             for r in result.all()
         ]
         return PaginatedList[E, C](
-            entries=entries,
-            count=len(entries),
-            prev_cursor=None,
-            next_cursor=None,
+            entries=entries, prev_cursor=None, next_cursor=None
         )
 
     async def _paginated_query(
@@ -578,8 +596,6 @@ class PaginatedQueryRunner(Generic[E, C]):
             self._entry_type.model_validate(r, from_attributes=True)
             for r in result.all()
         ]
-        count_stmt = select(func.count()).select_from(stmt.subquery())
-        count = await session.scalar(count_stmt) or 0
 
         # Calculate the cursors and remove the extra element we asked for.
         prev_cursor = None
@@ -603,8 +619,5 @@ class PaginatedQueryRunner(Generic[E, C]):
 
         # Return the results.
         return PaginatedList[E, C](
-            entries=entries,
-            count=count,
-            prev_cursor=prev_cursor,
-            next_cursor=next_cursor,
+            entries=entries, prev_cursor=prev_cursor, next_cursor=next_cursor
         )
