@@ -105,11 +105,9 @@ def create_database_engine(
     """
     url = build_database_url(url, password)
     if isolation_level:
-        return create_async_engine(
-            url, future=True, isolation_level=isolation_level
-        )
+        return create_async_engine(url, isolation_level=isolation_level)
     else:
-        return create_async_engine(url, future=True)
+        return create_async_engine(url)
 
 
 async def create_async_session(
