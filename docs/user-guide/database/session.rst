@@ -46,7 +46,7 @@ For example:
 .. code-block:: python
 
    import structlog
-   from sqlalchemy.future import select
+   from sqlalchemy import select
 
    from .schema import User
 
