@@ -7,7 +7,7 @@ from typing import Generic, TypeVar
 
 from safir.metrics import EventManager
 
-__all__ = ["EventDependency", "EventMaker", "E"]
+__all__ = ["E", "EventDependency", "EventMaker"]
 
 E = TypeVar("E", bound="EventMaker")
 """Generic event maker type."""

@@ -28,7 +28,7 @@ __all__ = [
 
 
 @overload
-def retry_async_transaction(__func: RetryF) -> RetryF: ...
+def retry_async_transaction(__func: RetryF, /) -> RetryF: ...
 
 
 @overload
@@ -38,7 +38,7 @@ def retry_async_transaction(
 
 
 def retry_async_transaction(
-    __func: RetryF | None = None, *, delay: float = 0.5, max_tries: int = 3
+    __func: RetryF | None = None, /, *, delay: float = 0.5, max_tries: int = 3
 ) -> RetryF | Callable[[RetryF], RetryF]:
     """Retry if a transaction failed.
 

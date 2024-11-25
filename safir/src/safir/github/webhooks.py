@@ -14,19 +14,19 @@ from .models import (
 )
 
 __all__ = [
-    "GitHubAppInstallationModel",
-    "GitHubPushEventModel",
-    "GitHubAppInstallationEventRepoModel",
     "GitHubAppInstallationEventAction",
     "GitHubAppInstallationEventModel",
+    "GitHubAppInstallationEventRepoModel",
+    "GitHubAppInstallationModel",
     "GitHubAppInstallationRepositoriesEventAction",
     "GitHubAppInstallationRepositoriesEventModel",
-    "GitHubPullRequestEventAction",
-    "GitHubPullRequestEventModel",
-    "GitHubCheckSuiteEventAction",
-    "GitHubCheckSuiteEventModel",
     "GitHubCheckRunEventAction",
     "GitHubCheckRunEventModel",
+    "GitHubCheckSuiteEventAction",
+    "GitHubCheckSuiteEventModel",
+    "GitHubPullRequestEventAction",
+    "GitHubPullRequestEventModel",
+    "GitHubPushEventModel",
 ]
 
 

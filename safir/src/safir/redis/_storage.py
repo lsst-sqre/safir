@@ -23,9 +23,9 @@ from safir.slack.blockkit import (
 )
 
 __all__ = [
-    "PydanticRedisStorage",
-    "EncryptedPydanticRedisStorage",
     "DeserializeError",
+    "EncryptedPydanticRedisStorage",
+    "PydanticRedisStorage",
 ]
 
 

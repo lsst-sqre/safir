@@ -18,8 +18,8 @@ from ._models import JobMetadata, JobResult
 
 __all__ = [
     "ArqQueue",
-    "RedisArqQueue",
     "MockArqQueue",
+    "RedisArqQueue",
 ]
 
 
