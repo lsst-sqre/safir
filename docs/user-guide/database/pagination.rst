@@ -254,3 +254,23 @@ This follows the `HATEOS <https://en.wikipedia.org/wiki/HATEOAS>`__ design princ
 
 In this case, the application should call the `~safir.database.PaginatedList.first_url`, `~safir.database.PaginatedList.next_url`, and `~safir.database.PaginatedList.prev_url` methods with the current URL (generally ``request.url``) as an argument to retrieve the links to the first, next, and previous blocks of results.
 Those links can then be embedded in the response model wherever is appropriate for the API of that application.
+
+Parsing paginated query responses
+=================================
+
+Safir provides `~safir.database.PaginatedLinkData` to parse the contents of an :rfc:`8288` ``Link`` header and extract pagination links from it.
+This may be useful in clients of paginated query results, including tests of services that use the above approach to paginated queries.
+
+.. code-block:: python
+
+   from safir.database import PaginatedLinkData
+
+
+   r = client.get("/some/url", query={"limit": 100})
+   links = PaginatedLinkData.from_header(r.headers["Link"])
+   next_url = links.next_url
+   prev_url = links.prev_url
+   first_url = links.first_url
+
+Currently, only the first, next, and previous URLs are extracted from the ``Link`` header.
+If any of these URLs are not present, the corresponding attribute of `~safir.database.PaginatedLinkData` will be `None`.

@@ -1,4 +1,4 @@
-"""Tests for safir.models."""
+"""Tests for `safir.models`."""
 
 from __future__ import annotations
 
