@@ -8,24 +8,24 @@ from enum import Enum
 from pydantic import BaseModel, Field, HttpUrl
 
 __all__ = [
-    "GitHubRepoOwnerModel",
-    "GitHubUserModel",
-    "GitHubRepositoryModel",
-    "GitHubPullState",
-    "GitHubPullRequestModel",
+    "GitHubBlobModel",
     "GitHubBranchCommitModel",
     "GitHubBranchModel",
-    "GitHubBlobModel",
-    "GitHubCheckSuiteStatus",
-    "GitHubCheckSuiteConclusion",
-    "GitHubCheckSuiteModel",
-    "GitHubCheckRunStatus",
-    "GitHubCheckRunConclusion",
     "GitHubCheckRunAnnotationLevel",
-    "GitHubCheckSuiteId",
+    "GitHubCheckRunConclusion",
+    "GitHubCheckRunModel",
     "GitHubCheckRunOutput",
     "GitHubCheckRunPrInfoModel",
-    "GitHubCheckRunModel",
+    "GitHubCheckRunStatus",
+    "GitHubCheckSuiteConclusion",
+    "GitHubCheckSuiteId",
+    "GitHubCheckSuiteModel",
+    "GitHubCheckSuiteStatus",
+    "GitHubPullRequestModel",
+    "GitHubPullState",
+    "GitHubRepoOwnerModel",
+    "GitHubRepositoryModel",
+    "GitHubUserModel",
 ]
 
 

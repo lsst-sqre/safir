@@ -29,6 +29,8 @@ UWS_QUEUE_NAME = "uws:queue"
 """Name of the arq queue for internal UWS messages."""
 
 __all__ = [
+    "UWS_QUEUE_NAME",
+    "T",
     "WorkerConfig",
     "WorkerError",
     "WorkerErrorType",
@@ -38,8 +40,6 @@ __all__ = [
     "WorkerTimeoutError",
     "WorkerTransientError",
     "WorkerUsageError",
-    "T",
-    "UWS_QUEUE_NAME",
     "build_worker",
 ]
 

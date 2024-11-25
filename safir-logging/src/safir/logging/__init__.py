@@ -9,7 +9,7 @@ __all__ = [
     "LogLevel",
     "Profile",
     "add_log_severity",
-    "configure_logging",
     "configure_alembic_logging",
+    "configure_logging",
     "configure_uvicorn_logging",
 ]

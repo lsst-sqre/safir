@@ -7,8 +7,8 @@ from datetime import timedelta
 from arq.cron import Options
 
 __all__ = [
-    "JOB_STOP_TIMEOUT",
     "JOB_RESULT_TIMEOUT",
+    "JOB_STOP_TIMEOUT",
     "UWS_DATABASE_TIMEOUT",
     "UWS_EXPIRE_JOBS_SCHEDULE",
 ]

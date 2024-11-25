@@ -12,15 +12,15 @@ from ._queue import ArqQueue, MockArqQueue, RedisArqQueue
 
 __all__ = [
     "ArqJobError",
-    "JobNotQueued",
-    "JobNotFound",
-    "JobResultUnavailable",
     "ArqMode",
-    "JobMetadata",
-    "JobResult",
     "ArqQueue",
-    "RedisArqQueue",
+    "JobMetadata",
+    "JobNotFound",
+    "JobNotQueued",
+    "JobResult",
+    "JobResultUnavailable",
     "MockArqQueue",
-    "build_arq_redis_settings",
+    "RedisArqQueue",
     "WorkerSettings",
+    "build_arq_redis_settings",
 ]

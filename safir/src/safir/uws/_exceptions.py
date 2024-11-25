@@ -32,9 +32,9 @@ __all__ = [
     "SyncJobNoResultsError",
     "SyncJobTimeoutError",
     "TaskError",
+    "UWSError",
     "UnknownJobError",
     "UsageError",
-    "UWSError",
 ]
 
 

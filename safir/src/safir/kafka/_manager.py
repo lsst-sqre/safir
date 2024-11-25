@@ -29,9 +29,9 @@ from ._exceptions import (
 )
 
 __all__ = [
+    "Compatibility",
     "PydanticSchemaManager",
     "SchemaInfo",
-    "Compatibility",
 ]
 
 P = TypeVar("P", bound=AvroBaseModel)

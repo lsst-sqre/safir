@@ -1,8 +1,8 @@
 """Metrics exceptions."""
 
 __all__ = [
-    "EventManagerUnintializedError",
     "DuplicateEventError",
+    "EventManagerUnintializedError",
     "KafkaTopicError",
 ]
 
