@@ -248,19 +248,19 @@ Those links can then be embedded in the response model wherever is appropriate f
 Parsing paginated query responses
 =================================
 
-Safir provides `~safir.models.LinkData` to parse the contents of an :rfc:`8288` ``Link`` header and extract pagination links from it.
+Safir provides `~safir.database.PaginatedLinkData` to parse the contents of an :rfc:`8288` ``Link`` header and extract pagination links from it.
 This may be useful in clients of paginated query results, including tests of services that use the above approach to paginated queries.
 
 .. code-block:: python
 
-   from safir.models import LinkData
+   from safir.database import PaginatedLinkData
 
 
    r = client.get("/some/url", query={"limit": 100})
-   links = LinkData.from_header(r.headers["Link"])
+   links = PaginatedLinkData.from_header(r.headers["Link"])
    next_url = links.next_url
    prev_url = links.prev_url
    first_url = links.first_url
 
 Currently, only the first, next, and previous URLs are extracted from the ``Link`` header.
-If any of these URLs are not present, the corresponding attribute of `~safir.models.LinkData` will be `None`.
+If any of these URLs are not present, the corresponding attribute of `~safir.database.PaginatedLinkData` will be `None`.

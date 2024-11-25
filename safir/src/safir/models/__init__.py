@@ -8,11 +8,9 @@ generate good documentation.
 """
 
 from ._errors import ErrorDetail, ErrorLocation, ErrorModel
-from ._link import LinkData
 
 __all__ = [
     "ErrorDetail",
     "ErrorLocation",
     "ErrorModel",
-    "LinkData",
 ]

@@ -18,6 +18,7 @@ from ._initialize import (
 )
 from ._pagination import (
     DatetimeIdCursor,
+    PaginatedLinkData,
     PaginatedList,
     PaginatedQueryRunner,
     PaginationCursor,
@@ -29,6 +30,7 @@ __all__ = [
     "DatabaseInitializationError",
     "DatetimeIdCursor",
     "PaginationCursor",
+    "PaginatedLinkData",
     "PaginatedList",
     "PaginatedQueryRunner",
     "create_async_session",
