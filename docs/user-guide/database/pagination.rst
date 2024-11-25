@@ -25,7 +25,7 @@ Third, your application passes the SQL query and any limit or cursor, along with
 This will apply the sort order and any restrictions from the limit or cursor and then execute the query in that session.
 It will return a `~safir.database.PaginatedList`, which holds the results along with pagination information.
 
-Finally, the application will return, via the API handler, the list of entries included in the `~safir.database.PaginatedList` along with information about how to obtain the next or previous group of entries and the total number of records.
+Finally, the application will return, via the API handler, the list of entries included in the `~safir.database.PaginatedList` along with information about how to obtain the next or previous group of entries and, optionally, the total number of records.
 This pagination information is generally returned in HTTP headers, although if you wish to return it in a data structure wrapper around the results, you can do that instead.
 
 Defining the cursor
@@ -187,6 +187,15 @@ If the SQL query returns a tuple of individually selected attributes that corres
 
 Either way, the results will be a `~safir.database.PaginatedList` wrapping a list of Pydantic models of the appropriate type.
 
+If you want to also return the total number of entries, run a separate ``COUNT`` query:
+
+.. code-block:: python
+
+   count = await runner.query_count(session, stmt)
+
+This returns the total number of matching rows without regard to cursor or limit.
+Best practice is to return this information in the response so that clients can estimate the total number of result pages, but this query will only be fast if it can be satisfied from the table indices or the table is small, so it is not run by default.
+
 Returning paginated results
 ===========================
 
@@ -226,14 +235,15 @@ Here is a very simplified example of a route handler that sets this header:
        )
        if cursor or limit:
            response.headers["Link"] = results.link_header(request.url)
-           response.headers["X-Total-Count"] = str(results.count)
+           count = await runner.query_count(session, stmt)
+           response.headers["X-Total-Count"] = str(count)
        return results.entries
 
 Here, ``perform_query`` is a wrapper around `~safir.database.PaginatedQueryRunner` that constructs and runs the query.
 A real route handler would have more query parameters and more documentation.
 
 Note that this example also sets a non-standard ``X-Total-Count`` header containing the total count of entries returned by the underlying query without pagination.
-`~safir.database.PaginatedQueryRunner` obtains this information by default, since the count query is often fast for databases to perform.
+`~safir.database.PaginatedQueryRunner.query_count` will return this information.
 There is no standard way to return this information to the client, but ``X-Total-Count`` is a widely-used informal standard.
 
 Including links in the response
