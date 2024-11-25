@@ -80,6 +80,7 @@ redis = [
     "redis>4.5.2,<6",
 ]
 uws = [
+    "alembic[tz]<2",
     "asyncpg<1",
     "google-auth<3",
     "google-cloud-storage<3",
