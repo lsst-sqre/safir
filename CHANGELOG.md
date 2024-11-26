@@ -9,6 +9,35 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-8.0.0'></a>
+## 8.0.0 (2024-11-26)
+
+### Backwards-incompatible changes
+
+- Add serializers to `HumanTimedelta` and `SecondsTimedelta` that serialize those Pydantic fields to a float number of seconds instead of ISO 8601 durations. This means those data types now can be round-tripped (serialized and then deserialized to the original value), whereas before they could not be.
+- `parse_isodatetime` and `normalize_isodatetime` now accept exactly the date formats accepted by the IVOA DALI standard. This means seconds are now required, the trailing `Z` is now optional (times are always interpreted as UTC regardless), and the time is optional and interpreted as 00:00:00 if missing.
+
+### New features
+
+- Add new `safir.pydantic.UtcDatetime` type that is equivalent to `datetime` but coerces all incoming times to timezone-aware UTC. This type should be used instead of using `normalize_datetime` as a validator.
+- Add new `safir.pydantic.IvoaIsoDatetime` type that accepts any ISO 8601 date and time that matches the IVOA DALI standard for timestamps. This follows the same rules as `parse_isodatetime` now follows. This type should be used instead of using `normalize_isodatetime` as a validator.
+- Add new `safir.database.PaginatedLinkData` model that parses the contents of an HTTP `Link` header and extracts pagination information.
+- Add `safir.database.drop_database` utility function to drop all database tables mentioned in a SQLAlchemy ORM schema and delete the Alembic version information if it is present. This is primarily useful for tests.
+- Publishing a metrics event no longer waits on confirmation of message delivery to Kafka. This makes publishing much more performant. All events will still be delivered as long as an app awaits `EventManager.aclose` in its lifecycle.
+- `safir.kafka.PydanticSchemaManager` takes an optional structlog `BoundLogger`. If not provided, the default logger is a `BoundLogger`, rather than a `logging.Logger`.
+- Pass the `logger` parameter to `safir.metrics.KafkaMetricsConfiguration.make_manager` to the `PydanticSchemaManager` instance that it creates.
+- Add `CaseInsensitiveFormMiddleware` to lower-case the keys of form `POST` parameters. This can be used to support the case-insensitive keys requirement of IVOA standards.
+
+### Bug fixes
+
+- Correctly validate stringified floating-point numbers of seconds as inputs to the `SecondsTimedelta` type instead of truncating it to an integer.
+- Allow `timedelta` as a member of a union field in a `safir.metrics.EventPayload`.
+- Add missing dependency on alembic to the `safir[uws]` extra.
+
+### Other changes
+
+- Document how to test an application's database schema against its Alembic migrations to ensure that the schema hasn't been modified without adding a corresponding migration.
+
 <a id='changelog-7.0.0'></a>
 ## 7.0.0 (2024-11-08)
 

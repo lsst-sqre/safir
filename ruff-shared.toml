@@ -87,6 +87,11 @@ ignore = [
 select = ["ALL"]
 
 [lint.per-file-ignores]
+"alembic/**" = [
+    "INP001",  # Alembic files are magical
+    "D103",    # Alembic methods do not need docstrings
+    "D400",    # Alembic migrations have their own docstring format
+]
 "noxfile.py" = [
     "T201",    # print makes sense as output from nox rules
 ]
@@ -117,6 +122,12 @@ select = ["ALL"]
     "S106",    # tests are allowed to hard-code dummy passwords
     "S301",    # allow tests for whether code can be pickled
     "SLF001",  # tests are allowed to access private members
+]
+"tests/schema_test.py" = [
+    "ASYNC221", # useful to run subprocess in async tests for Alembic
+]
+"*/tests/schema_test.py" = [
+    "ASYNC221", # useful to run subprocess in async tests for Alembic
 ]
 
 # These are too useful as attributes or methods to allow the conflict with the
