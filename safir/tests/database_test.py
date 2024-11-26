@@ -27,8 +27,8 @@ from starlette.datastructures import URL
 
 from safir.database import (
     DatetimeIdCursor,
-    PaginatedLinkData,
     PaginatedQueryRunner,
+    PaginationLinkData,
     create_async_session,
     create_database_engine,
     datetime_from_db,
@@ -516,7 +516,7 @@ def test_link_data() -> None:
         '<https://example.com/query>; rel="first", '
         '<https://example.com/query?cursor=1600000000.5_1>; rel="next"'
     )
-    link = PaginatedLinkData.from_header(header)
+    link = PaginationLinkData.from_header(header)
     assert not link.prev_url
     assert link.next_url == "https://example.com/query?cursor=1600000000.5_1"
     assert link.first_url == "https://example.com/query"
@@ -526,7 +526,7 @@ def test_link_data() -> None:
         '<https://example.com/query?limit=10&cursor=15_2>; rel="next", '
         '<https://example.com/query?limit=10&cursor=p5_1>; rel="prev"'
     )
-    link = PaginatedLinkData.from_header(header)
+    link = PaginationLinkData.from_header(header)
     assert link.prev_url == "https://example.com/query?limit=10&cursor=p5_1"
     assert link.next_url == "https://example.com/query?limit=10&cursor=15_2"
     assert link.first_url == "https://example.com/query?limit=10"
@@ -535,18 +535,18 @@ def test_link_data() -> None:
         '<https://example.com/query>; rel="first", '
         '<https://example.com/query?cursor=p1510000000_2>; rel="previous"'
     )
-    link = PaginatedLinkData.from_header(header)
+    link = PaginationLinkData.from_header(header)
     assert link.prev_url == "https://example.com/query?cursor=p1510000000_2"
     assert not link.next_url
     assert link.first_url == "https://example.com/query"
 
     header = '<https://example.com/query?foo=b>; rel="first"'
-    link = PaginatedLinkData.from_header(header)
+    link = PaginationLinkData.from_header(header)
     assert not link.prev_url
     assert not link.next_url
     assert link.first_url == "https://example.com/query?foo=b"
 
-    link = PaginatedLinkData.from_header("")
+    link = PaginationLinkData.from_header("")
     assert not link.prev_url
     assert not link.next_url
     assert not link.first_url

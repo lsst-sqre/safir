@@ -35,7 +35,8 @@ To use the generic paginated query support, first you must define the cursor tha
 The cursor class defines the following information needed for paginated queries:
 
 #. How to construct a cursor to get all entries before or after a given entry.
-   Forward cursors must include the entry provided as a basis for the cursor, and reverse curors must exclude it.
+   Forward cursors must include the entry provided as a basis for the cursor, and reverse cursors must exclude it.
+   The Pydantic model of the entries is a type parameter to the cursor.
 #. How to serialize to and deserialize from a string so that the cursor can be returned to an API client and sent back to retrieve the next batch of results.
 #. The sort order the cursor represents.
    A cursor class represents one and only one sort order, since keyset cursors rely on the sort order not changing.
@@ -48,7 +49,7 @@ In the general case, your application must define the cursor by creating a subcl
 In the very common case that the API results are sorted first by some timestamp in descending order (most recent first) and then by an auto-increment unique key (most recently inserted row first), Safir provides `~safir.database.DatetimeIdCursor`, which is a generic cursor implementation that implements that ordering and keyset pagination policy.
 In this case, you need only subclass `~safir.database.DatetimeIdCursor` and provide the SQLAlchemy ORM model columns that correspond to the timestamp and the unique key.
 
-For example, if you are requesting paginated results from a table whose ORM model is named ``Job``, whose timestamp field is ``Job.creation_time``, and whose unique key is ``Job.id``, you can use the following cursor:
+For example, if you are requesting paginated results from a table whose ORM model is named ``Job``, whose timestamp field is ``Job.creation_time``, and whose unique key is ``Job.id``, and using a Pydantic model named ``JobModel`` with the same field names, you can use the following cursor:
 
 .. code-block:: python
 
@@ -56,7 +57,7 @@ For example, if you are requesting paginated results from a table whose ORM mode
    from sqlalchemy.orm import InstrumentedAttribute
 
 
-   class JobCursor(DatetimeIdCursor):
+   class JobCursor(DatetimeIdCursor[JobModel]):
        @staticmethod
        def id_column() -> InstrumentedAttribute:
            return Job.id
@@ -65,9 +66,14 @@ For example, if you are requesting paginated results from a table whose ORM mode
        def time_column() -> InstrumentedAttribute:
            return Job.creation_time
 
+       @classmethod
+       def from_entry(cls, entry: JobModel, *, reverse: bool = False) -> Self:
+           return cls(id=entry.id, time=entry.creation_time, reverse=reverse)
+
 (These are essentially class properties, but due to limitations in Python abstract data types and property decorators, they're implemented as static methods.)
 
 In this case, `~safir.database.DatetimeIdCursor` will handle all of the other details for you, including serialization and deserialization.
+The type parameter to `~safir.database.DatetimeIdCursor` must be the Pydantic model that the resulting paginated list will contain.
 
 Performing paginated queries
 ============================
@@ -86,14 +92,13 @@ The parameter declaration should generally look something like the following:
    async def query(
        *,
        cursor: Annotated[
-           ModelCursor | None,
+           str | None,
            Query(
                title="Pagination cursor",
                description=(
                    "Optional cursor used when moving between pages of results"
                ),
            ),
-           BeforeValidator(lambda c: ModelCursor.from_str(c) if c else None),
        ] = None,
        limit: Annotated[
            int,
@@ -107,14 +112,21 @@ The parameter declaration should generally look something like the following:
        ] = 100,
        request: Request,
        response: Response,
-   ) -> list[Model]: ...
+   ) -> list[Model]:
+       parsed_cursor = None
+       if cursor:
+           parsed_cursor = ModelCursor.from_str(cursor)
+       ...
 
-You should be able to use your class's implementation of `~safir.database.PaginationCursor.from_str` as a validator, which lets FastAPI validate the syntax of the cursor for you and handle syntax errors.
-Since the cursor is optional (the first query won't have a cursor), you'll need a small wrapper to handle `None`, as shown above.
+Unfortunately, due to limitations in FastAPI, you cannot annotate the cursor parameter with a validator that returns the appropriate object.
+You must instead parse the cursor in the body of the handler.
+`~safir.database.PaginationCursor.from_str` should raise `~safir.database.InvalidCursorError` on parse failure, which will be automatically converted into an HTTP 422 response if you use the error handler described in :doc:`../fastapi-errors`.
 
-Also note the ``limit`` parameter, which should also be used on any paginated route.
+By default, the exception raised by `~safir.database.DatetimeIdCursor` assumes the cursor is coming from a query parameter named ``cursor``.
+If this is not true for your application and you are using a cursor derived from that class, you should either catch the exception, modify ``location`` and ``field_path`` as appropriate for your application, and then re-raise it or override the ``__str__`` method to throw an exception with different metadata.
+
+Note the ``limit`` parameter in the above code example, which should also be used on any paginated route.
 This sets the size of each block of results.
-
 As shown here, you will generally want to set some upper limit on how large the limit can be and set a default limit if none was provided.
 This ensures that clients cannot retrieve the full list of results with one query.
 
@@ -258,19 +270,19 @@ Those links can then be embedded in the response model wherever is appropriate f
 Parsing paginated query responses
 =================================
 
-Safir provides `~safir.database.PaginatedLinkData` to parse the contents of an :rfc:`8288` ``Link`` header and extract pagination links from it.
+Safir provides `~safir.database.PaginationLinkData` to parse the contents of an :rfc:`8288` ``Link`` header and extract pagination links from it.
 This may be useful in clients of paginated query results, including tests of services that use the above approach to paginated queries.
 
 .. code-block:: python
 
-   from safir.database import PaginatedLinkData
+   from safir.database import PaginationLinkData
 
 
    r = client.get("/some/url", query={"limit": 100})
-   links = PaginatedLinkData.from_header(r.headers["Link"])
+   links = PaginationLinkData.from_header(r.headers["Link"])
    next_url = links.next_url
    prev_url = links.prev_url
    first_url = links.first_url
 
 Currently, only the first, next, and previous URLs are extracted from the ``Link`` header.
-If any of these URLs are not present, the corresponding attribute of `~safir.database.PaginatedLinkData` will be `None`.
+If any of these URLs are not present, the corresponding attribute of `~safir.database.PaginationLinkData` will be `None`.
