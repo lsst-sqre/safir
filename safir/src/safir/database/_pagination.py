@@ -16,8 +16,11 @@ from urllib.parse import parse_qs, urlencode
 from pydantic import BaseModel
 from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
+from sqlalchemy.orm import InstrumentedAttribute
 from starlette.datastructures import URL
+
+from safir.fastapi import ClientRequestError
+from safir.models import ErrorLocation
 
 from ._datetime import datetime_to_db
 
@@ -32,15 +35,25 @@ E = TypeVar("E", bound="BaseModel")
 
 __all__ = [
     "DatetimeIdCursor",
-    "PaginatedLinkData",
+    "InvalidCursorError",
     "PaginatedList",
     "PaginatedQueryRunner",
     "PaginationCursor",
+    "PaginationLinkData",
 ]
 
 
+class InvalidCursorError(ClientRequestError):
+    """The provided cursor was invalid."""
+
+    error = "invalid_cursor"
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, ErrorLocation.query, ["cursor"])
+
+
 @dataclass
-class PaginatedLinkData:
+class PaginationLinkData:
     """Holds the data returned in an :rfc:`8288` ``Link`` header."""
 
     prev_url: str | None
@@ -63,7 +76,7 @@ class PaginatedLinkData:
 
         Returns
         -------
-        PaginatedLinkData
+        PaginationLinkData
             Parsed form of that header.
         """
         links = {}
@@ -135,7 +148,7 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
         Raises
         ------
-        ValueError
+        InvalidCursorError
             Raised if the cursor is invalid.
         """
 
@@ -256,7 +269,7 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
                 previous=previous,
             )
         except Exception as e:
-            raise ValueError(f"Cannot parse cursor: {e!s}") from e
+            raise InvalidCursorError(f"Cannot parse cursor: {e!s}") from e
 
     @classmethod
     def apply_order(cls, stmt: Select, *, reverse: bool = False) -> Select:
@@ -452,7 +465,7 @@ class PaginatedQueryRunner(Generic[E, C]):
     async def query_object(
         self,
         session: async_scoped_session,
-        stmt: Select[tuple[DeclarativeBase]],
+        stmt: Select[tuple],
         *,
         cursor: C | None = None,
         limit: int | None = None,
@@ -468,6 +481,9 @@ class PaginatedQueryRunner(Generic[E, C]):
         resulting object passed to Pydantic's ``model_validate`` to convert to
         ``entry_type``. For queries returning a tuple of attributes, use
         `query_row` instead.
+
+        Unfortunately, this distinction cannot be type-checked, so be careful
+        to use the correct method.
 
         Parameters
         ----------
@@ -511,6 +527,9 @@ class PaginatedQueryRunner(Generic[E, C]):
         This method should be used with queries that return a list of
         attributes that can be converted to the ``entry_type`` Pydantic model.
         For queries returning a single ORM object, use `query_object` instead.
+
+        Unfortunately, this distinction cannot be type-checked, so be careful
+        to use the correct method.
 
         Parameters
         ----------
