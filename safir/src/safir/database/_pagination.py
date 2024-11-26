@@ -113,10 +113,10 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
         Builds a cursor to get the entries after the provided entry, or before
         the provided entry if ``reverse`` is set to `True`. When the cursor is
-        later applied with `apply_cursor`, forward cursors (the default) must
-        include the entry the cursor was based on. Reverse cursors must
-        exclude the given entry and return data starting with the entry
-        immediately previous.
+        later applied with `~safir.database.PaginationCursor.apply_cursor`,
+        forward cursors (the default) must include the entry the cursor was
+        based on. Reverse cursors must exclude the given entry and return data
+        starting with the entry immediately previous.
 
         Parameters
         ----------
@@ -127,7 +127,7 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
         Returns
         -------
-        PaginationCursor
+        safir.database.PaginationCursor
             Requested cursor.
         """
 
@@ -148,7 +148,7 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
         Raises
         ------
-        InvalidCursorError
+        safir.database.InvalidCursorError
             Raised if the cursor is invalid.
         """
 
