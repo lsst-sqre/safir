@@ -143,7 +143,7 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
         Returns
         -------
-        PaginationCursor
+        safir.database.PaginationCursor
             The cursor represented as an object.
 
         Raises
@@ -208,7 +208,7 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
         Returns
         -------
-        PaginationCursor
+        safir.database.PaginationCursor
             The inverted cursor.
         """
 
