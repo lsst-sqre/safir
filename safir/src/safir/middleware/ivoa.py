@@ -5,7 +5,10 @@ from urllib.parse import parse_qsl, urlencode
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-__all__ = ["CaseInsensitiveQueryMiddleware"]
+__all__ = [
+    "CaseInsensitiveFormMiddleware",
+    "CaseInsensitiveQueryMiddleware",
+]
 
 
 class CaseInsensitiveQueryMiddleware:
@@ -74,13 +77,13 @@ class CaseInsensitiveFormMiddleware:
 
         scope = copy(scope)
 
-        if scope["method"] == "POST" and self.is_form_data(scope):
-            receive = self.wrapped_receive(receive)
+        if scope["method"] == "POST" and self._is_form_data(scope):
+            receive = self._wrapped_receive(receive)
 
         await self._app(scope, receive, send)
 
     @staticmethod
-    def is_form_data(scope: Scope) -> bool:
+    def _is_form_data(scope: Scope) -> bool:
         """Check if the request contains form data.
 
         Parameters
@@ -101,7 +104,7 @@ class CaseInsensitiveFormMiddleware:
         return content_type.startswith("application/x-www-form-urlencoded")
 
     @staticmethod
-    async def get_body(receive: Receive) -> bytes:
+    async def _get_body(receive: Receive) -> bytes:
         """Read the entire request body.
 
         Parameters
@@ -123,7 +126,7 @@ class CaseInsensitiveFormMiddleware:
         return body
 
     @staticmethod
-    async def process_form_data(body: bytes) -> bytes:
+    async def _process_form_data(body: bytes) -> bytes:
         """Process the body, lowercasing keys of form data.
 
         Parameters
@@ -142,7 +145,7 @@ class CaseInsensitiveFormMiddleware:
         processed = urlencode(lowercased)
         return processed.encode("utf-8")
 
-    def wrapped_receive(self, receive: Receive) -> Receive:
+    def _wrapped_receive(self, receive: Receive) -> Receive:
         """Wrap the receive function to process form data.
 
         Parameters
@@ -166,8 +169,8 @@ class CaseInsensitiveFormMiddleware:
                     "more_body": False,
                 }
 
-            body = await self.get_body(receive)
-            processed_body = await self.process_form_data(body)
+            body = await self._get_body(receive)
+            processed_body = await self._process_form_data(body)
             processed = True
             return {
                 "type": "http.request",

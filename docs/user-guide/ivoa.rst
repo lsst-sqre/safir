@@ -5,23 +5,29 @@ IVOA protocol support
 The IVOA web protocols aren't entirely RESTful and have some unusual requirements that are not provided by modern web frameworks.
 Safir provides some FastAPI support facilities to make implementing IVOA services easier.
 
-Query parameter case insensitivity
-==================================
+Parameter case insensitivity
+============================
 
 Many IVOA protocols require the key of a query parameter to be case-insensitive.
 For example, the requests ``GET /api/foo?param=bar`` and ``GET /api/foo?PARAM=bar`` are supposed to produce identical results.
-Safir provides `safir.middleware.ivoa.CaseInsensitiveQueryMiddleware` to implement this protocol requirement.
+The same is true for parameters provided in form bodies to ``POST``.
 
-Add this middleware to the FastAPI application:
+Safir provides two middlewares, `~safir.middleware.ivoa.CaseInsensitiveQueryMiddleware` and `~safir.middleware.ivoa.CaseInsensitiveFormMiddleware`, to implement this protocol requirement.
+
+Add these middlewares to the FastAPI application:
 
 .. code-block:: python
 
-   from safir.middleware.ivoa import CaseInsensitiveQueryMiddleware
+   from safir.middleware.ivoa import (
+       CaseInsensitiveFormMiddleware,
+       CaseInsensitiveQueryMiddleware,
+   )
 
    app = FastAPI()
+   app.add_middleware(CaseInsensitiveFormMiddleware)
    app.add_middleware(CaseInsensitiveQueryMiddleware)
 
-In the route handlers, declare all query parameters in all lowercase.
+In the route handlers, declare all form and query parameters in all lowercase.
 For instance, for the above example queries:
 
 .. code-block:: python
