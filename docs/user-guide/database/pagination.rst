@@ -95,9 +95,7 @@ The parameter declaration should generally look something like the following:
            str | None,
            Query(
                title="Pagination cursor",
-               description=(
-                   "Optional cursor used when moving between pages of results"
-               ),
+               description="Cursor to navigate paginated results",
            ),
        ] = None,
        limit: Annotated[
@@ -224,26 +222,38 @@ This is the recommended way to return pagination information alongside a result.
 Here is a very simplified example of a route handler that sets this header:
 
 .. code-block:: python
+   :emphasize-lines: 27-36
 
    @router.get("/query", response_class=Model)
    async def query(
        *,
        cursor: Annotated[
-           ModelCursor | None,
-           Query(),
-           BeforeValidator(lambda c: ModelCursor.from_str(c) if c else None),
+           str | None,
+           Query(
+               title="Pagination cursor",
+               description="Cursor to navigate paginated results",
+           ),
        ] = None,
-       limit: Annotated[int | None, Query()] = None,
-       session: Annotated[
-           async_scoped_session, Depends(db_session_dependency)
-       ],
+       limit: Annotated[
+           int,
+           Query(
+               title="Row limit",
+               description="Maximum number of entries to return",
+               examples=[100],
+               ge=1,
+               le=100,
+           ),
+       ] = 100,
        request: Request,
        response: Response,
    ) -> list[Model]:
-       runner = PydanticQueryRunner(Model, ModelCursor)
+       parsed_cursor = None
+       if cursor:
+           parsed_cursor = ModelCursor.from_str(cursor)
+       runner = PaginatedQueryRunner(Model, ModelCursor)
        stmt = build_query(...)
        results = await runner.query_object(
-           session, stmt, cursor=cursor, limit=limit
+           session, stmt, cursor=parsed_cursor, limit=limit
        )
        if cursor or limit:
            response.headers["Link"] = results.link_header(request.url)
