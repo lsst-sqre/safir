@@ -20,7 +20,10 @@ from safir.database import (
     is_database_current,
     stamp_database_async,
 )
-from safir.middleware.ivoa import CaseInsensitiveQueryMiddleware
+from safir.middleware.ivoa import (
+    CaseInsensitiveFormMiddleware,
+    CaseInsensitiveQueryMiddleware,
+)
 
 from ._config import UWSConfig
 from ._constants import UWS_DATABASE_TIMEOUT, UWS_EXPIRE_JOBS_SCHEDULE
@@ -260,15 +263,17 @@ class UWSApplication:
     def install_middleware(self, app: FastAPI) -> None:
         """Install FastAPI middleware needed by UWS.
 
-        UWS unfortunately requires that the key portion of query parameters be
-        case-insensitive, so UWS FastAPI applications need to add custom
-        middleware to lowercase query parameter keys. This method does that.
+        UWS unfortunately requires that the key portion of query and form
+        parameters be case-insensitive, so UWS FastAPI applications need to
+        add custom middleware to lowercase parameter keys. This method does
+        that.
 
         Parameters
         ----------
         app
             FastAPI app.
         """
+        app.add_middleware(CaseInsensitiveFormMiddleware)
         app.add_middleware(CaseInsensitiveQueryMiddleware)
 
     async def is_schema_current(

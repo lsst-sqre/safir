@@ -15,12 +15,13 @@ from structlog.stdlib import BoundLogger
 from vo_models.uws import Jobs, Results
 from vo_models.uws.types import ExecutionPhase
 
-from safir.datetime import isodatetime, parse_isodatetime
+from safir.datetime import isodatetime
 from safir.dependencies.gafaelfawr import (
     auth_delegated_token_dependency,
     auth_dependency,
     auth_logger_dependency,
 )
+from safir.pydantic import IvoaIsoDatetime
 from safir.slack.webhook import SlackRouteErrorHandler
 
 from ._config import UWSRoute
@@ -29,9 +30,8 @@ from ._dependencies import (
     create_phase_dependency,
     runid_post_dependency,
     uws_dependency,
-    uws_post_params_dependency,
 )
-from ._exceptions import DataMissingError, ParameterError
+from ._exceptions import DataMissingError
 from ._models import UWSJobParameter
 
 uws_router = APIRouter(route_class=SlackRouteErrorHandler)
@@ -164,7 +164,6 @@ async def delete_job(
 async def delete_job_via_post(
     job_id: str,
     *,
-    request: Request,
     action: Annotated[
         Literal["DELETE"] | None,
         Form(
@@ -172,26 +171,10 @@ async def delete_job_via_post(
             description="Mandatory, must be set to DELETE",
         ),
     ] = None,
-    params: Annotated[
-        list[UWSJobParameter], Depends(uws_post_params_dependency)
-    ],
+    request: Request,
     user: Annotated[str, Depends(auth_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
-    # Work around the obnoxious requirement for case-insensitive parameters,
-    # which is also why the action parameter is declared as optional (but is
-    # listed to help with API documentation generation).
-    saw_delete = False
-    for param in params:
-        if param.parameter_id != "action" or param.value != "DELETE":
-            msg = f"Unknown parameter {param.parameter_id}={param.value}"
-            raise ParameterError(msg)
-        if param.parameter_id == "action" and param.value == "DELETE":
-            saw_delete = True
-    if not saw_delete:
-        raise ParameterError("No action given")
-
-    # Do the actual deletion.
     job_service = uws_factory.create_job_service()
     await job_service.delete(user, job_id)
     return str(request.url_for("get_job_list"))
@@ -222,34 +205,18 @@ async def get_job_destruction(
 async def post_job_destruction(
     job_id: str,
     *,
-    request: Request,
     destruction: Annotated[
-        datetime | None,
+        IvoaIsoDatetime,
         Form(
             title="New destruction time",
             description="Must be in ISO 8601 format.",
             examples=["2021-09-10T10:01:02Z"],
         ),
-    ] = None,
-    params: Annotated[
-        list[UWSJobParameter], Depends(uws_post_params_dependency)
     ],
+    request: Request,
     user: Annotated[str, Depends(auth_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
-    # Work around the obnoxious requirement for case-insensitive parameters.
-    for param in params:
-        if param.parameter_id != "destruction":
-            msg = f"Unknown parameter {param.parameter_id}={param.value}"
-            raise ParameterError(msg)
-        try:
-            destruction = parse_isodatetime(param.value)
-        except Exception as e:
-            raise ParameterError(f"Invalid date {param.value}") from e
-    if not destruction:
-        raise ParameterError("No new destruction time given")
-
-    # Update the destruction time.
     job_service = uws_factory.create_job_service()
     await job_service.update_destruction(user, job_id, destruction)
     return str(request.url_for("get_job", job_id=job_id))
@@ -303,39 +270,19 @@ async def get_job_execution_duration(
 async def post_job_execution_duration(
     job_id: str,
     *,
-    request: Request,
     executionduration: Annotated[
-        int | None,
+        int,
         Form(
             title="New execution duration",
             description="Integer seconds of wall clock time.",
             examples=[14400],
+            ge=1,
         ),
-    ] = None,
-    params: Annotated[
-        list[UWSJobParameter], Depends(uws_post_params_dependency)
     ],
+    request: Request,
     user: Annotated[str, Depends(auth_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
-    # Work around the obnoxious requirement for case-insensitive parameters.
-    for param in params:
-        if param.parameter_id != "executionduration":
-            msg = f"Unknown parameter {param.parameter_id}={param.value}"
-            raise ParameterError(msg)
-        try:
-            executionduration = int(param.value)
-        except Exception as e:
-            raise ParameterError(f"Invalid duration {param.value}") from e
-        if executionduration <= 0:
-            raise ParameterError(f"Invalid duration {param.value}")
-    if not executionduration:
-        raise ParameterError("No new execution duration given")
-
-    # Update the execution duration.  Note that the policy layer may modify
-    # the execution duration, so the duration set may not match the input.
-    # update_execution_duration returns the new execution duration set, or
-    # None if it was not changed.
     job_service = uws_factory.create_job_service()
     duration = timedelta(seconds=executionduration)
     await job_service.update_execution_duration(user, job_id, duration)
@@ -401,7 +348,6 @@ async def get_job_phase(
 async def post_job_phase(
     job_id: str,
     *,
-    request: Request,
     phase: Annotated[
         Literal["RUN", "ABORT"] | None,
         Form(
@@ -409,26 +355,12 @@ async def post_job_phase(
             summary="RUN to start the job, ABORT to abort the job.",
         ),
     ] = None,
-    params: Annotated[
-        list[UWSJobParameter], Depends(uws_post_params_dependency)
-    ],
+    request: Request,
     user: Annotated[str, Depends(auth_dependency)],
     access_token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
     logger: Annotated[BoundLogger, Depends(auth_logger_dependency)],
 ) -> str:
-    # Work around the obnoxious requirement for case-insensitive parameters.
-    for param in params:
-        if param.parameter_id != "phase":
-            msg = f"Unknown parameter {param.parameter_id}={param.value}"
-            raise ParameterError(msg)
-        if param.value not in ("RUN", "ABORT"):
-            raise ParameterError(f"Invalid phase {param.value}")
-        phase = param.value  # type: ignore[assignment]
-    if not phase:
-        raise ParameterError("No new phase given")
-
-    # If told to abort the job, tell arq to do so.
     job_service = uws_factory.create_job_service()
     if phase == "ABORT":
         await job_service.abort(user, job_id)
