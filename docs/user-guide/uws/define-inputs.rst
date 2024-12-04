@@ -20,8 +20,8 @@ See :doc:`define-models` for how to do that.
 All FastAPI dependencies provided by your application must return a list of `UWSJobParameter` objects.
 The ``parameter_id`` attribute is the key and the ``value`` attribute is the value.
 
-The key (the ``parameter_id``) is case-insensitive in the input.
-When creating a `UWSJobParameter` object, it should be converted to lowercase (by using ``.lower()``, for example) so that the rest of the service can assume the lowercase form.
+The key (the ``parameter_id``) is case-insensitive in the input, but it will be lowercased by middleware installed by Safir.
+You will therefore always see lowercase query and form parameters in your dependency and do not have to handle other case possibilities.
 
 UWS allows the same ``parameter_id`` to occur multiple times with different values.
 For example, multiple ``id`` parameters may specify multiple input objects for a bulk operation that processes all of the input objects at the same time.
@@ -67,7 +67,7 @@ Here is an example for a SODA service that performs circular cutouts:
    async def post_params_dependency(
        *,
        id: Annotated[
-           str | list[str] | None,
+           list[str] | None,
            Form(
                title="Source ID",
                description=(
@@ -77,7 +77,7 @@ Here is an example for a SODA service that performs circular cutouts:
            ),
        ] = None,
        circle: Annotated[
-           str | list[str] | None,
+           list[str] | None,
            Form(
                title="Cutout circle positions",
                description=(
@@ -88,23 +88,21 @@ Here is an example for a SODA service that performs circular cutouts:
                ),
            ),
        ] = None,
-       params: Annotated[
-           list[UWSJobParameter], Depends(uws_post_params_dependency)
-       ],
    ) -> list[UWSJobParameter]:
        """Parse POST parameters into job parameters for a cutout."""
-       return [p for p in params if p.parameter_id in {"id", "circle"}]
+       params = []
+       for i in id:
+           params.append(UWSJobParameter(paramater_id="id", value=i))
+       for c in circle:
+           params.append(UWSJobParameter(parameter_id="circle", value=c))
+       return params
 
 This first declares the input parameters, with full documentation, as FastAPI ``Form`` parameters.
-Note that the type is ``str | list[str]``, which allows the parameter to be specified multiple times.
 
-Unfortunately, supporting UWS's case-insensitivity is obnoxious in FastAPI.
-This is the purpose for the extra ``params`` argument that uses `uws_post_params_dependency`.
-The explicitly-declared parameters are there only to generate API documentation and are not used directly.
-Instead, the ``params`` argument collects all of the input form parameters and converts them into a canonical form for you, regardless of the case used for the key.
-The body of the function then only needs to filter those parameters down to the ones that are relevant for your application and return them.
+Note that the type is ``list[str]``, which allows the parameter to be specified multiple times.
+If the parameters for your service cannot be repeated, change this to `str` (or another appropriate basic type, such as `int`).
 
-You do not need to do any input validation here.
+You do not need to do any input validation of the parameter values here.
 This will be done later as part of converting the input parameters to your parameter model, as defined in :doc:`define-models`.
 
 Async POST configuration
@@ -212,9 +210,6 @@ Here is an example dependency for a cutout service:
            for k, v in request.query_params.items()
            if k in {"id", "circle"}
        ]
-
-This code is somewhat simpler and doesn't need `uws_post_params_dependency`.
-The UWS library installs FastAPI middleware that canonicalizes the case of all query parameter keys, so your application can assume they are lowercase.
 
 As in the other cases, you will then need to pass a `UWSRoute` object as the ``sync_get_route`` argument to `UWSAppSettings.build_uws_config`.
 Here is an example:

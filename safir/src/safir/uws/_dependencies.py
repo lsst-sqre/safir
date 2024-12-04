@@ -8,7 +8,7 @@ to individual route handlers, which in turn can create other needed objects.
 from collections.abc import AsyncIterator
 from typing import Annotated, Literal
 
-from fastapi import Depends, Form, Query, Request
+from fastapi import Depends, Form, Query
 from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 from structlog.stdlib import BoundLogger
 
@@ -17,8 +17,6 @@ from safir.database import create_async_session, create_database_engine
 from safir.dependencies.logger import logger_dependency
 
 from ._config import UWSConfig
-from ._exceptions import ParameterError
-from ._models import UWSJobParameter
 from ._responses import UWSTemplates
 from ._results import ResultStore
 from ._service import JobService
@@ -30,7 +28,6 @@ __all__ = [
     "create_phase_dependency",
     "runid_post_dependency",
     "uws_dependency",
-    "uws_post_params_dependency",
 ]
 
 
@@ -167,35 +164,6 @@ class UWSDependency:
 uws_dependency = UWSDependency()
 
 
-async def uws_post_params_dependency(
-    request: Request,
-) -> list[UWSJobParameter]:
-    """Parse POST parameters.
-
-    UWS requires that all POST parameters be case-insensitive, which is not
-    supported by FastAPI or Starlette. POST parameters therefore have to be
-    parsed by this dependency and then extracted from the resulting
-    `~safir.uws.UWSJobParameter` list (which unfortunately also means
-    revalidating their types).
-
-    The POST parameters can also be (and should be) listed independently as
-    dependencies using the normal FastAPI syntax, in order to populate the
-    OpenAPI schema, but unfortunately they all have to be listed as optional
-    from FastAPI's perspective because they may be present using different
-    capitalization.
-    """
-    if request.method != "POST":
-        raise ValueError("uws_post_params_dependency used for non-POST route")
-    parameters = []
-    for key, value in (await request.form()).multi_items():
-        if not isinstance(value, str):
-            raise TypeError("File upload not supported")
-        parameters.append(
-            UWSJobParameter(parameter_id=key.lower(), value=value)
-        )
-    return parameters
-
-
 async def create_phase_dependency(
     *,
     get_phase: Annotated[
@@ -206,22 +174,13 @@ async def create_phase_dependency(
         Literal["RUN"] | None,
         Form(title="Immediately start job", alias="phase"),
     ] = None,
-    params: Annotated[
-        list[UWSJobParameter], Depends(uws_post_params_dependency)
-    ],
 ) -> Literal["RUN"] | None:
     """Parse the optional phase parameter to an async job creation.
 
     Allow ``phase=RUN`` to be specified in either the query or the POST
     parameters, which says that the job should be immediately started.
     """
-    for param in params:
-        if param.parameter_id != "phase":
-            continue
-        if param.value != "RUN":
-            raise ParameterError(f"Invalid phase {param.value}")
-        return "RUN"
-    return get_phase
+    return post_phase or get_phase
 
 
 async def runid_post_dependency(
@@ -237,17 +196,6 @@ async def runid_post_dependency(
             ),
         ),
     ] = None,
-    params: Annotated[
-        list[UWSJobParameter], Depends(uws_post_params_dependency)
-    ],
 ) -> str | None:
-    """Parse the run ID from POST parameters.
-
-    This is annoyingly complex because DALI defines all parameters as
-    case-insensitive, so we have to list the field as a dependency but then
-    parse it out of the case-canonicalized job parameters.
-    """
-    for param in params:
-        if param.parameter_id == "runid":
-            runid = param.value
+    """Parse the run ID from POST parameters."""
     return runid
