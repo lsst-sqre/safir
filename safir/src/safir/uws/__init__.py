@@ -1,7 +1,7 @@
 """Support library for writing UWS-enabled services."""
 
 from ._app import UWSApplication
-from ._config import ParametersModel, UWSAppSettings, UWSConfig, UWSRoute
+from ._config import UWSAppSettings, UWSConfig, UWSRoute
 from ._exceptions import (
     DatabaseSchemaError,
     MultiValuedParameterError,
@@ -12,6 +12,7 @@ from ._exceptions import (
 )
 from ._models import (
     ErrorCode,
+    ParametersModel,
     UWSJob,
     UWSJobError,
     UWSJobParameter,

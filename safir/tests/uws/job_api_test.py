@@ -15,14 +15,16 @@ from arq.constants import default_queue_name
 from arq.jobs import JobStatus
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from vo_models.uws import Results
+from vo_models.uws import JobSummary, Results
 
 from safir.arq import MockArqQueue
 from safir.arq.uws import WorkerJobInfo
 from safir.datetime import current_datetime, isodatetime
-from safir.testing.uws import MockUWSJobRunner
+from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
 from safir.uws import UWSConfig, UWSJob, UWSJobParameter, UWSJobResult
 from safir.uws._dependencies import UWSFactory
+
+from ..support.uws import SimpleXmlParameters
 
 PENDING_JOB = """
 <uws:job
@@ -167,12 +169,16 @@ async def test_job_run(
     )
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
-    assert r.text == PENDING_JOB.strip().format(
-        "1",
-        "PENDING",
-        isodatetime(job.creation_time),
-        "600",
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        PENDING_JOB.format(
+            "1",
+            "PENDING",
+            isodatetime(job.creation_time),
+            "600",
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
 
     # Try to put the job in an invalid phase.
@@ -193,12 +199,16 @@ async def test_job_run(
     )
     assert r.status_code == 200
     assert r.url == "https://example.com/test/jobs/1"
-    assert r.text == PENDING_JOB.strip().format(
-        "1",
-        "QUEUED",
-        isodatetime(job.creation_time),
-        "600",
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        PENDING_JOB.format(
+            "1",
+            "QUEUED",
+            isodatetime(job.creation_time),
+            "600",
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
     await runner.mark_in_progress("user", "1")
 
@@ -240,12 +250,16 @@ async def test_job_run(
     )
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
-    assert r.text == FINISHED_JOB.strip().format(
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.end_time),
-        "600",
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        FINISHED_JOB.format(
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.end_time),
+            "600",
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
 
     # Check that the phase is now correct.
@@ -299,10 +313,14 @@ async def test_job_abort(
     )
     assert r.status_code == 200
     assert r.url == "https://example.com/test/jobs/1"
-    assert r.text == ABORTED_PENDING_JOB.strip().format(
-        "1",
-        isodatetime(job.creation_time),
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        ABORTED_PENDING_JOB.format(
+            "1",
+            isodatetime(job.creation_time),
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
 
     # Create a second job and start it running.
@@ -327,12 +345,16 @@ async def test_job_abort(
     job = await job_service.get("user", "2")
     assert job.start_time
     assert job.end_time
-    assert r.text == ABORTED_JOB.strip().format(
-        "2",
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.end_time),
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        ABORTED_JOB.format(
+            "2",
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.end_time),
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
     job_result = await runner.get_job_result("user", "2")
     assert not job_result.success
@@ -386,12 +408,16 @@ async def test_job_api(
     )
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
-    assert r.text == PENDING_JOB.strip().format(
-        "1",
-        "PENDING",
-        isodatetime(job.creation_time),
-        "600",
-        isodatetime(destruction_time),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        PENDING_JOB.format(
+            "1",
+            "PENDING",
+            isodatetime(job.creation_time),
+            "600",
+            isodatetime(destruction_time),
+        ),
     )
 
     # Check retrieving each part separately.
@@ -422,7 +448,8 @@ async def test_job_api(
     )
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
-    assert r.text == JOB_PARAMETERS.strip()
+    expected = SimpleXmlParameters.from_xml(JOB_PARAMETERS)
+    assert SimpleXmlParameters.from_xml(r.text) == expected
 
     r = await client.get(
         "/test/jobs/1/phase", headers={"X-Auth-Request-User": "user"}
@@ -462,12 +489,16 @@ async def test_job_api(
     )
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
-    assert r.text == PENDING_JOB.strip().format(
-        "1",
-        "PENDING",
-        isodatetime(job.creation_time),
-        "300",
-        isodatetime(now),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        PENDING_JOB.format(
+            "1",
+            "PENDING",
+            isodatetime(job.creation_time),
+            "300",
+            isodatetime(now),
+        ),
     )
 
     # Delete the job.
@@ -493,12 +524,16 @@ async def test_job_api(
         "/test/jobs/2", headers={"X-Auth-Request-User": "user"}
     )
     assert r.status_code == 200
-    assert r.text == PENDING_JOB.strip().format(
-        "2",
-        "PENDING",
-        isodatetime(job.creation_time),
-        "600",
-        isodatetime(job.destruction_time),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        PENDING_JOB.format(
+            "2",
+            "PENDING",
+            isodatetime(job.creation_time),
+            "600",
+            isodatetime(job.destruction_time),
+        ),
     )
     r = await client.post(
         "/test/jobs/2",
@@ -611,12 +646,16 @@ async def test_presigned_url(
     assert r.status_code == 200
     assert job.start_time
     assert job.end_time
-    assert r.text == FINISHED_JOB.strip().format(
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.end_time),
-        "600",
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        FINISHED_JOB.format(
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.end_time),
+            "600",
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
 
 

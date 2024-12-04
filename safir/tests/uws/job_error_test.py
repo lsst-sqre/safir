@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from vo_models.uws import JobSummary
 
 from safir.arq.uws import WorkerFatalError, WorkerTransientError
 from safir.datetime import isodatetime
 from safir.testing.slack import MockSlackWebhook
-from safir.testing.uws import MockUWSJobRunner
+from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
 from safir.uws import UWSJobParameter
 from safir.uws._dependencies import UWSFactory
 from safir.uws._exceptions import TaskError
+
+from ..support.uws import SimpleXmlParameters
 
 ERRORED_JOB = """
 <uws:job
@@ -85,14 +88,18 @@ async def test_temporary_error(
         "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
     )
     assert r.status_code == 200
-    assert r.text == ERRORED_JOB.strip().format(
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.end_time),
-        isodatetime(job.destruction_time),
-        "transient",
-        "false",
-        "ServiceUnavailable Something failed",
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        ERRORED_JOB.format(
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.end_time),
+            isodatetime(job.destruction_time),
+            "transient",
+            "false",
+            "ServiceUnavailable: Something failed",
+        ),
     )
 
     # Retrieve the error separately.
@@ -101,7 +108,7 @@ async def test_temporary_error(
     )
     assert r.status_code == 200
     assert r.text == JOB_ERROR_SUMMARY.strip().format(
-        "ServiceUnavailable Something failed"
+        "ServiceUnavailable: Something failed"
     )
 
     # For now, this shouldn't have resulted in Slack errors.
@@ -139,14 +146,18 @@ async def test_fatal_error(
         "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
     )
     assert r.status_code == 200
-    assert r.text == ERRORED_JOB.strip().format(
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.end_time),
-        isodatetime(job.destruction_time),
-        "fatal",
-        "true",
-        "Error Whoops",
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        ERRORED_JOB.format(
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.end_time),
+            isodatetime(job.destruction_time),
+            "fatal",
+            "true",
+            "Error: Whoops",
+        ),
     )
 
     # Retrieve the error separately.
@@ -155,7 +166,7 @@ async def test_fatal_error(
     )
     assert r.status_code == 200
     assert r.text == JOB_ERROR_SUMMARY.strip().format(
-        "Error Whoops\n\nSome details"
+        "Error: Whoops\n\nSome details"
     )
 
     # For now, this shouldn't have resulted in Slack errors.
@@ -192,14 +203,18 @@ async def test_unknown_error(
         "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
     )
     assert r.status_code == 200
-    assert r.text == ERRORED_JOB.strip().format(
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.end_time),
-        isodatetime(job.destruction_time),
-        "fatal",
-        "true",
-        "Error Unknown error executing task",
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        ERRORED_JOB.format(
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.end_time),
+            isodatetime(job.destruction_time),
+            "fatal",
+            "true",
+            "Error: Unknown error executing task",
+        ),
     )
 
     # Retrieve the error separately.
@@ -208,7 +223,7 @@ async def test_unknown_error(
     )
     assert r.status_code == 200
     assert r.text == JOB_ERROR_SUMMARY.strip().format(
-        "Error Unknown error executing task\n\n"
+        "Error: Unknown error executing task\n\n"
         "ValueError: Unknown exception"
     )
 

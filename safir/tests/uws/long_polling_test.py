@@ -7,12 +7,15 @@ from datetime import timedelta
 
 import pytest
 from httpx import AsyncClient
+from vo_models.uws import JobSummary
 
 from safir.datetime import current_datetime, isodatetime
-from safir.testing.uws import MockUWSJobRunner
+from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
 from safir.uws import UWSJobParameter
 from safir.uws._dependencies import UWSFactory
 from safir.uws._models import UWSJobResult
+
+from ..support.uws import SimpleXmlParameters
 
 PENDING_JOB = """
 <uws:job
@@ -102,10 +105,14 @@ async def test_poll(
     )
     assert (current_datetime() - now).total_seconds() >= 1
     assert r.status_code == 200
-    assert r.text == PENDING_JOB.strip().format(
-        "PENDING",
-        isodatetime(job.creation_time),
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        PENDING_JOB.format(
+            "PENDING",
+            isodatetime(job.creation_time),
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
 
     # Start the job and worker.
@@ -117,10 +124,14 @@ async def test_poll(
     )
     assert r.status_code == 200
     assert r.url == "https://example.com/test/jobs/1"
-    assert r.text == PENDING_JOB.strip().format(
-        "QUEUED",
-        isodatetime(job.creation_time),
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        PENDING_JOB.format(
+            "QUEUED",
+            isodatetime(job.creation_time),
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
 
     # Poll for a change from queued, which we should see after half a second.
@@ -135,10 +146,14 @@ async def test_poll(
     )
     assert r.status_code == 200
     assert job.start_time
-    assert r.text == EXECUTING_JOB.strip().format(
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        EXECUTING_JOB.format(
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
 
     # Now, wait again, in parallel with the job finishing. We should get a
@@ -161,10 +176,14 @@ async def test_poll(
     assert r.status_code == 200
     assert job.start_time
     assert job.end_time
-    assert r.text == FINISHED_JOB.strip().format(
-        isodatetime(job.creation_time),
-        isodatetime(job.start_time),
-        isodatetime(job.end_time),
-        isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+    assert_job_summary_equal(
+        JobSummary[SimpleXmlParameters],
+        r.text,
+        FINISHED_JOB.format(
+            isodatetime(job.creation_time),
+            isodatetime(job.start_time),
+            isodatetime(job.end_time),
+            isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
+        ),
     )
     assert (current_datetime() - now).total_seconds() >= 2

@@ -7,10 +7,13 @@ standard.
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
+from typing import Generic, Self, TypeVar
 
+from pydantic import BaseModel
 from vo_models.uws import (
     ErrorSummary,
     JobSummary,
@@ -22,9 +25,22 @@ from vo_models.uws import (
 )
 from vo_models.uws.types import ErrorType, ExecutionPhase, UWSVersion
 
+P = TypeVar("P", bound="ParametersModel")
+"""Generic type for the parameters model."""
+
+S = TypeVar("S", bound=JobSummary)
+"""Generic type for the XML job summary for a given parameters model."""
+
+W = TypeVar("W", bound=BaseModel)
+"""Generic type for the parameters model passed to workers."""
+
+X = TypeVar("X", bound=Parameters)
+"""Generic type for the XML parameters model."""
+
 __all__ = [
     "ACTIVE_PHASES",
     "ErrorCode",
+    "ParametersModel",
     "UWSJob",
     "UWSJobDescription",
     "UWSJobError",
@@ -55,6 +71,43 @@ class ErrorCode(StrEnum):
     ERROR = "Error"
     SERVICE_UNAVAILABLE = "ServiceUnavailable"
     USAGE_ERROR = "UsageError"
+
+
+class ParametersModel(BaseModel, ABC, Generic[W, X]):
+    """Defines the interface for a model suitable for job parameters."""
+
+    @classmethod
+    @abstractmethod
+    def from_job_parameters(cls, params: list[UWSJobParameter]) -> Self:
+        """Validate generic UWS parameters and convert to the internal model.
+
+        Parameters
+        ----------
+        params
+            Generic input job parameters.
+
+        Returns
+        -------
+        ParametersModel
+            Parsed cutout parameters specific to service.
+
+        Raises
+        ------
+        safir.uws.MultiValuedParameterError
+            Raised if multiple parameters are provided but not supported.
+        safir.uws.ParameterError
+            Raised if one of the parameters could not be parsed.
+        pydantic.ValidationError
+            Raised if the parameters do not validate.
+        """
+
+    @abstractmethod
+    def to_worker_parameters(self) -> W:
+        """Convert to the domain model used by the backend worker."""
+
+    @abstractmethod
+    def to_xml_model(self) -> X:
+        """Convert to the XML model used in XML API responses."""
 
 
 @dataclass
@@ -114,24 +167,12 @@ class UWSJobResult:
 
 
 @dataclass
-class UWSJobResultSigned:
+class UWSJobResultSigned(UWSJobResult):
     """A single result from the job with a signed URL.
 
     A `UWSJobResult` is converted to a `UWSJobResultSigned` before generating
     the response via templating or returning the URL as a redirect.
     """
-
-    result_id: str
-    """Identifier for the result."""
-
-    url: str
-    """Signed URL to retrieve the result."""
-
-    size: int | None = None
-    """Size of the result in bytes."""
-
-    mime_type: str | None = None
-    """MIME type of the result."""
 
     def to_xml_model(self) -> ResultReference:
         """Convert to a Pydantic XML model."""
@@ -214,27 +255,6 @@ class UWSJobDescription:
         )
 
 
-class GenericParameters(Parameters):
-    """Generic container for UWS job parameters.
-
-    Notes
-    -----
-    The intended use of `vo_models.uws.Parameters` is to define a subclass
-    with the specific parameters valid for that service. However, we store
-    parameters as sent to the service as a generic key/value pair in the
-    database and define a model that supports arbitrary parsing and
-    transformations, so this XML model is both not useful and not clearly
-    relevant.
-
-    At least for now, define a generic subclass of `~vo_models.uws.Parameters`
-    that holds a generic list of parameters and convert to that for the
-    purposes of serialization.
-    """
-
-    params: list[Parameter]
-    """Job parameters."""
-
-
 @dataclass
 class UWSJob:
     """Represents a single UWS job."""
@@ -304,12 +324,28 @@ class UWSJob:
     results: list[UWSJobResult]
     """The results of the job."""
 
-    def to_xml_model(self) -> JobSummary:
-        """Convert to a Pydantic XML model."""
+    def to_xml_model(
+        self, parameters_type: type[P], job_summary_type: type[S]
+    ) -> S:
+        """Convert to a Pydantic XML model.
+
+        Parameters
+        ----------
+        parameters_type
+            Model class used for the job parameters.
+        job_summary_type
+            XML model class for the job summary.
+
+        Returns
+        -------
+        vo_models.uws.models.JobSummary
+            XML model corresponding to this job.
+        """
         results = None
         if self.results:
             results = Results(results=[r.to_xml_model() for r in self.results])
-        return JobSummary(
+        parameters = parameters_type.from_job_parameters(self.parameters)
+        return job_summary_type(
             job_id=self.job_id,
             run_id=self.run_id,
             owner_id=self.owner,
@@ -320,9 +356,7 @@ class UWSJob:
             end_time=self.end_time,
             execution_duration=int(self.execution_duration.total_seconds()),
             destruction=self.destruction_time,
-            parameters=GenericParameters(
-                params=[p.to_xml_model() for p in self.parameters]
-            ),
+            parameters=parameters.to_xml_model(),
             results=results,
             error_summary=self.error.to_xml_model() if self.error else None,
             version=UWSVersion.V1_1,
