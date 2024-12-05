@@ -58,6 +58,7 @@ The Kafka and schema manager values come from the Sasquatch configuration that y
 .. code-block:: shell
 
    METRICS_APPLICATION=myapp
+   METRICS_EVENTS_TOPIC_PREFIX=what.ever
    KAFKA_SECURITY_PROTOCOL=SSL
    KAFKA_BOOSTRAP_SERVERS=sasquatch.kafka-1:9092,sasquatcy.kafka2-9092
    KAFKA_CLUSTER_CA_PATH=/some/path/ca.crt
@@ -231,6 +232,181 @@ But the principle remains the same:
 .. _FastAPI dependency: https://fastapi.tiangolo.com/tutorial/dependencies/
 .. _RequestContext: https://sqr-072.lsst.io/#request-context
 .. _Service: https://sqr-072.lsst.io/#services
+
+
+Unit testing
+============
+
+Setting ``enabled`` to ``False`` and ``mock`` to ``True`` in your metrics configuration will give you a `safir.metrics.MockEventManager`.
+This is a no-op event manager that produces publishers that record all of the events that they publish.
+You can make assertions about these published events in your unit tests.
+
+.. warning::
+
+   Do not use the `safir.metrics.MockEventManager` in any deployed instance of your application.
+   Recorded events are never cleaned up, and memory usage will grow unbounded.
+
+.. code-block:: shell
+
+   METRICS_APPLICATION=myapp
+   METRICS_ENABLED=false
+   METRICS_MOCK=true
+   METRICS_EVENTS_TOPIC_PREFIX=what.ever
+
+.. code-block:: python
+
+   from safir.metrics import metrics_configuration_factory
+
+
+   config = metrics_configuration_factory()
+   manager = config.make_manager()
+
+
+   class SomeEvent(EventPayload):
+       model_config = ConfigDict(ser_json_timedelta="float")
+
+       foo: str
+       count: int
+       duration: float | None
+
+
+   await manager.initialize()
+   pub = await manager.create_publisher("someevent", SomeEvent)
+
+   await pub.publish(SomeEvent(foo="foo1", count=1, duration=1.234))
+   await pub.publish(SomeEvent(foo="foo2", count=2, duration=2.345))
+   await pub.publish(SomeEvent(foo="foo3", count=3, duration=3.456))
+   await pub.publish(SomeEvent(foo="foo4", count=4, duration=None))
+   await pub.publish(SomeEvent(foo="foo5", count=5, duration=5.678))
+
+   await manager.aclose()
+
+   published = pub.published
+
+A mock publisher has an `safir.metrics.MockEventPublisher.published` attribute which is a `safir.metrics.PublishedList` containing of all of the `safir.metrics.EventPayload`'s published by that publisher.
+A `safir.metrics.PublishedList` is a regular Python list with some mixed-in assertion methods.
+All of these assertion methods take a list of dicts and compare them to the ``model_dump(mode="json")`` serialization of the published ``EventPayloads``.
+
+``assert_published``
+--------------------
+
+Use `safir.metrics.PublishedList.assert_published` to assert that some set of payloads is an ordered subset of all of the payloads that were published, with no events in between.
+If not, an exception (a subclass of `AssertionError`) will be raised.
+Other events could have been published before or after the expected payloads.
+
+.. code-block:: python
+
+   pub.assert_published(
+       [
+           {"foo": "foo1", "count": 1, "duration": 1.234},
+           {"foo": "foo2", "count": 2, "duration": 2.345},
+           {"foo": "foo3", "count": 3, "duration": 3.456},
+       ]
+   )
+
+You can also assert that the all of the expected payloads were published in any order, and possibly with events in between:
+
+.. code-block:: python
+
+   pub.assert_published(
+       [
+           {"foo": "foo1", "count": 1, "duration": 1.234},
+           {"foo": "foo3", "count": 3, "duration": 3.456},
+           {"foo": "foo2", "count": 2, "duration": 2.345},
+       ],
+       any_order=True,
+   )
+
+``assert_published_all``
+------------------------
+
+Use `safir.metrics.PublishedList.assert_published_all` to assert that the expected payloads, and only the expected payloads, were published:
+
+.. code-block:: python
+
+   pub.assert_published_all(
+       [
+           {"foo": "foo1", "count": 1, "duration": 1.234},
+           {"foo": "foo2", "count": 2, "duration": 2.345},
+           {"foo": "foo3", "count": 3, "duration": 3.456},
+           {"foo": "foo4", "count": 4, "duration": None},
+           {"foo": "foo5", "count": 5, "duration": 5.678},
+       ],
+   )
+
+This would raise an exception because it is missing the ``foo5`` event:
+
+.. code-block:: python
+
+   pub.assert_published_all(
+       [
+           {"foo": "foo1", "count": 1, "duration": 1.234},
+           {"foo": "foo2", "count": 2, "duration": 2.345},
+           {"foo": "foo3", "count": 3, "duration": 3.456},
+           {"foo": "foo4", "count": 4, "duration": None},
+       ],
+   )
+
+You can use ``any_order`` here too:
+
+.. code-block:: python
+
+   pub.assert_published_all(
+       [
+           {"foo": "foo2", "count": 2, "duration": 2.345},
+           {"foo": "foo5", "count": 5, "duration": 5.678},
+           {"foo": "foo3", "count": 3, "duration": 3.456},
+           {"foo": "foo1", "count": 1, "duration": 1.234},
+           {"foo": "foo4", "count": 4, "duration": None},
+       ],
+       any_order=True,
+   )
+
+``ANY`` and ``NOT_NONE``
+------------------------
+
+You can use `safir.metrics.ANY` to indicate that any value, event `None` is OK.
+This is just a re-export of `unittest.mock.ANY`.
+
+.. code-block:: python
+
+   from safir.metrics import ANY
+
+
+   pub.assert_published_all(
+       [
+           {"foo": "foo3", "count": 3, "duration": ANY},
+           {"foo": "foo4", "count": 4, "duration": ANY},
+       ],
+   )
+
+You can use `safir.metrics.NOT_NONE` to indicate that any value except `None` is OK:
+
+.. code-block:: python
+
+   from safir.metrics import ANY
+
+
+   pub.assert_published_all(
+       [
+           {"foo": "foo3", "count": 3, "duration": NOT_NONE},
+           {"foo": "foo4", "count": 4, "duration": ANY},
+       ],
+   )
+
+This would raise an exception, because ``duration`` for the ``foo4`` payload is `None`:
+
+.. code-block:: python
+
+   from safir.metrics import ANY
+
+
+   pub.assert_published_all(
+       [
+           {"foo": "foo3", "count": 3, "duration": NOT_NONE},
+           {"foo": "foo4", "count": 4, "duration": NOT_NONE},
+       ],
+   )
 
 .. _configuration-details:
 

@@ -4,6 +4,7 @@ from ._config import (
     EventsConfiguration,
     KafkaMetricsConfiguration,
     MetricsConfiguration,
+    MockMetricsConfiguration,
     metrics_configuration_factory,
 )
 from ._event_manager import (
@@ -11,6 +12,8 @@ from ._event_manager import (
     EventPublisher,
     KafkaEventManager,
     KafkaEventPublisher,
+    MockEventManager,
+    MockEventPublisher,
     NoopEventManager,
     NoopEventPublisher,
 )
@@ -20,8 +23,21 @@ from ._exceptions import (
     KafkaTopicError,
 )
 from ._models import EventMetadata, EventPayload
+from ._testing import (
+    ANY,
+    NOT_NONE,
+    BaseAssertionError,
+    NotPublishedConsecutivelyError,
+    NotPublishedError,
+    PublishedCountError,
+    PublishedList,
+    PublishedTooFewError,
+)
 
 __all__ = [
+    "ANY",
+    "NOT_NONE",
+    "BaseAssertionError",
     "BaseMetricsConfiguration",
     "DisabledMetricsConfiguration",
     "DuplicateEventError",
@@ -37,7 +53,15 @@ __all__ = [
     "KafkaTopicError",
     "KafkaTopicError",
     "MetricsConfiguration",
+    "MockEventManager",
+    "MockEventPublisher",
+    "MockMetricsConfiguration",
     "NoopEventManager",
     "NoopEventPublisher",
+    "NotPublishedConsecutivelyError",
+    "NotPublishedError",
+    "PublishedCountError",
+    "PublishedList",
+    "PublishedTooFewError",
     "metrics_configuration_factory",
 ]
