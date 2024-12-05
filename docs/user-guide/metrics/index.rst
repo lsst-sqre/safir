@@ -271,17 +271,17 @@ You can make assertions about these published events in your unit tests.
 
 
    await manager.initialize()
-   pub = await manager.create_publisher("someevent", SomeEvent)
+   publisher = await manager.create_publisher("someevent", SomeEvent)
 
-   await pub.publish(SomeEvent(foo="foo1", count=1, duration=1.234))
-   await pub.publish(SomeEvent(foo="foo2", count=2, duration=2.345))
-   await pub.publish(SomeEvent(foo="foo3", count=3, duration=3.456))
-   await pub.publish(SomeEvent(foo="foo4", count=4, duration=None))
-   await pub.publish(SomeEvent(foo="foo5", count=5, duration=5.678))
+   await publisher.publish(SomeEvent(foo="foo1", count=1, duration=1.234))
+   await publisher.publish(SomeEvent(foo="foo2", count=2, duration=2.345))
+   await publisher.publish(SomeEvent(foo="foo3", count=3, duration=3.456))
+   await publisher.publish(SomeEvent(foo="foo4", count=4, duration=None))
+   await publisher.publish(SomeEvent(foo="foo5", count=5, duration=5.678))
 
    await manager.aclose()
 
-   published = pub.published
+   pub = pub.published
 
 A mock publisher has an `safir.metrics.MockEventPublisher.published` attribute which is a `safir.metrics.PublishedList` containing of all of the `safir.metrics.EventPayload`'s published by that publisher.
 A `safir.metrics.PublishedList` is a regular Python list with some mixed-in assertion methods.
