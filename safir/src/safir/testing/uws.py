@@ -1,4 +1,4 @@
-"""Mock UWS job executor for testing."""
+"""Mocks and functions for testing services using the Safir UWS support."""
 
 from __future__ import annotations
 
@@ -147,18 +147,26 @@ class MockWobbly:
         paginated response.
         """
         service, username = self._get_auth(request)
-        query = {
-            k.decode(): v[0].decode()
-            for k, v in parse_qs(request.url.query).items()
-        }
-        since = parse_isodatetime(query["since"]) if "since" in query else None
+
+        # Parse query.
+        query = parse_qs(request.url.query).items()
+        phases = set()
+        if "phase" in query:
+            phases = set(query["phase"])
+        since = None
+        if "since" in query:
+            since = parse_isodatetime(query["since"])
+
+        # Perform the search.
         results = []
         for job in self._jobs[service][username].values():
-            if "phase" in query and job.phase != query["phase"]:
+            if phases and job.phase not in phases:
                 continue
-            if "since" in query and job.creation_time >= since:
+            if since and job.creation_time >= since:
                 continue
             results.append(job)
+
+        # Sort the results and limit them if needed.
         results = [
             j.model_dump(mode="json")
             for j in sorted(
@@ -166,9 +174,11 @@ class MockWobbly:
             )
         ]
         if "limit" in query:
-            limit = int(query["limit"])
+            limit = int(query["limit"][0])
             if len(results) > limit:
                 results = results[:limit]
+
+        # Return the response.
         return Response(200, json=results)
 
     def update_job(self, request: Request, *, job_id: str) -> Response:

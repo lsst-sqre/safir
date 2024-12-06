@@ -24,14 +24,7 @@ from ._exceptions import (
     SyncJobNoResultsError,
     SyncJobTimeoutError,
 )
-from ._models import (
-    ACTIVE_PHASES,
-    ParametersModel,
-    UWSJob,
-    UWSJobError,
-    UWSJobParameter,
-    UWSJobResult,
-)
+from ._models import ACTIVE_PHASES, Job, JobError, JobResult, ParametersModel
 from ._results import ResultStore
 from ._storage import JobStore
 
@@ -93,8 +86,7 @@ class JobService:
         job = await self._storage.get(job_id)
         if job.owner != user:
             raise PermissionDeniedError(f"Access to job {job_id} denied")
-        params_model = self._validate_parameters(job.parameters)
-        logger = self._build_logger_for_job(job, params_model)
+        logger = self._build_logger_for_job(job)
         if job.phase not in ACTIVE_PHASES:
             logger.info(f"Cannot stop job in phase {job.phase.value}")
             return
@@ -121,10 +113,10 @@ class JobService:
     async def create(
         self,
         user: str,
-        params: list[UWSJobParameter],
+        parameters: ParametersModel,
         *,
         run_id: str | None = None,
-    ) -> UWSJob:
+    ) -> Job:
         """Create a pending job.
 
         This does not start execution of the job. That must be done separately
@@ -136,23 +128,22 @@ class JobService:
             User on behalf this operation is performed.
         run_id
             A client-supplied opaque identifier to record with the job.
-        params
+        parameters
             The input parameters to the job.
 
         Returns
         -------
-        JobSummary
+        Job
             Information about the newly-created job.
         """
-        params_model = self._validate_parameters(params)
-        job = await self._storage.add(
+        job = await self._storage.create(
             owner=user,
             run_id=run_id,
-            params=params,
+            parameters=parameters,
             execution_duration=self._config.execution_duration,
             lifetime=self._config.lifetime,
         )
-        logger = self._build_logger_for_job(job, params_model)
+        logger = self._build_logger_for_job(job)
         logger.info("Created job")
         return job
 
@@ -171,7 +162,7 @@ class JobService:
         job = await self._storage.get(job_id)
         if job.owner != user:
             raise PermissionDeniedError(f"Access to job {job_id} denied")
-        logger = self._logger.bind(user=user, job_id=job_id)
+        logger = self._build_logger_for_job(job)
         if job.phase in ACTIVE_PHASES and job.message_id:
             try:
                 await self._arq.abort_job(job.message_id)
@@ -194,9 +185,8 @@ class JobService:
                 try:
                     await self._arq.abort_job(job.message_id)
                 except Exception as e:
-                    self._logger.warning(
-                        "Unable to abort expired job", error=str(e)
-                    )
+                    msg = "Unable to abort expired job"
+                    self._logger.warning(msg, error=str(e))
             await self._storage.delete(job.job_id)
             self._logger.info("Deleted expired job")
         self._logger.info(f"Finished deleting {len(jobs)} expired jobs")
@@ -209,7 +199,7 @@ class JobService:
         wait_seconds: int | None = None,
         wait_phase: ExecutionPhase | None = None,
         wait_for_completion: bool = False,
-    ) -> UWSJob:
+    ) -> Job:
         """Retrieve a job.
 
         This also supports long-polling, to implement UWS 1.1 blocking
@@ -238,7 +228,7 @@ class JobService:
 
         Returns
         -------
-        UWSJob
+        Job
             Corresponding job.
 
         Raises
@@ -274,7 +264,7 @@ class JobService:
 
         return job
 
-    async def get_error(self, user: str, job_id: str) -> UWSJobError | None:
+    async def get_error(self, user: str, job_id: str) -> JobError | None:
         """Get the error for a job, if any.
 
         Parameters
@@ -286,13 +276,13 @@ class JobService:
 
         Returns
         -------
-        UWSJobError or None
+        JobError or None
             Error information for the job, or `None` if the job didn't fail.
 
         Raises
         ------
         PermissionDeniedError
-            If the job ID doesn't exist or is for a user other than the
+            Raised if the job ID doesn't exist or is for a user other than the
             provided user.
         """
         job = await self._storage.get(job_id)
@@ -394,16 +384,16 @@ class JobService:
         jobs = await self._storage.list_jobs(
             user, phases=phases, after=after, count=count
         )
-        return Jobs(jobref=[j.to_xml_model(base_url) for j in jobs])
+        return Jobs(jobref=[j.to_short_xml_model(base_url) for j in jobs])
 
     async def run_sync(
         self,
         user: str,
-        params: list[UWSJobParameter],
+        parameters: ParametersModel,
         *,
         token: str,
         runid: str | None,
-    ) -> UWSJobResult:
+    ) -> JobResult:
         """Create a job for a sync request and return the first result.
 
         Parameters
@@ -419,7 +409,7 @@ class JobService:
 
         Returns
         -------
-        result
+        JobResult
             First result of the successfully-executed job.
 
         Raises
@@ -431,9 +421,8 @@ class JobService:
         SyncJobTimeoutError
             Raised if the job execution timed out.
         """
-        job = await self.create(user, params, run_id=runid)
-        params_model = self._validate_parameters(params)
-        logger = self._build_logger_for_job(job, params_model)
+        job = await self.create(user, parameters, run_id=runid)
+        logger = self._build_logger_for_job(job)
 
         # Start the job and wait for it to complete.
         metadata = await self.start(user, job.job_id, token)
@@ -488,8 +477,7 @@ class JobService:
             raise PermissionDeniedError(f"Access to job {job_id} denied")
         if job.phase not in (ExecutionPhase.PENDING, ExecutionPhase.HELD):
             raise InvalidPhaseError(f"Cannot start job in phase {job.phase}")
-        params_model = self._validate_parameters(job.parameters)
-        logger = self._build_logger_for_job(job, params_model)
+        logger = self._build_logger_for_job(job)
         info = WorkerJobInfo(
             job_id=job.job_id,
             user=user,
@@ -497,7 +485,7 @@ class JobService:
             timeout=job.execution_duration,
             run_id=job.run_id,
         )
-        params = params_model.to_worker_parameters().model_dump(mode="json")
+        params = job.parameters.to_worker_parameters().model_dump(mode="json")
         metadata = await self._arq.enqueue(self._config.worker, params, info)
         await self._storage.mark_queued(job_id, metadata)
         logger.info("Started job", arq_job_id=metadata.id)
@@ -544,7 +532,9 @@ class JobService:
         # Update the destruction time if needed.
         if destruction == job.destruction_time:
             return None
-        await self._storage.update_destruction(job_id, destruction)
+        await self._storage.update_metadata(
+            job_id, destruction, job.execution_curation
+        )
         self._logger.info(
             "Changed job destruction time",
             user=user,
@@ -593,7 +583,7 @@ class JobService:
         # Update the duration in the job.
         if duration == job.execution_duration:
             return None
-        await self._storage.update_execution_duration(job_id, duration)
+        await self._storage.update_metadata(job_id, job.destruction, duration)
         if duration.total_seconds() > 0:
             duration_str = f"{duration.total_seconds()}s"
         else:
@@ -606,17 +596,13 @@ class JobService:
         )
         return duration
 
-    def _build_logger_for_job(
-        self, job: UWSJob, params: ParametersModel | None
-    ) -> BoundLogger:
+    def _build_logger_for_job(self, job: Job) -> BoundLogger:
         """Construct a logger with bound information for a job.
 
         Parameters
         ----------
         job
             Job for which to report messages.
-        params
-            Job parameters in model form, if available.
 
         Returns
         -------
@@ -626,40 +612,14 @@ class JobService:
         logger = self._logger.bind(user=job.owner, job_id=job.job_id)
         if job.run_id:
             logger = logger.bind(run_id=job.run_id)
-        if params:
-            logger = logger.bind(parameters=params.model_dump(mode="json"))
+        if job.parameters:
+            parameters = job.parameters.model_dump(mode="json")
+            logger = logger.bind(parameters=parameters)
         return logger
 
-    def _validate_parameters(
-        self, params: list[UWSJobParameter]
-    ) -> ParametersModel:
-        """Convert UWS job parameters to the parameter model for the service.
-
-        As a side effect, this also verifies that the parameters are valid,
-        so it is used when creating a job or modifying its parameters to
-        ensure that the new parameters are valid.
-
-        Parameters
-        ----------
-        params
-            Job parameters in the UWS job parameter format.
-
-        Returns
-        -------
-        pydantic.BaseModel
-            Paramters in the model provided by the service, which will be
-            some subclass of `pydantic.BaseModel`.
-
-        Raises
-        ------
-        safir.uws.UWSError
-            Raised if there is some problem with the job parameters.
-        """
-        return self._config.parameters_type.from_job_parameters(params)
-
     async def _wait_for_job(
-        self, job: UWSJob, until_not: set[ExecutionPhase], timeout: timedelta
-    ) -> UWSJob:
+        self, job: Job, until_not: set[ExecutionPhase], timeout: timedelta
+    ) -> Job:
         """Wait for the completion of a job.
 
         Parameters
