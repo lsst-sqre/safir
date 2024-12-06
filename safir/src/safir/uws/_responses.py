@@ -8,8 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from safir.datetime import isodatetime
 
-from ._models import UWSJobError
-from ._results import ResultStore
+from ._models import JobError
 
 __all__ = ["UWSTemplates"]
 
@@ -28,10 +27,7 @@ class UWSTemplates:
     This also includes VOSI-Availability since it was convenient to provide.
     """
 
-    def __init__(self, result_store: ResultStore) -> None:
-        self._result_store = result_store
-
-    def error(self, request: Request, error: UWSJobError) -> Response:
+    def error(self, request: Request, error: JobError) -> Response:
         """Return the error of a job as an XML response."""
         return _templates.TemplateResponse(
             request,

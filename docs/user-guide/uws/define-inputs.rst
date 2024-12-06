@@ -6,25 +6,8 @@ Defining service inputs
 
 Your UWS service will take one more more input parameters.
 The UWS library cannot know what those parameters are, so you will need to define them and pass that configuration into the UWS library configuration.
-This is done by writing a FastAPI dependency that returns a list of input parameters as key/value pairs.
-
-What parameters look like
-=========================
-
-UWS input parameters for a job are a list of key/value pairs.
-The value is always a string.
-Other data types are not directly supported.
-If your service needs a different data type as a parameter value, you will need to accept it as a string and then parse it into a more complex structure.
-See :doc:`define-models` for how to do that.
-
-All FastAPI dependencies provided by your application must return a list of `UWSJobParameter` objects.
-The ``parameter_id`` attribute is the key and the ``value`` attribute is the value.
-
-The key (the ``parameter_id``) is case-insensitive in the input, but it will be lowercased by middleware installed by Safir.
-You will therefore always see lowercase query and form parameters in your dependency and do not have to handle other case possibilities.
-
-UWS allows the same ``parameter_id`` to occur multiple times with different values.
-For example, multiple ``id`` parameters may specify multiple input objects for a bulk operation that processes all of the input objects at the same time.
+This is done by writing a FastAPI dependency that returns a Pydantic model for your job parameters.
+See :doc:`define-models` for details on how to define that model.
 
 Ways to create jobs
 ===================
@@ -43,12 +26,12 @@ Sync jobs are not supported by default, but can be easily enabled.
 Sync jobs can be created via either ``POST`` or ``GET``.
 You can pick whether your application will support sync ``POST``, sync ``GET``, both, or neither.
 Supporting ``GET`` makes it easier for people to assemble ad hoc jobs by writing the URL directly in their web browser.
-However, due to unfixable web security reasons, ``GET`` jobs can be created by any malicious site on the Internet, and therefore should not be supported if the operation of your service is destructive, expensive, or dangerous if performed by unauthorized people.
+However, due to unfixable web security limitations in the HTTP protocol, ``GET`` jobs can be created by any malicious site on the Internet, and therefore should not be supported if the operation of your service is destructive, expensive, or dangerous if performed by unauthorized people.
 
-For each supported way to create a job, your application must provide a FastAPI dependency that reads input parameters via that method and returns a list of `UWSJobParameter` objects.
+For each supported way to create a job, your application must provide a FastAPI dependency that reads input parameters via that method and returns the Pydantic model for parameters that you defined in :doc:`define-models`.
 
 Async POST dependency
----------------------
+=====================
 
 Supporting async ``POST`` is required.
 First, writing a FastAPI dependency that accepts the input parameters for your job as `form parameters <https://fastapi.tiangolo.com/tutorial/request-forms/>`__.
@@ -61,7 +44,8 @@ Here is an example for a SODA service that performs circular cutouts:
    from typing import Annotated
 
    from fastapi import Depends, Form
-   from safir.uws import UWSJobParameter, uws_post_params_dependency
+
+   from .models import CircleStencil, CutoutParameters
 
 
    async def post_params_dependency(
@@ -88,22 +72,19 @@ Here is an example for a SODA service that performs circular cutouts:
                ),
            ),
        ] = None,
-   ) -> list[UWSJobParameter]:
-       """Parse POST parameters into job parameters for a cutout."""
-       params = []
-       for i in id:
-           params.append(UWSJobParameter(paramater_id="id", value=i))
-       for c in circle:
-           params.append(UWSJobParameter(parameter_id="circle", value=c))
-       return params
+   ) -> CutoutParameters:
+       return CutoutParameters(
+           ids=id,
+           stencils=[CircleStencil.from_string(c) for c in circle],
+       )
 
 This first declares the input parameters, with full documentation, as FastAPI ``Form`` parameters.
-
 Note that the type is ``list[str]``, which allows the parameter to be specified multiple times.
 If the parameters for your service cannot be repeated, change this to `str` (or another appropriate basic type, such as `int`).
 
-You do not need to do any input validation of the parameter values here.
-This will be done later as part of converting the input parameters to your parameter model, as defined in :doc:`define-models`.
+Then, it converts the form parameters into the Pydantic model for your job parameters.
+Here, most of the work is done by the ``from_string`` static method on ``CircleStencil``, defined in :ref:`uws-model-parameters`.
+This conversion should also perform any necessary input validation.
 
 Async POST configuration
 ------------------------
@@ -134,9 +115,9 @@ The ``summary`` and ``description`` attributes are only used to generate the API
 They contain a brief summary and a longer description of the async ``POST`` route and will be copied into the generated OpenAPI specification for the service.
 
 Sync POST
----------
+=========
 
-Supporting sync ``POST`` is very similar: define a FastAPI dependency that accepts ``POST`` parameters and returns a list of `UWSJobParameter` objects, and then define a `UWSRoute` object including that dependency and pass it as the ``sync_post_route`` argument to `UWSAppSettings.build_uws_config`.
+Supporting sync ``POST`` is very similar: define a FastAPI dependency that accepts ``POST`` parameters and returns your Pydantic parameter model, and then define a `UWSRoute` object including that dependency and pass it as the ``sync_post_route`` argument to `UWSAppSettings.build_uws_config`.
 By default, sync ``POST`` is not supported.
 
 Normally, the input parameters for sync ``POST`` will be the same as the input parameters for async ``POST``, so you can reuse the same FastAPI dependency.
@@ -165,7 +146,7 @@ Here is an example for the same cutout service:
 This would then be passed as the ``sync_post_route`` argument.
 
 Sync GET
---------
+========
 
 Supporting sync ``GET`` follows the same pattern, but here you will need to define a separate dependency that takes query parameters rather than form parameters.
 Here is an example dependency for a cutout service:
@@ -175,7 +156,9 @@ Here is an example dependency for a cutout service:
 
    from typing import Annotated
 
-   from fastapi import Depends, Query, Request
+   from fastapi import Depends, Query
+
+   from .models import CircleStencil, CutoutParameters
 
 
    async def get_params_dependency(
@@ -202,14 +185,14 @@ Here is an example dependency for a cutout service:
                ),
            ),
        ],
-       request: Request,
-   ) -> list[UWSJobParameter]:
-       """Parse GET parameters into job parameters for a cutout."""
-       return [
-           UWSJobParameter(parameter_id=k, value=v)
-           for k, v in request.query_params.items()
-           if k in {"id", "circle"}
-       ]
+   ) -> CutoutParameters:
+       return CutoutParameters(
+           ids=id,
+           stencils=[CircleStencil.from_string(c) for c in circle],
+       )
+
+The body here is identical to the body of the dependency for ``POST``.
+The difference is in how the parameters are defined (``Query`` vs. ``Form``).
 
 As in the other cases, you will then need to pass a `UWSRoute` object as the ``sync_get_route`` argument to `UWSAppSettings.build_uws_config`.
 Here is an example:
@@ -238,5 +221,4 @@ This would then be passed as the ``sync_post_route`` argument.
 Next steps
 ==========
 
-- Define the parameter models: :doc:`define-models`
 - Write the backend worker :doc:`write-backend`

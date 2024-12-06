@@ -5,14 +5,13 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from typing import Annotated
 
 import pytest
 import pytest_asyncio
 import respx
 import structlog
 from asgi_lifespan import LifespanManager
-from fastapi import APIRouter, Body, FastAPI
+from fastapi import APIRouter, FastAPI
 from httpx import ASGITransport, AsyncClient
 from structlog.stdlib import BoundLogger
 
@@ -22,37 +21,19 @@ from safir.middleware.x_forwarded import XForwardedMiddleware
 from safir.slack.webhook import SlackRouteErrorHandler
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
-from safir.testing.uws import MockUWSJobRunner
-from safir.uws import UWSApplication, UWSConfig, UWSJobParameter
+from safir.testing.uws import MockUWSJobRunner, MockWobbly, patch_wobbly
+from safir.uws import UWSApplication, UWSConfig
 from safir.uws._dependencies import UWSFactory, uws_dependency
 
 from ..support.uws import build_uws_config
 
 
-@pytest.fixture
-def post_params_router() -> APIRouter:
-    """Return a router that echoes the parameters passed in the request."""
-    router = APIRouter()
-
-    @router.post("/params")
-    async def post_params(
-        params: Annotated[list[UWSJobParameter], Body()],
-    ) -> dict[str, list[dict[str, str]]]:
-        return {
-            "params": [
-                {"id": p.parameter_id, "value": p.value} for p in params
-            ]
-        }
-
-    return router
-
-
 @pytest_asyncio.fixture
 async def app(
     arq_queue: MockArqQueue,
+    mock_wobbly: MockWobbly,
     uws_config: UWSConfig,
     logger: BoundLogger,
-    post_params_router: APIRouter,
 ) -> AsyncIterator[FastAPI]:
     """Return a configured test application for UWS.
 
@@ -61,7 +42,6 @@ async def app(
     the pieces added by an application.
     """
     uws = UWSApplication(uws_config)
-    await uws.initialize_uws_database(logger, reset=True)
     uws.override_arq_queue(arq_queue)
 
     @asynccontextmanager
@@ -76,7 +56,6 @@ async def app(
     router = APIRouter(route_class=SlackRouteErrorHandler)
     uws.install_handlers(router)
     app.include_router(router, prefix="/test")
-    app.include_router(post_params_router, prefix="/test")
     uws.install_error_handlers(app)
 
     async with LifespanManager(app):
@@ -89,13 +68,17 @@ def arq_queue() -> MockArqQueue:
 
 
 @pytest_asyncio.fixture
-async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+async def client(
+    app: FastAPI, test_token: str, test_username: str
+) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
-    transport = ASGITransport(app=app)
     async with AsyncClient(
-        transport=transport,
+        transport=ASGITransport(app=app),
         base_url="https://example.com/",
-        headers={"X-Auth-Request-Token": "sometoken"},
+        headers={
+            "X-Auth-Request-Token": test_token,
+            "X-Auth-Request-User": test_username,
+        },
     ) as client:
         yield client
 
@@ -123,22 +106,38 @@ def mock_slack(
     )
 
 
+@pytest.fixture
+def mock_wobbly(respx_mock: respx.Router, uws_config: UWSConfig) -> MockWobbly:
+    return patch_wobbly(respx_mock, str(uws_config.wobbly_url))
+
+
 @pytest_asyncio.fixture
 async def runner(
     uws_config: UWSConfig, arq_queue: MockArqQueue
-) -> AsyncIterator[MockUWSJobRunner]:
-    async with MockUWSJobRunner(uws_config, arq_queue) as runner:
-        yield runner
+) -> MockUWSJobRunner:
+    return MockUWSJobRunner(uws_config, arq_queue)
 
 
 @pytest.fixture
-def uws_config(database_url: str, database_password: str) -> UWSConfig:
-    return build_uws_config(database_url, database_password)
+def test_service() -> str:
+    return "test-service"
+
+
+@pytest.fixture
+def test_token(test_service: str, test_username: str) -> str:
+    return MockWobbly.make_token(test_service, test_username)
+
+
+@pytest.fixture
+def test_username() -> str:
+    return "test-user"
+
+
+@pytest.fixture
+def uws_config() -> UWSConfig:
+    return build_uws_config()
 
 
 @pytest_asyncio.fixture
-async def uws_factory(
-    app: FastAPI, logger: BoundLogger
-) -> AsyncIterator[UWSFactory]:
-    async for factory in uws_dependency(logger):
-        yield factory
+async def uws_factory(app: FastAPI, logger: BoundLogger) -> UWSFactory:
+    return await uws_dependency(AsyncClient(), logger)

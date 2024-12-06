@@ -25,6 +25,19 @@ Unfortunately, the same model cannot be used for 1 and 3 even for simple applica
 Therefore, in the most general case, UWS applications must define three models for input parameters: the API model of parameters as provided by users via a JSON API, the model passed to the backend worker, and an XML model that flattens all parameters to strings.
 The input parameters for job creation via ``POST`` and ``GET`` are discussed in :doc:`define-inputs`.
 
+What parameters look like
+=========================
+
+In the IVOA UWS standard, input parameters for a job are a list of key/value pairs.
+The value is always a string.
+Other data types are not directly supported.
+
+In the Safir UWS support, however, job parameters are allowed to be arbitrary Pydantic models.
+The only requirement is that it must be possible to serialize the parameters to a list of key/value pairs so that they can be returned by IVOA UWS standard routes.
+In other words, the internal representation can be as complex as you wish, but the IVOA UWS standard requires the input parameters come from query or form parameters and be representable as a list of key/value pairs.
+
+Therefore, if your service needs a different data type as a parameter value, you will need to accept it as a string and then parse it into a more complex structure, and you will need to be able to convert your Pydantic model back to that list of strings.
+
 .. _uws-worker-model:
 
 Worker parameter model
@@ -47,7 +60,7 @@ Here is a simple example for a cutout service:
        dec: float = Field(..., title="ICRS dec in degrees")
 
 
-   class CircleStencil(BaseModel):
+   class WorkerCircleStencil(BaseModel):
        center: Point = Field(..., title="Center")
        radius: float = Field(..., title="Radius")
 
@@ -56,7 +69,7 @@ Here is a simple example for a cutout service:
        dataset_ids: list[str]
        stencils: list[WorkerCircleStencil]
 
-This model will be imported by both the frontend and the backend worker, and therefor must not depend on any of the other frontend code or any Python libraries that will not be present in the worker backend.
+This model will be imported by both the frontend and the backend worker, and therefore must not depend on any of the other frontend code or any Python libraries that will not be present in the worker backend.
 
 Using complex data types in the worker model
 --------------------------------------------
@@ -86,7 +99,7 @@ Here is a simple example for the same cutout service:
 .. code-block:: python
 
    from pydantic import Field
-   from vo_models.uws import MultiValuedParameter, Parameter, Parameters
+   from vo_models.uws import MultiValuedParameter, Parameters
 
 
    class CutoutXmlParameters(Parameters):
@@ -99,13 +112,15 @@ Input validation will be done by the input parameter model.
 Single-valued parameters can use the syntax shown in `the vo-models documentation <https://vo-models.readthedocs.io/latest/pages/protocols/uws.html#parameters>`__ to define the parameter ID if it differs from the attribute name.
 Optional multi-valued parameters, such as the above, have to use attribute names that match the XML parameter ID and the ``Field([])`` syntax to define the default to be an empty list, or you will get typing errors.
 
+.. _uws-model-parameters:
+
 Input parameter model
 =====================
 
 Every UWS application must define a Pydantic model for its input parameters.
 This model must inherit from `ParametersModel`.
 
-In addition to defining the parameter model, it must provide three methods: a class method named ``from_job_parameters`` that takes as input the list of `UWSJobParameter` objects and returns an instance of the model, an instance method named ``to_worker_parameters`` that converts the model to the one that will be passed to the backend worker (see :ref:`uws-worker-model`), and an instance method named ``to_xml_model`` that converts the model to the XML model (see :ref:`uws-xml-model`).
+In addition to defining the parameter model, it must provide two methods: an instance method named ``to_worker_parameters`` that converts the model to the one that will be passed to the backend worker (see :ref:`uws-worker-model`), and an instance method named ``to_xml_model`` that converts the model to the XML model (see :ref:`uws-xml-model`).
 
 Often, the worker parameter model will look very similar to the input parameter model.
 They are still kept separate, since the input parameter model defines the API and the worker model defines the interface to the backend.
@@ -119,7 +134,7 @@ Here is an example of a simple model for a cutout service:
    from typing import Self
 
    from pydantic import Field
-   from safir.uws import ParameterParseError, ParametersModel, UWSJobParameter
+   from safir.uws import ParametersModel
    from vo_models.uws import Parameter
 
    from .domain.cutout import Point, WorkerCircleStencil, WorkerCutout
@@ -139,21 +154,6 @@ Here is an example of a simple model for a cutout service:
        ids: list[str] = Field(..., title="Dataset IDs")
        stencils: list[CircleStencil] = Field(..., title="Cutout stencils")
 
-       @classmethod
-       def from_job_parameters(cls, params: list[UWSJobParameter]) -> Self:
-           ids = []
-           stencils = []
-           try:
-               for param in params:
-                   if param.parameter_id == "id":
-                       ids.append(param.value)
-                   else:
-                       stencils.append(CircleStencil.from_string(param.value))
-           except Exception as e:
-               msg = f"Invalid cutout parameter: {type(e).__name__}: {e!s}"
-               raise ParameterParseError(msg, params) from e
-           return cls(ids=ids, stencils=stencils)
-
        def to_worker_parameters(self) -> WorkerCutout:
            return WorkerCutout(dataset_ids=self.ids, stencils=self.stencils)
 
@@ -168,10 +168,15 @@ Notice that the input parameter model reuses some models from the worker (``Poin
 It also uses a different parameter for the dataset IDs (``ids`` instead of ``dataset_ids``), which is a trivial example of the sort of divergence one might see between input models and backend worker models.
 ``CutoutXmlParameters`` is defined in :ref:`uws-xml-model`.
 
-The input models are also responsible for input parsing and validation (note the ``from_job_parameters`` and ``from_string`` methods) and converting to the worker model.
+The ``from_string`` class method of ``CircleStencil`` is not used here directly.
+This will be used when parsing query or form inputs into a Pydantic model.
+See :doc:`define-inputs` for more details.
+
+The input models are also responsible for input parsing and validation, and converting to the worker and XML models.
 The worker model should be in a separate file and kept as simple as possible, since it has to be imported by the backend worker, which may not have the dependencies installed to be able to import other frontend code.
 
-The XML model must use simple key/value pairs of strings to satisfy the UWS XML API, so ``to_xml_model`` may need to do some conversion from the model back to a string representation of the parameters.
+The XML model must use simple key/value pairs of strings to satisfy the UWS XML API, so ``to_xml_model`` may need to do some conversion from the model to a string representation of the parameters.
+This string representation should match the input accepted by the dependencies defined in :doc:`define-inputs`.
 
 Update the application configuration
 ====================================
@@ -183,8 +188,10 @@ In the example above, that would be ``CutoutParameters``.
 
 Set the ``job_summary_type`` argument to ``JobSummary[XmlModel]`` where ``XmlModel`` is whatever the class name of your XML parameter model is.
 In the example above, that would be ``JobSummary[CutoutXmlParameters]``.
+(Although this type is theoretically knowable through type propagation, limitations in the pydantic-xml_ library require specifying it separately.)
 
 Next steps
 ==========
 
+- Define the API parameters: :doc:`define-inputs`
 - Write the backend worker :doc:`write-backend`

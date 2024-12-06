@@ -20,11 +20,14 @@ nox.options.sessions = [
 nox.options.default_venv_backend = "uv"
 nox.options.reuse_existing_virtualenvs = True
 
-# pip-installable dependencies for all the Safir modules.
+# pip-installable dependencies for all the Safir modules. The local safir-arq
+# apparently has to be installed after safir itself or the safir dependency
+# resolution appears to replace the local install with the safir-arq package
+# from PyPI.
 PIP_DEPENDENCIES = (
+    ("-e", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]"),
     ("-e", "./safir-logging"),
     ("-e", "./safir-arq"),
-    ("-e", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]"),
 )
 
 
