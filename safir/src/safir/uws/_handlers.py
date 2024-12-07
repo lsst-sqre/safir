@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Form, Query, Request, Response
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from structlog.stdlib import BoundLogger
+from vo_models.uws import Jobs, JobSummary, Results
 from vo_models.uws.types import ExecutionPhase
 
 from safir.datetime import isodatetime
@@ -51,7 +52,13 @@ __all__ = [
         "List all existing jobs for the current user. Jobs will be sorted"
         " by creation date, with the most recently created listed first."
     ),
-    responses={200: {"content": {"application/xml": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/xml": {"schema": Jobs.model_json_schema()}
+            }
+        }
+    },
     summary="Async job list",
 )
 async def get_job_list(
@@ -95,7 +102,13 @@ async def get_job_list(
 
 @uws_router.get(
     "/{job_id}",
-    responses={200: {"content": {"application/xml": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/xml": {"schema": JobSummary.model_json_schema()}
+            }
+        }
+    },
     summary="Job details",
 )
 async def get_job(
@@ -227,7 +240,7 @@ async def post_job_destruction(
 @uws_router.get(
     "/{job_id}/error",
     responses={
-        200: {"content": {"application/xml": {}}},
+        200: {"content": {"application/x-votable+xml": {}}},
         404: {"description": "Job not found or job did not fail"},
     },
     summary="Job error",
@@ -396,7 +409,13 @@ async def get_job_quote(
 
 @uws_router.get(
     "/{job_id}/results",
-    responses={200: {"content": {"application/xml": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/xml": {"schema": Results.model_json_schema()}
+            }
+        }
+    },
     summary="Job results",
 )
 async def get_job_results(
