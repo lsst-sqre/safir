@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Form, Query, Request, Response
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from structlog.stdlib import BoundLogger
-from vo_models.uws import Jobs, Results
+from vo_models.uws import Jobs, JobSummary, Results
 from vo_models.uws.types import ExecutionPhase
 
 from safir.datetime import isodatetime
@@ -52,7 +52,13 @@ __all__ = [
         "List all existing jobs for the current user. Jobs will be sorted"
         " by creation date, with the most recently created listed first."
     ),
-    responses={200: {"content": {"application/xml": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/xml": {"schema": Jobs.model_json_schema()}
+            }
+        }
+    },
     summary="Async job list",
 )
 async def get_job_list(
@@ -84,17 +90,25 @@ async def get_job_list(
 ) -> Response:
     job_service = uws_factory.create_job_service()
     jobs = await job_service.list_jobs(
-        user, phases=phase, after=after, count=last
+        user,
+        base_url=str(request.url_for("get_job_list")),
+        phases=phase,
+        after=after,
+        count=last,
     )
-    base_url = request.url_for("get_job_list")
-    xml_jobs = Jobs(jobref=[j.to_xml_model(str(base_url)) for j in jobs])
-    xml = xml_jobs.to_xml(skip_empty=True)
+    xml = jobs.to_xml(skip_empty=True)
     return Response(content=xml, media_type="application/xml")
 
 
 @uws_router.get(
     "/{job_id}",
-    responses={200: {"content": {"application/xml": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/xml": {"schema": JobSummary.model_json_schema()}
+            }
+        }
+    },
     summary="Job details",
 )
 async def get_job(
@@ -127,11 +141,12 @@ async def get_job(
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(
-        user, job_id, wait_seconds=wait, wait_phase=phase
+    result_store = uws_factory.create_result_store()
+    job = await job_service.get_summary(
+        user, job_id, signer=result_store, wait_seconds=wait, wait_phase=phase
     )
-    templates = uws_factory.create_templates()
-    return await templates.job(request, job)
+    xml = job.to_xml(skip_empty=True)
+    return Response(content=xml, media_type="application/xml")
 
 
 @uws_router.delete(
@@ -225,7 +240,7 @@ async def post_job_destruction(
 @uws_router.get(
     "/{job_id}/error",
     responses={
-        200: {"content": {"application/xml": {}}},
+        200: {"content": {"application/x-votable+xml": {}}},
         404: {"description": "Job not found or job did not fail"},
     },
     summary="Job error",
@@ -238,11 +253,11 @@ async def get_job_error(
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
-    if not job.error:
+    error = await job_service.get_error(user, job_id)
+    if not error:
         raise DataMissingError(f"Job {job_id} did not fail")
     templates = uws_factory.create_templates()
-    return templates.error(request, job.error)
+    return templates.error(request, error)
 
 
 @uws_router.get(
@@ -318,9 +333,11 @@ async def get_job_parameters(
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
-    templates = uws_factory.create_templates()
-    return templates.parameters(request, job)
+    job = await job_service.get_summary(user, job_id)
+    if not job.parameters:
+        raise DataMissingError(f"Job {job_id} has no parameters")
+    xml = job.parameters.to_xml(skip_empty=True)
+    return Response(content=xml, media_type="application/xml")
 
 
 @uws_router.get(
@@ -392,7 +409,13 @@ async def get_job_quote(
 
 @uws_router.get(
     "/{job_id}/results",
-    responses={200: {"content": {"application/xml": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/xml": {"schema": Results.model_json_schema()}
+            }
+        }
+    },
     summary="Job results",
 )
 async def get_job_results(
@@ -403,11 +426,11 @@ async def get_job_results(
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
     result_store = uws_factory.create_result_store()
-    results = [result_store.sign_url(r) for r in job.results]
-    xml_model = Results(results=[r.to_xml_model() for r in results])
-    xml = xml_model.to_xml(skip_empty=True)
+    job = await job_service.get_summary(user, job_id, signer=result_store)
+    if not job.results:
+        raise DataMissingError(f"Job {job_id} has no results")
+    xml = job.results.to_xml(skip_empty=True)
     return Response(content=xml, media_type="application/xml")
 
 

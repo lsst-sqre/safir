@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Generic, Self, TypeAlias, TypeVar
+from typing import TypeAlias
 
 from arq.connections import RedisSettings
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import Field, SecretStr
 from pydantic_core import Url
 from pydantic_settings import BaseSettings
+from vo_models.uws import JobSummary
 
 from safir.arq import ArqMode, build_arq_redis_settings
 from safir.pydantic import (
@@ -21,7 +21,7 @@ from safir.pydantic import (
     SecondsTimedelta,
 )
 
-from ._models import UWSJob, UWSJobParameter
+from ._models import ParametersModel, UWSJob, UWSJobParameter
 
 DestructionValidator: TypeAlias = Callable[[datetime, UWSJob], datetime]
 """Type for a validator for a new destruction time."""
@@ -31,12 +31,7 @@ ExecutionDurationValidator: TypeAlias = Callable[
 ]
 """Type for a validator for a new execution duration."""
 
-T = TypeVar("T", bound=BaseModel)
-"""Generic type for the worker parameters."""
-
 __all__ = [
-    "ParametersModel",
-    "T",
     "UWSAppSettings",
     "UWSConfig",
     "UWSRoute",
@@ -55,39 +50,6 @@ class UWSRoute:
 
     description: str | None = None
     """Description string for API documentation."""
-
-
-class ParametersModel(BaseModel, ABC, Generic[T]):
-    """Defines the interface for a model suitable for job parameters."""
-
-    @classmethod
-    @abstractmethod
-    def from_job_parameters(cls, params: list[UWSJobParameter]) -> Self:
-        """Validate generic UWS parameters and convert to the internal model.
-
-        Parameters
-        ----------
-        params
-            Generic input job parameters.
-
-        Returns
-        -------
-        ParametersModel
-            Parsed cutout parameters specific to service.
-
-        Raises
-        ------
-        safir.uws.MultiValuedParameterError
-            Raised if multiple parameters are provided but not supported.
-        safir.uws.ParameterError
-            Raised if one of the parameters could not be parsed.
-        pydantic.ValidationError
-            Raised if the parameters do not validate.
-        """
-
-    @abstractmethod
-    def to_worker_parameters(self) -> T:
-        """Convert to the domain model used by the backend worker."""
 
 
 @dataclass
@@ -121,6 +83,15 @@ class UWSConfig:
 
     Jobs that run longer than this length of time will be automatically
     aborted.
+    """
+
+    job_summary_type: type[JobSummary]
+    """Type representing the parameter-qualified job summary type.
+
+    Must be set to `~vo_models.uws.JobSummary` qualified with the appropriate
+    subclass of `~vo_models.uws.Parameters`. This is necessary to work around
+    limitations in pydantic-xml, which require the types to be known at class
+    instantiation time.
     """
 
     lifetime: timedelta
@@ -291,6 +262,7 @@ class UWSAppSettings(BaseSettings):
         self,
         *,
         async_post_route: UWSRoute,
+        job_summary_type: type[JobSummary],
         parameters_type: type[ParametersModel],
         slack_webhook: SecretStr | None = None,
         sync_get_route: UWSRoute | None = None,
@@ -308,11 +280,6 @@ class UWSAppSettings(BaseSettings):
         configuration. Its parameters are the additional settings accepted by
         the UWS library that are not part of the ``UWSAppSettings`` model.
 
-        Returns
-        -------
-        UWSConfig
-            UWS configuration.
-
         Parameters
         ----------
         async_post_route
@@ -320,6 +287,11 @@ class UWSAppSettings(BaseSettings):
             POST. The FastAPI dependency included in this object should expect
             POST parameters and return a list of `~safir.uws.UWSJobParameter`
             objects representing the job parameters.
+        job_summary_type
+            Type representing the XML job summary type, qualified with an
+            appropriate subclass of `~vo_models.uws.models.Parameters`. That
+            subclass should be the same as that returned by the
+            ``to_xml_model`` method of ``parameters_type``.
         parameters_type
             Type representing the job parameters. This will be used to
             validate parameters and to parse them before passing them to the
@@ -355,6 +327,11 @@ class UWSAppSettings(BaseSettings):
         worker
             Name of the backend worker to call to execute a job.
 
+        Returns
+        -------
+        UWSConfig
+            UWS configuration.
+
         Examples
         --------
         Normally, this method is used from a property method that returns the
@@ -386,6 +363,7 @@ class UWSAppSettings(BaseSettings):
             arq_mode=self.arq_mode,
             arq_redis_settings=self.arq_redis_settings,
             execution_duration=self.timeout,
+            job_summary_type=job_summary_type,
             lifetime=self.lifetime,
             parameters_type=parameters_type,
             signing_service_account=self.service_account,

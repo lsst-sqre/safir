@@ -271,16 +271,17 @@ async def test_build_uws_worker(
 
     # Expiring jobs should do nothing since the destruction time of our one
     # job has not passed.
-    jobs = await job_service.list_jobs("user")
+    jobs = await job_service.list_jobs("user", "https://example.com")
     await expire_jobs(ctx)
-    assert await job_service.list_jobs("user") == jobs
+    assert await job_service.list_jobs("user", "https://example.com") == jobs
 
     # Change the destruction date of the job and then it should be expired.
     past = current_datetime() - timedelta(minutes=5)
     expires = await job_service.update_destruction("user", job.job_id, past)
     assert expires == past
     await expire_jobs(ctx)
-    assert await job_service.list_jobs("user") == []
+    jobs = await job_service.list_jobs("user", "https://example.com")
+    assert not jobs.jobref
 
     def nonnegative(value: int) -> None:
         if value < 0:

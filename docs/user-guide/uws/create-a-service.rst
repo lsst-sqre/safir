@@ -57,6 +57,7 @@ For now, you can just insert placeholder values.
        def uws_config(self) -> UWSConfig:
            return self.build_uws_config(
                async_post_route=UWSRoute(...),
+               job_summary_type=...,
                parameters_type=...,
                sync_get_route=UWSRoute(...),
                sync_post_route=UWSRoute(...),

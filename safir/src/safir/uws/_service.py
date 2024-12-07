@@ -7,6 +7,7 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 
 from structlog.stdlib import BoundLogger
+from vo_models.uws import Jobs, JobSummary
 from vo_models.uws.types import ExecutionPhase
 from vo_models.vosi.availability import Availability
 
@@ -14,7 +15,7 @@ from safir.arq import ArqQueue, JobMetadata
 from safir.arq.uws import WorkerJobInfo
 from safir.datetime import isodatetime
 
-from ._config import ParametersModel, UWSConfig
+from ._config import UWSConfig
 from ._constants import JOB_STOP_TIMEOUT
 from ._exceptions import (
     InvalidPhaseError,
@@ -25,11 +26,13 @@ from ._exceptions import (
 )
 from ._models import (
     ACTIVE_PHASES,
+    ParametersModel,
     UWSJob,
-    UWSJobDescription,
+    UWSJobError,
     UWSJobParameter,
     UWSJobResult,
 )
+from ._results import ResultStore
 from ._storage import JobStore
 
 __all__ = ["JobService"]
@@ -138,8 +141,8 @@ class JobService:
 
         Returns
         -------
-        safir.uws._models.Job
-            The internal representation of the newly-created job.
+        JobSummary
+            Information about the newly-created job.
         """
         params_model = self._validate_parameters(params)
         job = await self._storage.add(
@@ -236,7 +239,7 @@ class JobService:
         Returns
         -------
         UWSJob
-            The corresponding job.
+            Corresponding job.
 
         Raises
         ------
@@ -246,10 +249,10 @@ class JobService:
 
         Notes
         -----
-        ``wait`` and related parameters are relatively inefficient since they
-        poll the database using exponential backoff (starting at a 0.1s delay
-        and increasing by 1.5x). This may need to be reconsidered if it
-        becomes a performance bottleneck.
+        ``wait_seconds`` and related parameters are relatively inefficient
+        since they poll the database using exponential backoff (starting at a
+        0.1s delay and increasing by 1.5x). This may need to be reconsidered
+        if it becomes a performance bottleneck.
         """
         job = await self._storage.get(job_id)
         if job.owner != user:
@@ -271,20 +274,110 @@ class JobService:
 
         return job
 
+    async def get_error(self, user: str, job_id: str) -> UWSJobError | None:
+        """Get the error for a job, if any.
+
+        Parameters
+        ----------
+        user
+            User on behalf this operation is performed.
+        job_id
+            Identifier of the job.
+
+        Returns
+        -------
+        UWSJobError or None
+            Error information for the job, or `None` if the job didn't fail.
+
+        Raises
+        ------
+        PermissionDeniedError
+            If the job ID doesn't exist or is for a user other than the
+            provided user.
+        """
+        job = await self._storage.get(job_id)
+        if job.owner != user:
+            raise PermissionDeniedError(f"Access to job {job_id} denied")
+        return job.error
+
+    async def get_summary(
+        self,
+        user: str,
+        job_id: str,
+        *,
+        signer: ResultStore | None = None,
+        wait_seconds: int | None = None,
+        wait_phase: ExecutionPhase | None = None,
+    ) -> JobSummary:
+        """Retrieve a job's XML model.
+
+        This also supports long-polling, to implement UWS 1.1 blocking
+        behavior, and signing of results.
+
+        Parameters
+        ----------
+        user
+            User on behalf this operation is performed.
+        job_id
+            Identifier of the job.
+        signer
+            If provided, generate signed URLs for the results by using the
+            given signing object. If no object is supplied, no URLs will be
+            included in the result list.
+        wait_seconds
+            If given, wait up to this many seconds for the status to change
+            before returning. -1 indicates waiting the maximum length of
+            time. This is done by polling the database with exponential
+            backoff. This will only be honored if the phase is ``PENDING``,
+            ``QUEUED``, or ``EXECUTING``.
+        wait_phase
+            If ``wait`` was given, the starting phase for waiting. Returns
+            immediately if the initial phase doesn't match this one.
+
+        Returns
+        -------
+        JobSummary
+            Corresponding job.
+
+        Raises
+        ------
+        PermissionDeniedError
+            If the job ID doesn't exist or is for a user other than the
+            provided user.
+
+        Notes
+        -----
+        ``wait_seconds`` and related parameters are relatively inefficient
+        since they poll the database using exponential backoff (starting at a
+        0.1s delay and increasing by 1.5x). This may need to be reconsidered
+        if it becomes a performance bottleneck.
+        """
+        job = await self.get(
+            user, job_id, wait_seconds=wait_seconds, wait_phase=wait_phase
+        )
+        if signer:
+            job.results = [signer.sign_url(r) for r in job.results]
+        return job.to_xml_model(
+            self._config.parameters_type, self._config.job_summary_type
+        )
+
     async def list_jobs(
         self,
         user: str,
+        base_url: str,
         *,
         phases: list[ExecutionPhase] | None = None,
         after: datetime | None = None,
         count: int | None = None,
-    ) -> list[UWSJobDescription]:
+    ) -> Jobs:
         """List the jobs for a particular user.
 
         Parameters
         ----------
         user
             Name of the user whose jobs to load.
+        base_url
+            Base URL used to form URLs to the specific jobs.
         phases
             Limit the result to jobs in this list of possible execution
             phases.
@@ -295,12 +388,13 @@ class JobService:
 
         Returns
         -------
-        list of safir.uws._models.JobDescription
-            List of job descriptions matching the search criteria.
+        Jobs
+            Collection of short job descriptions.
         """
-        return await self._storage.list_jobs(
+        jobs = await self._storage.list_jobs(
             user, phases=phases, after=after, count=count
         )
+        return Jobs(jobref=[j.to_xml_model(base_url) for j in jobs])
 
     async def run_sync(
         self,
@@ -393,7 +487,7 @@ class JobService:
         if job.owner != user:
             raise PermissionDeniedError(f"Access to job {job_id} denied")
         if job.phase not in (ExecutionPhase.PENDING, ExecutionPhase.HELD):
-            raise InvalidPhaseError("Cannot start job in phase {job.phase}")
+            raise InvalidPhaseError(f"Cannot start job in phase {job.phase}")
         params_model = self._validate_parameters(job.parameters)
         logger = self._build_logger_for_job(job, params_model)
         info = WorkerJobInfo(

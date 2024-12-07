@@ -8,21 +8,29 @@ from typing import Annotated, Self
 from arq.connections import RedisSettings
 from fastapi import Form, Query
 from pydantic import BaseModel, SecretStr
+from vo_models.uws import JobSummary, Parameter, Parameters
 
 from safir.arq import ArqMode
 from safir.uws import ParametersModel, UWSConfig, UWSJobParameter, UWSRoute
 
 __all__ = [
     "SimpleParameters",
+    "SimpleXmlParameters",
     "build_uws_config",
 ]
+
+
+class SimpleXmlParameters(Parameters):
+    name: Parameter = Parameter(id="name")
 
 
 class SimpleWorkerParameters(BaseModel):
     name: str
 
 
-class SimpleParameters(ParametersModel[SimpleWorkerParameters]):
+class SimpleParameters(
+    ParametersModel[SimpleWorkerParameters, SimpleXmlParameters]
+):
     name: str
 
     @classmethod
@@ -33,6 +41,9 @@ class SimpleParameters(ParametersModel[SimpleWorkerParameters]):
 
     def to_worker_parameters(self) -> SimpleWorkerParameters:
         return SimpleWorkerParameters(name=self.name)
+
+    def to_xml_model(self) -> SimpleXmlParameters:
+        return SimpleXmlParameters(name=Parameter(id="name", value=self.name))
 
 
 async def _get_dependency(
@@ -58,6 +69,7 @@ def build_uws_config(database_url: str, database_password: str) -> UWSConfig:
         database_url=database_url,
         database_password=SecretStr(database_password),
         execution_duration=timedelta(minutes=10),
+        job_summary_type=JobSummary[SimpleXmlParameters],
         lifetime=timedelta(days=1),
         parameters_type=SimpleParameters,
         signing_service_account="signer@example.com",
