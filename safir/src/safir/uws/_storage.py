@@ -56,6 +56,7 @@ class JobStore:
         self._token = token
         self._config = config
         self._client = http_client
+        self._base_url = str(config.wobbly_url).rstrip("/")
 
     async def create(
         self,
@@ -131,7 +132,7 @@ class JobStore:
         list of SerializedJob
             List of job descriptions matching the search criteria.
         """
-        query = []
+        query: list[tuple[str, str]] = []
         if phases:
             query.extend(("phase", str(p)) for p in phases)
         if after:
@@ -149,7 +150,11 @@ class JobStore:
         job_id
             Identifier of the job.
         """
-        await self._request("PATCH", f"jobs/{job_id}", JobUpdateAborted())
+        await self._request(
+            "PATCH",
+            f"jobs/{job_id}",
+            JobUpdateAborted(phase=ExecutionPhase.ABORTED),
+        )
 
     async def mark_completed(
         self, job_id: str, job_result: ArqJobResult
@@ -166,7 +171,9 @@ class JobStore:
         if isinstance(job_result.result, Exception):
             await self.mark_failed(job_id, job_result.result)
             return
-        update = JobUpdateCompleted(results=job_result.result)
+        update = JobUpdateCompleted(
+            phase=ExecutionPhase.COMPLETED, results=job_result.result
+        )
         await self._request("PATCH", f"jobs/{job_id}", update)
 
     async def mark_failed(self, job_id: str, exc: Exception) -> None:
@@ -186,12 +193,12 @@ class JobStore:
             error = exc.to_job_error()
         else:
             error = JobError(
-                error_type=ErrorType.FATAL,
-                error_code="Error",
+                type=ErrorType.FATAL,
+                code="Error",
                 message="Unknown error executing task",
                 detail=f"{type(exc).__name__}: {exc!s}",
             )
-        update = JobUpdateError(errors=[error])
+        update = JobUpdateError(phase=ExecutionPhase.ERROR, errors=[error])
         await self._request("PATCH", f"jobs/{job_id}", update)
 
     async def mark_executing(self, job_id: str, start_time: datetime) -> None:
@@ -204,7 +211,9 @@ class JobStore:
         start_time
             Time at which the job started executing.
         """
-        update = JobUpdateExecuting(start_time=start_time)
+        update = JobUpdateExecuting(
+            phase=ExecutionPhase.EXECUTING, start_time=start_time
+        )
         await self._request("PATCH", f"jobs/{job_id}", update)
 
     async def mark_queued(self, job_id: str, metadata: JobMetadata) -> None:
@@ -221,11 +230,16 @@ class JobStore:
         metadata
             Metadata about the underlying arq job.
         """
-        update = JobUpdateQueued(message_id=metadata.id)
+        update = JobUpdateQueued(
+            phase=ExecutionPhase.QUEUED, message_id=metadata.id
+        )
         await self._request("PATCH", f"jobs/{job_id}", update)
 
     async def update_metadata(
-        self, job_id: str, destruction: datetime, execution_duration: timedelta
+        self,
+        job_id: str,
+        destruction: datetime,
+        execution_duration: timedelta | None,
     ) -> None:
         """Update the destruction time or execution duration of a job.
 

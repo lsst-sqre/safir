@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from structlog.stdlib import BoundLogger
 from vo_models.uws import Jobs, JobSummary
 from vo_models.uws.types import ExecutionPhase
-from vo_models.vosi.availability import Availability
 
 from safir.arq import ArqQueue, JobMetadata
 from safir.arq.uws import WorkerJobInfo
@@ -19,7 +18,6 @@ from ._config import UWSConfig
 from ._constants import JOB_STOP_TIMEOUT
 from ._exceptions import (
     InvalidPhaseError,
-    PermissionDeniedError,
     SyncJobFailedError,
     SyncJobNoResultsError,
     SyncJobTimeoutError,
@@ -64,7 +62,7 @@ class JobService:
         self._storage = storage
         self._logger = logger
 
-    async def abort(self, user: str, job_id: str) -> None:
+    async def abort(self, job_id: str) -> None:
         """Abort a queued or running job.
 
         If the job is already in a completed state, this operation does
@@ -72,8 +70,6 @@ class JobService:
 
         Parameters
         ----------
-        user
-            User on behalf of whom this operation is performed.
         job_id
             Identifier of the job.
 
@@ -84,8 +80,6 @@ class JobService:
             provided user.
         """
         job = await self._storage.get(job_id)
-        if job.owner != user:
-            raise PermissionDeniedError(f"Access to job {job_id} denied")
         logger = self._build_logger_for_job(job)
         if job.phase not in ACTIVE_PHASES:
             logger.info(f"Cannot stop job in phase {job.phase.value}")
@@ -97,22 +91,8 @@ class JobService:
         await self._storage.mark_aborted(job_id)
         logger.info("Aborted job")
 
-    async def availability(self) -> Availability:
-        """Check whether the service is up.
-
-        Used for ``/availability`` endpoints. Currently this only checks the
-        database.
-
-        Returns
-        -------
-        Availability
-            Service availability information.
-        """
-        return await self._storage.availability()
-
     async def create(
         self,
-        user: str,
         parameters: ParametersModel,
         *,
         run_id: str | None = None,
@@ -124,12 +104,10 @@ class JobService:
 
         Parameters
         ----------
-        user
-            User on behalf this operation is performed.
-        run_id
-            A client-supplied opaque identifier to record with the job.
         parameters
             The input parameters to the job.
+        run_id
+            A client-supplied opaque identifier to record with the job.
 
         Returns
         -------
@@ -137,7 +115,6 @@ class JobService:
             Information about the newly-created job.
         """
         job = await self._storage.create(
-            owner=user,
             run_id=run_id,
             parameters=parameters,
             execution_duration=self._config.execution_duration,
@@ -160,8 +137,6 @@ class JobService:
             Identifier of job.
         """
         job = await self._storage.get(job_id)
-        if job.owner != user:
-            raise PermissionDeniedError(f"Access to job {job_id} denied")
         logger = self._build_logger_for_job(job)
         if job.phase in ACTIVE_PHASES and job.message_id:
             try:
@@ -171,29 +146,8 @@ class JobService:
         await self._storage.delete(job_id)
         logger.info("Deleted job")
 
-    async def delete_expired(self) -> None:
-        """Delete all expired jobs.
-
-        A job is expired if it has passed its destruction time. If the job is
-        in an active phase, cancel it before deleting it.
-        """
-        jobs = await self._storage.list_expired()
-        if jobs:
-            self._logger.info(f"Deleting {len(jobs)} expired jobs")
-        for job in jobs:
-            if job.phase in ACTIVE_PHASES and job.message_id:
-                try:
-                    await self._arq.abort_job(job.message_id)
-                except Exception as e:
-                    msg = "Unable to abort expired job"
-                    self._logger.warning(msg, error=str(e))
-            await self._storage.delete(job.job_id)
-            self._logger.info("Deleted expired job")
-        self._logger.info(f"Finished deleting {len(jobs)} expired jobs")
-
     async def get(
         self,
-        user: str,
         job_id: str,
         *,
         wait_seconds: int | None = None,
@@ -245,8 +199,6 @@ class JobService:
         if it becomes a performance bottleneck.
         """
         job = await self._storage.get(job_id)
-        if job.owner != user:
-            raise PermissionDeniedError(f"Access to job {job_id} denied")
 
         # If waiting for a status change was requested and is meaningful, do
         # so, capping the wait time at the configured maximum timeout.
@@ -264,13 +216,11 @@ class JobService:
 
         return job
 
-    async def get_error(self, user: str, job_id: str) -> JobError | None:
+    async def get_error(self, job_id: str) -> list[JobError] | None:
         """Get the error for a job, if any.
 
         Parameters
         ----------
-        user
-            User on behalf this operation is performed.
         job_id
             Identifier of the job.
 
@@ -286,13 +236,10 @@ class JobService:
             provided user.
         """
         job = await self._storage.get(job_id)
-        if job.owner != user:
-            raise PermissionDeniedError(f"Access to job {job_id} denied")
-        return job.error
+        return job.errors
 
     async def get_summary(
         self,
-        user: str,
         job_id: str,
         *,
         signer: ResultStore | None = None,
@@ -306,8 +253,6 @@ class JobService:
 
         Parameters
         ----------
-        user
-            User on behalf this operation is performed.
         job_id
             Identifier of the job.
         signer
@@ -343,17 +288,14 @@ class JobService:
         if it becomes a performance bottleneck.
         """
         job = await self.get(
-            user, job_id, wait_seconds=wait_seconds, wait_phase=wait_phase
+            job_id, wait_seconds=wait_seconds, wait_phase=wait_phase
         )
         if signer:
             job.results = [signer.sign_url(r) for r in job.results]
-        return job.to_xml_model(
-            self._config.parameters_type, self._config.job_summary_type
-        )
+        return job.to_xml_model(self._config.job_summary_type)
 
     async def list_jobs(
         self,
-        user: str,
         base_url: str,
         *,
         phases: list[ExecutionPhase] | None = None,
@@ -364,8 +306,6 @@ class JobService:
 
         Parameters
         ----------
-        user
-            Name of the user whose jobs to load.
         base_url
             Base URL used to form URLs to the specific jobs.
         phases
@@ -382,9 +322,9 @@ class JobService:
             Collection of short job descriptions.
         """
         jobs = await self._storage.list_jobs(
-            user, phases=phases, after=after, count=count
+            phases=phases, after=after, count=count
         )
-        return Jobs(jobref=[j.to_short_xml_model(base_url) for j in jobs])
+        return Jobs(jobref=[j.to_job_description(base_url) for j in jobs])
 
     async def run_sync(
         self,
@@ -398,6 +338,8 @@ class JobService:
 
         Parameters
         ----------
+        user
+            User on behalf of whom this operation is performed.
         params
             Job parameters.
         user
@@ -421,15 +363,14 @@ class JobService:
         SyncJobTimeoutError
             Raised if the job execution timed out.
         """
-        job = await self.create(user, parameters, run_id=runid)
+        job = await self.create(parameters, run_id=runid)
         logger = self._build_logger_for_job(job)
 
         # Start the job and wait for it to complete.
-        metadata = await self.start(user, job.job_id, token)
+        metadata = await self.start(user, job.id, token)
         logger = logger.bind(arq_job_id=metadata.id)
         job = await self.get(
-            user,
-            job.job_id,
+            job.id,
             wait_seconds=int(self._config.sync_timeout.total_seconds()),
             wait_for_completion=True,
         )
@@ -438,9 +379,11 @@ class JobService:
         if job.phase not in (ExecutionPhase.COMPLETED, ExecutionPhase.ERROR):
             logger.warning("Job timed out", timeout=self._config.sync_timeout)
             raise SyncJobTimeoutError(self._config.sync_timeout)
-        if job.error:
-            logger.warning("Job failed", error=job.error.to_dict())
-            raise SyncJobFailedError(job.error)
+        if job.errors:
+            # Only one error is supported for right now.
+            error = job.errors[0]
+            logger.warning("Job failed", error=error.model_dump(mode="json"))
+            raise SyncJobFailedError(error)
         if not job.results:
             logger.warning("Job returned no results")
             raise SyncJobNoResultsError
@@ -473,16 +416,14 @@ class JobService:
             provided user.
         """
         job = await self._storage.get(job_id)
-        if job.owner != user:
-            raise PermissionDeniedError(f"Access to job {job_id} denied")
         if job.phase not in (ExecutionPhase.PENDING, ExecutionPhase.HELD):
             raise InvalidPhaseError(f"Cannot start job in phase {job.phase}")
         logger = self._build_logger_for_job(job)
         info = WorkerJobInfo(
-            job_id=job.job_id,
+            job_id=job.id,
             user=user,
             token=token,
-            timeout=job.execution_duration,
+            timeout=job.execution_duration or self._config.lifetime,
             run_id=job.run_id,
         )
         params = job.parameters.to_worker_parameters().model_dump(mode="json")
@@ -492,14 +433,12 @@ class JobService:
         return metadata
 
     async def update_destruction(
-        self, user: str, job_id: str, destruction: datetime
+        self, job_id: str, destruction: datetime
     ) -> datetime | None:
         """Update the destruction time of a job.
 
         Parameters
         ----------
-        user
-            User on behalf of whom this operation is performed
         job_id
             Identifier of the job to update.
         destruction
@@ -520,8 +459,7 @@ class JobService:
             provided user.
         """
         job = await self._storage.get(job_id)
-        if job.owner != user:
-            raise PermissionDeniedError(f"Access to job {job_id} denied")
+        logger = self._build_logger_for_job(job)
 
         # Validate the new value.
         if validator := self._config.validate_destruction:
@@ -533,18 +471,16 @@ class JobService:
         if destruction == job.destruction_time:
             return None
         await self._storage.update_metadata(
-            job_id, destruction, job.execution_curation
+            job_id, destruction, job.execution_duration
         )
-        self._logger.info(
+        logger.info(
             "Changed job destruction time",
-            user=user,
-            job_id=job_id,
             destruction=isodatetime(destruction),
         )
         return destruction
 
     async def update_execution_duration(
-        self, user: str, job_id: str, duration: timedelta
+        self, user: str, job_id: str, duration: timedelta | None
     ) -> timedelta | None:
         """Update the execution duration time of a job.
 
@@ -572,28 +508,25 @@ class JobService:
             provided user.
         """
         job = await self._storage.get(job_id)
-        if job.owner != user:
-            raise PermissionDeniedError(f"Access to job {job_id} denied")
+        logger = self._build_logger_for_job(job)
 
         # Validate the new value.
         if validator := self._config.validate_execution_duration:
             duration = validator(duration, job)
-        duration = min(duration, self._config.execution_duration)
+        if duration:
+            duration = min(duration, self._config.execution_duration)
 
         # Update the duration in the job.
         if duration == job.execution_duration:
             return None
-        await self._storage.update_metadata(job_id, job.destruction, duration)
-        if duration.total_seconds() > 0:
+        await self._storage.update_metadata(
+            job_id, job.destruction_time, duration
+        )
+        if duration:
             duration_str = f"{duration.total_seconds()}s"
         else:
             duration_str = "unlimited"
-        self._logger.info(
-            "Changed job execution duration",
-            user=user,
-            job_id=job_id,
-            duration=duration_str,
-        )
+        logger.info("Changed job execution duration", duration=duration_str)
         return duration
 
     def _build_logger_for_job(self, job: Job) -> BoundLogger:
@@ -609,7 +542,7 @@ class JobService:
         BoundLogger
             Logger with more bound metadata.
         """
-        logger = self._logger.bind(user=job.owner, job_id=job.job_id)
+        logger = self._logger.bind(user=job.owner, job_id=job.id)
         if job.run_id:
             logger = logger.bind(run_id=job.run_id)
         if job.parameters:
@@ -646,9 +579,9 @@ class JobService:
             async with asyncio.timeout(timeout.total_seconds()):
                 while job.phase in until_not:
                     await asyncio.sleep(delay)
-                    job = await self._storage.get(job.job_id)
+                    job = await self._storage.get(job.id)
                     delay = min(delay * 1.5, max_delay)
 
         # If we timed out, we may have done so in the middle of a delay. Try
         # one last request.
-        return await self._storage.get(job.job_id)
+        return await self._storage.get(job.id)

@@ -114,8 +114,8 @@ class JobError(BaseModel):
     def to_xml_model(self) -> ErrorSummary:
         """Convert to a Pydantic XML model."""
         return ErrorSummary(
-            message=f"{self.error_code.value}: {self.message}",
-            type=self.error_type,
+            message=f"{self.code}: {self.message}",
+            type=self.type,
             has_detail=self.detail is not None,
         )
 
@@ -162,7 +162,7 @@ class JobResult(BaseModel):
     def to_xml_model(self) -> ResultReference:
         """Convert to a Pydantic XML model."""
         return ResultReference(
-            id=self.result_id, size=self.size, mime_type=self.mime_type
+            id=self.id, size=self.size, mime_type=self.mime_type
         )
 
 
@@ -176,7 +176,7 @@ class SignedJobResult(JobResult):
     def to_xml_model(self) -> ResultReference:
         """Convert to a Pydantic XML model."""
         return ResultReference(
-            id=self.result_id,
+            id=self.id,
             type=None,
             href=self.url,
             size=self.size,
@@ -384,9 +384,9 @@ class SerializedJob(JobBase):
             run_id=self.run_id,
             creation_time=self.creation_time,
             owner_id=self.owner,
-            job_id=self.job_id,
+            job_id=self.id,
             type=None,
-            href=f"{base_url}/{self.job_id}",
+            href=f"{base_url}/{self.id}",
         )
 
 
@@ -450,15 +450,11 @@ class Job(SerializedJob, Generic[P]):
         job = self.model_dump(mode="json")
         return SerializedJob.model_validate(job)
 
-    def to_xml_model(
-        self, parameters_type: type[P], job_summary_type: type[S]
-    ) -> S:
+    def to_xml_model(self, job_summary_type: type[S]) -> S:
         """Convert to a Pydantic XML model.
 
         Parameters
         ----------
-        parameters_type
-            Model class used for the job parameters.
         job_summary_type
             XML model class for the job summary.
 
@@ -470,9 +466,14 @@ class Job(SerializedJob, Generic[P]):
         results = None
         if self.results:
             results = Results(results=[r.to_xml_model() for r in self.results])
-        parameters = parameters_type.from_job_parameters(self.parameters)
+        duration = None
+        if self.execution_duration:
+            duration = int(self.execution_duration.total_seconds())
+        error_summary = None
+        if self.errors:
+            error_summary = self.errors[0].to_xml_model()
         return job_summary_type(
-            job_id=self.job_id,
+            job_id=self.id,
             run_id=self.run_id,
             owner_id=self.owner,
             phase=self.phase,
@@ -480,11 +481,11 @@ class Job(SerializedJob, Generic[P]):
             creation_time=self.creation_time,
             start_time=self.start_time,
             end_time=self.end_time,
-            execution_duration=int(self.execution_duration.total_seconds()),
+            execution_duration=duration,
             destruction=self.destruction_time,
-            parameters=parameters.to_xml_model(),
+            parameters=self.parameters.to_xml_model(),
             results=results,
-            error_summary=self.error.to_xml_model() if self.error else None,
+            error_summary=error_summary,
             version=UWSVersion.V1_1,
         )
 

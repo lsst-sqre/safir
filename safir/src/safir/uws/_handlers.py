@@ -291,7 +291,7 @@ async def post_job_execution_duration(
             title="New execution duration",
             description="Integer seconds of wall clock time.",
             examples=[14400],
-            ge=1,
+            ge=0,
         ),
     ],
     request: Request,
@@ -299,7 +299,9 @@ async def post_job_execution_duration(
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    duration = timedelta(seconds=executionduration)
+    duration = None
+    if executionduration > 0:
+        duration = timedelta(seconds=executionduration)
     await job_service.update_execution_duration(user, job_id, duration)
     return str(request.url_for("get_job", job_id=job_id))
 

@@ -18,7 +18,7 @@ from safir.slack.blockkit import (
 )
 from safir.slack.webhook import SlackIgnoredException
 
-from ._models import ErrorCode, UWSJobError, UWSJobParameter
+from ._models import JobError
 
 __all__ = [
     "DataMissingError",
@@ -26,7 +26,6 @@ __all__ = [
     "InvalidPhaseError",
     "MultiValuedParameterError",
     "ParameterError",
-    "ParameterParseError",
     "PermissionDeniedError",
     "SyncJobFailedError",
     "SyncJobNoResultsError",
@@ -60,7 +59,7 @@ class UWSError(SlackIgnoredException):
     """
 
     def __init__(
-        self, error_code: ErrorCode, message: str, detail: str | None = None
+        self, error_code: str, message: str, detail: str | None = None
     ) -> None:
         super().__init__(message)
         self.error_code = error_code
@@ -72,7 +71,7 @@ class MultiValuedParameterError(UWSError):
     """Multiple values not allowed for this parameter."""
 
     def __init__(self, message: str) -> None:
-        super().__init__(ErrorCode.MULTIVALUED_PARAM_NOT_SUPPORTED, message)
+        super().__init__("MultiValuedParamNotSupported", message)
         self.status_code = 422
 
 
@@ -80,15 +79,15 @@ class PermissionDeniedError(UWSError):
     """User does not have access to this resource."""
 
     def __init__(self, message: str) -> None:
-        super().__init__(ErrorCode.AUTHORIZATION_ERROR, message)
+        super().__init__("AuthorizationError", message)
         self.status_code = 403
 
 
 class SyncJobFailedError(UWSError):
     """A sync job failed."""
 
-    def __init__(self, error: UWSJobError) -> None:
-        super().__init__(error.error_code, error.message, error.detail)
+    def __init__(self, error: JobError) -> None:
+        super().__init__(error.code, error.message, error.detail)
         self.status_code = 500
 
 
@@ -97,7 +96,7 @@ class SyncJobNoResultsError(UWSError):
 
     def __init__(self) -> None:
         msg = "Job completed but produced no results"
-        super().__init__(ErrorCode.ERROR, msg)
+        super().__init__("Error", msg)
         self.status_code = 500
 
 
@@ -106,7 +105,7 @@ class SyncJobTimeoutError(UWSError):
 
     def __init__(self, timeout: timedelta) -> None:
         msg = f"Job did not complete in {timeout.total_seconds()}s"
-        super().__init__(ErrorCode.ERROR, msg)
+        super().__init__("Error", msg)
         self.status_code = 500
 
 
@@ -150,7 +149,7 @@ class TaskError(SlackException):
     def __init__(
         self,
         *,
-        error_code: ErrorCode,
+        error_code: str,
         error_type: ErrorType,
         message: str,
         detail: str | None = None,
@@ -186,13 +185,13 @@ class TaskError(SlackException):
         slack_ignore = False
         match exc.error_type:
             case WorkerErrorType.FATAL:
-                error_code = ErrorCode.ERROR
+                error_code = "Error"
                 error_type = ErrorType.FATAL
             case WorkerErrorType.TRANSIENT:
-                error_code = ErrorCode.SERVICE_UNAVAILABLE
+                error_code = "ServiceUnavailable"
                 error_type = ErrorType.TRANSIENT
             case WorkerErrorType.USAGE:
-                error_code = ErrorCode.USAGE_ERROR
+                error_code = "UsageError"
                 error_type = ErrorType.FATAL
                 slack_ignore = True
         return cls(
@@ -205,15 +204,15 @@ class TaskError(SlackException):
             slack_ignore=slack_ignore,
         )
 
-    def to_job_error(self) -> UWSJobError:
+    def to_job_error(self) -> JobError:
         """Convert to a `~safir.uws._models.UWSJobError`."""
         if self._traceback and self._detail:
             detail: str | None = self._detail + "\n\n" + self._traceback
         else:
             detail = self._detail or self._traceback
-        return UWSJobError(
-            error_code=self._error_code,
-            error_type=self._error_type,
+        return JobError(
+            code=self._error_code,
+            type=self._error_type,
             message=self._message,
             detail=detail,
         )
@@ -245,7 +244,7 @@ class UsageError(UWSError):
     """Invalid parameters were passed to a UWS API."""
 
     def __init__(self, message: str, detail: str | None = None) -> None:
-        super().__init__(ErrorCode.USAGE_ERROR, message, detail)
+        super().__init__("UsageError", message, detail)
         self.status_code = 422
 
 
@@ -253,7 +252,7 @@ class DataMissingError(UWSError):
     """The data requested does not exist for that job."""
 
     def __init__(self, message: str) -> None:
-        super().__init__(ErrorCode.USAGE_ERROR, message)
+        super().__init__("UsageError", message)
         self.status_code = 404
 
 
@@ -263,15 +262,6 @@ class InvalidPhaseError(UsageError):
 
 class ParameterError(UsageError):
     """Unsupported value passed to a parameter."""
-
-
-class ParameterParseError(ParameterError):
-    """UWS job parameters could not be parsed."""
-
-    def __init__(self, message: str, params: list[UWSJobParameter]) -> None:
-        detail = "\n".join(f"{p.parameter_id}={p.value}" for p in params)
-        super().__init__(message, detail)
-        self.params = params
 
 
 class UnknownJobError(DataMissingError):
