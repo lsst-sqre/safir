@@ -22,7 +22,6 @@ from ._models import JobError
 
 __all__ = [
     "DataMissingError",
-    "DatabaseSchemaError",
     "InvalidPhaseError",
     "MultiValuedParameterError",
     "ParameterError",
@@ -35,10 +34,6 @@ __all__ = [
     "UnknownJobError",
     "UsageError",
 ]
-
-
-class DatabaseSchemaError(Exception):
-    """Some problem was detected in the UWS database schema."""
 
 
 class UWSError(SlackIgnoredException):
