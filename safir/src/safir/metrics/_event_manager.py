@@ -103,11 +103,6 @@ class EventPublisher(Generic[P], metaclass=ABCMeta):
             accessed.
         """
 
-    @property
-    def published(self) -> PublishedList[P]:
-        """A list of published event payloads with some test helpers."""
-        raise NotImplementedError("Only available on a MockEventPublisher.")
-
     @staticmethod
     def _ns_to_datetime(ns: int) -> datetime:
         """Convert an `int` number of nanoseconds to a `~datetime.datetime`."""
@@ -606,7 +601,6 @@ class MockEventManager(EventManager):
     This is for use only in unit testing. Don't use it in any deployed
     environment because memory usage will grow unbounded.
 
-
     Parameters
     ----------
     application
@@ -642,4 +636,4 @@ class MockEventManager(EventManager):
         EventPublisher
             An appropriate event publisher implementation instance.
         """
-        return MockEventPublisher[P](self._application, model, self.logger)
+        return MockEventPublisher(self._application, model, self.logger)

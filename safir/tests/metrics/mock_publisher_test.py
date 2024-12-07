@@ -1,5 +1,7 @@
 """Tests for mock publishers."""
 
+from typing import cast
+
 import pytest
 from pydantic import ConfigDict
 
@@ -8,6 +10,7 @@ from safir.metrics import (
     NOT_NONE,
     EventPayload,
     EventsConfiguration,
+    MockEventPublisher,
     MockMetricsConfiguration,
     NotPublishedConsecutivelyError,
     NotPublishedError,
@@ -44,7 +47,7 @@ async def publish() -> PublishedList:
 
     await manager.aclose()
 
-    return pub.published
+    return cast(MockEventPublisher, pub).published
 
 
 @pytest.mark.asyncio

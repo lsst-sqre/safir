@@ -255,7 +255,13 @@ You can make assertions about these published events in your unit tests.
 
 .. code-block:: python
 
-   from safir.metrics import metrics_configuration_factory
+   from pydantic import ConfigDict
+
+   from safir.metrics import (
+       EventPayload,
+       MockEventPublisher,
+       metrics_configuration_factory,
+   )
 
 
    config = metrics_configuration_factory()
@@ -281,7 +287,7 @@ You can make assertions about these published events in your unit tests.
 
    await manager.aclose()
 
-   pub = pub.published
+   pub = cast(MockEventPublisher, pub).published
 
 A mock publisher has an `safir.metrics.MockEventPublisher.published` attribute which is a `safir.metrics.PublishedList` containing of all of the `safir.metrics.EventPayload`'s published by that publisher.
 A `safir.metrics.PublishedList` is a regular Python list with some mixed-in assertion methods.

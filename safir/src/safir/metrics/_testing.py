@@ -2,10 +2,10 @@
 
 from abc import ABC, abstractmethod
 from pprint import pformat
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeAlias, TypeVar
 from unittest.mock import ANY as MOCK_ANY
 
-from pydantic import BaseModel
+from ._models import EventPayload
 
 __all__ = [
     "ANY",
@@ -18,12 +18,14 @@ __all__ = [
     "PublishedTooFewError",
 ]
 
-P = TypeVar("P", bound=BaseModel)
+P = TypeVar("P", bound=EventPayload)
 """Generic event payload type."""
-
 
 ANY = MOCK_ANY
 """An object that compares equal to anything, reexported from unittest.mock."""
+
+ModelDumpList: TypeAlias = list[dict[str, Any]]
+"""Type alias for a list of dumped Pydantic models."""
 
 
 class _NotNone:
@@ -38,10 +40,6 @@ class _NotNone:
 
 NOT_NONE = _NotNone()
 """An object to indicate that a value can be anything except None."""
-
-
-ModelDumpList = list[dict[str, Any]]
-"""Type alias for a list of dumped Pydantic models."""
 
 
 class BaseAssertionError(Generic[P], ABC, AssertionError):
@@ -97,6 +95,7 @@ class NotPublishedError(BaseAssertionError):
 
     def __init__(
         self,
+        *,
         expected: ModelDumpList,
         actual: ModelDumpList,
         actual_models: list[P],
@@ -113,12 +112,11 @@ class NotPublishedError(BaseAssertionError):
         )
 
 
-class PublishedList(Generic[P], list[P]):
+class PublishedList(list[P]):
     """A list of event payload models with assertion helpers.
 
     All assertion helpers take lists of dicts as expected items and use the
     ``model_dump(mode="json")`` serialization of the models for comparison.
-
     """
 
     def assert_published(
@@ -155,13 +153,13 @@ class PublishedList(Generic[P], list[P]):
             raise PublishedTooFewError(expected, actual, self)
 
         if any_order:
-            self._unordered(expected)
+            self._check_unordered(expected)
         else:
             # Try unordered first to differentiate between the cases where some
             # expected events were not published at all, vs all of the expected
             # events were published, just not in the expected order.
-            self._unordered(expected)
-            self._ordered(expected)
+            self._check_unordered(expected)
+            self._check_ordered(expected)
 
     def assert_published_all(
         self,
@@ -169,9 +167,8 @@ class PublishedList(Generic[P], list[P]):
         *,
         any_order: bool = False,
     ) -> None:
-        """Assert that all of the expected payloads were published, and only
-        the expected payloads, were published.
-
+        """Assert that all of the expected payloads, and only the expected
+        payloads, were published.
 
         Parameters
         ----------
@@ -198,7 +195,7 @@ class PublishedList(Generic[P], list[P]):
             raise PublishedCountError(expected, actual, self)
         self.assert_published(expected, any_order=any_order)
 
-    def _unordered(
+    def _check_unordered(
         self,
         expected: ModelDumpList,
     ) -> None:
@@ -206,7 +203,6 @@ class PublishedList(Generic[P], list[P]):
 
         Each published event is matched only once. Taken from the
         ``unittest.mock`` ``assert_has_calls`` method.
-
         """
         actual = [model.model_dump(mode="json") for model in self]
         not_found = []
@@ -217,9 +213,14 @@ class PublishedList(Generic[P], list[P]):
             except ValueError:
                 not_found.append(item)
         if not_found:
-            raise NotPublishedError(expected, actual, self, not_found)
+            raise NotPublishedError(
+                expected=expected,
+                actual=actual,
+                actual_models=self,
+                not_found=not_found,
+            )
 
-    def _ordered(self, expected: ModelDumpList) -> None:
+    def _check_ordered(self, expected: ModelDumpList) -> None:
         """Assert that the list of expected events is an ordered subset of the
         list of published events.
 
