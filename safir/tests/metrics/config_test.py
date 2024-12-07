@@ -11,6 +11,8 @@ from safir.metrics import (
     KafkaEventManager,
     KafkaMetricsConfiguration,
     MetricsConfiguration,
+    MockEventManager,
+    MockMetricsConfiguration,
     NoopEventManager,
     metrics_configuration_factory,
 )
@@ -47,6 +49,17 @@ def test_disabled_extra() -> None:
         }
     )
     assert isinstance(config.metrics, DisabledMetricsConfiguration)
+
+
+def test_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("METRICS_APPLICATION", "test")
+    monkeypatch.setenv("METRICS_ENABLED", "false")
+    monkeypatch.setenv("METRICS_MOCK", "true")
+
+    config = Config()
+    assert isinstance(config.metrics, MockMetricsConfiguration)
+    manager = config.metrics.make_manager()
+    assert isinstance(manager, MockEventManager)
 
 
 @pytest.mark.asyncio

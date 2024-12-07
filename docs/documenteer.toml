@@ -53,6 +53,7 @@ nitpick_ignore = [
     ["py:obj", "safir.database._pagination.E"],
     ["py:obj", "safir.redis._storage.S"],
     ["py:obj", "safir.metrics._event_manager.P"],
+    ["py:obj", "safir.metrics._testing.P"],
     # SQLAlchemy DeclarativeBase documentation has references that Sphinx
     # can't resolve properly.
     ["py:class", "sqlalchemy.inspection.Inspectable"],

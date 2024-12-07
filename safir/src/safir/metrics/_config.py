@@ -15,7 +15,12 @@ from structlog.stdlib import BoundLogger
 
 from ..kafka import KafkaConnectionSettings, SchemaManagerSettings
 from ._constants import ADMIN_CLIENT_PREFIX, BROKER_PREFIX
-from ._event_manager import EventManager, KafkaEventManager, NoopEventManager
+from ._event_manager import (
+    EventManager,
+    KafkaEventManager,
+    MockEventManager,
+    NoopEventManager,
+)
 
 __all__ = [
     "BaseMetricsConfiguration",
@@ -23,6 +28,7 @@ __all__ = [
     "EventsConfiguration",
     "KafkaMetricsConfiguration",
     "MetricsConfiguration",
+    "MockMetricsConfiguration",
     "metrics_configuration_factory",
 ]
 
@@ -131,6 +137,45 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
         )
 
 
+class MockMetricsConfiguration(BaseMetricsConfiguration):
+    """Metrics configuration when metrics publishing is mocked."""
+
+    enabled: Annotated[
+        bool, AfterValidator(lambda x: _require_bool(x, False))
+    ] = Field(
+        ...,
+        title="Whether to send events",
+        description=(
+            "If set to false, no events will be sent and all calls to publish"
+            " events will be no-ops."
+        ),
+        validation_alias=AliasChoices("enabled", "METRICS_ENABLED"),
+    )
+
+    mock: Annotated[bool, AfterValidator(lambda x: _require_bool(x, True))] = (
+        Field(
+            title="Mock publishers",
+            description=(
+                "If set to true, all event publishers will be"
+                " unittest.mock.MagicMock instances which will record all"
+                " calls to their publish methods."
+            ),
+            validation_alias=AliasChoices("mock", "METRICS_MOCK"),
+        )
+    )
+
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
+
+    def make_manager(
+        self, logger: BoundLogger | None = None
+    ) -> MockEventManager:
+        if not logger:
+            logger = structlog.get_logger("safir.metrics")
+        return MockEventManager(
+            self.application, self.events.topic_prefix, logger
+        )
+
+
 class KafkaMetricsConfiguration(BaseMetricsConfiguration):
     """Metrics configuration when enabled, including Kafka configuration."""
 
@@ -204,7 +249,9 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
 
 
 MetricsConfiguration: TypeAlias = (
-    DisabledMetricsConfiguration | KafkaMetricsConfiguration
+    MockMetricsConfiguration
+    | DisabledMetricsConfiguration
+    | KafkaMetricsConfiguration
 )
 """Type to use for metrics configuration in the application config.
 
@@ -262,6 +309,9 @@ def metrics_configuration_factory() -> MetricsConfiguration:
     # environment variable settings to enable, and then finally
     # unconditionally try to return the default.
     try:
-        return DisabledMetricsConfiguration()
+        return MockMetricsConfiguration()
     except ValidationError:
-        return KafkaMetricsConfiguration()
+        try:
+            return DisabledMetricsConfiguration()
+        except ValidationError:
+            return KafkaMetricsConfiguration()
