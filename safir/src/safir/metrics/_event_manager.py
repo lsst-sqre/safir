@@ -483,7 +483,7 @@ class KafkaEventManager(EventManager):
         schema_info = await self._schema_manager.register_model(model)
 
         # Return the corresponding event publisher.
-        return KafkaEventPublisher[P](
+        return KafkaEventPublisher(
             application=self._application,
             event_class=model,
             publisher=async_publisher,
@@ -600,7 +600,7 @@ class NoopEventManager(EventManager):
         EventPublisher
             An appropriate event publisher implementation instance.
         """
-        return NoopEventPublisher[P](self._application, model, self.logger)
+        return NoopEventPublisher(self._application, model, self.logger)
 
 
 class MockEventManager(EventManager):
