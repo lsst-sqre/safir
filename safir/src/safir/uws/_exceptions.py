@@ -15,6 +15,7 @@ from safir.slack.blockkit import (
     SlackMessage,
     SlackTextBlock,
     SlackTextField,
+    SlackWebException,
 )
 from safir.slack.webhook import SlackIgnoredException
 
@@ -33,6 +34,7 @@ __all__ = [
     "UWSError",
     "UnknownJobError",
     "UsageError",
+    "WobblyError",
 ]
 
 
@@ -265,3 +267,7 @@ class UnknownJobError(DataMissingError):
     def __init__(self, job_id: str) -> None:
         super().__init__(f"Job {job_id} not found")
         self.job_id = job_id
+
+
+class WobblyError(SlackWebException):
+    """An error occurred making a request to Wobbly."""

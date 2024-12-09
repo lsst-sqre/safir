@@ -8,8 +8,10 @@ import pytest
 from httpx import AsyncClient
 
 from safir.testing.slack import MockSlackWebhook
-from safir.uws import UWSJobParameter
+from safir.testing.uws import MockWobbly
 from safir.uws._dependencies import UWSFactory
+
+from ..support.uws import SimpleParameters
 
 
 @dataclass
@@ -22,16 +24,18 @@ class PostTest:
 
 @pytest.mark.asyncio
 async def test_errors(
-    client: AsyncClient, uws_factory: UWSFactory, mock_slack: MockSlackWebhook
+    client: AsyncClient,
+    token: str,
+    uws_factory: UWSFactory,
+    mock_slack: MockSlackWebhook,
+    mock_wobbly: MockWobbly,
 ) -> None:
     job_service = uws_factory.create_job_service()
     await job_service.create(
-        "user",
-        run_id="some-run-id",
-        params=[UWSJobParameter(parameter_id="name", value="June")],
+        token, SimpleParameters(name="June"), run_id="some-run-id"
     )
 
-    # No user specified.
+    # No token provided.
     routes = [
         "/test/jobs/1",
         "/test/jobs/1/destruction",
@@ -44,21 +48,22 @@ async def test_errors(
         "/test/jobs/1/results",
     ]
     for route in routes:
-        r = await client.get(route)
+        r = await client.get(route, headers={})
         assert r.status_code == 422
         assert r.text.startswith("UsageError")
 
     # Wrong user specified.
+    other_token = MockWobbly.make_token("test-service", "other-user")
     for route in routes:
         r = await client.get(
-            route, headers={"X-Auth-Request-User": "otheruser"}
+            route, headers={"X-Auth-Request-Token": other_token}
         )
-        assert r.status_code == 403
-        assert r.text.startswith("AuthorizationError")
+        assert r.status_code == 404
+        assert r.text.startswith("UsageError")
 
     # Job does not exist.
     for route in (r.replace("/1", "/2") for r in routes):
-        r = await client.get(route, headers={"X-Auth-Request-User": "user"})
+        r = await client.get(route)
         assert r.status_code == 404
         assert r.text.startswith("UsageError")
 
@@ -74,7 +79,7 @@ async def test_errors(
         PostTest("/test/jobs/1/phase", {"phase": "RUN"}),
     ]
     for test in tests:
-        r = await client.post(test.url, data=test.data)
+        r = await client.post(test.url, data=test.data, headers={})
         assert r.status_code == 422
         assert r.text.startswith("UsageError")
 
@@ -83,32 +88,28 @@ async def test_errors(
         r = await client.post(
             test.url,
             data=test.data,
-            headers={"X-Auth-Request-User": "otheruser"},
-        )
-        assert r.status_code == 403
-        assert r.text.startswith("AuthorizationError")
-
-    # Job does not exist.
-    for test in tests:
-        url = test.url.replace("/1", "/2")
-        r = await client.post(
-            url, data=test.data, headers={"X-Auth-Request-User": "user"}
+            headers={"X-Auth-Request-Token": other_token},
         )
         assert r.status_code == 404
         assert r.text.startswith("UsageError")
 
+    # Job does not exist.
+    for test in tests:
+        url = test.url.replace("/1", "/2")
+        r = await client.post(url, data=test.data)
+        assert r.status_code == 404
+        assert r.text.startswith("UsageError")
+
     # Finally, test all the same things with the one supported DELETE.
-    r = await client.delete("/test/jobs/1")
+    r = await client.delete("/test/jobs/1", headers={})
     assert r.status_code == 422
     assert r.text.startswith("UsageError")
     r = await client.delete(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "otheruser"}
+        "/test/jobs/1", headers={"X-Auth-Request-Token": other_token}
     )
-    assert r.status_code == 403
-    assert r.text.startswith("AuthorizationError")
-    r = await client.delete(
-        "/test/jobs/2", headers={"X-Auth-Request-User": "user"}
-    )
+    assert r.status_code == 404
+    assert r.text.startswith("UsageError")
+    r = await client.delete("/test/jobs/2")
     assert r.status_code == 404
     assert r.text.startswith("UsageError")
 
@@ -139,22 +140,18 @@ async def test_errors(
         ),
     ]
     for test in tests:
-        r = await client.post(
-            test.url, data=test.data, headers={"X-Auth-Request-User": "user"}
-        )
+        r = await client.post(test.url, data=test.data)
         assert r.status_code == 422, f"{test.url} {test.data}"
         assert r.text.startswith("UsageError"), r.text
 
     # Test bogus phase for async job creation.
     r = await client.post(
         "/test/jobs?phase=START",
-        headers={"X-Auth-Request-User": "user"},
         data={"runid": "some-run-id", "name": "Jane"},
     )
     assert r.status_code == 422
     r = await client.post(
         "/test/jobs",
-        headers={"X-Auth-Request-User": "user"},
         data={"runid": "some-run-id", "name": "Jane", "phase": "START"},
     )
     assert r.status_code == 422

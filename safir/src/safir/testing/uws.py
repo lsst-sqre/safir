@@ -6,19 +6,15 @@ import asyncio
 import json
 from collections import defaultdict
 from datetime import UTC, datetime
-from types import TracebackType
-from typing import Literal, Self
 from urllib.parse import parse_qs
 
 import respx
 import structlog
-from httpx import Request, Response
-from sqlalchemy.ext.asyncio import AsyncEngine
+from httpx import AsyncClient, Request, Response
 from vo_models.uws import JobSummary
 from vo_models.uws.types import ExecutionPhase
 
 from safir.arq import JobMetadata, JobResult, MockArqQueue
-from safir.database import create_async_session, create_database_engine
 from safir.datetime import parse_isodatetime
 from safir.uws import (
     Job,
@@ -30,9 +26,8 @@ from safir.uws import (
     JobUpdateMetadata,
     JobUpdateQueued,
     UWSConfig,
-    UWSJob,
-    UWSJobResult,
 )
+from safir.uws import JobResult as UWSJobResult
 from safir.uws._service import JobService
 from safir.uws._storage import JobStore
 
@@ -75,6 +70,11 @@ class MockWobbly:
     the `make_token` class method, which encodes username and service
     information that would normally be taken from HTTP headers after
     Gafaelfawr processing.
+
+    Attributes
+    ----------
+    jobs
+        Stored jobs, organized by service, username, and then job ID.
     """
 
     @staticmethod
@@ -100,8 +100,8 @@ class MockWobbly:
         self._job_id = 1
 
         # Maps service to username to job ID to a job record.
-        self._jobs: defaultdict[str, defaultdict[str, dict[str, Job]]]
-        self._jobs = defaultdict(lambda: defaultdict(dict))
+        self.jobs: defaultdict[str, defaultdict[str, dict[str, Job]]]
+        self.jobs = defaultdict(lambda: defaultdict(dict))
 
     def create_job(self, request: Request) -> Response:
         """Create a new job record."""
@@ -117,7 +117,7 @@ class MockWobbly:
             creation_time=datetime.now(tz=UTC),
             **job_create.model_dump(),
         )
-        self._jobs[service][username][job_id] = job
+        self.jobs[service][username][job_id] = job
         return Response(
             201,
             json=job.model_dump(mode="json"),
@@ -127,15 +127,15 @@ class MockWobbly:
     def delete_job(self, request: Request, *, job_id: str) -> Response:
         """Delete a job."""
         service, username = self._get_auth(request)
-        if job_id not in self._jobs[service][username]:
+        if job_id not in self.jobs[service][username]:
             return Response(404)
-        del self._jobs[service][username][job_id]
+        del self.jobs[service][username][job_id]
         return Response(204)
 
     def get_job(self, request: Request, *, job_id: str) -> Response:
         """Retrieve a job."""
         service, username = self._get_auth(request)
-        job = self._jobs[service][username].get(job_id)
+        job = self.jobs[service][username].get(job_id)
         if not job:
             return Response(404)
         return Response(200, json=job.model_dump(mode="json"))
@@ -149,17 +149,17 @@ class MockWobbly:
         service, username = self._get_auth(request)
 
         # Parse query.
-        query = parse_qs(request.url.query).items()
+        query = parse_qs(request.url.query.decode())
         phases = set()
         if "phase" in query:
             phases = set(query["phase"])
         since = None
         if "since" in query:
-            since = parse_isodatetime(query["since"])
+            since = parse_isodatetime(query["since"][0])
 
         # Perform the search.
         results = []
-        for job in self._jobs[service][username].values():
+        for job in self.jobs[service][username].values():
             if phases and job.phase not in phases:
                 continue
             if since and job.creation_time >= since:
@@ -167,7 +167,7 @@ class MockWobbly:
             results.append(job)
 
         # Sort the results and limit them if needed.
-        results = [
+        json_results = [
             j.model_dump(mode="json")
             for j in sorted(
                 results, key=lambda j: (j.creation_time, j.id), reverse=True
@@ -175,16 +175,16 @@ class MockWobbly:
         ]
         if "limit" in query:
             limit = int(query["limit"][0])
-            if len(results) > limit:
-                results = results[:limit]
+            if len(json_results) > limit:
+                json_results = json_results[:limit]
 
         # Return the response.
-        return Response(200, json=results)
+        return Response(200, json=json_results)
 
     def update_job(self, request: Request, *, job_id: str) -> Response:
         """Make an update to a job record."""
         service, username = self._get_auth(request)
-        job = self._jobs[service][username].get(job_id)
+        job = self.jobs[service][username].get(job_id)
         if not job:
             return Response(404)
         body = json.loads(request.content)
@@ -259,10 +259,6 @@ class MockUWSJobRunner:
     manually updating state in the mock queue and running the UWS database
     worker functions that normally would be run automatically by the queue.
 
-    This class wraps that functionality in an async context manager. An
-    instance of it is normally provided as a fixture, initialized with the
-    same test objects as the test suite.
-
     Parameters
     ----------
     config
@@ -272,49 +268,26 @@ class MockUWSJobRunner:
     """
 
     def __init__(self, config: UWSConfig, arq_queue: MockArqQueue) -> None:
-        self._config = config
         self._arq = arq_queue
-        self._engine: AsyncEngine
-        self._store: JobStore
-        self._service: JobService
 
-    async def __aenter__(self) -> Self:
-        """Create a database session and the underlying service."""
         # This duplicates some of the code in UWSDependency to avoid needing
         # to set up the result store or to expose UWSFactory outside of the
         # Safir package internals.
-        self._engine = create_database_engine(
-            self._config.database_url,
-            self._config.database_password,
-            isolation_level="REPEATABLE READ",
-        )
-        session = await create_async_session(self._engine)
-        self._store = JobStore(session)
+        self._store = JobStore(config, AsyncClient())
         self._service = JobService(
-            config=self._config,
+            config=config,
             arq_queue=self._arq,
             storage=self._store,
             logger=structlog.get_logger("uws"),
         )
-        return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> Literal[False]:
-        """Close the database engine and session."""
-        await self._engine.dispose()
-        return False
-
-    async def get_job_metadata(
-        self, username: str, job_id: str
-    ) -> JobMetadata:
+    async def get_job_metadata(self, token: str, job_id: str) -> JobMetadata:
         """Get the arq job metadata for a job.
 
         Parameters
         ----------
+        token
+            Token for the user.
         job_id
             UWS job ID.
 
@@ -323,15 +296,17 @@ class MockUWSJobRunner:
         JobMetadata
             arq job metadata.
         """
-        job = await self._service.get(username, job_id)
+        job = await self._service.get(token, job_id)
         assert job.message_id
         return await self._arq.get_job_metadata(job.message_id)
 
-    async def get_job_result(self, username: str, job_id: str) -> JobResult:
+    async def get_job_result(self, token: str, job_id: str) -> JobResult:
         """Get the arq job result for a job.
 
         Parameters
         ----------
+        token
+            Token for the user.
         job_id
             UWS job ID.
 
@@ -340,19 +315,19 @@ class MockUWSJobRunner:
         JobMetadata
             arq job metadata.
         """
-        job = await self._service.get(username, job_id)
+        job = await self._service.get(token, job_id)
         assert job.message_id
         return await self._arq.get_job_result(job.message_id)
 
     async def mark_in_progress(
-        self, username: str, job_id: str, *, delay: float | None = None
-    ) -> UWSJob:
+        self, token: str, job_id: str, *, delay: float | None = None
+    ) -> Job:
         """Mark a queued job in progress.
 
         Parameters
         ----------
-        username
-            Owner of job.
+        token
+            Token for the user.
         job_id
             Job ID.
         delay
@@ -360,31 +335,31 @@ class MockUWSJobRunner:
 
         Returns
         -------
-        UWSJob
+        Job
             Record of the job.
         """
         if delay:
             await asyncio.sleep(delay)
-        job = await self._service.get(username, job_id)
+        job = await self._service.get(token, job_id)
         assert job.message_id
         await self._arq.set_in_progress(job.message_id)
-        await self._store.mark_executing(job_id, datetime.now(tz=UTC))
-        return await self._service.get(username, job_id)
+        await self._store.mark_executing(token, job_id, datetime.now(tz=UTC))
+        return await self._service.get(token, job_id)
 
     async def mark_complete(
         self,
-        username: str,
+        token: str,
         job_id: str,
         results: list[UWSJobResult] | Exception,
         *,
         delay: float | None = None,
-    ) -> UWSJob:
+    ) -> Job:
         """Mark an in progress job as complete.
 
         Parameters
         ----------
-        username
-            Owner of job.
+        token
+            Token for the user.
         job_id
             Job ID.
         results
@@ -394,14 +369,14 @@ class MockUWSJobRunner:
 
         Returns
         -------
-        UWSJob
+        Job
             Record of the job.
         """
         if delay:
             await asyncio.sleep(delay)
-        job = await self._service.get(username, job_id)
+        job = await self._service.get(token, job_id)
         assert job.message_id
         await self._arq.set_complete(job.message_id, result=results)
         job_result = await self._arq.get_job_result(job.message_id)
-        await self._store.mark_completed(job_id, job_result)
-        return await self._service.get(username, job_id)
+        await self._store.mark_completed(token, job_id, job_result)
+        return await self._service.get(token, job_id)

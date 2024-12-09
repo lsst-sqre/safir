@@ -5,15 +5,14 @@ dependency's ``initialize`` method. It then returns a `UWSFactory` on request
 to individual route handlers, which in turn can create other needed objects.
 """
 
-from collections.abc import AsyncIterator
 from typing import Annotated, Literal
 
 from fastapi import Depends, Form, Query
-from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
+from httpx import AsyncClient
 from structlog.stdlib import BoundLogger
 
 from safir.arq import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue
-from safir.database import create_async_session, create_database_engine
+from safir.dependencies.http_client import http_client_dependency
 from safir.dependencies.logger import logger_dependency
 
 from ._config import UWSConfig
@@ -40,33 +39,25 @@ class UWSFactory:
         UWS configuration.
     arq
         arq queue to use.
-    session
-        Database session.
     result_store
         Signed URL generator for results.
     logger
         Logger to use.
-
-    Attributes
-    ----------
-    session
-        Database session. This is exposed primarily for the test suite. It
-        shouldn't be necessary for other code to use it directly.
     """
 
     def __init__(
         self,
         *,
         config: UWSConfig,
-        arq: ArqQueue,
-        session: async_scoped_session,
         result_store: ResultStore,
+        arq: ArqQueue,
+        http_client: AsyncClient,
         logger: BoundLogger,
     ) -> None:
-        self.session = session
         self._config = config
-        self._arq = arq
         self._result_store = result_store
+        self._arq = arq
+        self._http_client = http_client
         self._logger = logger
 
     def create_result_store(self) -> ResultStore:
@@ -84,11 +75,11 @@ class UWSFactory:
 
     def create_job_store(self) -> JobStore:
         """Create a new UWS job store."""
-        return JobStore(self.session)
+        return JobStore(self._config, self._http_client)
 
     def create_templates(self) -> UWSTemplates:
         """Create a new XML renderer for responses."""
-        return UWSTemplates(self._result_store)
+        return UWSTemplates()
 
 
 class UWSDependency:
@@ -97,33 +88,22 @@ class UWSDependency:
     def __init__(self) -> None:
         self._arq: ArqQueue | None = None
         self._config: UWSConfig
-        self._engine: AsyncEngine
-        self._session: async_scoped_session
         self._result_store: ResultStore
 
     async def __call__(
-        self, logger: Annotated[BoundLogger, Depends(logger_dependency)]
-    ) -> AsyncIterator[UWSFactory]:
+        self,
+        http_client: Annotated[AsyncClient, Depends(http_client_dependency)],
+        logger: Annotated[BoundLogger, Depends(logger_dependency)],
+    ) -> UWSFactory:
         if not self._arq:
             raise RuntimeError("UWSDependency not initialized")
-        try:
-            yield UWSFactory(
-                config=self._config,
-                arq=self._arq,
-                session=self._session,
-                result_store=self._result_store,
-                logger=logger,
-            )
-        finally:
-            # Following the recommendations in the SQLAlchemy documentation,
-            # each session is scoped to a single web request. However, this
-            # all uses the same async_scoped_session object, so should share
-            # an underlying engine and connection pool.
-            await self._session.remove()
-
-    async def aclose(self) -> None:
-        """Shut down the UWS subsystem."""
-        await self._engine.dispose()
+        return UWSFactory(
+            config=self._config,
+            result_store=self._result_store,
+            arq=self._arq,
+            http_client=http_client,
+            logger=logger,
+        )
 
     async def initialize(self, config: UWSConfig) -> None:
         """Initialize the UWS subsystem.
@@ -141,12 +121,6 @@ class UWSDependency:
                 self._arq = await RedisArqQueue.initialize(settings)
             else:
                 self._arq = MockArqQueue()
-        self._engine = create_database_engine(
-            config.database_url,
-            config.database_password,
-            isolation_level="REPEATABLE READ",
-        )
-        self._session = await create_async_session(self._engine)
 
     def override_arq_queue(self, arq_queue: ArqQueue) -> None:
         """Change the arq used in subsequent invocations.

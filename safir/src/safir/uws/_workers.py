@@ -181,7 +181,7 @@ async def _annotate_worker_error(
     match exc:
         case WorkerError():
             error = TaskError.from_worker_error(exc)
-            error.job_id = job.job_id
+            error.job_id = job.id
             error.started_at = job.creation_time
             error.user = job.owner
             if slack and not error.slack_ignore:

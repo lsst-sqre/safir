@@ -21,10 +21,10 @@ from safir.arq import MockArqQueue
 from safir.arq.uws import WorkerJobInfo
 from safir.datetime import current_datetime, isodatetime
 from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
-from safir.uws import UWSConfig, UWSJob, UWSJobParameter, UWSJobResult
+from safir.uws import Job, JobResult, UWSConfig
 from safir.uws._dependencies import UWSFactory
 
-from ..support.uws import SimpleXmlParameters
+from ..support.uws import SimpleParameters, SimpleXmlParameters
 
 PENDING_JOB = """
 <uws:job
@@ -146,6 +146,7 @@ JOB_RESULTS = """
 @pytest.mark.asyncio
 async def test_job_run(
     client: AsyncClient,
+    token: str,
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     uws_config: UWSConfig,
@@ -155,18 +156,15 @@ async def test_job_run(
     # Create the job.
     r = await client.post(
         "/test/jobs",
-        headers={"X-Auth-Request-User": "user"},
         data={"runid": "some-run-id", "name": "Jane"},
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
-    job = await job_service.get("user", "1")
+    job = await job_service.get(token, "1")
     assert job.creation_time.microsecond == 0
 
     # Check the retrieval of the job configuration.
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
     assert_job_summary_equal(
@@ -182,20 +180,13 @@ async def test_job_run(
     )
 
     # Try to put the job in an invalid phase.
-    r = await client.post(
-        "/test/jobs/1/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "EXECUTING"},
-    )
+    r = await client.post("/test/jobs/1/phase", data={"PHASE": "EXECUTING"})
     assert r.status_code == 422
     assert r.text.startswith("UsageError")
 
     # Start the job.
     r = await client.post(
-        "/test/jobs/1/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "RUN"},
-        follow_redirects=True,
+        "/test/jobs/1/phase", data={"PHASE": "RUN"}, follow_redirects=True
     )
     assert r.status_code == 200
     assert r.url == "https://example.com/test/jobs/1"
@@ -210,16 +201,16 @@ async def test_job_run(
             isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
         ),
     )
-    await runner.mark_in_progress("user", "1")
+    await runner.mark_in_progress(token, "1")
 
     # Check that the correct data was passed to the backend worker.
-    metadata = await runner.get_job_metadata("user", "1")
+    metadata = await runner.get_job_metadata(token, "1")
     assert metadata.name == uws_config.worker
     assert metadata.args[0] == {"name": "Jane"}
     assert metadata.args[1] == WorkerJobInfo(
         job_id="1",
-        user="user",
-        token="sometoken",
+        user="test-user",
+        token=token,
         timeout=ANY,
         run_id="some-run-id",
     )
@@ -231,13 +222,13 @@ async def test_job_run(
 
     # Tell the queue the job is finished.
     results = [
-        UWSJobResult(
-            result_id="cutout",
+        JobResult(
+            id="cutout",
             url="s3://some-bucket/some/path",
             mime_type="application/fits",
         )
     ]
-    job = await runner.mark_complete("user", "1", results)
+    job = await runner.mark_complete(token, "1", results)
 
     # Check the job results.
     assert job.start_time
@@ -245,9 +236,7 @@ async def test_job_run(
     assert job.end_time
     assert job.end_time.microsecond == 0
     assert job.end_time >= job.start_time >= job.creation_time
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
     assert_job_summary_equal(
@@ -263,31 +252,26 @@ async def test_job_run(
     )
 
     # Check that the phase is now correct.
-    r = await client.get(
-        "/test/jobs/1/phase", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/phase")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "text/plain; charset=utf-8"
     assert r.text == "COMPLETED"
 
     # Retrieve them directly through the results resource.
-    r = await client.get(
-        "/test/jobs/1/results", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/results")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
     assert Results.from_xml(r.text) == Results.from_xml(JOB_RESULTS)
 
     # There should be no error message.
-    r = await client.get(
-        "/test/jobs/1/error", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/error")
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_job_abort(
     client: AsyncClient,
+    token: str,
     runner: MockUWSJobRunner,
     arq_queue: MockArqQueue,
     uws_factory: UWSFactory,
@@ -297,19 +281,14 @@ async def test_job_abort(
 
     # Create the job.
     r = await client.post(
-        "/test/jobs",
-        headers={"X-Auth-Request-User": "user"},
-        data={"runid": "some-run-id", "name": "Jane"},
+        "/test/jobs", data={"runid": "some-run-id", "name": "Jane"}
     )
     assert r.status_code == 303
-    job = await job_service.get("user", "1")
+    job = await job_service.get(token, "1")
 
     # Immediately abort the job.
     r = await client.post(
-        "/test/jobs/1/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "ABORT"},
-        follow_redirects=True,
+        "/test/jobs/1/phase", data={"PHASE": "ABORT"}, follow_redirects=True
     )
     assert r.status_code == 200
     assert r.url == "https://example.com/test/jobs/1"
@@ -326,23 +305,19 @@ async def test_job_abort(
     # Create a second job and start it running.
     r = await client.post(
         "/test/jobs",
-        headers={"X-Auth-Request-User": "user"},
         data={"runid": "some-run-id", "name": "Jane", "phase": "RUN"},
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/2"
-    await runner.mark_in_progress("user", "2")
+    await runner.mark_in_progress(token, "2")
 
     # Abort that job.
     r = await client.post(
-        "/test/jobs/2/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "ABORT"},
-        follow_redirects=True,
+        "/test/jobs/2/phase", data={"PHASE": "ABORT"}, follow_redirects=True
     )
     assert r.status_code == 200
     assert r.url == "https://example.com/test/jobs/2"
-    job = await job_service.get("user", "2")
+    job = await job_service.get(token, "2")
     assert job.start_time
     assert job.end_time
     assert_job_summary_equal(
@@ -356,7 +331,7 @@ async def test_job_abort(
             isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
         ),
     )
-    job_result = await runner.get_job_result("user", "2")
+    job_result = await runner.get_job_result(token, "2")
     assert not job_result.success
     assert isinstance(job_result.result, asyncio.CancelledError)
 
@@ -364,18 +339,13 @@ async def test_job_abort(
     # the phase parameter and the POST form of the delete support.
     r = await client.post(
         "/test/jobs",
-        headers={"X-Auth-Request-User": "user"},
         data={"runid": "some-run-id", "name": "Jane", "PHAse": "RUN"},
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/3"
-    await runner.mark_in_progress("user", "3")
-    job = await job_service.get("user", "3")
-    r = await client.post(
-        "/test/jobs/3",
-        headers={"X-Auth-Request-User": "user"},
-        data={"action": "DELETE"},
-    )
+    await runner.mark_in_progress(token, "3")
+    job = await job_service.get(token, "3")
+    r = await client.post("/test/jobs/3", data={"action": "DELETE"})
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs"
     assert job.message_id
@@ -386,26 +356,21 @@ async def test_job_abort(
 
 @pytest.mark.asyncio
 async def test_job_api(
-    client: AsyncClient,
-    uws_factory: UWSFactory,
+    client: AsyncClient, token: str, uws_factory: UWSFactory
 ) -> None:
     job_service = uws_factory.create_job_service()
 
     # Create the job.
     r = await client.post(
-        "/test/jobs",
-        headers={"X-Auth-Request-User": "user"},
-        data={"runid": "some-run-id", "name": "Jane"},
+        "/test/jobs", data={"runid": "some-run-id", "name": "Jane"}
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
-    job = await job_service.get("user", "1")
+    job = await job_service.get(token, "1")
 
     # Check the retrieval of the job configuration.
     destruction_time = job.creation_time + timedelta(seconds=24 * 60 * 60)
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
     assert_job_summary_equal(
@@ -421,46 +386,33 @@ async def test_job_api(
     )
 
     # Check retrieving each part separately.
-    r = await client.get(
-        "/test/jobs/1/destruction", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/destruction")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "text/plain; charset=utf-8"
     assert r.text == isodatetime(destruction_time)
 
-    r = await client.get(
-        "/test/jobs/1/executionduration",
-        headers={"X-Auth-Request-User": "user"},
-    )
+    r = await client.get("/test/jobs/1/executionduration")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "text/plain; charset=utf-8"
     assert r.text == "600"
 
-    r = await client.get(
-        "/test/jobs/1/owner", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/owner")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "text/plain; charset=utf-8"
-    assert r.text == "user"
+    assert r.text == "test-user"
 
-    r = await client.get(
-        "/test/jobs/1/parameters", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/parameters")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
     expected = SimpleXmlParameters.from_xml(JOB_PARAMETERS)
     assert SimpleXmlParameters.from_xml(r.text) == expected
 
-    r = await client.get(
-        "/test/jobs/1/phase", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/phase")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "text/plain; charset=utf-8"
     assert r.text == "PENDING"
 
-    r = await client.get(
-        "/test/jobs/1/quote", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/quote")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "text/plain; charset=utf-8"
     assert r.text == ""
@@ -468,25 +420,19 @@ async def test_job_api(
     # Modify various settings. Validators will be tested elsewhere.
     now = current_datetime()
     r = await client.post(
-        "/test/jobs/1/destruction",
-        headers={"X-Auth-Request-User": "user"},
-        data={"DESTRUCTION": isodatetime(now)},
+        "/test/jobs/1/destruction", data={"DESTRUCTION": isodatetime(now)}
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
 
     r = await client.post(
-        "/test/jobs/1/executionduration",
-        headers={"X-Auth-Request-User": "user"},
-        data={"ExecutionDuration": 300},
+        "/test/jobs/1/executionduration", data={"ExecutionDuration": 300}
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
 
     # Retrieve the modified job and check that the new values are recorded.
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "application/xml"
     assert_job_summary_equal(
@@ -502,27 +448,19 @@ async def test_job_api(
     )
 
     # Delete the job.
-    r = await client.delete(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.delete("/test/jobs/1")
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs"
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 404
 
     # Create a new job and then delete it via POST.
     r = await client.post(
-        "/test/jobs",
-        headers={"X-Auth-Request-User": "user"},
-        data={"name": "Jane", "RUNID": "some-run-id"},
+        "/test/jobs", data={"name": "Jane", "RUNID": "some-run-id"}
     )
     assert r.status_code == 303
-    job = await job_service.get("user", "2")
-    r = await client.get(
-        "/test/jobs/2", headers={"X-Auth-Request-User": "user"}
-    )
+    job = await job_service.get(token, "2")
+    r = await client.get("/test/jobs/2")
     assert r.status_code == 200
     assert_job_summary_equal(
         JobSummary[SimpleXmlParameters],
@@ -535,23 +473,16 @@ async def test_job_api(
             isodatetime(job.destruction_time),
         ),
     )
-    r = await client.post(
-        "/test/jobs/2",
-        headers={"X-Auth-Request-User": "user"},
-        data={"ACTION": "DELETE"},
-    )
+    r = await client.post("/test/jobs/2", data={"ACTION": "DELETE"})
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs"
-    r = await client.get(
-        "/test/jobs/2", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/2")
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_redirects(
-    app: FastAPI,
-    uws_factory: UWSFactory,
+    app: FastAPI, token: str, uws_factory: UWSFactory
 ) -> None:
     """Test the scheme in the redirect URLs.
 
@@ -562,20 +493,19 @@ async def test_redirects(
     """
     job_service = uws_factory.create_job_service()
     await job_service.create(
-        "user",
-        run_id="some-run-id",
-        params=[UWSJobParameter(parameter_id="name", value="Peter")],
+        token, SimpleParameters(name="Peter"), run_id="some-run-id"
     )
 
     # Try various actions that result in redirects and ensure the redirect is
     # correct.
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://foo.com/"
+        transport=ASGITransport(app=app),
+        base_url="http://foo.com/",
+        headers={"X-Auth-Request-Token": token},
     ) as client:
         r = await client.post(
             "/test/jobs/1/destruction",
             headers={
-                "X-Auth-Request-User": "user",
                 "Host": "example.com",
                 "X-Forwarded-For": "10.10.10.10",
                 "X-Forwarded-Proto": "https",
@@ -589,7 +519,6 @@ async def test_redirects(
         r = await client.post(
             "/test/jobs/1/executionduration",
             headers={
-                "X-Auth-Request-User": "user",
                 "Host": "example.com",
                 "X-Forwarded-For": "10.10.10.10",
                 "X-Forwarded-Proto": "https",
@@ -603,7 +532,6 @@ async def test_redirects(
         r = await client.delete(
             "/test/jobs/1",
             headers={
-                "X-Auth-Request-User": "user",
                 "Host": "example.com",
                 "X-Forwarded-For": "10.10.10.10",
                 "X-Forwarded-Proto": "https",
@@ -617,32 +545,29 @@ async def test_redirects(
 @pytest.mark.asyncio
 async def test_presigned_url(
     client: AsyncClient,
+    token: str,
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     uws_config: UWSConfig,
 ) -> None:
     r = await client.post(
-        "/test/jobs?phase=RUN",
-        headers={"X-Auth-Request-User": "user"},
-        data={"runid": "some-run-id", "name": "Jane"},
+        "/test/jobs?phase=RUN", data={"runid": "some-run-id", "name": "Jane"}
     )
     assert r.status_code == 303
-    await runner.mark_in_progress("user", "1")
+    await runner.mark_in_progress(token, "1")
 
     # Tell the queue the job is finished, with an https URL.
     results = [
-        UWSJobResult(
-            result_id="cutout",
+        JobResult(
+            id="cutout",
             url="https://example.com/some/path",
             mime_type="application/fits",
         )
     ]
-    job = await runner.mark_complete("user", "1", results)
+    job = await runner.mark_complete(token, "1", results)
 
     # Check the job results, which should pass that URL through unchanged.
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert job.start_time
     assert job.end_time
@@ -659,19 +584,25 @@ async def test_presigned_url(
     )
 
 
-def validate_destruction(destruction: datetime, job: UWSJob) -> datetime:
+def validate_destruction(destruction: datetime, job: Job) -> datetime:
     max_destruction = current_datetime() + timedelta(days=1)
     return min(destruction, max_destruction)
 
 
-def validate_execution_duration(duration: timedelta, job: UWSJob) -> timedelta:
+def validate_execution_duration(
+    duration: timedelta | None, job: Job
+) -> timedelta | None:
     max_duration = timedelta(seconds=200)
-    return min(duration, max_duration)
+    if not duration:
+        return max_duration
+    else:
+        return min(duration, max_duration)
 
 
 @pytest.mark.asyncio
 async def test_validators(
     client: AsyncClient,
+    token: str,
     arq_queue: MockArqQueue,
     uws_factory: UWSFactory,
     uws_config: UWSConfig,
@@ -679,37 +610,29 @@ async def test_validators(
     uws_config.validate_destruction = validate_destruction
     uws_config.validate_execution_duration = validate_execution_duration
     job_service = uws_factory.create_job_service()
-    await job_service.create(
-        "user", params=[UWSJobParameter(parameter_id="name", value="Tiffany")]
-    )
+    await job_service.create(token, SimpleParameters(name="Tiffany"))
 
     # Change the destruction time, first to something that should be honored
     # and then something that should be overridden.
     destruction = current_datetime() + timedelta(hours=1)
     r = await client.post(
         "/test/jobs/1/destruction",
-        headers={"X-Auth-Request-User": "user"},
         data={"desTRUcTiON": isodatetime(destruction)},
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
-    r = await client.get(
-        "/test/jobs/1/destruction", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/destruction")
     assert r.status_code == 200
     assert r.text == isodatetime(destruction)
     destruction = current_datetime() + timedelta(days=5)
     expected = current_datetime() + timedelta(days=1)
     r = await client.post(
         "/test/jobs/1/destruction",
-        headers={"X-Auth-Request-User": "user"},
         data={"destruction": isodatetime(destruction)},
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
-    r = await client.get(
-        "/test/jobs/1/destruction", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/destruction")
     assert r.status_code == 200
     seen = datetime.fromisoformat(r.text[:-1] + "+00:00")
     assert seen >= expected - timedelta(seconds=5)
@@ -717,28 +640,18 @@ async def test_validators(
 
     # Now do the same thing for execution duration.
     r = await client.post(
-        "/test/jobs/1/executionduration",
-        headers={"X-Auth-Request-User": "user"},
-        data={"exECUTionduRATION": 100},
+        "/test/jobs/1/executionduration", data={"exECUTionduRATION": 100}
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
-    r = await client.get(
-        "/test/jobs/1/executionduration",
-        headers={"X-Auth-Request-User": "user"},
-    )
+    r = await client.get("/test/jobs/1/executionduration")
     assert r.status_code == 200
     assert r.text == "100"
     r = await client.post(
-        "/test/jobs/1/executionduration",
-        headers={"X-Auth-Request-User": "user"},
-        data={"exECUTionduRATION": 250},
+        "/test/jobs/1/executionduration", data={"exECUTionduRATION": 250}
     )
     assert r.status_code == 303
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
-    r = await client.get(
-        "/test/jobs/1/executionduration",
-        headers={"X-Auth-Request-User": "user"},
-    )
+    r = await client.get("/test/jobs/1/executionduration")
     assert r.status_code == 200
     assert r.text == "200"

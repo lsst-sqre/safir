@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import Any
 
-from httpx import AsyncClient, Response
+from httpx import AsyncClient, HTTPError, Response
 from pydantic import BaseModel
 from vo_models.uws.types import ErrorType, ExecutionPhase
 
@@ -15,7 +15,7 @@ from safir.arq import JobResult as ArqJobResult
 from safir.datetime import current_datetime
 
 from ._config import UWSConfig
-from ._exceptions import TaskError
+from ._exceptions import TaskError, UnknownJobError, WobblyError
 from ._models import (
     Job,
     JobCreate,
@@ -48,9 +48,7 @@ class JobStore:
         HTTP client to use to talk to Wobbly.
     """
 
-    def __init__(
-        self, token: str, config: UWSConfig, http_client: AsyncClient
-    ) -> None:
+    def __init__(self, config: UWSConfig, http_client: AsyncClient) -> None:
         self._config = config
         self._client = http_client
         self._base_url = str(config.wobbly_url).rstrip("/")
@@ -94,7 +92,7 @@ class JobStore:
             destruction_time=current_datetime() + lifetime,
             execution_duration=execution_duration,
         )
-        r = await self._request("POST", "jobs", token, body=job_create)
+        r = await self._request("POST", token, body=job_create)
         job = SerializedJob.model_validate(r.json())
         return Job.from_serialized_job(job, self._config.parameters_type)
 
@@ -108,7 +106,7 @@ class JobStore:
         job_id
             Job ID to delete.
         """
-        await self._request("DELETE", f"jobs/{job_id}", token)
+        await self._request("DELETE", token, job_id)
 
     async def get(self, token: str, job_id: str) -> Job:
         """Retrieve a job by ID.
@@ -120,7 +118,7 @@ class JobStore:
         job_id
             Job ID to retrieve.
         """
-        r = await self._request("GET", f"jobs/{job_id}", token)
+        r = await self._request("GET", token, job_id)
         job = SerializedJob.model_validate(r.json())
         return Job.from_serialized_job(job, self._config.parameters_type)
 
@@ -158,7 +156,7 @@ class JobStore:
             query.append(("since", after.isoformat()))
         if count:
             query.append(("limit", str(count)))
-        r = await self._request("GET", "jobs", token, query=query)
+        r = await self._request("GET", token, query=query)
         return [SerializedJob.model_validate(j) for j in r.json()]
 
     async def mark_aborted(self, token: str, job_id: str) -> None:
@@ -172,7 +170,7 @@ class JobStore:
             Identifier of the job.
         """
         update = JobUpdateAborted(phase=ExecutionPhase.ABORTED)
-        await self._request("PATCH", f"jobs/{job_id}", token, body=update)
+        await self._request("PATCH", token, job_id, body=update)
 
     async def mark_completed(
         self, token: str, job_id: str, job_result: ArqJobResult
@@ -194,7 +192,7 @@ class JobStore:
         update = JobUpdateCompleted(
             phase=ExecutionPhase.COMPLETED, results=job_result.result
         )
-        await self._request("PATCH", f"jobs/{job_id}", token, body=update)
+        await self._request("PATCH", token, job_id, body=update)
 
     async def mark_failed(
         self, token: str, job_id: str, exc: Exception
@@ -223,7 +221,7 @@ class JobStore:
                 detail=f"{type(exc).__name__}: {exc!s}",
             )
         update = JobUpdateError(phase=ExecutionPhase.ERROR, errors=[error])
-        await self._request("PATCH", f"jobs/{job_id}", token, body=update)
+        await self._request("PATCH", token, job_id, body=update)
 
     async def mark_executing(
         self, token: str, job_id: str, start_time: datetime
@@ -242,7 +240,7 @@ class JobStore:
         update = JobUpdateExecuting(
             phase=ExecutionPhase.EXECUTING, start_time=start_time
         )
-        await self._request("PATCH", f"jobs/{job_id}", token, body=update)
+        await self._request("PATCH", token, job_id, body=update)
 
     async def mark_queued(
         self, token: str, job_id: str, metadata: JobMetadata
@@ -265,7 +263,7 @@ class JobStore:
         update = JobUpdateQueued(
             phase=ExecutionPhase.QUEUED, message_id=metadata.id
         )
-        await self._request("PATCH", f"jobs/{job_id}", token, body=update)
+        await self._request("PATCH", token, job_id, body=update)
 
     async def update_metadata(
         self,
@@ -284,13 +282,13 @@ class JobStore:
         metadata
             New job metadata.
         """
-        await self._request("PATCH", f"jobs/{job_id}", body=metadata)
+        await self._request("PATCH", token, job_id, body=metadata)
 
     async def _request(
         self,
         method: str,
-        route: str,
         token: str,
+        job_id: str | None = None,
         *,
         body: BaseModel | None = None,
         query: list[tuple[str, str]] | None = None,
@@ -301,10 +299,10 @@ class JobStore:
         ----------
         method
             HTTP method.
-        route
-            Route, relative to the base URL of Wobbly.
         token
             Token for an individual user.
+        job_id
+            Identifier of job to act on.
         body
             If given, a Pydantic model that should be serialized bo create the
             JSON body of the request.
@@ -318,7 +316,10 @@ class JobStore:
 
         Raises
         ------
-        httpx.HTTPError
+        UnknownJobError
+            Raised if the request was for a specific job and that job was not
+            found.
+        WobblyError
             Raised if the HTTP request fails or returns a failure status.
         """
         kwargs: dict[str, Any] = {
@@ -328,7 +329,14 @@ class JobStore:
             kwargs["json"] = body.model_dump(mode="json")
         if query:
             kwargs["params"] = query
-        url = self._base_url + "/" + route
-        r = await self._client.request(method, url, **kwargs)
-        r.raise_for_status()
+        url = self._base_url + "/jobs"
+        if job_id:
+            url += "/" + job_id
+        try:
+            r = await self._client.request(method, url, **kwargs)
+            if r.status_code == 404 and job_id:
+                raise UnknownJobError(job_id)
+            r.raise_for_status()
+        except HTTPError as e:
+            raise WobblyError.from_exception(e) from e
         return r

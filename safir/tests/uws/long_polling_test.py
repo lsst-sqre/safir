@@ -11,11 +11,10 @@ from vo_models.uws import JobSummary
 
 from safir.datetime import current_datetime, isodatetime
 from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
-from safir.uws import UWSJobParameter
+from safir.uws import JobResult
 from safir.uws._dependencies import UWSFactory
-from safir.uws._models import UWSJobResult
 
-from ..support.uws import SimpleXmlParameters
+from ..support.uws import SimpleParameters, SimpleXmlParameters
 
 PENDING_JOB = """
 <uws:job
@@ -87,22 +86,18 @@ FINISHED_JOB = """
 
 @pytest.mark.asyncio
 async def test_poll(
-    client: AsyncClient, runner: MockUWSJobRunner, uws_factory: UWSFactory
+    client: AsyncClient,
+    token: str,
+    runner: MockUWSJobRunner,
+    uws_factory: UWSFactory,
 ) -> None:
     job_service = uws_factory.create_job_service()
-    job = await job_service.create(
-        "user",
-        params=[UWSJobParameter(parameter_id="name", value="Naomi")],
-    )
+    job = await job_service.create(token, SimpleParameters(name="Naomi"))
 
     # Poll for changes for one second. Nothing will happen since nothing is
     # changing the mock arq queue.
     now = current_datetime()
-    r = await client.get(
-        "/test/jobs/1",
-        headers={"X-Auth-Request-User": "user"},
-        params={"WAIT": "1"},
-    )
+    r = await client.get("/test/jobs/1", params={"WAIT": "1"})
     assert (current_datetime() - now).total_seconds() >= 1
     assert r.status_code == 200
     assert_job_summary_equal(
@@ -117,10 +112,7 @@ async def test_poll(
 
     # Start the job and worker.
     r = await client.post(
-        "/test/jobs/1/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "RUN"},
-        follow_redirects=True,
+        "/test/jobs/1/phase", data={"PHASE": "RUN"}, follow_redirects=True
     )
     assert r.status_code == 200
     assert r.url == "https://example.com/test/jobs/1"
@@ -137,12 +129,8 @@ async def test_poll(
     # Poll for a change from queued, which we should see after half a second.
     now = current_datetime()
     job, r = await asyncio.gather(
-        runner.mark_in_progress("user", "1", delay=0.5),
-        client.get(
-            "/test/jobs/1",
-            headers={"X-Auth-Request-User": "user"},
-            params={"WAIT": "2", "phase": "QUEUED"},
-        ),
+        runner.mark_in_progress(token, "1", delay=0.5),
+        client.get("/test/jobs/1", params={"WAIT": "2", "phase": "QUEUED"}),
     )
     assert r.status_code == 200
     assert job.start_time
@@ -159,19 +147,15 @@ async def test_poll(
     # Now, wait again, in parallel with the job finishing. We should get a
     # reply after a second and a half when the job finishes.
     results = [
-        UWSJobResult(
-            result_id="cutout",
+        JobResult(
+            id="cutout",
             url="s3://some-bucket/some/path",
             mime_type="application/fits",
         )
     ]
     job, r = await asyncio.gather(
-        runner.mark_complete("user", "1", results, delay=1.5),
-        client.get(
-            "/test/jobs/1",
-            headers={"X-Auth-Request-User": "user"},
-            params={"WAIT": "2", "phase": "EXECUTING"},
-        ),
+        runner.mark_complete(token, "1", results, delay=1.5),
+        client.get("/test/jobs/1", params={"WAIT": "2", "phase": "EXECUTING"}),
     )
     assert r.status_code == 200
     assert job.start_time

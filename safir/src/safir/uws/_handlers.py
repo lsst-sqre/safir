@@ -251,11 +251,11 @@ async def get_job_error(
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
-    error = await job_service.get_error(token, job_id)
-    if not error:
+    errors = await job_service.get_error(token, job_id)
+    if not errors:
         raise DataMissingError(f"Job {job_id} did not fail")
     templates = uws_factory.create_templates()
-    return templates.error(request, error)
+    return templates.error(request, errors[0])
 
 
 @uws_router.get(
@@ -271,7 +271,10 @@ async def get_job_execution_duration(
 ) -> str:
     job_service = uws_factory.create_job_service()
     job = await job_service.get(token, job_id)
-    return str(int(job.execution_duration.total_seconds()))
+    if job.execution_duration:
+        return str(int(job.execution_duration.total_seconds()))
+    else:
+        return "0"
 
 
 @uws_router.post(
@@ -491,8 +494,8 @@ def install_async_post_handler(router: APIRouter, route: UWSRoute) -> None:
         job_service = uws_factory.create_job_service()
         job = await job_service.create(token, parameters, run_id=runid)
         if phase == "RUN":
-            await job_service.start(token, user, job.job_id)
-        return str(request.url_for("get_job", job_id=job.job_id))
+            await job_service.start(token, user, job.id)
+        return str(request.url_for("get_job", job_id=job.id))
 
 
 def install_sync_post_handler(router: APIRouter, route: UWSRoute) -> None:

@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from structlog.stdlib import BoundLogger
 from vo_models.uws import Jobs, JobSummary
 from vo_models.uws.types import ExecutionPhase
+from vo_models.vosi.availability import Availability
 
 from safir.arq import ArqQueue, JobMetadata
 from safir.arq.uws import WorkerJobInfo
@@ -99,6 +100,14 @@ class JobService:
             await self._arq.abort_job(job.message_id, timeout=timeout)
         await self._storage.mark_aborted(token, job_id)
         logger.info("Aborted job")
+
+    async def availability(self) -> Availability:
+        """Check the availability of underlying services.
+
+        Currently, this does nothing. Eventually, it may do a health check of
+        Wobbly.
+        """
+        return Availability(available=True)
 
     async def create(
         self,
