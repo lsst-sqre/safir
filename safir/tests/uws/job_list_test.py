@@ -28,18 +28,18 @@ FULL_JOB_LIST = """
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobref id="3" xlink:href="https://example.com/test/jobs/3">
     <uws:phase>PENDING</uws:phase>
-    <uws:ownerId>user</uws:ownerId>
+    <uws:ownerId>test-user</uws:ownerId>
     <uws:creationTime>{}</uws:creationTime>
   </uws:jobref>
   <uws:jobref id="2" xlink:href="https://example.com/test/jobs/2">
     <uws:phase>PENDING</uws:phase>
     <uws:runId>some-run-id</uws:runId>
-    <uws:ownerId>user</uws:ownerId>
+    <uws:ownerId>test-user</uws:ownerId>
     <uws:creationTime>{}</uws:creationTime>
   </uws:jobref>
   <uws:jobref id="1" xlink:href="https://example.com/test/jobs/1">
     <uws:phase>PENDING</uws:phase>
-    <uws:ownerId>user</uws:ownerId>
+    <uws:ownerId>test-user</uws:ownerId>
     <uws:creationTime>{}</uws:creationTime>
   </uws:jobref>
 </uws:jobs>
@@ -55,7 +55,7 @@ RECENT_JOB_LIST = """
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobref id="3" xlink:href="https://example.com/test/jobs/3">
     <uws:phase>PENDING</uws:phase>
-    <uws:ownerId>user</uws:ownerId>
+    <uws:ownerId>test-user</uws:ownerId>
     <uws:creationTime>{}</uws:creationTime>
   </uws:jobref>
 </uws:jobs>
@@ -72,7 +72,7 @@ QUEUED_JOB_LIST = """
   <uws:jobref id="2" xlink:href="https://example.com/test/jobs/2">
     <uws:phase>QUEUED</uws:phase>
     <uws:runId>some-run-id</uws:runId>
-    <uws:ownerId>user</uws:ownerId>
+    <uws:ownerId>test-user</uws:ownerId>
     <uws:creationTime>{}</uws:creationTime>
   </uws:jobref>
 </uws:jobs>

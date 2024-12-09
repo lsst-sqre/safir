@@ -12,7 +12,7 @@ from vo_models.uws.types import ErrorType, ExecutionPhase
 
 from safir.arq import JobMetadata
 from safir.arq import JobResult as ArqJobResult
-from safir.datetime import current_datetime
+from safir.datetime import current_datetime, isodatetime
 
 from ._config import UWSConfig
 from ._exceptions import TaskError, UnknownJobError, WobblyError
@@ -151,9 +151,9 @@ class JobStore:
         """
         query: list[tuple[str, str]] = []
         if phases:
-            query.extend(("phase", str(p)) for p in phases)
+            query.extend(("phase", p.value) for p in phases)
         if after:
-            query.append(("since", after.isoformat()))
+            query.append(("since", isodatetime(after)))
         if count:
             query.append(("limit", str(count)))
         r = await self._request("GET", token, query=query)

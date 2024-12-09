@@ -163,7 +163,7 @@ class MockWobbly:
         for job in self.jobs[service][username].values():
             if phases and job.phase not in phases:
                 continue
-            if since and job.creation_time >= since:
+            if since and job.creation_time <= since:
                 continue
             results.append(job)
 
