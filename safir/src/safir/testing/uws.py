@@ -202,13 +202,16 @@ class MockWobbly:
         match body["phase"]:
             case ExecutionPhase.ABORTED:
                 _ = JobUpdateAborted.model_validate(body)
+                if job.start_time:
+                    job.end_time = current_datetime()
             case ExecutionPhase.COMPLETED:
                 completed_update = JobUpdateCompleted.model_validate(body)
                 job.end_time = current_datetime()
                 job.results = completed_update.results
             case ExecutionPhase.EXECUTING:
                 executing_update = JobUpdateExecuting.model_validate(body)
-                job.start_time = executing_update.start_time
+                start_time = executing_update.start_time.replace(microsecond=0)
+                job.start_time = start_time
             case ExecutionPhase.ERROR:
                 error_update = JobUpdateError.model_validate(body)
                 job.errors = error_update.errors
