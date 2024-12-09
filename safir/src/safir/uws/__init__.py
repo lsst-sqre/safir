@@ -20,6 +20,7 @@ from ._models import (
     JobUpdateMetadata,
     JobUpdateQueued,
     ParametersModel,
+    SerializedJob,
 )
 
 __all__ = [
@@ -37,6 +38,7 @@ __all__ = [
     "MultiValuedParameterError",
     "ParameterError",
     "ParametersModel",
+    "SerializedJob",
     "UWSAppSettings",
     "UWSApplication",
     "UWSConfig",

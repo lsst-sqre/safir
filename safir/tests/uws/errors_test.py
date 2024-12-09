@@ -48,7 +48,9 @@ async def test_errors(
         "/test/jobs/1/results",
     ]
     for route in routes:
-        r = await client.get(route, headers={})
+        request = client.build_request("GET", route)
+        del request.headers["X-Auth-Request-Token"]
+        r = await client.send(request)
         assert r.status_code == 422
         assert r.text.startswith("UsageError")
 
@@ -79,7 +81,9 @@ async def test_errors(
         PostTest("/test/jobs/1/phase", {"phase": "RUN"}),
     ]
     for test in tests:
-        r = await client.post(test.url, data=test.data, headers={})
+        request = client.build_request("POST", test.url, data=test.data)
+        del request.headers["X-Auth-Request-Token"]
+        r = await client.send(request)
         assert r.status_code == 422
         assert r.text.startswith("UsageError")
 
@@ -101,7 +105,9 @@ async def test_errors(
         assert r.text.startswith("UsageError")
 
     # Finally, test all the same things with the one supported DELETE.
-    r = await client.delete("/test/jobs/1", headers={})
+    request = client.build_request("DELETE", "/test/jobs/1")
+    del request.headers["X-Auth-Request-Token"]
+    r = await client.send(request)
     assert r.status_code == 422
     assert r.text.startswith("UsageError")
     r = await client.delete(
@@ -124,8 +130,6 @@ async def test_errors(
             "/test/jobs/1/destruction",
             {"destrucTION": "2021-09-10T10:01:02+00:00:00"},
         ),
-        PostTest("/test/jobs/1/executionduration", {"executionduration": "0"}),
-        PostTest("/test/jobs/1/executionduration", {"executionDUration": "0"}),
         PostTest(
             "/test/jobs/1/executionduration", {"executionduration": "-1"}
         ),

@@ -36,7 +36,7 @@ PENDING_JOB = """
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobId>{}</uws:jobId>
   <uws:runId>some-run-id</uws:runId>
-  <uws:ownerId>user</uws:ownerId>
+  <uws:ownerId>test-user</uws:ownerId>
   <uws:phase>{}</uws:phase>
   <uws:creationTime>{}</uws:creationTime>
   <uws:executionDuration>{}</uws:executionDuration>
@@ -57,7 +57,7 @@ FINISHED_JOB = """
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobId>1</uws:jobId>
   <uws:runId>some-run-id</uws:runId>
-  <uws:ownerId>user</uws:ownerId>
+  <uws:ownerId>test-user</uws:ownerId>
   <uws:phase>COMPLETED</uws:phase>
   <uws:creationTime>{}</uws:creationTime>
   <uws:startTime>{}</uws:startTime>
@@ -84,7 +84,7 @@ ABORTED_PENDING_JOB = """
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobId>{}</uws:jobId>
   <uws:runId>some-run-id</uws:runId>
-  <uws:ownerId>user</uws:ownerId>
+  <uws:ownerId>test-user</uws:ownerId>
   <uws:phase>ABORTED</uws:phase>
   <uws:creationTime>{}</uws:creationTime>
   <uws:executionDuration>600</uws:executionDuration>
@@ -105,7 +105,7 @@ ABORTED_JOB = """
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobId>{}</uws:jobId>
   <uws:runId>some-run-id</uws:runId>
-  <uws:ownerId>user</uws:ownerId>
+  <uws:ownerId>test-user</uws:ownerId>
   <uws:phase>ABORTED</uws:phase>
   <uws:creationTime>{}</uws:creationTime>
   <uws:startTime>{}</uws:startTime>

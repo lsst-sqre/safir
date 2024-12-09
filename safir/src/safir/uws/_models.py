@@ -440,7 +440,7 @@ class Job(SerializedJob, Generic[P]):
             Raised if the serialized parameters cannot be validated.
         """
         job_dict = job.model_dump()
-        params = job_dict.get("parameters")
+        params = job_dict.get("json_parameters")
         if params:
             job_dict["parameters"] = parameters_type.model_validate(params)
         return cls.model_validate(job_dict)
@@ -622,5 +622,8 @@ class JobUpdateMetadata(BaseModel):
                 " this time period, it will be aborted."
             ),
         ),
-        PlainSerializer(lambda t: int(t.total_seconds()), return_type=int),
+        PlainSerializer(
+            lambda t: int(t.total_seconds()) if t else None,
+            return_type=int | None,
+        ),
     ]

@@ -15,7 +15,7 @@ from vo_models.uws import JobSummary
 from vo_models.uws.types import ExecutionPhase
 
 from safir.arq import JobMetadata, JobResult, MockArqQueue
-from safir.datetime import parse_isodatetime
+from safir.datetime import current_datetime, parse_isodatetime
 from safir.uws import (
     Job,
     JobCreate,
@@ -25,6 +25,7 @@ from safir.uws import (
     JobUpdateExecuting,
     JobUpdateMetadata,
     JobUpdateQueued,
+    SerializedJob,
     UWSConfig,
 )
 from safir.uws import JobResult as UWSJobResult
@@ -100,7 +101,7 @@ class MockWobbly:
         self._job_id = 1
 
         # Maps service to username to job ID to a job record.
-        self.jobs: defaultdict[str, defaultdict[str, dict[str, Job]]]
+        self.jobs: defaultdict[str, defaultdict[str, dict[str, SerializedJob]]]
         self.jobs = defaultdict(lambda: defaultdict(dict))
 
     def create_job(self, request: Request) -> Response:
@@ -109,12 +110,12 @@ class MockWobbly:
         job_create = JobCreate.model_validate_json(request.content)
         job_id = str(self._job_id)
         self._job_id += 1
-        job = Job(
+        job = SerializedJob(
             id=job_id,
             service=service,
             owner=username,
             phase=ExecutionPhase.PENDING,
-            creation_time=datetime.now(tz=UTC),
+            creation_time=current_datetime(),
             **job_create.model_dump(),
         )
         self.jobs[service][username][job_id] = job
@@ -191,7 +192,7 @@ class MockWobbly:
 
         # First handle the only case without a phase, which is a metadata
         # update.
-        if "phase" not in body:
+        if "phase" not in body or not body["phase"]:
             update = JobUpdateMetadata.model_validate(body)
             job.destruction_time = update.destruction_time
             job.execution_duration = update.execution_duration
@@ -203,6 +204,7 @@ class MockWobbly:
                 _ = JobUpdateAborted.model_validate(body)
             case ExecutionPhase.COMPLETED:
                 completed_update = JobUpdateCompleted.model_validate(body)
+                job.end_time = current_datetime()
                 job.results = completed_update.results
             case ExecutionPhase.EXECUTING:
                 executing_update = JobUpdateExecuting.model_validate(body)
