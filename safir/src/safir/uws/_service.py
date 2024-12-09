@@ -22,7 +22,14 @@ from ._exceptions import (
     SyncJobNoResultsError,
     SyncJobTimeoutError,
 )
-from ._models import ACTIVE_PHASES, Job, JobError, JobResult, ParametersModel
+from ._models import (
+    ACTIVE_PHASES,
+    Job,
+    JobError,
+    JobResult,
+    JobUpdateMetadata,
+    ParametersModel,
+)
 from ._results import ResultStore
 from ._storage import JobStore
 
@@ -62,7 +69,7 @@ class JobService:
         self._storage = storage
         self._logger = logger
 
-    async def abort(self, job_id: str) -> None:
+    async def abort(self, token: str, job_id: str) -> None:
         """Abort a queued or running job.
 
         If the job is already in a completed state, this operation does
@@ -70,6 +77,8 @@ class JobService:
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         job_id
             Identifier of the job.
 
@@ -79,7 +88,7 @@ class JobService:
             If the job ID doesn't exist or is for a user other than the
             provided user.
         """
-        job = await self._storage.get(job_id)
+        job = await self._storage.get(token, job_id)
         logger = self._build_logger_for_job(job)
         if job.phase not in ACTIVE_PHASES:
             logger.info(f"Cannot stop job in phase {job.phase.value}")
@@ -88,11 +97,12 @@ class JobService:
             timeout = JOB_STOP_TIMEOUT.total_seconds()
             logger.info("Aborting queued job", arq_job_id=job.message_id)
             await self._arq.abort_job(job.message_id, timeout=timeout)
-        await self._storage.mark_aborted(job_id)
+        await self._storage.mark_aborted(token, job_id)
         logger.info("Aborted job")
 
     async def create(
         self,
+        token: str,
         parameters: ParametersModel,
         *,
         run_id: str | None = None,
@@ -104,6 +114,8 @@ class JobService:
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         parameters
             The input parameters to the job.
         run_id
@@ -115,6 +127,7 @@ class JobService:
             Information about the newly-created job.
         """
         job = await self._storage.create(
+            token,
             run_id=run_id,
             parameters=parameters,
             execution_duration=self._config.execution_duration,
@@ -124,30 +137,33 @@ class JobService:
         logger.info("Created job")
         return job
 
-    async def delete(self, user: str, job_id: str) -> None:
+    async def delete(self, token: str, job_id: str) -> None:
         """Delete a job.
 
         If the job is in an active phase, cancel it before deleting it.
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         user
             Owner of job.
         job_id
             Identifier of job.
         """
-        job = await self._storage.get(job_id)
+        job = await self._storage.get(token, job_id)
         logger = self._build_logger_for_job(job)
         if job.phase in ACTIVE_PHASES and job.message_id:
             try:
                 await self._arq.abort_job(job.message_id)
             except Exception as e:
                 logger.warning("Unable to abort job", error=str(e))
-        await self._storage.delete(job_id)
+        await self._storage.delete(token, job_id)
         logger.info("Deleted job")
 
     async def get(
         self,
+        token: str,
         job_id: str,
         *,
         wait_seconds: int | None = None,
@@ -162,8 +178,8 @@ class JobService:
 
         Parameters
         ----------
-        user
-            User on behalf this operation is performed.
+        token
+            Delegated token for user.
         job_id
             Identifier of the job.
         wait_seconds
@@ -198,7 +214,7 @@ class JobService:
         0.1s delay and increasing by 1.5x). This may need to be reconsidered
         if it becomes a performance bottleneck.
         """
-        job = await self._storage.get(job_id)
+        job = await self._storage.get(token, job_id)
 
         # If waiting for a status change was requested and is meaningful, do
         # so, capping the wait time at the configured maximum timeout.
@@ -212,34 +228,33 @@ class JobService:
                 until_not = ACTIVE_PHASES
             else:
                 until_not = {wait_phase} if wait_phase else {job.phase}
-            job = await self._wait_for_job(job, until_not, wait)
+            job = await self._wait_for_job(token, job, until_not, timeout=wait)
 
         return job
 
-    async def get_error(self, job_id: str) -> list[JobError] | None:
-        """Get the error for a job, if any.
+    async def get_error(
+        self, token: str, job_id: str
+    ) -> list[JobError] | None:
+        """Get the errors for a job, if any.
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         job_id
             Identifier of the job.
 
         Returns
         -------
-        JobError or None
+        list of JobError or None
             Error information for the job, or `None` if the job didn't fail.
-
-        Raises
-        ------
-        PermissionDeniedError
-            Raised if the job ID doesn't exist or is for a user other than the
-            provided user.
         """
-        job = await self._storage.get(job_id)
+        job = await self._storage.get(token, job_id)
         return job.errors
 
     async def get_summary(
         self,
+        token: str,
         job_id: str,
         *,
         signer: ResultStore | None = None,
@@ -253,6 +268,8 @@ class JobService:
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         job_id
             Identifier of the job.
         signer
@@ -274,12 +291,6 @@ class JobService:
         JobSummary
             Corresponding job.
 
-        Raises
-        ------
-        PermissionDeniedError
-            If the job ID doesn't exist or is for a user other than the
-            provided user.
-
         Notes
         -----
         ``wait_seconds`` and related parameters are relatively inefficient
@@ -288,7 +299,7 @@ class JobService:
         if it becomes a performance bottleneck.
         """
         job = await self.get(
-            job_id, wait_seconds=wait_seconds, wait_phase=wait_phase
+            token, job_id, wait_seconds=wait_seconds, wait_phase=wait_phase
         )
         if signer:
             job.results = [signer.sign_url(r) for r in job.results]
@@ -296,6 +307,7 @@ class JobService:
 
     async def list_jobs(
         self,
+        token: str,
         base_url: str,
         *,
         phases: list[ExecutionPhase] | None = None,
@@ -306,6 +318,8 @@ class JobService:
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         base_url
             Base URL used to form URLs to the specific jobs.
         phases
@@ -322,30 +336,30 @@ class JobService:
             Collection of short job descriptions.
         """
         jobs = await self._storage.list_jobs(
-            phases=phases, after=after, count=count
+            token, phases=phases, after=after, count=count
         )
         return Jobs(jobref=[j.to_job_description(base_url) for j in jobs])
 
     async def run_sync(
         self,
+        token: str,
         user: str,
         parameters: ParametersModel,
         *,
-        token: str,
         runid: str | None,
     ) -> JobResult:
         """Create a job for a sync request and return the first result.
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         user
             User on behalf of whom this operation is performed.
         params
             Job parameters.
         user
             Username of user running the job.
-        token
-            Delegated Gafaelfawr token to pass to the backend worker.
         runid
             User-supplied RunID, if any.
 
@@ -363,13 +377,14 @@ class JobService:
         SyncJobTimeoutError
             Raised if the job execution timed out.
         """
-        job = await self.create(parameters, run_id=runid)
+        job = await self.create(token, parameters, run_id=runid)
         logger = self._build_logger_for_job(job)
 
         # Start the job and wait for it to complete.
-        metadata = await self.start(user, job.id, token)
+        metadata = await self.start(token, user, job.id)
         logger = logger.bind(arq_job_id=metadata.id)
         job = await self.get(
+            token,
             job.id,
             wait_seconds=int(self._config.sync_timeout.total_seconds()),
             wait_for_completion=True,
@@ -391,18 +406,18 @@ class JobService:
         # Return the first result.
         return job.results[0]
 
-    async def start(self, user: str, job_id: str, token: str) -> JobMetadata:
+    async def start(self, token: str, user: str, job_id: str) -> JobMetadata:
         """Start execution of a job.
 
         Parameters
         ----------
+        token
+            Gafaelfawr token used to authenticate to services used by the
+            backend on the user's behalf.
         user
             User on behalf of whom this operation is performed.
         job_id
             Identifier of the job to start.
-        token
-            Gafaelfawr token used to authenticate to services used by the
-            backend on the user's behalf.
 
         Returns
         -------
@@ -415,7 +430,7 @@ class JobService:
             If the job ID doesn't exist or is for a user other than the
             provided user.
         """
-        job = await self._storage.get(job_id)
+        job = await self._storage.get(token, job_id)
         if job.phase not in (ExecutionPhase.PENDING, ExecutionPhase.HELD):
             raise InvalidPhaseError(f"Cannot start job in phase {job.phase}")
         logger = self._build_logger_for_job(job)
@@ -428,17 +443,19 @@ class JobService:
         )
         params = job.parameters.to_worker_parameters().model_dump(mode="json")
         metadata = await self._arq.enqueue(self._config.worker, params, info)
-        await self._storage.mark_queued(job_id, metadata)
+        await self._storage.mark_queued(token, job_id, metadata)
         logger.info("Started job", arq_job_id=metadata.id)
         return metadata
 
     async def update_destruction(
-        self, job_id: str, destruction: datetime
+        self, token: str, job_id: str, destruction: datetime
     ) -> datetime | None:
         """Update the destruction time of a job.
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         job_id
             Identifier of the job to update.
         destruction
@@ -451,14 +468,8 @@ class JobService:
             The new destruction time of the job (possibly modified by the
             callback), or `None` if the destruction time of the job was
             not changed.
-
-        Raises
-        ------
-        safir.uws._exceptions.PermissionDeniedError
-            If the job ID doesn't exist or is for a user other than the
-            provided user.
         """
-        job = await self._storage.get(job_id)
+        job = await self._storage.get(token, job_id)
         logger = self._build_logger_for_job(job)
 
         # Validate the new value.
@@ -470,9 +481,11 @@ class JobService:
         # Update the destruction time if needed.
         if destruction == job.destruction_time:
             return None
-        await self._storage.update_metadata(
-            job_id, destruction, job.execution_duration
+        metadata = JobUpdateMetadata(
+            destruction_time=destruction,
+            execution_duration=job.execution_duration,
         )
+        await self._storage.update_metadata(token, job_id, metadata)
         logger.info(
             "Changed job destruction time",
             destruction=isodatetime(destruction),
@@ -480,14 +493,14 @@ class JobService:
         return destruction
 
     async def update_execution_duration(
-        self, user: str, job_id: str, duration: timedelta | None
+        self, token: str, job_id: str, duration: timedelta | None
     ) -> timedelta | None:
         """Update the execution duration time of a job.
 
         Parameters
         ----------
-        user
-            User on behalf of whom this operation is performed
+        token
+            Delegated token for user.
         job_id
             Identifier of the job to update.
         duration
@@ -500,14 +513,8 @@ class JobService:
             The new execution duration of the job (possibly modified by the
             callback), or `None` if the execution duration of the job was
             not changed.
-
-        Raises
-        ------
-        safir.uws._exceptions.PermissionDeniedError
-            If the job ID doesn't exist or is for a user other than the
-            provided user.
         """
-        job = await self._storage.get(job_id)
+        job = await self._storage.get(token, job_id)
         logger = self._build_logger_for_job(job)
 
         # Validate the new value.
@@ -519,9 +526,10 @@ class JobService:
         # Update the duration in the job.
         if duration == job.execution_duration:
             return None
-        await self._storage.update_metadata(
-            job_id, job.destruction_time, duration
+        update = JobUpdateMetadata(
+            destruction_time=job.destruction_time, execution_duration=duration
         )
+        await self._storage.update_metadata(token, job_id, update)
         if duration:
             duration_str = f"{duration.total_seconds()}s"
         else:
@@ -551,12 +559,19 @@ class JobService:
         return logger
 
     async def _wait_for_job(
-        self, job: Job, until_not: set[ExecutionPhase], timeout: timedelta
+        self,
+        token: str,
+        job: Job,
+        until_not: set[ExecutionPhase],
+        *,
+        timeout: timedelta,
     ) -> Job:
         """Wait for the completion of a job.
 
         Parameters
         ----------
+        token
+            Delegated token for user.
         job
             Job to wait for.
         until_not
@@ -579,9 +594,9 @@ class JobService:
             async with asyncio.timeout(timeout.total_seconds()):
                 while job.phase in until_not:
                     await asyncio.sleep(delay)
-                    job = await self._storage.get(job.id)
+                    job = await self._storage.get(token, job.id)
                     delay = min(delay * 1.5, max_delay)
 
         # If we timed out, we may have done so in the middle of a delay. Try
         # one last request.
-        return await self._storage.get(job.id)
+        return await self._storage.get(token, job.id)

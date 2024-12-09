@@ -343,7 +343,7 @@ def build_worker(
             logger = logger.bind(run_id=info.run_id)
 
         start = datetime.now(tz=UTC)
-        await arq.enqueue("uws_job_started", info.job_id, start)
+        await arq.enqueue("uws_job_started", info.token, info.job_id, start)
         loop = asyncio.get_running_loop()
         try:
             async with asyncio.timeout(info.timeout.total_seconds()):
@@ -358,7 +358,7 @@ def build_worker(
             ctx["pool"] = _restart_pool(pool)
             raise WorkerTimeoutError(elapsed, info.timeout) from None
         finally:
-            await arq.enqueue("uws_job_completed", info.job_id)
+            await arq.enqueue("uws_job_completed", info.token, info.job_id)
 
     # Since the worker is running sync jobs, run one job per pod since they
     # will be serialized anyway and no parallelism is possible. This also

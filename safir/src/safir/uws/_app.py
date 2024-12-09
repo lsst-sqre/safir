@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from arq import cron
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse
@@ -26,7 +24,7 @@ from safir.middleware.ivoa import (
 )
 
 from ._config import UWSConfig
-from ._constants import UWS_DATABASE_TIMEOUT, UWS_EXPIRE_JOBS_SCHEDULE
+from ._constants import UWS_DATABASE_TIMEOUT
 from ._dependencies import uws_dependency
 from ._exceptions import DatabaseSchemaError, UWSError
 from ._handlers import (
@@ -40,7 +38,6 @@ from ._schema import UWSSchemaBase
 from ._workers import (
     close_uws_worker_context,
     create_uws_worker_context,
-    uws_expire_jobs,
     uws_job_completed,
     uws_job_started,
 )
@@ -133,14 +130,6 @@ class UWSApplication:
         # Running 10 jobs simultaneously is the arq default as of arq 0.26.0
         # and seems reasonable for database workers.
         return WorkerSettings(
-            cron_jobs=[
-                cron(
-                    uws_expire_jobs,
-                    unique=True,
-                    timeout=UWS_DATABASE_TIMEOUT,
-                    **asdict(UWS_EXPIRE_JOBS_SCHEDULE),
-                )
-            ],
             functions=[uws_job_started, uws_job_completed],
             redis_settings=self._config.arq_redis_settings,
             job_completion_wait=UWS_DATABASE_TIMEOUT,

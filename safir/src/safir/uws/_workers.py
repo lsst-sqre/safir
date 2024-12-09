@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 from typing import Any, ParamSpec
 
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import async_scoped_session
 from structlog.stdlib import BoundLogger
 
 from safir.arq import (
@@ -30,7 +29,7 @@ from safir.slack.webhook import SlackIgnoredException, SlackWebhookClient
 from ._config import UWSConfig
 from ._constants import JOB_RESULT_TIMEOUT, WOBBLY_REQUEST_TIMEOUT
 from ._exceptions import TaskError, UnknownJobError
-from ._models import UWSJob
+from ._models import Job
 from ._service import JobService
 from ._storage import JobStore
 
@@ -39,7 +38,6 @@ P = ParamSpec("P")
 __all__ = [
     "close_uws_worker_context",
     "create_uws_worker_context",
-    "uws_expire_jobs",
     "uws_job_completed",
     "uws_job_started",
 ]
@@ -112,9 +110,9 @@ async def close_uws_worker_context(ctx: dict[Any, Any]) -> None:
         Worker context.
     """
     logger: BoundLogger = ctx["logger"]
-    session: async_scoped_session = ctx["session"]
+    http_client: AsyncClient = ctx["http_client"]
 
-    await session.remove()
+    await http_client.aclose()
 
     # Possibly initialized by the Slack webhook client.
     await http_client_dependency.aclose()
@@ -122,27 +120,8 @@ async def close_uws_worker_context(ctx: dict[Any, Any]) -> None:
     logger.info("Worker shutdown complete")
 
 
-async def uws_expire_jobs(ctx: dict[Any, Any]) -> None:
-    """Delete jobs that have passed their destruction time.
-
-    Parameters
-    ----------
-    ctx
-        arq context.
-    """
-    slack: SlackWebhookClient | None = ctx["slack"]
-    service: JobService = ctx["service"]
-
-    try:
-        await service.delete_expired()
-    except Exception as e:
-        if slack:
-            await slack.post_uncaught_exception(e)
-        raise
-
-
 async def uws_job_started(
-    ctx: dict[Any, Any], job_id: str, start_time: datetime
+    ctx: dict[Any, Any], token: str, job_id: str, start_time: datetime
 ) -> None:
     """Mark a UWS job as executing.
 
@@ -150,6 +129,8 @@ async def uws_job_started(
     ----------
     ctx
         arq context.
+    token
+        Token for the user executing the job.
     job_id
         UWS job identifier.
     start_time
@@ -160,7 +141,7 @@ async def uws_job_started(
     storage: JobStore = ctx["storage"]
 
     try:
-        await storage.mark_executing(job_id, start_time)
+        await storage.mark_executing(token, job_id, start_time)
         logger.info(
             "Marked job as started",
             start_time=format_datetime_for_logging(start_time),
@@ -174,7 +155,7 @@ async def uws_job_started(
 
 
 async def _annotate_worker_error(
-    exc: Exception, job: UWSJob, slack: SlackWebhookClient | None = None
+    exc: Exception, job: Job, slack: SlackWebhookClient | None = None
 ) -> Exception:
     """Convert and possibly report a backend worker error.
 
@@ -232,7 +213,9 @@ async def _get_job_result(arq: ArqQueue, arq_job_id: str) -> JobResult:
     return await arq.get_job_result(arq_job_id)
 
 
-async def uws_job_completed(ctx: dict[Any, Any], job_id: str) -> None:
+async def uws_job_completed(
+    ctx: dict[Any, Any], token: str, job_id: str
+) -> None:
     """Mark a UWS job as completed.
 
     Recover the exception if the job failed and record that as the job error.
@@ -243,6 +226,8 @@ async def uws_job_completed(ctx: dict[Any, Any], job_id: str) -> None:
     ----------
     ctx
         arq context.
+    token
+        Token for the user executing the job.
     job_id
         UWS job identifier.
     """
@@ -254,7 +239,7 @@ async def uws_job_completed(ctx: dict[Any, Any], job_id: str) -> None:
     storage: JobStore = ctx["storage"]
 
     try:
-        job = await storage.get(job_id)
+        job = await storage.get(token, job_id)
         arq_job_id = job.message_id
         if not arq_job_id:
             msg = "Job has no associated arq job ID, cannot mark completed"
@@ -274,7 +259,7 @@ async def uws_job_completed(ctx: dict[Any, Any], job_id: str) -> None:
             )
             exc.__cause__ = e
             error = await _annotate_worker_error(exc, job, slack)
-            await storage.mark_failed(job_id, error)
+            await storage.mark_failed(token, job_id, error)
             return
 
         # If the job failed and Slack reporting is enabled, annotate the job
@@ -284,7 +269,7 @@ async def uws_job_completed(ctx: dict[Any, Any], job_id: str) -> None:
             result.result = error
 
         # Mark the job as completed.
-        await storage.mark_completed(job_id, result)
+        await storage.mark_completed(token, job_id, result)
         logger.info("Marked job as completed")
     except UnknownJobError:
         logger.warning("Job not found to mark as completed")
