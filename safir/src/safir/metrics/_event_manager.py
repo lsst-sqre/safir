@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from abc import ABCMeta, abstractmethod
 from datetime import UTC, datetime
-from typing import Generic, TypeVar, cast
+from typing import Generic, TypeAlias, TypeVar, cast
 from uuid import uuid4
 
 import structlog
@@ -27,6 +27,18 @@ from ._testing import PublishedList
 
 P = TypeVar("P", bound=EventPayload)
 """Generic event payload type."""
+
+EnrichedEvent: TypeAlias = P | EventMetadata
+"""Alias to refer to the dynamically created payload+metadata event type.
+
+Since this type is dynamically created, there is no way to name it or make it a
+TypeVar. We could declare it as ``P`` everywhere we need to declare it, but
+that makes it difficult to see when we are using the payload vs the
+payload+metadata types.
+
+This lets us differentiate it from a payload class in the code, and it can be
+narrowed further if we have to access either metadata or payload attributes.
+"""
 
 __all__ = [
     "EventManager",
@@ -54,11 +66,13 @@ class EventPublisher(Generic[P], metaclass=ABCMeta):
         publication.
     """
 
-    def __init__(self, application: str, event_class: type[P]) -> None:
+    def __init__(
+        self, application: str, event_class: type[EnrichedEvent]
+    ) -> None:
         self._application = application
         self._event_class = event_class
 
-    def construct_event(self, payload: P) -> P:
+    def construct_event(self, payload: P) -> EnrichedEvent:
         """Construct the full event as it will be published.
 
         Parameters
@@ -139,7 +153,7 @@ class KafkaEventPublisher(EventPublisher, Generic[P]):
         *,
         application: str,
         manager: KafkaEventManager,
-        event_class: type[AvroBaseModel],
+        event_class: type[EnrichedEvent],
         publisher: AsyncAPIDefaultPublisher,
         schema_info: SchemaInfo,
     ) -> None:
@@ -165,7 +179,7 @@ class NoopEventPublisher(EventPublisher, Generic[P]):
     def __init__(
         self,
         application: str,
-        event_class: type[AvroBaseModel],
+        event_class: type[EnrichedEvent],
         logger: BoundLogger,
     ) -> None:
         super().__init__(application, event_class)
@@ -190,7 +204,7 @@ class MockEventPublisher(NoopEventPublisher, Generic[P]):
     def __init__(
         self,
         application: str,
-        event_class: type[AvroBaseModel],
+        event_class: type[EnrichedEvent],
         logger: BoundLogger,
     ) -> None:
         super().__init__(application, event_class, logger)
@@ -486,7 +500,7 @@ class KafkaEventManager(EventManager):
 
     async def publish(
         self,
-        event: AvroBaseModel,
+        event: EnrichedEvent,
         publisher: AsyncAPIDefaultPublisher,
         schema_info: SchemaInfo | None,
     ) -> None:

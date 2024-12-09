@@ -6,13 +6,11 @@ import asyncio
 import math
 from datetime import timedelta
 from enum import Enum
-from typing import cast
 from uuid import UUID
 
 import pytest
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
-from dataclasses_avroschema.pydantic import AvroBaseModel
 from faststream.kafka import KafkaBroker
 from pydantic import Field
 from schema_registry.client.client import AsyncSchemaRegistryClient
@@ -81,7 +79,7 @@ async def assert_from_kafka(
     serializer = AsyncAvroMessageSerializer(schema_registry)
     deserialized_dict = await serializer.decode_message(message.value)
     assert deserialized_dict is not None
-    event_class = cast(type[AvroBaseModel], event._event_class)
+    event_class = event._event_class
     deserialized = event_class(**deserialized_dict)
 
     assert isinstance(deserialized, EventMetadata)
