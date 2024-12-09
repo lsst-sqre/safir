@@ -24,7 +24,7 @@ ERRORED_JOB = """
     xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobId>1</uws:jobId>
-  <uws:ownerId>user</uws:ownerId>
+  <uws:ownerId>test-user</uws:ownerId>
   <uws:phase>ERROR</uws:phase>
   <uws:creationTime>{}</uws:creationTime>
   <uws:startTime>{}</uws:startTime>

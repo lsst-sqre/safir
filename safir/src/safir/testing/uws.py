@@ -214,6 +214,7 @@ class MockWobbly:
                 job.start_time = start_time
             case ExecutionPhase.ERROR:
                 error_update = JobUpdateError.model_validate(body)
+                job.end_time = current_datetime()
                 job.errors = error_update.errors
             case ExecutionPhase.QUEUED:
                 queued_update = JobUpdateQueued.model_validate(body)
