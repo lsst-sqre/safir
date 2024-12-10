@@ -23,6 +23,7 @@ from ._exceptions import (
     KafkaTopicError,
 )
 from ._models import EventMetadata, EventPayload
+from ._testing import PublishedList
 
 P = TypeVar("P", bound=EventPayload)
 """Generic event payload type."""
@@ -32,6 +33,8 @@ __all__ = [
     "EventPublisher",
     "KafkaEventManager",
     "KafkaEventPublisher",
+    "MockEventManager",
+    "MockEventPublisher",
     "NoopEventManager",
     "NoopEventPublisher",
 ]
@@ -136,7 +139,7 @@ class KafkaEventPublisher(EventPublisher, Generic[P]):
         *,
         application: str,
         manager: KafkaEventManager,
-        event_class: type[AvroBaseModel],
+        event_class: type[P],
         publisher: AsyncAPIDefaultPublisher,
         schema_info: SchemaInfo,
     ) -> None:
@@ -162,7 +165,7 @@ class NoopEventPublisher(EventPublisher, Generic[P]):
     def __init__(
         self,
         application: str,
-        event_class: type[AvroBaseModel],
+        event_class: type[P],
         logger: BoundLogger,
     ) -> None:
         super().__init__(application, event_class)
@@ -174,6 +177,34 @@ class NoopEventPublisher(EventPublisher, Generic[P]):
             "Would have published event", metrics_event=event.model_dump()
         )
         return event
+
+
+class MockEventPublisher(NoopEventPublisher, Generic[P]):
+    """Event publisher that quietly does nothing and records all payloads.
+
+    This is meant to be used in unit tests to enable assertions on published
+    payloads. It should NOT be used in any deployed application instances
+    because memory usage will grow unbounded with each published event.
+    """
+
+    def __init__(
+        self,
+        application: str,
+        event_class: type[P],
+        logger: BoundLogger,
+    ) -> None:
+        super().__init__(application, event_class, logger)
+        self._published: PublishedList[P] = PublishedList()
+
+    async def publish(self, payload: P) -> EventMetadata:
+        event = await super().publish(payload)
+        self._published.append(payload)
+        return event
+
+    @property
+    def published(self) -> PublishedList[P]:
+        """A list of published event payloads with some test helpers."""
+        return self._published
 
 
 class EventManager(metaclass=ABCMeta):
@@ -455,7 +486,7 @@ class KafkaEventManager(EventManager):
 
     async def publish(
         self,
-        event: AvroBaseModel,
+        event: P,
         publisher: AsyncAPIDefaultPublisher,
         schema_info: SchemaInfo | None,
     ) -> None:
@@ -556,3 +587,53 @@ class NoopEventManager(EventManager):
             An appropriate event publisher implementation instance.
         """
         return NoopEventPublisher[P](self._application, model, self.logger)
+
+
+class MockEventManager(EventManager):
+    """An event manager that creates mock publishers that record all publishes.
+
+    This is used as the implementation of `~safir.metrics.EventManager` when
+    event publication is disabled and mocking is enabled. Like a
+    `~safir.metrics.NoopEventManager`, the event type registrations are still
+    verified to catch errors, but any calls to
+    `~safir.metrics.MockEventPublisher` are recorded for later assertion.
+
+    This is for use only in unit testing. Don't use it in any deployed
+    environment because memory usage will grow unbounded.
+
+    Parameters
+    ----------
+    application
+        Name of the application that is generating events.
+    topic_prefix
+        Kafka topic prefix for the metrics events topic for this application.
+    logger
+        Logger to use for internal logging.
+    """
+
+    def __init__(
+        self,
+        application: str,
+        topic_prefix: str,
+        logger: BoundLogger | None = None,
+    ) -> None:
+        super().__init__(f"{topic_prefix}.{application}", logger)
+        self._application = application
+
+    async def build_publisher_for_model(
+        self, model: type[P]
+    ) -> EventPublisher[P]:
+        """Build a no-op recording publisher for a specific enriched model.
+
+        Parameters
+        ----------
+        model
+            Enriched and configured model representing the event that will be
+            published.
+
+        Returns
+        -------
+        EventPublisher
+            An appropriate event publisher implementation instance.
+        """
+        return MockEventPublisher[P](self._application, model, self.logger)
