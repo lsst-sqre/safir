@@ -398,21 +398,11 @@ class Job(SerializedJob, Generic[P]):
         Field(
             title="Job parameters",
             description=(
-                "May be any JSON-serialized object. Stored opaquely and"
-                " returned as part of the job record."
+                "Job parameters converted to their Pydantic model. Use"
+                " ``json_parameters`` for the serialized form sent over"
+                " the wire."
             ),
-            examples=[
-                {
-                    "ids": ["data-id"],
-                    "stencils": [
-                        {
-                            "type": "circle",
-                            "center": [1.1, 2.1],
-                            "radius": 0.001,
-                        }
-                    ],
-                },
-            ],
+            exclude=True,
         ),
     ]
 

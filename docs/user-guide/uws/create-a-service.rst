@@ -10,8 +10,8 @@ Select the ``UWS`` flavor.
 
 Then, flesh out the application by following these steps:
 
-#. :doc:`Define the API parameters <define-inputs>`
 #. :doc:`Define the parameter models <define-models>`
+#. :doc:`Define the API parameters <define-inputs>`
 #. :doc:`Write the backend worker <write-backend>`
 #. :doc:`Write the test suite <testing>`
 
@@ -40,7 +40,10 @@ This will add standard configuration options most services will need and provide
 
 Second, add a property to ``Config`` that returns the UWS configuration.
 For some of these settings, you won't know the values yet.
-You will be able to fill in the value of ``parameters_type`` after reading :doc:`define-models`, the values of ``async_post_route`` and optionally ``sync_get_route`` and ``sync_post_route`` after reading :doc:`define-inputs`, and the value of ``worker`` after reading :doc:`write-backend`.
+
+You will be able to fill in the values of ``job_summary_type`` and ``parameters_type`` after reading :doc:`define-models`.
+You will be able to fill in the values of ``async_post_route`` and optionally ``sync_get_route`` and ``sync_post_route`` after reading :doc:`define-inputs`.
+You will be able to fill in the value of ``worker`` after reading :doc:`write-backend`.
 For now, you can just insert placeholder values.
 
 .. code-block:: python
@@ -88,7 +91,7 @@ Set up the FastAPI application
 The Safir UWS library must be initialized when the application starts, and requires some additional FastAPI middleware and error handlers.
 These need to be added to :file:`main.py`.
 
-First, initialize the UWS application in the ``lifespan`` function:
+First, initialize and shut down the UWS application in the ``lifespan`` function:
 
 .. code-block:: python
    :caption: main.py
@@ -104,7 +107,7 @@ First, initialize the UWS application in the ``lifespan`` function:
        await uws.shutdown_fastapi()
        await http_client_dependency.aclose()
 
-Second, install the UWS routes into the external router before including it in the application:
+Second, install the UWS routes into the external router **before** including it in the application:
 
 .. code-block:: python
    :caption: main.py
@@ -127,94 +130,6 @@ Third, install the UWS middleware and error handlers.
 
    # Install error handlers.
    uws.install_error_handlers(app)
-
-Add a command-line interface
-============================
-
-The UWS implementation uses a PostgreSQL database to store job status.
-Your application will need a mechanism to initialize that database with the desired schema.
-The simplest way to do this is to add a command-line interface for your application with an ``init`` command that initializes the database.
-
-.. note::
-
-   This approach has inherent race conditions and cannot handle database schema upgrades.
-   It will be replaced with a more sophisticated approach using Alembic_ once that support is ready.
-
-First, create a new :file:`cli.py` file in your application with the following contents:
-
-.. code-block:: python
-   :caption: cli.py
-
-   import click
-   import structlog
-   from safir.asyncio import run_with_asyncio
-   from safir.click import display_help
-
-   from .config import uws
-
-
-   @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-   @click.version_option(message="%(version)s")
-   def main() -> None:
-       """Administrative command-line interface for example."""
-
-
-   @main.command()
-   @click.argument("topic", default=None, required=False, nargs=1)
-   @click.pass_context
-   def help(ctx: click.Context, topic: str | None) -> None:
-       """Show help for any command."""
-       display_help(main, ctx, topic)
-
-
-   @main.command()
-   @click.option(
-       "--reset", is_flag=True, help="Delete all existing database data."
-   )
-   @run_with_asyncio
-   async def init(*, reset: bool) -> None:
-       """Initialize the database storage."""
-       logger = structlog.get_logger("example")
-       await uws.initialize_uws_database(logger, reset=reset)
-
-Look for the instances of ``example`` and replace them with the name of your application.
-
-Second, register this interface with Python in :file:`pyproject.toml`:
-
-.. code-block:: toml
-   :caption: pyproject.toml
-
-   [project.scripts]
-   example = "example.cli:main"
-
-Again, replace ``example`` with the name of your application.
-
-Third, change the :file:`Dockerfile` for your application to run a startup script rather than run :command:`uvicorn` directly:
-
-.. code-block:: docker
-   :caption: Dockerfile
-
-   # Copy the startup script
-   COPY scripts/start-frontend.sh /start-frontend.sh
-
-   # Run the application.
-   CMD ["/start-frontend.sh"]
-
-Finally, create the :file:`scripts/start-frontend.sh` file:
-
-.. code-block:: bash
-   :caption: scripts/start-frontend.sh
-
-   #!/bin/bash
-   #
-   # Create the database and then start the server.
-
-   set -eu
-
-   example init
-   uvicorn example.main:app --host 0.0.0.0 --port 8080
-
-Again, replace ``example`` with the name of your application.
 
 Create the arq worker for database updates
 ==========================================
@@ -248,6 +163,6 @@ Next steps
 
 Now that you have set up the basic structure of your application, you can move on to the substantive parts.
 
-- Define the API parameters: :doc:`define-inputs`
 - Define the parameter models: :doc:`define-models`
+- Define the API parameters: :doc:`define-inputs`
 - Write the backend worker :doc:`write-backend`

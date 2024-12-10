@@ -141,7 +141,7 @@ See its documentation for a full list.
 There are two attributes that deserve special mention, however.
 
 The ``token`` attribute contains a delegated Gafaelfawr_ token to act on behalf of the user.
-This token must be included in an :samp:`Authorization: bearer <token>` header in any web request that the backend makes to other Rubin Science Platform services.
+This token must be included in an :samp:`Authorization: bearer {token}` header in any web request that the backend makes to other Rubin Science Platform services.
 
 The ``timeout`` attribute contains a `~datetime.timedelta` representation of the timeout for the job.
 The backend ideally should arrange to not exceed that total wall clock interval when executing.

@@ -10,6 +10,7 @@ from ._exceptions import (
 )
 from ._models import (
     Job,
+    JobBase,
     JobCreate,
     JobError,
     JobResult,
@@ -24,8 +25,8 @@ from ._models import (
 )
 
 __all__ = [
-    "ErrorCode",
     "Job",
+    "JobBase",
     "JobCreate",
     "JobError",
     "JobResult",

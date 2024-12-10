@@ -12,6 +12,8 @@ Applications built with this framework have three components:
 #. A backend arq_ worker, possibly running on a different software stack, that does the work.
 #. A database arq_ worker that handles bookkeeping and result processing for the backend worker.
 
+In addition, they use the Wobbly_ service to do the work of recording and retrieving job information so that each service doesn't have to manage its own underlying PostgreSQL database.
+
 Incoming requests are turned into arq_ jobs, processed by the backend worker, uploaded to Google Cloud Storage, recorded in a database, and then returned to the user via a frontend that reads the result URLs and other metadata from the database.
 
 Frontend applications that use this library must depend on ``safir[uws]``.
@@ -24,7 +26,7 @@ Guides
    :titlesonly:
 
    create-a-service
-   define-inputs
    define-models
+   define-inputs
    write-backend
    testing

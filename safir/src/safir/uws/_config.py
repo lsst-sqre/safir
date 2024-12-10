@@ -65,8 +65,7 @@ class UWSConfig:
     """Route configuration for creating an async job via POST.
 
     The FastAPI dependency included in this object should expect POST
-    parameters and return a list of `~safir.uws.UWSJobParameter` objects
-    representing the job parameters.
+    parameters and return the Pydantic model of the job parameters.
     """
 
     execution_duration: timedelta
@@ -121,18 +120,16 @@ class UWSConfig:
     """Route configuration for creating a sync job via GET.
 
     The FastAPI dependency included in this object should expect GET
-    parameters and return a list of `~safir.uws.UWSJobParameter` objects
-    representing the job parameters. If `None`, no route to create a job via
-    sync GET will be created.
+    parameters and the Pydantic model of the job parameters. If `None`, no
+    route to create a job via sync GET will be created.
     """
 
     sync_post_route: UWSRoute | None = None
     """Route configuration for creating a sync job via POST.
 
     The FastAPI dependency included in this object should expect POST
-    parameters and return a list of `~safir.uws.UWSJobParameter` objects
-    representing the job parameters. If `None`, no route to create a job via
-    sync POST will be created.
+    parameters and return the Pydantic model of the job parameters. If `None`,
+    no route to create a job via sync POST will be created.
     """
 
     sync_timeout: timedelta = timedelta(minutes=5)
@@ -276,8 +273,8 @@ class UWSAppSettings(BaseSettings):
         async_post_route
             Route configuration for job parameters for an async job via
             POST. The FastAPI dependency included in this object should expect
-            POST parameters and return a list of `~safir.uws.UWSJobParameter`
-            objects representing the job parameters.
+            POST parameters and return a Pydantic model representing the job
+            parameters.
         job_summary_type
             Type representing the XML job summary type, qualified with an
             appropriate subclass of `~vo_models.uws.models.Parameters`. That
@@ -292,15 +289,13 @@ class UWSAppSettings(BaseSettings):
         sync_get_route
             Route configuration for creating a sync job via GET. The FastAPI
             dependency included in this object should expect GET parameters
-            and return a list of `~safir.uws.UWSJobParameter` objects
-            representing the job parameters. If `None`, no route to create a
-            job via sync GET will be created.
+            and return a Pydantic model representing the job parameters. If
+            `None`, no route to create a job via sync GET will be created.
         sync_post_route
             Route configuration for creating a sync job via POST. The FastAPI
             dependency included in this object should expect POST parameters
-            and return a list of `~safir.uws.UWSJobParameter` objects
-            representing the job parameters. If `None`, no route to create a
-            job via sync POST will be created.
+            and return a Pydantic model representing the job parameters. If
+            `None`, no route to create a job via sync POST will be created.
         url_lifetime
             How long result URLs should be valid for.
         validate_destruction

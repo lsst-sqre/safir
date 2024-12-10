@@ -221,12 +221,6 @@ async def test_build_uws_worker(
     assert callable(job_started)
     job_completed = settings.functions[1]
     assert callable(job_completed)
-    assert settings.cron_jobs
-    assert len(settings.cron_jobs) == 1
-    expire_cron = settings.cron_jobs[0]
-    assert expire_cron.unique
-    expire_jobs = expire_cron.coroutine
-    assert callable(expire_jobs)
     assert settings.redis_settings == uws_config.arq_redis_settings
     assert not settings.allow_abort_jobs
     assert settings.job_completion_wait == UWS_DATABASE_TIMEOUT
@@ -294,7 +288,7 @@ async def test_build_uws_worker(
         job_completed(ctx, token, job.id),
         arq_queue.set_complete(job.message_id, result=error, success=False),
     )
-    job = await job_service.get("user", job.id)
+    job = await job_service.get(token, job.id)
     assert job.phase == ExecutionPhase.ERROR
     assert job.end_time
     assert job.end_time.microsecond == 0
@@ -334,7 +328,7 @@ async def test_build_uws_worker(
                         {"text": ANY, "type": "mrkdwn", "verbatim": True},
                         {"text": ANY, "type": "mrkdwn", "verbatim": True},
                         {
-                            "text": "*User*\nuser",
+                            "text": "*User*\ntest-user",
                             "type": "mrkdwn",
                             "verbatim": True,
                         },
