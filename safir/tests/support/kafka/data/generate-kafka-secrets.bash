@@ -26,7 +26,7 @@ mkdir -p "${OUT_DIR}"
 cd "${OUT_DIR}" || exit
 
 # PEM CA cert and key
-openssl req -new -x509 -keyout ${CA_KEY} -out ${CA_CERT} -days 365 -subj "/CN=ca" -nodes
+openssl req -new -x509 -addext 'keyUsage=critical, cRLSign, digitalSignature, keyCertSign' -keyout ${CA_KEY} -out ${CA_CERT} -days 365 -subj "/CN=ca" -nodes
 
 # Server truststore CA cert
 keytool -keystore ${SERVER_TRUSTSTORE} -alias CARoot -storepass ${PASSWORD} -importcert -file ${CA_CERT} -noprompt
