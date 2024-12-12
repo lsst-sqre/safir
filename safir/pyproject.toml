@@ -35,7 +35,7 @@ dependencies = [
     "pydantic-core",
     "pydantic-settings!=2.6.0,<3",
     "python-schema-registry-client>=2.6,<3",
-    "safir-logging<7",
+    "safir-logging",
     "starlette<1",
     "structlog>=21.2.0",
 ]
@@ -43,7 +43,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 arq = [
-    "safir-arq<7",
+    "safir-arq",
 ]
 db = [
     "alembic[tz]<2",
@@ -84,7 +84,7 @@ uws = [
     "google-cloud-storage<3",
     "jinja2<4",
     "python-multipart",
-    "safir-arq<7",
+    "safir-arq",
     "vo-models>=0.4.1,<1",
 ]
 
