@@ -141,7 +141,7 @@ See its documentation for a full list.
 There are two attributes that deserve special mention, however.
 
 The ``token`` attribute contains a delegated Gafaelfawr_ token to act on behalf of the user.
-This token must be included in an :samp:`Authorization: bearer <token>` header in any web request that the backend makes to other Rubin Science Platform services.
+This token must be included in an :samp:`Authorization: bearer {token}` header in any web request that the backend makes to other Rubin Science Platform services.
 
 The ``timeout`` attribute contains a `~datetime.timedelta` representation of the timeout for the job.
 The backend ideally should arrange to not exceed that total wall clock interval when executing.
@@ -175,7 +175,7 @@ Now that you have written the worker, add the name of the worker function to the
 It should be passed as the value of the ``worker`` argument.
 
 This argument should be the name of the backend worker function as a string.
-In the above example, it would be ``"worker"``.
+In the above example, it would be ``"example"``.
 It is *not* the function itself, just the name of the function as a Python string.
 
 Build the backend worker Docker image

@@ -8,22 +8,21 @@ standard.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
-from enum import StrEnum
-from typing import Generic, Self, TypeVar
+from typing import Annotated, Any, Generic, Literal, Self, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
 from vo_models.uws import (
     ErrorSummary,
     JobSummary,
-    Parameter,
     Parameters,
     ResultReference,
     Results,
     ShortJobDescription,
 )
 from vo_models.uws.types import ErrorType, ExecutionPhase, UWSVersion
+
+from safir.arq.uws import WorkerResult
+from safir.pydantic import SecondsTimedelta, UtcDatetime
 
 P = TypeVar("P", bound="ParametersModel")
 """Generic type for the parameters model."""
@@ -39,14 +38,18 @@ X = TypeVar("X", bound=Parameters)
 
 __all__ = [
     "ACTIVE_PHASES",
-    "ErrorCode",
+    "Job",
+    "JobCreate",
+    "JobError",
+    "JobResult",
+    "JobUpdateAborted",
+    "JobUpdateCompleted",
+    "JobUpdateError",
+    "JobUpdateExecuting",
+    "JobUpdateMetadata",
+    "JobUpdateQueued",
     "ParametersModel",
-    "UWSJob",
-    "UWSJobDescription",
-    "UWSJobError",
-    "UWSJobParameter",
-    "UWSJobResult",
-    "UWSJobResultSigned",
+    "SignedJobResult",
 ]
 
 
@@ -58,48 +61,8 @@ ACTIVE_PHASES = {
 """Phases in which the job is active and can be waited on."""
 
 
-class ErrorCode(StrEnum):
-    """Possible error codes in ``text/plain`` responses.
-
-    The following list of errors is taken from the SODA specification and
-    therefore may not be appropriate for all DALI services.
-    """
-
-    AUTHENTICATION_ERROR = "AuthenticationError"
-    AUTHORIZATION_ERROR = "AuthorizationError"
-    MULTIVALUED_PARAM_NOT_SUPPORTED = "MultiValuedParamNotSupported"
-    ERROR = "Error"
-    SERVICE_UNAVAILABLE = "ServiceUnavailable"
-    USAGE_ERROR = "UsageError"
-
-
 class ParametersModel(BaseModel, ABC, Generic[W, X]):
     """Defines the interface for a model suitable for job parameters."""
-
-    @classmethod
-    @abstractmethod
-    def from_job_parameters(cls, params: list[UWSJobParameter]) -> Self:
-        """Validate generic UWS parameters and convert to the internal model.
-
-        Parameters
-        ----------
-        params
-            Generic input job parameters.
-
-        Returns
-        -------
-        ParametersModel
-            Parsed cutout parameters specific to service.
-
-        Raises
-        ------
-        safir.uws.MultiValuedParameterError
-            Raised if multiple parameters are provided but not supported.
-        safir.uws.ParameterError
-            Raised if one of the parameters could not be parsed.
-        pydantic.ValidationError
-            Raised if the parameters do not validate.
-        """
 
     @abstractmethod
     def to_worker_parameters(self) -> W:
@@ -110,74 +73,121 @@ class ParametersModel(BaseModel, ABC, Generic[W, X]):
         """Convert to the XML model used in XML API responses."""
 
 
-@dataclass
-class UWSJobError:
+class JobError(BaseModel):
     """Failure information about a job."""
 
-    error_type: ErrorType
-    """Type of the error."""
+    type: Annotated[
+        ErrorType,
+        Field(
+            title="Error type",
+            description="Type of the error",
+            examples=[ErrorType.TRANSIENT, ErrorType.FATAL],
+        ),
+    ]
 
-    error_code: ErrorCode
-    """The SODA error code of this error."""
+    code: Annotated[
+        str,
+        Field(
+            title="Error code",
+            description="Code for this class of error",
+            examples=["ServiceUnavailable"],
+        ),
+    ]
 
-    message: str
-    """Brief error message.
+    message: Annotated[
+        str,
+        Field(
+            title="Error message",
+            description="Brief error messages",
+            examples=["Short error message"],
+        ),
+    ]
 
-    Note that the UWS specification allows a sequence of messages, but we only
-    use a single message and thus a sequence of length one.
-    """
-
-    detail: str | None = None
-    """Extended error message with additional detail."""
-
-    def to_dict(self) -> dict[str, str | None]:
-        """Convert to a dictionary, primarily for logging."""
-        return asdict(self)
+    detail: Annotated[
+        str | None,
+        Field(
+            title="Extended error message",
+            description="Extended error message with additional detail",
+            examples=["Some longer error message with details", None],
+        ),
+    ] = None
 
     def to_xml_model(self) -> ErrorSummary:
         """Convert to a Pydantic XML model."""
         return ErrorSummary(
-            message=f"{self.error_code.value}: {self.message}",
-            type=self.error_type,
+            message=f"{self.code}: {self.message}",
+            type=self.type,
             has_detail=self.detail is not None,
         )
 
 
-@dataclass
-class UWSJobResult:
-    """A single result from the job."""
+class JobResult(BaseModel):
+    """A single result from a job."""
 
-    result_id: str
-    """Identifier for the result."""
+    id: Annotated[
+        str,
+        Field(
+            title="Result ID",
+            description="Identifier for this result",
+            examples=["image", "metadata"],
+        ),
+    ]
 
-    url: str
-    """The URL for the result, which must point into a GCS bucket."""
+    url: Annotated[
+        str,
+        Field(
+            title="Result URL",
+            description="URL where the result is stored",
+            examples=["s3://service-result-bucket/some-file"],
+        ),
+    ]
 
-    size: int | None = None
-    """Size of the result in bytes."""
+    size: Annotated[
+        int | None,
+        Field(
+            title="Size of result",
+            description="Size of the result in bytes if known",
+            examples=[1238123, None],
+        ),
+    ] = None
 
-    mime_type: str | None = None
-    """MIME type of the result."""
+    mime_type: Annotated[
+        str | None,
+        Field(
+            title="MIME type of result",
+            description="MIME type of the result if known",
+            examples=["application/fits", "application/x-votable+xml", None],
+        ),
+    ] = None
+
+    @classmethod
+    def from_worker_result(cls, result: WorkerResult) -> Self:
+        """Convert from the `~safir.arq.uws.WorkerResult` model."""
+        return cls(
+            id=result.result_id,
+            url=result.url,
+            size=result.size,
+            mime_type=result.mime_type,
+        )
 
     def to_xml_model(self) -> ResultReference:
         """Convert to a Pydantic XML model."""
         return ResultReference(
-            id=self.result_id, size=self.size, mime_type=self.mime_type
+            id=self.id, size=self.size, mime_type=self.mime_type
         )
 
 
-@dataclass
-class UWSJobResultSigned(UWSJobResult):
+class SignedJobResult(JobResult):
     """A single result from the job with a signed URL.
 
-    A `UWSJobResult` is converted to a `UWSJobResultSigned` before generating
-    the response via templating or returning the URL as a redirect.
+    A `JobResult` is converted to a `SignedJobResult` before generating the
+    response via templating or returning the URL as a redirect.
     """
 
     def to_xml_model(self) -> ResultReference:
         """Convert to a Pydantic XML model."""
         return ResultReference(
-            id=self.result_id,
+            id=self.id,
             type=None,
             href=self.url,
             size=self.size,
@@ -185,59 +195,195 @@ class UWSJobResultSigned(UWSJobResult):
         )
 
 
-@dataclass
-class UWSJobParameter:
-    """An input parameter to the job."""
+class JobBase(BaseModel):
+    """Fields common to all variations of the job record."""
 
-    parameter_id: str
-    """Identifier of the parameter."""
+    json_parameters: Annotated[
+        dict[str, Any],
+        Field(
+            title="Job parameters",
+            description=(
+                "May be any JSON-serialized object. Stored opaquely and"
+                " returned as part of the job record."
+            ),
+            examples=[
+                {
+                    "ids": ["data-id"],
+                    "stencils": [
+                        {
+                            "type": "circle",
+                            "center": [1.1, 2.1],
+                            "radius": 0.001,
+                        }
+                    ],
+                },
+            ],
+        ),
+    ]
 
-    value: str
-    """Value of the parameter."""
+    run_id: Annotated[
+        str | None,
+        Field(
+            title="Client-provided run ID",
+            description=(
+                "The run ID allows the client to add a unique identifier to"
+                " all jobs that are part of a single operation, which may aid"
+                " in tracing issues through a complex system or identifying"
+                " which operation a job is part of"
+            ),
+            examples=["daily-2024-10-29"],
+        ),
+    ] = None
 
-    def to_dict(self) -> dict[str, str | bool]:
-        """Convert to a dictionary, primarily for logging."""
-        return asdict(self)
+    destruction_time: Annotated[
+        UtcDatetime,
+        Field(
+            title="Destruction time",
+            description=(
+                "At this time, the job will be aborted if it is still"
+                " running, its results will be deleted, and it will either"
+                " change phase to ARCHIVED or all record of the job will be"
+                " discarded"
+            ),
+            examples=["2024-11-29T23:57:55+00:00"],
+        ),
+    ]
 
-    def to_xml_model(self) -> Parameter:
-        """Convert to a Pydantic XML model."""
-        return Parameter(id=self.parameter_id, value=self.value)
+    execution_duration: Annotated[
+        SecondsTimedelta | None,
+        Field(
+            title="Maximum execution duration",
+            description=(
+                "Allowed maximum execution duration. This is specified in"
+                " elapsed wall clock time (not CPU time). If null, the"
+                " execution time is unlimited. If the job runs for longer than"
+                " this time period, it will be aborted."
+            ),
+        ),
+        PlainSerializer(
+            lambda t: int(t.total_seconds()) if t is not None else None,
+            return_type=int,
+        ),
+    ] = None
 
 
-@dataclass
-class UWSJobDescription:
-    """Brief job description used for the job list.
+class JobCreate(JobBase):
+    """Information required to create a new UWS job (Wobbly format)."""
 
-    This is a strict subset of the fields of `UWSJob`, but is kept separate
-    without an inheritance relationship to reflect how it's used in code.
-    """
 
-    job_id: str
-    """Unique identifier of the job."""
+class SerializedJob(JobBase):
+    """A single UWS job (Wobbly format)."""
 
-    message_id: str | None
-    """Internal message identifier for the work queuing system."""
+    id: Annotated[
+        str,
+        Field(
+            title="Job ID",
+            description="Unique identifier of the job",
+            examples=["47183"],
+        ),
+        BeforeValidator(lambda v: str(v) if isinstance(v, int) else v),
+    ]
 
-    owner: str
-    """Identity of the owner of the job."""
+    service: Annotated[
+        str,
+        Field(
+            title="Service",
+            description="Service responsible for this job",
+            examples=["vo-cutouts"],
+        ),
+    ]
 
-    phase: ExecutionPhase
-    """Execution phase of the job."""
+    owner: Annotated[
+        str,
+        Field(
+            title="Job owner",
+            description="Identity of the owner of the job",
+            examples=["someuser"],
+        ),
+    ]
 
-    run_id: str | None
-    """Optional opaque string provided by the client.
+    phase: Annotated[
+        ExecutionPhase,
+        Field(
+            title="Execution phase",
+            description="Current execution phase of the job",
+            examples=[
+                ExecutionPhase.PENDING,
+                ExecutionPhase.EXECUTING,
+                ExecutionPhase.COMPLETED,
+            ],
+        ),
+    ]
 
-    The RunId is intended for the client to add a unique identifier to all
-    jobs that are part of a single operation from the perspective of the
-    client.  This may aid in tracing issues through a complex system or
-    identifying which operation a job is part of.
-    """
+    message_id: Annotated[
+        str | None,
+        Field(
+            title="Work queue message ID",
+            description=(
+                "Internal message identifier for the work queuing system."
+                " Only meaningful to the service that stored this ID."
+            ),
+            examples=["e621a175-e3bf-4a61-98d7-483cb5fb9ec2"],
+        ),
+    ] = None
 
-    creation_time: datetime
-    """When the job was created."""
+    creation_time: Annotated[
+        UtcDatetime,
+        Field(
+            title="Creation time",
+            description="When the job was created",
+            examples=["2024-10-29T23:57:55+00:00"],
+        ),
+    ]
 
-    def to_xml_model(self, base_url: str) -> ShortJobDescription:
-        """Convert to a Pydantic XML model.
+    start_time: Annotated[
+        UtcDatetime | None,
+        Field(
+            title="Start time",
+            description="When the job started executing (if it has)",
+            examples=["2024-10-30T00:00:21+00:00", None],
+        ),
+    ] = None
+
+    end_time: Annotated[
+        UtcDatetime | None,
+        Field(
+            title="End time",
+            description="When the job stopped executing (if it has)",
+            examples=["2024-10-30T00:08:45+00:00", None],
+        ),
+    ] = None
+
+    quote: Annotated[
+        UtcDatetime | None,
+        Field(
+            title="Expected completion time",
+            description=(
+                "Expected completion time of the job if it were started now,"
+                " or null to indicate that the expected duration is not known."
+                " If later than the destruction time, indicates that the job"
+                " is not possible due to resource constraints."
+            ),
+        ),
+    ] = None
+
+    errors: Annotated[
+        list[JobError],
+        Field(
+            title="Error", description="Error information if the job failed"
+        ),
+    ] = []
+
+    results: Annotated[
+        list[JobResult],
+        Field(
+            title="Job results",
+            description="Results of the job, if it has finished",
+        ),
+    ] = []
+
+    def to_job_description(self, base_url: str) -> ShortJobDescription:
+        """Convert to the Pydantic XML model used for the summary of jobs.
 
         Parameters
         ----------
@@ -249,90 +395,67 @@ class UWSJobDescription:
             run_id=self.run_id,
             creation_time=self.creation_time,
             owner_id=self.owner,
-            job_id=self.job_id,
+            job_id=self.id,
             type=None,
-            href=f"{base_url}/{self.job_id}",
+            href=f"{base_url}/{self.id}",
         )
 
 
-@dataclass
-class UWSJob:
-    """Represents a single UWS job."""
+class Job(SerializedJob, Generic[P]):
+    """A single UWS job with deserialized parameters."""
 
-    job_id: str
-    """Unique identifier of the job."""
+    parameters: Annotated[
+        P,
+        Field(
+            title="Job parameters",
+            description=(
+                "Job parameters converted to their Pydantic model. Use"
+                " ``json_parameters`` for the serialized form sent over"
+                " the wire."
+            ),
+            exclude=True,
+        ),
+    ]
 
-    message_id: str | None
-    """Internal message identifier for the work queuing system."""
+    @classmethod
+    def from_serialized_job(
+        cls, job: SerializedJob, parameters_type: type[P]
+    ) -> Self:
+        """Convert from a serialized job returned by Wobbly.
 
-    owner: str
-    """Identity of the owner of the job."""
+        Parameters
+        ----------
+        job
+            Serialized job from Wobbly.
+        parameters_type
+            Model to use for job parameters.
 
-    phase: ExecutionPhase
-    """Execution phase of the job."""
+        Returns
+        -------
+        Job
+            Job with the correct parameters model.
 
-    run_id: str | None
-    """Optional opaque string provided by the client.
+        Raises
+        ------
+        pydantic.ValidationError
+            Raised if the serialized parameters cannot be validated.
+        """
+        job_dict = job.model_dump()
+        params = job_dict.get("json_parameters")
+        if params:
+            job_dict["parameters"] = parameters_type.model_validate(params)
+        return cls.model_validate(job_dict)
 
-    The RunId is intended for the client to add a unique identifier to all
-    jobs that are part of a single operation from the perspective of the
-    client. This may aid in tracing issues through a complex system or
-    identifying which operation a job is part of.
-    """
+    def to_serialized_job(self) -> SerializedJob:
+        """Convert to a serialized job suitable for sending to Wobbly."""
+        job = self.model_dump(mode="json")
+        return SerializedJob.model_validate(job)
 
-    creation_time: datetime
-    """When the job was created."""
-
-    start_time: datetime | None
-    """When the job started executing (if it has started)."""
-
-    end_time: datetime | None
-    """When the job stopped executing (if it has stopped)."""
-
-    destruction_time: datetime
-    """Time at which the job should be destroyed.
-
-    At this time, the job will be aborted if it is still running, its results
-    will be deleted, and all record of the job will be discarded.
-
-    This field is optional in the UWS standard, but in this UWS implementation
-    all jobs will have a destruction time, so it is not marked as optional.
-    """
-
-    execution_duration: timedelta
-    """Allowed maximum execution duration in seconds.
-
-    This is specified in elapsed wall clock time, or 0 for unlimited execution
-    time. If the job runs for longer than this time period, it will be
-    aborted.
-    """
-
-    quote: datetime | None
-    """Expected completion time of the job if it were started now.
-
-    May be `None` to indicate that the expected duration of the job is not
-    known. Maybe later than the destruction time to indicate that the job is
-    not possible due to resource constraints.
-    """
-
-    error: UWSJobError | None
-    """Error information if the job failed."""
-
-    parameters: list[UWSJobParameter]
-    """The parameters of the job."""
-
-    results: list[UWSJobResult]
-    """The results of the job."""
-
-    def to_xml_model(
-        self, parameters_type: type[P], job_summary_type: type[S]
-    ) -> S:
+    def to_xml_model(self, job_summary_type: type[S]) -> S:
         """Convert to a Pydantic XML model.
 
         Parameters
         ----------
-        parameters_type
-            Model class used for the job parameters.
         job_summary_type
             XML model class for the job summary.
 
@@ -344,9 +467,14 @@ class UWSJob:
         results = None
         if self.results:
             results = Results(results=[r.to_xml_model() for r in self.results])
-        parameters = parameters_type.from_job_parameters(self.parameters)
+        duration = None
+        if self.execution_duration:
+            duration = int(self.execution_duration.total_seconds())
+        error_summary = None
+        if self.errors:
+            error_summary = self.errors[0].to_xml_model()
         return job_summary_type(
-            job_id=self.job_id,
+            job_id=self.id,
             run_id=self.run_id,
             owner_id=self.owner,
             phase=self.phase,
@@ -354,10 +482,149 @@ class UWSJob:
             creation_time=self.creation_time,
             start_time=self.start_time,
             end_time=self.end_time,
-            execution_duration=int(self.execution_duration.total_seconds()),
+            execution_duration=duration,
             destruction=self.destruction_time,
-            parameters=parameters.to_xml_model(),
+            parameters=self.parameters.to_xml_model(),
             results=results,
-            error_summary=self.error.to_xml_model() if self.error else None,
+            error_summary=error_summary,
             version=UWSVersion.V1_1,
         )
+
+
+class JobUpdateAborted(BaseModel):
+    """Input model when aborting a job."""
+
+    phase: Annotated[
+        Literal[ExecutionPhase.ABORTED],
+        Field(
+            title="New phase",
+            description="New phase of job",
+            examples=[ExecutionPhase.ABORTED],
+        ),
+    ]
+
+
+class JobUpdateCompleted(BaseModel):
+    """Input model when marking a job as complete."""
+
+    phase: Annotated[
+        Literal[ExecutionPhase.COMPLETED],
+        Field(
+            title="New phase",
+            description="New phase of job",
+            examples=[ExecutionPhase.COMPLETED],
+        ),
+    ]
+
+    results: Annotated[
+        list[JobResult],
+        Field(title="Job results", description="All the results of the job"),
+    ]
+
+
+class JobUpdateExecuting(BaseModel):
+    """Input model when marking a job as executing."""
+
+    phase: Annotated[
+        Literal[ExecutionPhase.EXECUTING],
+        Field(
+            title="New phase",
+            description="New phase of job",
+            examples=[ExecutionPhase.EXECUTING],
+        ),
+    ]
+
+    start_time: Annotated[
+        UtcDatetime,
+        Field(
+            title="Start time",
+            description="When the job started executing",
+            examples=["2024-11-01T12:15:45+00:00"],
+        ),
+    ]
+
+
+class JobUpdateError(BaseModel):
+    """Input model when marking a job as failed."""
+
+    phase: Annotated[
+        Literal[ExecutionPhase.ERROR],
+        Field(
+            title="New phase",
+            description="New phase of job",
+            examples=[ExecutionPhase.ERROR],
+        ),
+    ]
+
+    errors: Annotated[
+        list[JobError],
+        Field(
+            title="Failure details",
+            description="Job failure error message and details",
+            min_length=1,
+        ),
+    ]
+
+
+class JobUpdateQueued(BaseModel):
+    """Input model when marking a job as queued."""
+
+    phase: Annotated[
+        Literal[ExecutionPhase.QUEUED],
+        Field(
+            title="New phase",
+            description="New phase of job",
+            examples=[ExecutionPhase.QUEUED],
+        ),
+    ]
+
+    message_id: Annotated[
+        str | None,
+        Field(
+            title="Queue message ID",
+            description="Corresponding message within a job queuing system",
+            examples=["4ce850a7-d877-4827-a3f6-f84534ec3fad"],
+        ),
+    ]
+
+
+class JobUpdateMetadata(BaseModel):
+    """Input model when updating job metadata."""
+
+    phase: Annotated[
+        None,
+        Field(
+            title="New phase", description="New phase of job", examples=[None]
+        ),
+    ] = None
+
+    destruction_time: Annotated[
+        UtcDatetime,
+        Field(
+            title="Destruction time",
+            description=(
+                "At this time, the job will be aborted if it is still"
+                " running, its results will be deleted, and it will either"
+                " change phase to ARCHIVED or all record of the job will be"
+                " discarded"
+            ),
+            examples=["2024-11-29T23:57:55+00:00"],
+        ),
+    ]
+
+    execution_duration: Annotated[
+        SecondsTimedelta | None,
+        Field(
+            title="Maximum execution duration",
+            description=(
+                "Allowed maximum execution duration. This is specified in"
+                " elapsed wall clock time (not CPU time). If null, the"
+                " execution time is unlimited. If the job runs for longer than"
+                " this time period, it will be aborted."
+            ),
+        ),
+        PlainSerializer(
+            lambda t: int(t.total_seconds()) if t else None,
+            return_type=int | None,
+        ),
+    ]

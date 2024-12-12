@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
-from pathlib import Path
 from typing import Any
 
-from arq import cron
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse
@@ -14,21 +11,15 @@ from structlog.stdlib import BoundLogger
 
 from safir.arq import ArqQueue, WorkerSettings
 from safir.arq.uws import UWS_QUEUE_NAME
-from safir.database import (
-    create_database_engine,
-    initialize_database,
-    is_database_current,
-    stamp_database_async,
-)
 from safir.middleware.ivoa import (
     CaseInsensitiveFormMiddleware,
     CaseInsensitiveQueryMiddleware,
 )
 
 from ._config import UWSConfig
-from ._constants import UWS_DATABASE_TIMEOUT, UWS_EXPIRE_JOBS_SCHEDULE
+from ._constants import UWS_DATABASE_TIMEOUT
 from ._dependencies import uws_dependency
-from ._exceptions import DatabaseSchemaError, UWSError
+from ._exceptions import UWSError
 from ._handlers import (
     install_async_post_handler,
     install_availability_handler,
@@ -36,11 +27,9 @@ from ._handlers import (
     install_sync_post_handler,
     uws_router,
 )
-from ._schema import UWSSchemaBase
 from ._workers import (
     close_uws_worker_context,
     create_uws_worker_context,
-    uws_expire_jobs,
     uws_job_completed,
     uws_job_started,
 )
@@ -51,7 +40,7 @@ __all__ = ["UWSApplication"]
 async def _uws_error_handler(
     request: Request, exc: UWSError
 ) -> PlainTextResponse:
-    response = f"{exc.error_code.value}: {exc!s}\n"
+    response = f"{exc.error_code}: {exc!s}\n"
     if exc.detail:
         response += "\n{exc.detail}"
     return PlainTextResponse(response, status_code=exc.status_code)
@@ -67,11 +56,10 @@ class UWSApplication:
     """Glue between a FastAPI application and the UWS implementation.
 
     An instance of this class should be created during construction of the
-    service that will use the UWS layer. It provides methods to initialize the
-    UWS database, build route handlers, install error handlers, and build the
-    UWS database worker. Construction of the backend worker that does the work
-    of the service is handled separately so that it can have minimal
-    dependencies.
+    service that will use the UWS layer. It provides methods to build route
+    handlers, install error handlers, and build the UWS database
+    worker. Construction of the backend worker that does the work of the
+    service is handled separately so that it can have minimal dependencies.
 
     Parameters
     ----------
@@ -82,50 +70,32 @@ class UWSApplication:
     def __init__(self, config: UWSConfig) -> None:
         self._config = config
 
-    def build_worker(
-        self,
-        logger: BoundLogger,
-        *,
-        check_schema: bool = False,
-        alembic_config_path: Path = Path("alembic.ini"),
-    ) -> WorkerSettings:
+    def build_worker(self, logger: BoundLogger) -> WorkerSettings:
         """Construct an arq worker configuration for the UWS worker.
 
         All UWS job status and results must be stored in the underlying
-        database, since the API serves job information from there. To minimize
-        dependencies for the worker, which may (for example) pin its own
-        version of SQLAlchemy that may not be compatible with that used by the
-        application, the actual worker is not responsible for storing the
-        results in SQL. Instead, it returns results via arq, which temporarily
-        puts them in Redis then uses ``on_job_start`` and ``after_job_end`` to
-        notify a different queue. Those results are recovered and stored in
-        the database by separate a separate arq worker.
+        database (via Wobbly), since the API serves job information from
+        there. To minimize dependencies for the worker, which may (for
+        example) pin its own version of SQLAlchemy that may not be compatible
+        with that used by the application, the actual worker is not
+        responsible for storing the results in the database. Instead, it
+        returns results via arq, which temporarily puts them in Redis then
+        uses ``on_job_start`` and ``after_job_end`` to notify a different
+        queue. Those results are recovered and stored in the database (via
+        Wobbly) by a separate arq worker.
 
-        This function returns a class suitable for assigning to a module
-        variable and referencing as the argument to the :command:`arq`
-        command-line tool to start the worker.
+        This function defines that database worker. It returns a class
+        suitable for assigning to a module variable and referencing as the
+        argument to the :command:`arq` command-line tool to start the worker.
 
         Parameters
         ----------
         logger
             Logger to use for messages.
-        check_schema
-            Whether to check the database schema version with Alembic on
-            startup.
-        alembic_config_path
-            When checking the schema, use this path to the Alembic
-            configuration.
         """
 
         async def startup(ctx: dict[Any, Any]) -> None:
-            ctx.update(
-                await create_uws_worker_context(
-                    self._config,
-                    logger,
-                    check_schema=check_schema,
-                    alembic_config_path=alembic_config_path,
-                )
-            )
+            ctx.update(await create_uws_worker_context(self._config, logger))
 
         async def shutdown(ctx: dict[Any, Any]) -> None:
             await close_uws_worker_context(ctx)
@@ -133,14 +103,6 @@ class UWSApplication:
         # Running 10 jobs simultaneously is the arq default as of arq 0.26.0
         # and seems reasonable for database workers.
         return WorkerSettings(
-            cron_jobs=[
-                cron(
-                    uws_expire_jobs,
-                    unique=True,
-                    timeout=UWS_DATABASE_TIMEOUT,
-                    **asdict(UWS_EXPIRE_JOBS_SCHEDULE),
-                )
-            ],
             functions=[uws_job_started, uws_job_completed],
             redis_settings=self._config.arq_redis_settings,
             job_completion_wait=UWS_DATABASE_TIMEOUT,
@@ -151,70 +113,13 @@ class UWSApplication:
             on_shutdown=shutdown,
         )
 
-    async def initialize_fastapi(
-        self,
-        logger: BoundLogger | None = None,
-        *,
-        check_schema: bool = False,
-        alembic_config_path: Path = Path("alembic.ini"),
-    ) -> None:
+    async def initialize_fastapi(self) -> None:
         """Initialize the UWS subsystem for FastAPI applications.
 
         This must be called before any UWS routes are accessed, normally from
         the lifespan function of the FastAPI application.
-
-        Parameters
-        ----------
-        logger
-            Logger to use to report any problems.
-        check_schema
-            If `True`, check whether the database schema for the UWS database
-            is up to date using Alembic.
-        alembic_config_path
-            When checking the schema, use this path to the Alembic
-            configuration.
-
-        Raises
-        ------
-        DatabaseSchemaError
-            Raised if the UWS database schema is out of date.
         """
-        if check_schema:
-            if not await self.is_schema_current(logger, alembic_config_path):
-                raise DatabaseSchemaError("UWS database schema out of date")
         await uws_dependency.initialize(self._config)
-
-    async def initialize_uws_database(
-        self,
-        logger: BoundLogger,
-        *,
-        reset: bool = False,
-        use_alembic: bool = False,
-        alembic_config_path: Path = Path("alembic.ini"),
-    ) -> None:
-        """Initialize the UWS database.
-
-        Parameters
-        ----------
-        logger
-            Logger to use.
-        reset
-            If `True`, also delete all data in the database.
-        use_alembic
-            Whether to stamp the UWS database with Alembic.
-        alembic_config_path
-            When stamping the database, use this path to the Alembic
-            configuration.
-        """
-        engine = create_database_engine(
-            self._config.database_url, self._config.database_password
-        )
-        await initialize_database(
-            engine, logger, schema=UWSSchemaBase.metadata, reset=reset
-        )
-        if use_alembic:
-            await stamp_database_async(engine, alembic_config_path)
-        await engine.dispose()
 
     def install_error_handlers(self, app: FastAPI) -> None:
         """Install error handlers that follow DALI and UWS conventions.
@@ -276,28 +181,6 @@ class UWSApplication:
         app.add_middleware(CaseInsensitiveFormMiddleware)
         app.add_middleware(CaseInsensitiveQueryMiddleware)
 
-    async def is_schema_current(
-        self,
-        logger: BoundLogger | None = None,
-        config_path: Path = Path("alembic.ini"),
-    ) -> bool:
-        """Check that the database schema is current using Alembic.
-
-        Parameters
-        ----------
-        logger
-            Logger to use to report any problems.
-        config_path
-            Path to the Alembic configuration.
-        """
-        engine = create_database_engine(
-            self._config.database_url, self._config.database_password
-        )
-        try:
-            return await is_database_current(engine, logger, config_path)
-        finally:
-            await engine.dispose()
-
     def override_arq_queue(self, arq_queue: ArqQueue) -> None:
         """Change the arq used by the FastAPI route handlers.
 
@@ -314,6 +197,7 @@ class UWSApplication:
         """Shut down the UWS subsystem for FastAPI applications.
 
         This should be called during application shutdown, normally from the
-        lifespan function of the FastAPI application.
+        lifespan function of the FastAPI application. Currently, this does
+        nothing, but it remains as a hook in case some shutdown is required in
+        the future.
         """
-        await uws_dependency.aclose()

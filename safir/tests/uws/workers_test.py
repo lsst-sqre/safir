@@ -27,10 +27,9 @@ from safir.arq.uws import (
 )
 from safir.datetime import current_datetime
 from safir.testing.slack import MockSlackWebhook
-from safir.uws import UWSApplication, UWSConfig, UWSJobParameter
+from safir.uws import JobResult, UWSApplication, UWSConfig
 from safir.uws._constants import UWS_DATABASE_TIMEOUT
 from safir.uws._dependencies import UWSFactory
-from safir.uws._models import ErrorCode, UWSJobResult
 from safir.uws._storage import JobStore
 
 from ..support.uws import SimpleParameters
@@ -50,7 +49,10 @@ def hello(
 
 @pytest.mark.asyncio
 async def test_build_worker(
-    uws_config: UWSConfig, logger: BoundLogger
+    uws_config: UWSConfig,
+    test_token: str,
+    test_username: str,
+    logger: BoundLogger,
 ) -> None:
     redis_settings = uws_config.arq_redis_settings
     worker_config = WorkerConfig(
@@ -90,8 +92,8 @@ async def test_build_worker(
     params = SimpleParameters(name="Roger")
     info = WorkerJobInfo(
         job_id="42",
-        user="someuser",
-        token="some-token",
+        user=test_username,
+        token=test_token,
         timeout=timedelta(minutes=1),
         run_id="some-run-id",
     )
@@ -103,7 +105,7 @@ async def test_build_worker(
         JobMetadata(
             id=ANY,
             name="uws_job_started",
-            args=("42", ANY),
+            args=(test_token, "42", ANY),
             kwargs={},
             enqueue_time=ANY,
             status=JobStatus.queued,
@@ -112,7 +114,7 @@ async def test_build_worker(
         JobMetadata(
             id=ANY,
             name="uws_job_completed",
-            args=("42",),
+            args=(test_token, "42"),
             kwargs={},
             enqueue_time=ANY,
             status=JobStatus.queued,
@@ -126,7 +128,12 @@ async def test_build_worker(
 
 
 @pytest.mark.asyncio
-async def test_timeout(uws_config: UWSConfig, logger: BoundLogger) -> None:
+async def test_timeout(
+    uws_config: UWSConfig,
+    test_token: str,
+    test_username: str,
+    logger: BoundLogger,
+) -> None:
     redis_settings = uws_config.arq_redis_settings
     worker_config = WorkerConfig(
         arq_mode=uws_config.arq_mode,
@@ -154,8 +161,8 @@ async def test_timeout(uws_config: UWSConfig, logger: BoundLogger) -> None:
     params = SimpleParameters(name="Timeout")
     info = WorkerJobInfo(
         job_id="42",
-        user="someuser",
-        token="some-token",
+        user=test_username,
+        token=test_token,
         timeout=timedelta(seconds=1),
         run_id="some-run-id",
     )
@@ -165,7 +172,7 @@ async def test_timeout(uws_config: UWSConfig, logger: BoundLogger) -> None:
         JobMetadata(
             id=ANY,
             name="uws_job_started",
-            args=("42", ANY),
+            args=(test_token, "42", ANY),
             kwargs={},
             enqueue_time=ANY,
             status=JobStatus.queued,
@@ -174,7 +181,7 @@ async def test_timeout(uws_config: UWSConfig, logger: BoundLogger) -> None:
         JobMetadata(
             id=ANY,
             name="uws_job_completed",
-            args=("42",),
+            args=(test_token, "42"),
             kwargs={},
             enqueue_time=ANY,
             status=JobStatus.queued,
@@ -201,18 +208,18 @@ async def test_timeout(uws_config: UWSConfig, logger: BoundLogger) -> None:
 async def test_build_uws_worker(
     arq_queue: MockArqQueue,
     uws_config: UWSConfig,
+    test_token: str,
+    test_username: str,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
     logger: BoundLogger,
 ) -> None:
     uws = UWSApplication(uws_config)
     job_service = uws_factory.create_job_service()
-    job = await job_service.create(
-        "user", params=[UWSJobParameter(parameter_id="name", value="Ahmed")]
-    )
-    results = [UWSJobResult(result_id="greeting", url="https://example.com")]
-    await job_service.start("user", job.job_id, "some-token")
-    job = await job_service.get("user", job.job_id)
+    job = await job_service.create(test_token, SimpleParameters(name="Ahmed"))
+    results = [WorkerResult(result_id="greeting", url="https://example.com")]
+    await job_service.start(test_token, test_username, job.id)
+    job = await job_service.get(test_token, job.id)
     assert job.start_time is None
     assert job.phase == ExecutionPhase.QUEUED
 
@@ -223,12 +230,6 @@ async def test_build_uws_worker(
     assert callable(job_started)
     job_completed = settings.functions[1]
     assert callable(job_completed)
-    assert settings.cron_jobs
-    assert len(settings.cron_jobs) == 1
-    expire_cron = settings.cron_jobs[0]
-    assert expire_cron.unique
-    expire_jobs = expire_cron.coroutine
-    assert callable(expire_jobs)
     assert settings.redis_settings == uws_config.arq_redis_settings
     assert not settings.allow_abort_jobs
     assert settings.job_completion_wait == UWS_DATABASE_TIMEOUT
@@ -250,38 +251,24 @@ async def test_build_uws_worker(
     now = current_datetime()
     assert job.message_id
     await arq_queue.set_in_progress(job.message_id)
-    await job_started(ctx, job.job_id, now)
-    job = await job_service.get("user", job.job_id)
+    await job_started(ctx, test_token, job.id, now)
+    job = await job_service.get(test_token, job.id)
     assert job.phase == ExecutionPhase.EXECUTING
     assert job.start_time == now
 
     # Test finishing a job.
     assert job.message_id
     await asyncio.gather(
-        job_completed(ctx, job.job_id),
+        job_completed(ctx, test_token, job.id),
         arq_queue.set_complete(job.message_id, result=results),
     )
-    job = await job_service.get("user", job.job_id)
+    job = await job_service.get(test_token, job.id)
     assert job.phase == ExecutionPhase.COMPLETED
     assert job.end_time
     assert job.end_time.microsecond == 0
     assert now <= job.end_time <= current_datetime()
-    assert job.results == results
+    assert job.results == [JobResult.from_worker_result(r) for r in results]
     assert mock_slack.messages == []
-
-    # Expiring jobs should do nothing since the destruction time of our one
-    # job has not passed.
-    jobs = await job_service.list_jobs("user", "https://example.com")
-    await expire_jobs(ctx)
-    assert await job_service.list_jobs("user", "https://example.com") == jobs
-
-    # Change the destruction date of the job and then it should be expired.
-    past = current_datetime() - timedelta(minutes=5)
-    expires = await job_service.update_destruction("user", job.job_id, past)
-    assert expires == past
-    await expire_jobs(ctx)
-    jobs = await job_service.list_jobs("user", "https://example.com")
-    assert not jobs.jobref
 
     def nonnegative(value: int) -> None:
         if value < 0:
@@ -296,35 +283,34 @@ async def test_build_uws_worker(
             ) from e
 
     # Test starting and erroring a job with a TaskError.
-    job = await job_service.create(
-        "user", params=[UWSJobParameter(parameter_id="name", value="Ahmed")]
-    )
-    await job_service.start("user", job.job_id, "some-token")
-    job = await job_service.get("user", job.job_id)
+    job = await job_service.create(test_token, SimpleParameters(name="Ahmed"))
+    await job_service.start(test_token, test_username, job.id)
+    job = await job_service.get(test_token, job.id)
     assert job.message_id
     await arq_queue.set_in_progress(job.message_id)
-    await job_started(ctx, job.job_id, now)
+    await job_started(ctx, test_token, job.id, now)
     try:
         make_exception()
     except WorkerFatalError as e:
         error = e
     await asyncio.gather(
-        job_completed(ctx, job.job_id),
+        job_completed(ctx, test_token, job.id),
         arq_queue.set_complete(job.message_id, result=error, success=False),
     )
-    job = await job_service.get("user", job.job_id)
+    job = await job_service.get(test_token, job.id)
     assert job.phase == ExecutionPhase.ERROR
     assert job.end_time
     assert job.end_time.microsecond == 0
     assert now <= job.end_time <= current_datetime()
-    assert job.error
-    assert job.error.error_type == ErrorType.FATAL
-    assert job.error.error_code == ErrorCode.ERROR
-    assert job.error.message == "Something"
-    assert job.error.detail
-    assert "went wrong" in job.error.detail
+    assert job.errors
+    assert len(job.errors) == 1
+    assert job.errors[0].type == ErrorType.FATAL
+    assert job.errors[0].code == "Error"
+    assert job.errors[0].message == "Something"
+    assert job.errors[0].detail
+    assert "went wrong" in job.errors[0].detail
     assert error.traceback
-    assert error.traceback in job.error.detail
+    assert error.traceback in job.errors[0].detail
     assert mock_slack.messages == [
         {
             "blocks": [
@@ -351,7 +337,7 @@ async def test_build_uws_worker(
                         {"text": ANY, "type": "mrkdwn", "verbatim": True},
                         {"text": ANY, "type": "mrkdwn", "verbatim": True},
                         {
-                            "text": "*User*\nuser",
+                            "text": f"*User*\n{test_username}",
                             "type": "mrkdwn",
                             "verbatim": True,
                         },
@@ -396,26 +382,25 @@ async def test_build_uws_worker(
 
     # Test starting and erroring a job with an unknown exception.
     mock_slack.messages = []
-    job = await job_service.create(
-        "user", params=[UWSJobParameter(parameter_id="name", value="Ahmed")]
-    )
-    await job_service.start("user", job.job_id, "some-token")
-    job = await job_service.get("user", job.job_id)
+    job = await job_service.create(test_token, SimpleParameters(name="Ahmed"))
+    await job_service.start(test_token, test_username, job.id)
+    job = await job_service.get(test_token, job.id)
     assert job.message_id
     await arq_queue.set_in_progress(job.message_id)
-    await job_started(ctx, job.job_id, now)
+    await job_started(ctx, test_token, job.id, now)
     exc = ValueError("some error")
     await asyncio.gather(
-        job_completed(ctx, job.job_id),
+        job_completed(ctx, test_token, job.id),
         arq_queue.set_complete(job.message_id, result=exc, success=False),
     )
-    job = await job_service.get("user", job.job_id)
+    job = await job_service.get(test_token, job.id)
     assert job.phase == ExecutionPhase.ERROR
-    assert job.error
-    assert job.error.error_type == ErrorType.FATAL
-    assert job.error.error_code == ErrorCode.ERROR
-    assert job.error.message == "Unknown error executing task"
-    assert job.error.detail == "ValueError: some error"
+    assert job.errors
+    assert len(job.errors) == 1
+    assert job.errors[0].type == ErrorType.FATAL
+    assert job.errors[0].code == "Error"
+    assert job.errors[0].message == "Unknown error executing task"
+    assert job.errors[0].detail == "ValueError: some error"
     assert mock_slack.messages == [
         {
             "blocks": [

@@ -16,6 +16,7 @@
 .. _pre-commit: https://pre-commit.com
 .. _Pydantic: https://docs.pydantic.dev/latest/
 .. _Pydantic BaseSettings: https://docs.pydantic.dev/latest/concepts/pydantic_settings
+.. _pydantic-xml: https://pydantic-xml.readthedocs.io/en/latest/
 .. _PyPI: https://pypi.org/project/safir/
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _redis-py: https://redis.readthedocs.io/en/stable/
@@ -33,3 +34,4 @@
 .. _Uvicorn: https://www.uvicorn.org/
 .. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.io/en/stable/
 .. _vo-models: https://vo-models.readthedocs.io/latest/
+.. _Wobbly: https://github.com/lsst-sqre/wobbly/

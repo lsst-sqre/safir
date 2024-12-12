@@ -10,11 +10,10 @@ from safir.arq.uws import WorkerFatalError, WorkerTransientError
 from safir.datetime import isodatetime
 from safir.testing.slack import MockSlackWebhook
 from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
-from safir.uws import UWSJobParameter
 from safir.uws._dependencies import UWSFactory
 from safir.uws._exceptions import TaskError
 
-from ..support.uws import SimpleXmlParameters
+from ..support.uws import SimpleParameters, SimpleXmlParameters
 
 ERRORED_JOB = """
 <uws:job
@@ -25,7 +24,7 @@ ERRORED_JOB = """
     xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <uws:jobId>1</uws:jobId>
-  <uws:ownerId>user</uws:ownerId>
+  <uws:ownerId>test-user</uws:ownerId>
   <uws:phase>ERROR</uws:phase>
   <uws:creationTime>{}</uws:creationTime>
   <uws:startTime>{}</uws:startTime>
@@ -54,39 +53,30 @@ JOB_ERROR_SUMMARY = """
 @pytest.mark.asyncio
 async def test_temporary_error(
     client: AsyncClient,
+    test_token: str,
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
 ) -> None:
     job_service = uws_factory.create_job_service()
-    await job_service.create(
-        "user", params=[UWSJobParameter(parameter_id="name", value="Sarah")]
-    )
+    await job_service.create(test_token, SimpleParameters(name="Sarah"))
 
     # The pending job has no error.
-    r = await client.get(
-        "/test/jobs/1/error", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/error")
     assert r.status_code == 404
 
     # Execute the job.
-    r = await client.post(
-        "/test/jobs/1/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "RUN"},
-    )
+    r = await client.post("/test/jobs/1/phase", data={"PHASE": "RUN"})
     assert r.status_code == 303
-    await runner.mark_in_progress("user", "1")
+    await runner.mark_in_progress(test_token, "1")
     exc = WorkerTransientError("Something failed")
     result = TaskError.from_worker_error(exc)
-    job = await runner.mark_complete("user", "1", result)
+    job = await runner.mark_complete(test_token, "1", result)
 
     # Check the results.
     assert job.start_time
     assert job.end_time
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert_job_summary_equal(
         JobSummary[SimpleXmlParameters],
@@ -103,9 +93,7 @@ async def test_temporary_error(
     )
 
     # Retrieve the error separately.
-    r = await client.get(
-        "/test/jobs/1/error", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/error")
     assert r.status_code == 200
     assert r.text == JOB_ERROR_SUMMARY.strip().format(
         "ServiceUnavailable: Something failed"
@@ -118,33 +106,26 @@ async def test_temporary_error(
 @pytest.mark.asyncio
 async def test_fatal_error(
     client: AsyncClient,
+    test_token: str,
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
 ) -> None:
     job_service = uws_factory.create_job_service()
-    await job_service.create(
-        "user", params=[UWSJobParameter(parameter_id="name", value="Sarah")]
-    )
+    await job_service.create(test_token, SimpleParameters(name="Sarah"))
 
     # Start the job.
-    r = await client.post(
-        "/test/jobs/1/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "RUN"},
-    )
+    r = await client.post("/test/jobs/1/phase", data={"PHASE": "RUN"})
     assert r.status_code == 303
-    await runner.mark_in_progress("user", "1")
+    await runner.mark_in_progress(test_token, "1")
     exc = WorkerFatalError("Whoops", "Some details")
     result = TaskError.from_worker_error(exc)
-    job = await runner.mark_complete("user", "1", result)
+    job = await runner.mark_complete(test_token, "1", result)
 
     # Check the results.
     assert job.start_time
     assert job.end_time
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert_job_summary_equal(
         JobSummary[SimpleXmlParameters],
@@ -161,9 +142,7 @@ async def test_fatal_error(
     )
 
     # Retrieve the error separately.
-    r = await client.get(
-        "/test/jobs/1/error", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/error")
     assert r.status_code == 200
     assert r.text == JOB_ERROR_SUMMARY.strip().format(
         "Error: Whoops\n\nSome details"
@@ -176,32 +155,25 @@ async def test_fatal_error(
 @pytest.mark.asyncio
 async def test_unknown_error(
     client: AsyncClient,
+    test_token: str,
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
 ) -> None:
     job_service = uws_factory.create_job_service()
-    await job_service.create(
-        "user", params=[UWSJobParameter(parameter_id="name", value="Sarah")]
-    )
+    await job_service.create(test_token, SimpleParameters(name="Sarah"))
 
     # Start the job.
-    r = await client.post(
-        "/test/jobs/1/phase",
-        headers={"X-Auth-Request-User": "user"},
-        data={"PHASE": "RUN"},
-    )
+    r = await client.post("/test/jobs/1/phase", data={"PHASE": "RUN"})
     assert r.status_code == 303
-    await runner.mark_in_progress("user", "1")
+    await runner.mark_in_progress(test_token, "1")
     result = ValueError("Unknown exception")
-    job = await runner.mark_complete("user", "1", result)
+    job = await runner.mark_complete(test_token, "1", result)
 
     # Check the results.
     assert job.start_time
     assert job.end_time
-    r = await client.get(
-        "/test/jobs/1", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1")
     assert r.status_code == 200
     assert_job_summary_equal(
         JobSummary[SimpleXmlParameters],
@@ -218,9 +190,7 @@ async def test_unknown_error(
     )
 
     # Retrieve the error separately.
-    r = await client.get(
-        "/test/jobs/1/error", headers={"X-Auth-Request-User": "user"}
-    )
+    r = await client.get("/test/jobs/1/error")
     assert r.status_code == 200
     assert r.text == JOB_ERROR_SUMMARY.strip().format(
         "Error: Unknown error executing task\n\n"

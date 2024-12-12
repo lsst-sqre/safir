@@ -11,7 +11,6 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Form, Query, Request, Response
 from fastapi.responses import PlainTextResponse, RedirectResponse
-from structlog.stdlib import BoundLogger
 from vo_models.uws import Jobs, JobSummary, Results
 from vo_models.uws.types import ExecutionPhase
 
@@ -19,7 +18,6 @@ from safir.datetime import isodatetime
 from safir.dependencies.gafaelfawr import (
     auth_delegated_token_dependency,
     auth_dependency,
-    auth_logger_dependency,
 )
 from safir.pydantic import IvoaIsoDatetime
 from safir.slack.webhook import SlackRouteErrorHandler
@@ -32,7 +30,7 @@ from ._dependencies import (
     uws_dependency,
 )
 from ._exceptions import DataMissingError
-from ._models import UWSJobParameter
+from ._models import ParametersModel
 
 uws_router = APIRouter(route_class=SlackRouteErrorHandler)
 """FastAPI router for all external handlers."""
@@ -85,12 +83,12 @@ async def get_job_list(
             description="Return at most the given number of jobs",
         ),
     ] = None,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
     jobs = await job_service.list_jobs(
-        user,
+        token,
         base_url=str(request.url_for("get_job_list")),
         phases=phase,
         after=after,
@@ -137,13 +135,13 @@ async def get_job(
             ),
         ),
     ] = None,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
     result_store = uws_factory.create_result_store()
     job = await job_service.get_summary(
-        user, job_id, signer=result_store, wait_seconds=wait, wait_phase=phase
+        token, job_id, signer=result_store, wait_seconds=wait, wait_phase=phase
     )
     xml = job.to_xml(skip_empty=True)
     return Response(content=xml, media_type="application/xml")
@@ -159,11 +157,11 @@ async def delete_job(
     job_id: str,
     *,
     request: Request,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    await job_service.delete(user, job_id)
+    await job_service.delete(token, job_id)
     return str(request.url_for("get_job_list"))
 
 
@@ -187,11 +185,11 @@ async def delete_job_via_post(
         ),
     ] = None,
     request: Request,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    await job_service.delete(user, job_id)
+    await job_service.delete(token, job_id)
     return str(request.url_for("get_job_list"))
 
 
@@ -203,11 +201,11 @@ async def delete_job_via_post(
 async def get_job_destruction(
     job_id: str,
     *,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
+    job = await job_service.get(token, job_id)
     return isodatetime(job.destruction_time)
 
 
@@ -229,11 +227,11 @@ async def post_job_destruction(
         ),
     ],
     request: Request,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    await job_service.update_destruction(user, job_id, destruction)
+    await job_service.update_destruction(token, job_id, destruction)
     return str(request.url_for("get_job", job_id=job_id))
 
 
@@ -249,15 +247,20 @@ async def get_job_error(
     job_id: str,
     *,
     request: Request,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
-    error = await job_service.get_error(user, job_id)
-    if not error:
+    errors = await job_service.get_error(token, job_id)
+    if not errors:
         raise DataMissingError(f"Job {job_id} did not fail")
     templates = uws_factory.create_templates()
-    return templates.error(request, error)
+
+    # Wobbly supports storing multiple errors for a job, but currently the
+    # templating into a VOTable only supports a single error and the code to
+    # store the error only stores a single error. For now, return only the
+    # first element of the list of errors.
+    return templates.error(request, errors[0])
 
 
 @uws_router.get(
@@ -268,12 +271,15 @@ async def get_job_error(
 async def get_job_execution_duration(
     job_id: str,
     *,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
-    return str(int(job.execution_duration.total_seconds()))
+    job = await job_service.get(token, job_id)
+    if job.execution_duration:
+        return str(int(job.execution_duration.total_seconds()))
+    else:
+        return "0"
 
 
 @uws_router.post(
@@ -291,16 +297,18 @@ async def post_job_execution_duration(
             title="New execution duration",
             description="Integer seconds of wall clock time.",
             examples=[14400],
-            ge=1,
+            ge=0,
         ),
     ],
     request: Request,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    duration = timedelta(seconds=executionduration)
-    await job_service.update_execution_duration(user, job_id, duration)
+    duration = None
+    if executionduration > 0:
+        duration = timedelta(seconds=executionduration)
+    await job_service.update_execution_duration(token, job_id, duration)
     return str(request.url_for("get_job", job_id=job_id))
 
 
@@ -312,11 +320,11 @@ async def post_job_execution_duration(
 async def get_job_owner(
     job_id: str,
     *,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
+    job = await job_service.get(token, job_id)
     return job.owner
 
 
@@ -329,11 +337,11 @@ async def get_job_parameters(
     job_id: str,
     *,
     request: Request,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get_summary(user, job_id)
+    job = await job_service.get_summary(token, job_id)
     if not job.parameters:
         raise DataMissingError(f"Job {job_id} has no parameters")
     xml = job.parameters.to_xml(skip_empty=True)
@@ -348,11 +356,11 @@ async def get_job_parameters(
 async def get_job_phase(
     job_id: str,
     *,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
+    job = await job_service.get(token, job_id)
     return job.phase.value
 
 
@@ -374,15 +382,14 @@ async def post_job_phase(
     ] = None,
     request: Request,
     user: Annotated[str, Depends(auth_dependency)],
-    access_token: Annotated[str, Depends(auth_delegated_token_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
-    logger: Annotated[BoundLogger, Depends(auth_logger_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
     if phase == "ABORT":
-        await job_service.abort(user, job_id)
+        await job_service.abort(token, job_id)
     elif phase == "RUN":
-        await job_service.start(user, job_id, access_token)
+        await job_service.start(token, user, job_id)
     return str(request.url_for("get_job", job_id=job_id))
 
 
@@ -394,11 +401,11 @@ async def post_job_phase(
 async def get_job_quote(
     job_id: str,
     *,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> str:
     job_service = uws_factory.create_job_service()
-    job = await job_service.get(user, job_id)
+    job = await job_service.get(token, job_id)
     if job.quote:
         return isodatetime(job.quote)
     else:
@@ -422,12 +429,12 @@ async def get_job_results(
     job_id: str,
     *,
     request: Request,
-    user: Annotated[str, Depends(auth_dependency)],
+    token: Annotated[str, Depends(auth_delegated_token_dependency)],
     uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
 ) -> Response:
     job_service = uws_factory.create_job_service()
     result_store = uws_factory.create_result_store()
-    job = await job_service.get_summary(user, job_id, signer=result_store)
+    job = await job_service.get_summary(token, job_id, signer=result_store)
     if not job.results:
         raise DataMissingError(f"Job {job_id} has no results")
     xml = job.results.to_xml(skip_empty=True)
@@ -483,19 +490,17 @@ def install_async_post_handler(router: APIRouter, route: UWSRoute) -> None:
         phase: Annotated[
             Literal["RUN"] | None, Depends(create_phase_dependency)
         ] = None,
-        parameters: Annotated[
-            list[UWSJobParameter], Depends(route.dependency)
-        ],
+        parameters: Annotated[ParametersModel, Depends(route.dependency)],
         runid: Annotated[str | None, Depends(runid_post_dependency)],
         user: Annotated[str, Depends(auth_dependency)],
         token: Annotated[str, Depends(auth_delegated_token_dependency)],
         uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
     ) -> str:
         job_service = uws_factory.create_job_service()
-        job = await job_service.create(user, run_id=runid, params=parameters)
+        job = await job_service.create(token, parameters, run_id=runid)
         if phase == "RUN":
-            await job_service.start(user, job.job_id, token)
-        return str(request.url_for("get_job", job_id=job.job_id))
+            await job_service.start(token, user, job.id)
+        return str(request.url_for("get_job", job_id=job.id))
 
 
 def install_sync_post_handler(router: APIRouter, route: UWSRoute) -> None:
@@ -519,7 +524,7 @@ def install_sync_post_handler(router: APIRouter, route: UWSRoute) -> None:
     async def post_sync(
         *,
         runid: Annotated[str | None, Depends(runid_post_dependency)],
-        params: Annotated[list[UWSJobParameter], Depends(route.dependency)],
+        parameters: Annotated[ParametersModel, Depends(route.dependency)],
         user: Annotated[str, Depends(auth_dependency)],
         token: Annotated[str, Depends(auth_delegated_token_dependency)],
         uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
@@ -527,7 +532,7 @@ def install_sync_post_handler(router: APIRouter, route: UWSRoute) -> None:
         job_service = uws_factory.create_job_service()
         result_store = uws_factory.create_result_store()
         result = await job_service.run_sync(
-            user, params, token=token, runid=runid
+            token, user, parameters, runid=runid
         )
         return result_store.sign_url(result).url
 
@@ -563,7 +568,7 @@ def install_sync_get_handler(router: APIRouter, route: UWSRoute) -> None:
                 ),
             ),
         ] = None,
-        params: Annotated[list[UWSJobParameter], Depends(route.dependency)],
+        parameters: Annotated[ParametersModel, Depends(route.dependency)],
         user: Annotated[str, Depends(auth_dependency)],
         token: Annotated[str, Depends(auth_delegated_token_dependency)],
         uws_factory: Annotated[UWSFactory, Depends(uws_dependency)],
@@ -571,6 +576,6 @@ def install_sync_get_handler(router: APIRouter, route: UWSRoute) -> None:
         job_service = uws_factory.create_job_service()
         result_store = uws_factory.create_result_store()
         result = await job_service.run_sync(
-            user, params, token=token, runid=runid
+            token, user, parameters, runid=runid
         )
         return result_store.sign_url(result).url

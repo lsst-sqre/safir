@@ -11,6 +11,7 @@ Applications built with this framework have three components:
 #. A frontend web service that takes requests that follow the UWS protocol.
 #. A backend arq_ worker, possibly running on a different software stack, that does the work.
 #. A database arq_ worker that handles bookkeeping and result processing for the backend worker.
+   This bookkeeping is done via the Wobbly_ service so that services do not have to manage their own underying PostgreSQL database.
 
 Incoming requests are turned into arq_ jobs, processed by the backend worker, uploaded to Google Cloud Storage, recorded in a database, and then returned to the user via a frontend that reads the result URLs and other metadata from the database.
 
@@ -24,7 +25,7 @@ Guides
    :titlesonly:
 
    create-a-service
-   define-inputs
    define-models
+   define-inputs
    write-backend
    testing

@@ -7,7 +7,6 @@ Safir provides some additional supporting functions to make using Alembic more s
 
 These instructions assume that you have already defined your schema with SQLAlchemy's ORM model.
 If you have not already done that, do that first.
-For UWS applications that only have the UWS database, the declarative base of the schema is `safir.uws.UWSSchemaBase`.
 
 Set up Alembic
 ==============
@@ -85,7 +84,6 @@ Replace :file:`alembic/env.py` with the following:
        )
 
 Replace ``example`` with the module name and application name of your application as appropriate.
-For applications that only use the UWS database, replace ``example.schema.Base`` in the above with `safir.uws.UWSSchemaBase`.
 
 Add Alembic to the Docker image
 -------------------------------

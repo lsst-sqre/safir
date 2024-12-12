@@ -8,26 +8,20 @@ from datetime import datetime, timedelta
 from typing import TypeAlias
 
 from arq.connections import RedisSettings
-from pydantic import Field, SecretStr
-from pydantic_core import Url
+from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings
 from vo_models.uws import JobSummary
 
 from safir.arq import ArqMode, build_arq_redis_settings
-from safir.pydantic import (
-    EnvAsyncPostgresDsn,
-    EnvRedisDsn,
-    HumanTimedelta,
-    SecondsTimedelta,
-)
+from safir.pydantic import EnvRedisDsn, HumanTimedelta, SecondsTimedelta
 
-from ._models import ParametersModel, UWSJob, UWSJobParameter
+from ._models import Job, ParametersModel
 
-DestructionValidator: TypeAlias = Callable[[datetime, UWSJob], datetime]
+DestructionValidator: TypeAlias = Callable[[datetime, Job], datetime]
 """Type for a validator for a new destruction time."""
 
 ExecutionDurationValidator: TypeAlias = Callable[
-    [timedelta, UWSJob], timedelta
+    [timedelta | None, Job], timedelta | None
 ]
 """Type for a validator for a new execution duration."""
 
@@ -42,7 +36,7 @@ __all__ = [
 class UWSRoute:
     """Defines a FastAPI dependency to get the UWS job parameters."""
 
-    dependency: Callable[..., Coroutine[None, None, list[UWSJobParameter]]]
+    dependency: Callable[..., Coroutine[None, None, ParametersModel]]
     """Type for a dependency that gathers parameters for a job."""
 
     summary: str
@@ -71,12 +65,8 @@ class UWSConfig:
     """Route configuration for creating an async job via POST.
 
     The FastAPI dependency included in this object should expect POST
-    parameters and return a list of `~safir.uws.UWSJobParameter` objects
-    representing the job parameters.
+    parameters and return the Pydantic model of the job parameters.
     """
-
-    database_url: str | Url
-    """URL for the metadata database."""
 
     execution_duration: timedelta
     """Maximum execution time in seconds.
@@ -117,11 +107,11 @@ class UWSConfig:
     with this email.
     """
 
+    wobbly_url: str | HttpUrl
+    """URL to the Wobbly UWS job tracking API."""
+
     worker: str
     """Name of the backend worker to call to execute a job."""
-
-    database_password: SecretStr | None = None
-    """Password for the database."""
 
     slack_webhook: SecretStr | None = None
     """Slack incoming webhook for reporting errors."""
@@ -130,18 +120,16 @@ class UWSConfig:
     """Route configuration for creating a sync job via GET.
 
     The FastAPI dependency included in this object should expect GET
-    parameters and return a list of `~safir.uws.UWSJobParameter` objects
-    representing the job parameters. If `None`, no route to create a job via
-    sync GET will be created.
+    parameters and the Pydantic model of the job parameters. If `None`, no
+    route to create a job via sync GET will be created.
     """
 
     sync_post_route: UWSRoute | None = None
     """Route configuration for creating a sync job via POST.
 
     The FastAPI dependency included in this object should expect POST
-    parameters and return a list of `~safir.uws.UWSJobParameter` objects
-    representing the job parameters. If `None`, no route to create a job via
-    sync POST will be created.
+    parameters and return the Pydantic model of the job parameters. If `None`,
+    no route to create a job via sync POST will be created.
     """
 
     sync_timeout: timedelta = timedelta(minutes=5)
@@ -195,16 +183,6 @@ class UWSAppSettings(BaseSettings):
         description="Password of Redis server to use for the arq queue",
     )
 
-    database_url: EnvAsyncPostgresDsn = Field(
-        ...,
-        title="PostgreSQL DSN",
-        description="DSN of PostgreSQL database for UWS job tracking",
-    )
-
-    database_password: SecretStr | None = Field(
-        None, title="Password for UWS job database"
-    )
-
     grace_period: SecondsTimedelta = Field(
         timedelta(seconds=30),
         title="Grace period for jobs",
@@ -251,6 +229,12 @@ class UWSAppSettings(BaseSettings):
         ),
     )
 
+    wobbly_url: HttpUrl = Field(
+        ...,
+        title="Wobbly URL",
+        description="URL to Wobbly UWS job tracking API",
+    )
+
     @property
     def arq_redis_settings(self) -> RedisSettings:
         """Redis settings for arq."""
@@ -285,8 +269,8 @@ class UWSAppSettings(BaseSettings):
         async_post_route
             Route configuration for job parameters for an async job via
             POST. The FastAPI dependency included in this object should expect
-            POST parameters and return a list of `~safir.uws.UWSJobParameter`
-            objects representing the job parameters.
+            POST parameters and return a Pydantic model representing the job
+            parameters.
         job_summary_type
             Type representing the XML job summary type, qualified with an
             appropriate subclass of `~vo_models.uws.models.Parameters`. That
@@ -301,15 +285,13 @@ class UWSAppSettings(BaseSettings):
         sync_get_route
             Route configuration for creating a sync job via GET. The FastAPI
             dependency included in this object should expect GET parameters
-            and return a list of `~safir.uws.UWSJobParameter` objects
-            representing the job parameters. If `None`, no route to create a
-            job via sync GET will be created.
+            and return a Pydantic model representing the job parameters. If
+            `None`, no route to create a job via sync GET will be created.
         sync_post_route
             Route configuration for creating a sync job via POST. The FastAPI
             dependency included in this object should expect POST parameters
-            and return a list of `~safir.uws.UWSJobParameter` objects
-            representing the job parameters. If `None`, no route to create a
-            job via sync POST will be created.
+            and return a Pydantic model representing the job parameters. If
+            `None`, no route to create a job via sync POST will be created.
         url_lifetime
             How long result URLs should be valid for.
         validate_destruction
@@ -368,8 +350,6 @@ class UWSAppSettings(BaseSettings):
             parameters_type=parameters_type,
             signing_service_account=self.service_account,
             worker=worker,
-            database_url=self.database_url,
-            database_password=self.database_password,
             slack_webhook=slack_webhook,
             sync_timeout=self.sync_timeout,
             async_post_route=async_post_route,
@@ -379,4 +359,5 @@ class UWSAppSettings(BaseSettings):
             validate_destruction=validate_destruction,
             validate_execution_duration=validate_execution_duration,
             wait_timeout=wait_timeout,
+            wobbly_url=self.wobbly_url,
         )
