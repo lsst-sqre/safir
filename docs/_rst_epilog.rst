@@ -1,7 +1,7 @@
 .. _Alembic: https://alembic.sqlalchemy.org/en/latest/
 .. _arq: https://arq-docs.helpmanual.io
 .. _asyncpg: https://magicstack.github.io/asyncpg/current/
-.. _Click: https://click.palletsprojects.com/
+.. _Click: https://click.palletsprojects.com/en/stable/
 .. _cryptography: https://cryptography.io/en/latest/
 .. _FastAPI: https://fastapi.tiangolo.com/
 .. _fastapi_safir_app: https://github.com/lsst/templates/tree/main/project_templates/fastapi_safir_app
