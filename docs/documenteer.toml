@@ -76,7 +76,7 @@ extensions = [
 [sphinx.intersphinx.projects]
 aiokafka = "https://aiokafka.readthedocs.io/en/stable"
 arq = "https://arq-docs.helpmanual.io"
-click = "https://click.palletsprojects.com"
+click = "https://click.palletsprojects.com/en/stable"
 cryptography = "https://cryptography.io/en/latest"
 gidgethub = "https://gidgethub.readthedocs.io/en/latest"
 python = "https://docs.python.org/3"
