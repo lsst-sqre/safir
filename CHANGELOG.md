@@ -9,6 +9,31 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-9.0.0'></a>
+## 9.0.0 (2024-12-11)
+
+### Backwards-incompatible changes
+
+- Rewrite the Safir UWS support to use Pydantic models for job parameters. Services built on the Safir UWS library will need to change all job creation dependencies to return Pydantic models.
+- UWS clients must now pass an additional `job_summary_type` argument to `UWSAppSettings.build_uws_config` and implement `to_xml_model` in their implementation of `ParametersModel`, returning a subclass of the vo-models `Parameters` class.
+- Use the Wobbly service rather than a direct database connection to store UWS job information. Services built on the Safir UWS library must now configure a Wobbly URL and will switch to Wobbly's storage instead of their own when updated to this release of Safir.
+- Case-insensitivity of form `POST` parameters to UWS routes is now handled by middleware, and the `uws_post_params_dependency` function has been removed. Input parameter dependencies for UWS applications can now assume that all parameter keys will be in lowercase.
+- Support an execution duration of 0 in the Safir UWS library, mapping it to no limit on the execution duration. Note that this will not be allowed by the default configuration and must be explicitly allowed by an execution duration validation hook.
+- Convert all models returned by the Safir UWS library to Pydantic. Services built on the Safir UWS library will have to change the types of validator functions for destruction time and execution duration.
+- Safir no longer provides the `safir.uws.ErrorCode` enum or the exception `safir.uws.MultiValuedParameterError`. These values were specific to a SODA service, and different IVOA UWS services use different error codes. The Safir UWS library now takes error code as a string, and each application should define its own set of error codes in accordance with the IVOA standard it is implementing.
+
+### New features
+
+- Add unit testing support for application metrics. Tests can define a mock application metrics event handler and inspect it after running application code to see what events would have been published.
+
+### Bug fixes
+
+- Append a colon after the error code when reporting UWS errors.
+
+### Other changes
+
+- Render all UWS XML output except for error VOTables using vo-models rather than hand-written XML templates.
+
 <a id='changelog-8.0.0'></a>
 ## 8.0.0 (2024-11-26)
 
