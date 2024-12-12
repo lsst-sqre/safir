@@ -6,6 +6,9 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "pip"
-    directory: "/"
+    directories:
+      - "/safir"
+      - "/safir-arq"
+      - "/safir-logging"
     schedule:
       interval: "weekly"
