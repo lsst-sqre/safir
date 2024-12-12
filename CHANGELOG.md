@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-9.0.1'></a>
+## 9.0.1 (2024-12-11)
+
+### Bug fixes
+
+- Fix dependencies on safir-logging and safir-arq from the safir PyPI module to allow the latest versions to be installed.
+
 <a id='changelog-9.0.0'></a>
 ## 9.0.0 (2024-12-11)
 
