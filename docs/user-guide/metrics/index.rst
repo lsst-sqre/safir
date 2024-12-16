@@ -75,22 +75,25 @@ See :ref:`configuration-details` for more info.
 
    from pydantic import Field, HttpUrl
    from pydantic_settings import BaseSettings, SettingsConfigDict
-   from safir.metrics import KafkaMetricsConfiguration, MetricsConfiguration
+   from safir.metrics import (
+       MetricsConfiguration,
+       metrics_configuration_factory,
+   )
 
 
    class Config(BaseSettings):
+       model_config = SettingsConfigDict(
+           env_prefix="MYAPP_", case_sensitive=False
+       )
+
        an_important_url: HttpUrl = Field(
            ...,
            title="URL to something important",
        )
 
        metrics: MetricsConfiguration = Field(
-           default_factory=KafkaMetricsConfiguration,
+           default_factory=metrics_configuration_factory,
            title="Metrics configuration",
-       )
-
-       model_config = SettingsConfigDict(
-           env_prefix="MYAPP_", case_sensitive=False
        )
 
 
@@ -251,7 +254,6 @@ You can make assertions about these published events in your unit tests.
    METRICS_APPLICATION=myapp
    METRICS_ENABLED=false
    METRICS_MOCK=true
-   METRICS_EVENTS_TOPIC_PREFIX=what.ever
 
 .. code-block:: python
 
