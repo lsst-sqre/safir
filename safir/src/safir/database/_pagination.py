@@ -34,6 +34,8 @@ E = TypeVar("E", bound="BaseModel")
 """Type of an entry in a paginated list."""
 
 __all__ = [
+    "CountedPaginatedList",
+    "CountedPaginatedQueryRunner",
     "DatetimeIdCursor",
     "InvalidCursorError",
     "PaginatedList",
@@ -321,19 +323,18 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
 class PaginatedList(Generic[E, C]):
     """Paginated SQL results with accompanying pagination metadata.
 
-    Holds a paginated list of any Pydantic type, complete with a count and
-    cursors. Can hold any type of entry and any type of cursor, but implicitly
-    requires the entry type be one that is meaningfully paginated by that type
-    of cursor.
+    Holds a paginated list of any Pydantic type with pagination cursors. Can
+    hold any type of entry and any type of cursor, but implicitly requires the
+    entry type be one that is meaningfully paginated by that type of cursor.
     """
 
     entries: list[E]
     """A batch of entries."""
 
-    next_cursor: C | None = None
+    next_cursor: C | None
     """Cursor for the next batch of entries."""
 
-    prev_cursor: C | None = None
+    prev_cursor: C | None
     """Cursor for the previous batch of entries."""
 
     def first_url(self, current_url: URL) -> str:
@@ -418,7 +419,7 @@ class PaginatedList(Generic[E, C]):
 
 
 class PaginatedQueryRunner(Generic[E, C]):
-    """Construct and run database queries that return paginated results.
+    """Run database queries that return paginated results.
 
     This class implements the logic for keyset pagination based on arbitrary
     SQLAlchemy ORM where clauses.
@@ -687,4 +688,149 @@ class PaginatedQueryRunner(Generic[E, C]):
         # Return the results.
         return PaginatedList[E, C](
             entries=entries, prev_cursor=prev_cursor, next_cursor=next_cursor
+        )
+
+
+@dataclass
+class CountedPaginatedList(PaginatedList[E, C]):
+    """Paginated SQL results with pagination metadata and total count.
+
+    Holds a paginated list of any Pydantic type, complete with a count and
+    cursors. Can hold any type of entry and any type of cursor, but implicitly
+    requires the entry type be one that is meaningfully paginated by that type
+    of cursor.
+    """
+
+    count: int
+    """Total number of entries if queried without pagination."""
+
+
+class CountedPaginatedQueryRunner(PaginatedQueryRunner[E, C]):
+    """Run database queries that return paginated results with counts.
+
+    This variation of `PaginatedQueryRunner` always runs a second query to
+    count the total number of available entries if queried without pagination.
+    It should only be used on small tables or with queries that can be
+    satisfied from the table indices; otherwise, the count query could be
+    undesirably slow.
+
+    Parameters
+    ----------
+    entry_type
+        Type of each entry returned by the queries. This must be a Pydantic
+        model.
+    cursor_type
+        Type of the pagination cursor, which encapsulates the logic of how
+        entries are sorted and what set of keys is used to retrieve the next
+        or previous batch of entries.
+    """
+
+    async def query_object(
+        self,
+        session: async_scoped_session,
+        stmt: Select[tuple],
+        *,
+        cursor: C | None = None,
+        limit: int | None = None,
+    ) -> CountedPaginatedList[E, C]:
+        """Perform a query for objects with an optional cursor and limit.
+
+        Perform the query provided in ``stmt`` with appropriate sorting and
+        pagination as determined by the cursor type. Also performs a second
+        query to get the total count of entries if retrieved without
+        pagination.
+
+        This method should be used with queries that return a single
+        SQLAlchemy model. The provided query will be run with the session
+        `~sqlalchemy.ext.asyncio.async_scoped_session.scalars` method and the
+        resulting object passed to Pydantic's ``model_validate`` to convert to
+        ``entry_type``. For queries returning a tuple of attributes, use
+        `query_row` instead.
+
+        Unfortunately, this distinction cannot be type-checked, so be careful
+        to use the correct method.
+
+        Parameters
+        ----------
+        session
+            Database session within which to run the query.
+        stmt
+            Select statement to execute. Pagination and ordering will be
+            added, so this statement should not already have limits or order
+            clauses applied. This statement must return a list of SQLAlchemy
+            ORM models that can be converted to ``entry_type`` by Pydantic.
+        cursor
+            If present, continue from the provided keyset cursor.
+        limit
+            If present, limit the result count to at most this number of rows.
+
+        Returns
+        -------
+        CountedPaginatedList
+            Results of the query wrapped with pagination information and a
+            count of the total number of entries.
+        """
+        result = await super().query_object(
+            session, stmt, cursor=cursor, limit=limit
+        )
+        count = await self.query_count(session, stmt)
+        return CountedPaginatedList[E, C](
+            entries=result.entries,
+            next_cursor=result.next_cursor,
+            prev_cursor=result.prev_cursor,
+            count=count,
+        )
+
+    async def query_row(
+        self,
+        session: async_scoped_session,
+        stmt: Select[tuple],
+        *,
+        cursor: C | None = None,
+        limit: int | None = None,
+    ) -> CountedPaginatedList[E, C]:
+        """Perform a query for attributes with an optional cursor and limit.
+
+        Perform the query provided in ``stmt`` with appropriate sorting and
+        pagination as determined by the cursor type. Also performs a second
+        query to get the total count of entries if retrieved without
+        pagination.
+
+        This method should be used with queries that return a list of
+        attributes that can be converted to the ``entry_type`` Pydantic model.
+        For queries returning a single ORM object, use `query_object` instead.
+
+        Unfortunately, this distinction cannot be type-checked, so be careful
+        to use the correct method.
+
+        Parameters
+        ----------
+        session
+            Database session within which to run the query.
+        stmt
+            Select statement to execute. Pagination and ordering will be
+            added, so this statement should not already have limits or order
+            clauses applied. This statement must return a tuple of attributes
+            that can be converted to ``entry_type`` by Pydantic's
+            ``model_validate``.
+        cursor
+            If present, continue from the provided keyset cursor.
+        limit
+            If present, limit the result count to at most this number of rows.
+
+        Returns
+        -------
+        CountedPaginatedList
+            Results of the query wrapped with pagination information and a
+            count of the total number of entries.
+        """
+        result = await super().query_row(
+            session, stmt, cursor=cursor, limit=limit
+        )
+        count = await self.query_count(session, stmt)
+        return CountedPaginatedList[E, C](
+            entries=result.entries,
+            next_cursor=result.next_cursor,
+            prev_cursor=result.prev_cursor,
+            count=count,
         )
