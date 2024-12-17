@@ -264,9 +264,59 @@ Here is a very simplified example of a route handler that sets this header:
 Here, ``perform_query`` is a wrapper around `~safir.database.PaginatedQueryRunner` that constructs and runs the query.
 A real route handler would have more query parameters and more documentation.
 
-Note that this example also sets a non-standard ``X-Total-Count`` header containing the total count of entries returned by the underlying query without pagination.
+Including result counts
+-----------------------
+
+The example above also sets a non-standard ``X-Total-Count`` header containing the total count of entries returned by the underlying query without pagination.
 `~safir.database.PaginatedQueryRunner.query_count` will return this information.
 There is no standard way to return this information to the client, but ``X-Total-Count`` is a widely-used informal standard.
+
+If you will always want to include the count, use `~safir.database.CountedPaginatedQueryRunner` instead.
+Its `~safir.database.CountedPaginatedQueryRunner.query_object` and `~safir.database.CountedPaginatedQueryRunner.query_row` methods will return a `~safir.database.CountedPaginatedList`, which contains a ``count`` attribute holding the count.
+This is equivalent to calling `~safir.database.PaginatedQueryRunner.query_object` or `~safir.database.PaginatedQueryRunner.query_object` followed by `~safir.database.PaginatedQueryRunner.query_count`, but the encapsulation into a data structure makes it easier to pass the results between components of the service.
+
+Here's the same code above but using that approach:
+
+.. code-block:: python
+
+.. code-block:: python
+   :emphasize-lines: 27, 34
+
+   @router.get("/query", response_class=Model)
+   async def query(
+       *,
+       cursor: Annotated[
+           str | None,
+           Query(
+               title="Pagination cursor",
+               description="Cursor to navigate paginated results",
+           ),
+       ] = None,
+       limit: Annotated[
+           int,
+           Query(
+               title="Row limit",
+               description="Maximum number of entries to return",
+               examples=[100],
+               ge=1,
+               le=100,
+           ),
+       ] = 100,
+       request: Request,
+       response: Response,
+   ) -> list[Model]:
+       parsed_cursor = None
+       if cursor:
+           parsed_cursor = ModelCursor.from_str(cursor)
+       runner = CountedPaginatedQueryRunner(Model, ModelCursor)
+       stmt = build_query(...)
+       results = await runner.query_object(
+           session, stmt, cursor=parsed_cursor, limit=limit
+       )
+       if cursor or limit:
+           response.headers["Link"] = results.link_header(request.url)
+           response.headers["X-Total-Count"] = str(results.count)
+       return results.entries
 
 Including links in the response
 -------------------------------

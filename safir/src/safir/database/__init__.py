@@ -17,6 +17,8 @@ from ._initialize import (
     initialize_database,
 )
 from ._pagination import (
+    CountedPaginatedList,
+    CountedPaginatedQueryRunner,
     DatetimeIdCursor,
     InvalidCursorError,
     PaginatedList,
@@ -28,6 +30,8 @@ from ._retry import retry_async_transaction
 
 __all__ = [
     "AlembicConfigError",
+    "CountedPaginatedList",
+    "CountedPaginatedQueryRunner",
     "DatabaseInitializationError",
     "DatetimeIdCursor",
     "InvalidCursorError",

@@ -26,6 +26,7 @@ from sqlalchemy.orm import (
 from starlette.datastructures import URL
 
 from safir.database import (
+    CountedPaginatedQueryRunner,
     DatetimeIdCursor,
     PaginatedQueryRunner,
     PaginationLinkData,
@@ -410,11 +411,12 @@ async def test_pagination(database_url: str, database_password: str) -> None:
 
     # Query by object and test the pagination cursors going backwards and
     # forwards.
-    builder = PaginatedQueryRunner(PaginationModel, TableCursor)
+    runner = PaginatedQueryRunner(PaginationModel, TableCursor)
+    counted_runner = CountedPaginatedQueryRunner(PaginationModel, TableCursor)
     async with session.begin():
         stmt: Select[tuple] = select(PaginationTable)
-        assert await builder.query_count(session, stmt) == 7
-        result = await builder.query_object(session, stmt, limit=2)
+        assert await runner.query_count(session, stmt) == 7
+        result = await runner.query_object(session, stmt, limit=2)
         assert_model_lists_equal(result.entries, rows[:2])
         assert not result.prev_cursor
         base_url = URL("https://example.com/query")
@@ -427,7 +429,15 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert result.prev_url(base_url) is None
         assert str(result.next_cursor) == "1600000000.5_1"
 
-        result = await builder.query_object(
+        counted_result = await counted_runner.query_object(
+            session, stmt, limit=2
+        )
+        assert counted_result.entries == result.entries
+        assert counted_result.prev_cursor == result.prev_cursor
+        assert counted_result.next_cursor == result.next_cursor
+        assert counted_result.count == 7
+
+        result = await runner.query_object(
             session, stmt, cursor=result.next_cursor, limit=3
         )
         assert_model_lists_equal(result.entries, rows[2:5])
@@ -447,7 +457,7 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert result.prev_url(base_url) == prev_url
         next_cursor = result.next_cursor
 
-        result = await builder.query_object(
+        result = await runner.query_object(
             session, stmt, cursor=result.prev_cursor
         )
         assert_model_lists_equal(result.entries, rows[:2])
@@ -457,7 +467,7 @@ async def test_pagination(database_url: str, database_password: str) -> None:
             f'<{base_url!s}&cursor={result.next_cursor}>; rel="next"'
         )
 
-        result = await builder.query_object(session, stmt, cursor=next_cursor)
+        result = await runner.query_object(session, stmt, cursor=next_cursor)
         assert_model_lists_equal(result.entries, rows[5:])
         assert not result.next_cursor
         base_url = URL("https://example.com/query")
@@ -468,14 +478,14 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         )
         prev_cursor = result.prev_cursor
 
-        result = await builder.query_object(session, stmt, cursor=prev_cursor)
+        result = await runner.query_object(session, stmt, cursor=prev_cursor)
         assert_model_lists_equal(result.entries, rows[:5])
         assert result.link_header(base_url) == (
             f'<{base_url!s}>; rel="first", '
             f'<{base_url!s}?cursor={result.next_cursor}>; rel="next"'
         )
 
-        result = await builder.query_object(
+        result = await runner.query_object(
             session, stmt, cursor=prev_cursor, limit=2
         )
         assert_model_lists_equal(result.entries, rows[3:5])
@@ -490,25 +500,38 @@ async def test_pagination(database_url: str, database_password: str) -> None:
     # function.
     async with session.begin():
         stmt = select(PaginationTable.time, PaginationTable.id)
-        result = await builder.query_row(session, stmt, limit=2)
+        result = await runner.query_row(session, stmt, limit=2)
         assert_model_lists_equal(result.entries, rows[:2])
-        assert await builder.query_count(session, stmt) == 7
+        assert await runner.query_count(session, stmt) == 7
+
+        counted_result = await counted_runner.query_row(session, stmt, limit=2)
+        assert counted_result.entries == result.entries
+        assert counted_result.prev_cursor == result.prev_cursor
+        assert counted_result.next_cursor == result.next_cursor
+        assert counted_result.count == 7
 
     # Querying for the entire table should return the everything with no
     # pagination cursors. Try this with both an object query and an attribute
     # query.
     async with session.begin():
-        result = await builder.query_object(session, select(PaginationTable))
+        stmt = select(PaginationTable)
+        result = await runner.query_object(session, stmt)
         assert_model_lists_equal(result.entries, rows)
         assert not result.next_cursor
         assert not result.prev_cursor
         stmt = select(PaginationTable.id, PaginationTable.time)
-        result = await builder.query_row(session, stmt)
+        result = await runner.query_row(session, stmt)
         assert_model_lists_equal(result.entries, rows)
         assert not result.next_cursor
         assert not result.prev_cursor
         base_url = URL("https://example.com/query?foo=b")
         assert result.link_header(base_url) == (f'<{base_url!s}>; rel="first"')
+
+        counted_result = await counted_runner.query_row(session, stmt)
+        assert counted_result.entries == result.entries
+        assert not counted_result.next_cursor
+        assert not counted_result.prev_cursor
+        assert counted_result.count == len(counted_result.entries)
 
 
 def test_link_data() -> None:
