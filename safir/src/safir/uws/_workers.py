@@ -30,7 +30,6 @@ from ._config import UWSConfig
 from ._constants import JOB_RESULT_TIMEOUT, WOBBLY_REQUEST_TIMEOUT
 from ._exceptions import TaskError, UnknownJobError
 from ._models import Job
-from ._service import JobService
 from ._storage import JobStore
 
 P = ParamSpec("P")
@@ -76,9 +75,6 @@ async def create_uws_worker_context(
 
     http_client = AsyncClient(timeout=WOBBLY_REQUEST_TIMEOUT)
     storage = JobStore(config, http_client)
-    service = JobService(
-        config=config, arq_queue=arq, storage=storage, logger=logger
-    )
     slack = None
     if config.slack_webhook:
         slack = SlackWebhookClient(
@@ -92,7 +88,6 @@ async def create_uws_worker_context(
         "arq": arq,
         "http_client": http_client,
         "logger": logger,
-        "service": service,
         "slack": slack,
         "storage": storage,
     }

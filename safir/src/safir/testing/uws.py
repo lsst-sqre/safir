@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qs
 
 import respx
-import structlog
 from httpx import AsyncClient, Request, Response
 from vo_models.uws import JobSummary
 from vo_models.uws.types import ExecutionPhase
@@ -29,7 +28,6 @@ from safir.uws import (
     SerializedJob,
     UWSConfig,
 )
-from safir.uws._service import JobService
 from safir.uws._storage import JobStore
 
 __all__ = [
@@ -275,17 +273,7 @@ class MockUWSJobRunner:
 
     def __init__(self, config: UWSConfig, arq_queue: MockArqQueue) -> None:
         self._arq = arq_queue
-
-        # This duplicates some of the code in UWSDependency to avoid needing
-        # to set up the result store or to expose UWSFactory outside of the
-        # Safir package internals.
         self._store = JobStore(config, AsyncClient())
-        self._service = JobService(
-            config=config,
-            arq_queue=self._arq,
-            storage=self._store,
-            logger=structlog.get_logger("uws"),
-        )
 
     async def get_job_metadata(self, token: str, job_id: str) -> JobMetadata:
         """Get the arq job metadata for a job.
@@ -302,7 +290,7 @@ class MockUWSJobRunner:
         JobMetadata
             arq job metadata.
         """
-        job = await self._service.get(token, job_id)
+        job = await self._store.get(token, job_id)
         assert job.message_id
         return await self._arq.get_job_metadata(job.message_id)
 
@@ -321,7 +309,7 @@ class MockUWSJobRunner:
         JobMetadata
             arq job metadata.
         """
-        job = await self._service.get(token, job_id)
+        job = await self._store.get(token, job_id)
         assert job.message_id
         return await self._arq.get_job_result(job.message_id)
 
@@ -346,11 +334,11 @@ class MockUWSJobRunner:
         """
         if delay:
             await asyncio.sleep(delay)
-        job = await self._service.get(token, job_id)
+        job = await self._store.get(token, job_id)
         assert job.message_id
         await self._arq.set_in_progress(job.message_id)
         await self._store.mark_executing(token, job_id, datetime.now(tz=UTC))
-        return await self._service.get(token, job_id)
+        return await self._store.get(token, job_id)
 
     async def mark_complete(
         self,
@@ -380,9 +368,9 @@ class MockUWSJobRunner:
         """
         if delay:
             await asyncio.sleep(delay)
-        job = await self._service.get(token, job_id)
+        job = await self._store.get(token, job_id)
         assert job.message_id
         await self._arq.set_complete(job.message_id, result=results)
         job_result = await self._arq.get_job_result(job.message_id)
         await self._store.mark_completed(token, job_id, job_result)
-        return await self._service.get(token, job_id)
+        return await self._store.get(token, job_id)
