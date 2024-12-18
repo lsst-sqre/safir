@@ -9,6 +9,17 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-9.1.0'></a>
+## 9.1.0 (2024-12-17)
+
+### New features
+
+- Add new `CountedPaginatedQueryRunner` and a returned `CountedPaginatedList` model for services that want paginated database queries that always do a second query for the total count of records without pagination.
+
+### Other changes
+
+- Safir is now tested with Python 3.13 as well as Python 3.12.
+
 <a id='changelog-9.0.1'></a>
 ## 9.0.1 (2024-12-11)
 
