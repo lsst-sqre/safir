@@ -61,9 +61,7 @@ nitpick_ignore = [
     ["py:class", "_orm.registry"],
     ["py:class", "_schema.MetaData"],
     ["py:class", "_schema.Table"],
-    # Pydantic FilePath types create a reference to Path that is unresolved
-    # unless Path is imported locally, but the import is removed because the
-    # symbol isn't referenced.
+    # See https://github.com/sphinx-doc/sphinx/issues/13178
     ["py:class", "pathlib._local.Path"],
     # The AOIKafkaAdminClient is considered experimental and not officially
     # exported
