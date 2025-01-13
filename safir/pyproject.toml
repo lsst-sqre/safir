@@ -75,7 +75,7 @@ gcs = [
     "google-cloud-storage<3"
 ]
 kubernetes = [
-    "kubernetes_asyncio<32"
+    "kubernetes_asyncio<33"
 ]
 redis = [
     "redis>4.5.2,<6",
