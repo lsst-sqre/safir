@@ -27,6 +27,7 @@ docstring-code-format = true
 
 [lint]
 ignore = [
+    "A005",     # we always use relative imports so this is not ambiguous
     "ANN401",   # sometimes Any is the right type
     "ARG001",   # unused function arguments are often legitimate
     "ARG002",   # unused method arguments are often legitimate

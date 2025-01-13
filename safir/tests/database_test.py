@@ -422,7 +422,7 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         base_url = URL("https://example.com/query")
         next_url = f"{base_url!s}?cursor={result.next_cursor}"
         assert result.link_header(base_url) == (
-            f'<{base_url!s}>; rel="first", ' f'<{next_url}>; rel="next"'
+            f'<{base_url!s}>; rel="first", <{next_url}>; rel="next"'
         )
         assert result.first_url(base_url) == str(base_url)
         assert result.next_url(base_url) == next_url

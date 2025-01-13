@@ -193,8 +193,7 @@ async def test_unknown_error(
     r = await client.get("/test/jobs/1/error")
     assert r.status_code == 200
     assert r.text == JOB_ERROR_SUMMARY.strip().format(
-        "Error: Unknown error executing task\n\n"
-        "ValueError: Unknown exception"
+        "Error: Unknown error executing task\n\nValueError: Unknown exception"
     )
 
     # For now, this shouldn't have resulted in Slack errors.
