@@ -94,6 +94,9 @@ API reference
    :include-all-objects:
    :inherited-members:
 
+.. automodapi:: safir.sentry
+   :include-all-objects:
+
 .. automodapi:: safir.slack.blockkit
    :include-all-objects:
 

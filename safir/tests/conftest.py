@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Generator, Iterator
 from datetime import timedelta
 from pathlib import Path
 
@@ -28,6 +28,12 @@ from safir.metrics import (
     EventManager,
     EventsConfiguration,
     KafkaMetricsConfiguration,
+)
+from safir.sentry import Captured, capture_events_fixture, sentry_init_fixture
+from safir.sentry._helpers import (
+    before_send_handler,
+    fingerprint_env_handler,
+    sentry_exception_handler,
 )
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
@@ -287,3 +293,48 @@ async def redis_client(redis: RedisContainer) -> AsyncIterator[Redis]:
     client = Redis(host=host, port=port, db=0)
     yield client
     await client.aclose()
+
+
+@pytest.fixture
+def sentry_fingerprint_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[Captured]:
+    """Mock sentry transport and add env to event fingerprints."""
+    with sentry_init_fixture() as init:
+        init(
+            environment="some_env",
+            traces_sample_rate=1.0,
+            before_send=fingerprint_env_handler,
+        )
+        events = capture_events_fixture(monkeypatch)
+        yield events()
+
+
+@pytest.fixture
+def sentry_exception_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[Captured]:
+    """Mock sentry transport and add SentryException info."""
+    with sentry_init_fixture() as init:
+        init(
+            environment="some_env",
+            traces_sample_rate=1.0,
+            before_send=sentry_exception_handler,
+        )
+        events = capture_events_fixture(monkeypatch)
+        yield events()
+
+
+@pytest.fixture
+def sentry_combo_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[Captured]:
+    """Mock sentry transport and add all recommended before_send processing."""
+    with sentry_init_fixture() as init:
+        init(
+            environment="some_env",
+            traces_sample_rate=1.0,
+            before_send=before_send_handler,
+        )
+        events = capture_events_fixture(monkeypatch)
+        yield events()

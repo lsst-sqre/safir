@@ -104,6 +104,8 @@ Finally, post the message to the Slack webhook:
 This method will never return an error.
 If posting the message to Slack fails, an exception will be logged using the logger provided when constructing the client, but the caller will not be notified.
 
+.. _slack-exceptions:
+
 Reporting an exception to a Slack webhook
 =========================================
 
@@ -159,6 +161,8 @@ For example:
 .. warning::
 
    The full exception message (although not the traceback) is sent to Slack, so it should not contain any sensitive information, security keys, or similar data.
+
+.. _slack-web-exceptions:
 
 Reporting HTTPX exceptions
 --------------------------

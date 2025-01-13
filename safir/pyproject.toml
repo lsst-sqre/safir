@@ -37,6 +37,7 @@ dependencies = [
     "pydantic-settings!=2.6.0,<3",
     "python-schema-registry-client>=2.6,<3",
     "safir-logging",
+    "sentry-sdk>=2,<3",
     "starlette<1",
     "structlog>=21.2.0",
 ]
