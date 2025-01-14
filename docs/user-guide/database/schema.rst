@@ -108,6 +108,8 @@ In the :file:`Dockerfile` for the application Docker image, when constructing th
    COPY --from=install-image /workdir/alembic /app/alembic
    WORKDIR /app
 
+.. _database-alembic-init:
+
 Add Alembic to database initialization
 --------------------------------------
 
@@ -117,11 +119,11 @@ To work properly with Alembic, that initialization should stamp the database wit
 Modify that initialization code as follows:
 
 .. code-block:: python
-   :emphasize-lines: 7,18-24,29,38
+   :emphasize-lines: 7,18-24,28,41
 
+   import asyncio
    import click
    import structlog
-   from safir.asyncio import run_with_asyncio
    from safir.database import (
        create_database_engine,
        initialize_database,
@@ -146,19 +148,24 @@ Modify that initialization code as follows:
    @click.option(
        "--reset", is_flag=True, help="Delete all existing database data."
    )
-   @run_with_asyncio
-   async def init(*, alembic_config_path: Path, reset: bool) -> None:
+   def init(*, alembic_config_path: Path, reset: bool) -> None:
        logger = structlog.get_logger(config.logger_name)
        engine = create_database_engine(
            config.database_url, config.database_password
        )
-       await initialize_database(
-           engine, logger, schema=Base.metadata, reset=reset
-       )
-       await engine.dispose()
+
+       async def _init_db() -> None:
+           await initialize_database(
+               engine, logger, schema=Base.metadata, reset=reset
+           )
+           await engine.dispose()
+
+       asyncio.run(_init_db())
        stamp_database(alembic_config_path)
 
 Change ``EXAMPLE`` to the environment variable prefix used for configuration settings for your application.
+
+This code uses an async helper function instead of the `~safir.asyncio.run_with_asyncio` decorator because Alembic, as called by `~safir.database.stamp_database`, wants to manage the event loop and therefore must be called outside of an event loop.
 
 .. _database-alembic-commands:
 

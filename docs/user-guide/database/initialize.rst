@@ -65,9 +65,9 @@ For applications using Click_ (the recommended way to implement a command-line i
 
 .. code-block:: python
 
+   import asyncio
    import click
    import structlog
-   from safir.asyncio import run_with_asyncio
    from safir.database import create_database_engine, initialize_database
 
    from .config import config
@@ -81,18 +81,23 @@ For applications using Click_ (the recommended way to implement a command-line i
    @click.option(
        "--reset", is_flag=True, help="Delete all existing database data."
    )
-   @run_with_asyncio
-   async def init(*, reset: bool) -> None:
+   def init(*, reset: bool) -> None:
        logger = structlog.get_logger(config.logger_name)
        engine = create_database_engine(
            config.database_url, config.database_password
        )
-       await initialize_database(
-           engine, logger, schema=Base.metadata, reset=reset
-       )
-       await engine.dispose()
+
+       async def _init_db() -> None:
+           await initialize_database(
+               engine, logger, schema=Base.metadata, reset=reset
+           )
+           await engine.dispose()
+
+       asyncio.run(_init_db())
 
 This code assumes that ``main`` is the Click entry point and ``.config`` provides a ``config`` object that contains the settings for the application, including the database URL and password as well as the normal Safir configuration settings.
+It uses an async helper function to initialize the database since this makes integration with Alembic management easier.
+See :ref:`database-alembic-init` for more details.
 
 The database URL may be a Pydantic ``Url`` type or a `str`.
 The database password may be a ``pydantic.SecretStr``, a `str`, or `None` if no password is required by the database.
