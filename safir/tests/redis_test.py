@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 import redis.asyncio as redis
 from cryptography.fernet import Fernet
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from safir.redis import (
     DeserializeError,
@@ -75,6 +75,27 @@ async def test_encrypted_pydantic_redis_storage(
         encryption_key=Fernet.generate_key().decode(),
     )
     await basic_testing(storage)
+
+
+@pytest.mark.asyncio
+async def test_encrypted_pydantic_redis_storage_secretstr(
+    redis_client: redis.Redis,
+) -> None:
+    """Test that the secret can be passed as str or SecretStr."""
+    encryption_key = Fernet.generate_key().decode()
+    storage = EncryptedPydanticRedisStorage(
+        datatype=DemoModel, redis=redis_client, encryption_key=encryption_key
+    )
+
+    await storage.store("mark42", DemoModel(name="Mark", value=42))
+
+    storage = EncryptedPydanticRedisStorage(
+        datatype=DemoModel,
+        redis=redis_client,
+        encryption_key=SecretStr(encryption_key),
+    )
+
+    assert await storage.get("mark42") == DemoModel(name="Mark", value=42)
 
 
 class PetModel(BaseModel):

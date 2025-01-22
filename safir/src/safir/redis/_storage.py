@@ -13,7 +13,7 @@ except ImportError as e:
         "Install it with `pip install safir[redis]`."
     ) from e
 from cryptography.fernet import Fernet
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 from safir.slack.blockkit import (
     SlackCodeBlock,
@@ -241,10 +241,12 @@ class EncryptedPydanticRedisStorage(PydanticRedisStorage[S]):
         *,
         datatype: type[S],
         redis: redis.Redis,
-        encryption_key: str,
+        encryption_key: str | SecretStr,
         key_prefix: str = "",
     ) -> None:
         super().__init__(datatype=datatype, redis=redis, key_prefix=key_prefix)
+        if isinstance(encryption_key, SecretStr):
+            encryption_key = encryption_key.get_secret_value()
         self._fernet = Fernet(encryption_key.encode())
 
     def _serialize(self, obj: S) -> bytes:
