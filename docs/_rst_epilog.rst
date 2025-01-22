@@ -25,6 +25,7 @@
 .. _Sasquatch: https://sasquatch.lsst.io
 .. _schema registry: https://docs.confluent.io/platform/current/schema-registry/index.html
 .. _scriv: https://scriv.readthedocs.io/en/stable/
+.. _Sentry: https://sentry.io
 .. _semver: https://semver.org/
 .. _SQLAlchemy: https://www.sqlalchemy.org/
 .. _structlog: https://www.structlog.org/en/stable/

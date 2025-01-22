@@ -35,3 +35,4 @@ User guide
    click
    asyncio-queue
    uws/index
+   sentry

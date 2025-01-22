@@ -94,6 +94,9 @@ API reference
    :include-all-objects:
    :inherited-members:
 
+.. automodapi:: safir.sentry
+   :include-all-objects:
+
 .. automodapi:: safir.slack.blockkit
    :include-all-objects:
 
@@ -104,6 +107,9 @@ API reference
    :include-all-objects:
 
 .. automodapi:: safir.testing.kubernetes
+   :include-all-objects:
+
+.. automodapi:: safir.testing.sentry
    :include-all-objects:
 
 .. automodapi:: safir.testing.slack
