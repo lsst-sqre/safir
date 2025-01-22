@@ -9,6 +9,15 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-9.2.0'></a>
+## 9.2.0 (2025-01-22)
+
+### New features
+
+- Sentry instrumentation helpers
+
+- Allow the encryption key to be passed to `safir.redis.EncryptedPydanticRedisStorage` as a `pydantic.SecretStr` instead of `str`. This allows easier integration with secrets that come from Pydantic-parsed settings.
+
 <a id='changelog-9.1.1'></a>
 ## 9.1.1 (2024-12-18)
 
