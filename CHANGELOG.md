@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-9.2.0'></a>
+## 9.2.0 (2025-01-22)
+
+### New features
+
+- Sentry instrumentation helpers
+
 <a id='changelog-9.1.1'></a>
 ## 9.1.1 (2024-12-18)
 
