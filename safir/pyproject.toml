@@ -73,7 +73,7 @@ dev = [
 ]
 gcs = [
     "google-auth<3",
-    "google-cloud-storage<3"
+    "google-cloud-storage<4"
 ]
 kubernetes = [
     "kubernetes_asyncio<33"
@@ -83,7 +83,7 @@ redis = [
 ]
 uws = [
     "google-auth<3",
-    "google-cloud-storage<3",
+    "google-cloud-storage<4",
     "jinja2<4",
     "python-multipart",
     "safir-arq",
