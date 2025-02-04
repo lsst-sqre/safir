@@ -365,9 +365,9 @@ class SlackWebException(SlackException):
             # initialized to None and then sometimes added by child
             # constructors or during exception processing. The request
             # property is a property method that raises RuntimeError if
-            # request has not been set, so we can't just check for None.
-            # Hence this approach of attempting to use the request and falling
-            # back on reporting less data if that raised any exception.
+            # request has not been set, so we can't just check for None. Hence
+            # this approach of attempting to use the request and falling back
+            # on reporting less data if that raised any exception.
             try:
                 return cls(
                     message,
