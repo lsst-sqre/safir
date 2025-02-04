@@ -358,15 +358,16 @@ class SlackWebException(SlackException):
                 body=exc.response.text,
             )
         else:
-            message = f"{type(exc).__name__}: {exc!s}"
+            exc_name = type(exc).__name__
+            message = f"{exc_name}: {exc!s}" if str(exc) else exc_name
 
             # All httpx.HTTPError exceptions have a slot for the request,
             # initialized to None and then sometimes added by child
             # constructors or during exception processing. The request
             # property is a property method that raises RuntimeError if
-            # request has not been set, so we can't just check for None.
-            # Hence this approach of attempting to use the request and falling
-            # back on reporting less data if that raised any exception.
+            # request has not been set, so we can't just check for None. Hence
+            # this approach of attempting to use the request and falling back
+            # on reporting less data if that raised any exception.
             try:
                 return cls(
                     message,
