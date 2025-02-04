@@ -358,7 +358,8 @@ class SlackWebException(SlackException):
                 body=exc.response.text,
             )
         else:
-            message = f"{type(exc).__name__}: {exc!s}"
+            exc_name = type(exc).__name__
+            message = f"{exc_name}: {exc!s}" if str(exc) else exc_name
 
             # All httpx.HTTPError exceptions have a slot for the request,
             # initialized to None and then sometimes added by child
