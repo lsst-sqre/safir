@@ -14,8 +14,7 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 ### New features
 
-- Sentry instrumentation helpers
-
+- Add a new `safir.sentry` module that provides helper functions and custom exception types for improved Sentry integration.
 - Allow the encryption key to be passed to `safir.redis.EncryptedPydanticRedisStorage` as a `pydantic.SecretStr` instead of `str`. This allows easier integration with secrets that come from Pydantic-parsed settings.
 
 <a id='changelog-9.1.1'></a>
