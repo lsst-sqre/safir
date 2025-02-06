@@ -87,7 +87,9 @@ Finally, configure the ``client`` fixture to send the appropriate headers by def
 
 .. code-block:: python
    :caption: tests/conftest.py
-   :emphasize-lines: 8,13-16
+   :emphasize-lines: 10,15-18
+
+   from collections.abc import AsyncGenerator
 
    import pytest
    from fastapi import FastAPI
@@ -97,7 +99,7 @@ Finally, configure the ``client`` fixture to send the appropriate headers by def
    @pytest_asyncio.fixture
    async def client(
        app: FastAPI, test_token: str, test_username: str
-   ) -> AsyncIterator[AsyncClient]:
+   ) -> AsyncGenerator[AsyncClient]:
        async with AsyncClient(
            transport=ASGITransport(app=app),
            base_url="https://example.com/",
@@ -139,7 +141,7 @@ Then, configure the application to use that arq queue instead of the default one
    :caption: tests/conftest.py
    :emphasize-lines: 8,14
 
-   from collections.abc import AsyncIterator
+   from collections.abc import AsyncGenerator
 
    from asgi_lifespan import LifespanManager
    from fastapi import FastAPI
@@ -150,7 +152,7 @@ Then, configure the application to use that arq queue instead of the default one
 
 
    @pytest_asyncio.fixture
-   async def app(arq_queue: MockArqQueue) -> AsyncIterator[FastAPI]:
+   async def app(arq_queue: MockArqQueue) -> AsyncGenerator[FastAPI]:
        async with LifespanManager(main.app):
            uws.override_arq_queue(arq_queue)
            yield main.app

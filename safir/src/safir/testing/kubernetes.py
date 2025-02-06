@@ -7,7 +7,7 @@ import json
 import os
 import re
 from collections import defaultdict
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncGenerator, Callable, Iterator
 from datetime import timedelta
 from typing import Any, Protocol
 from unittest.mock import AsyncMock, Mock, patch
@@ -284,7 +284,7 @@ class _EventStream:
         timeout_seconds: int | None,
         field_selector: str | None,
         label_selector: str | None,
-    ) -> AsyncIterator[bytes]:
+    ) -> AsyncGenerator[bytes]:
         """Construct a watcher for this event stream.
 
         Parameters
@@ -307,7 +307,7 @@ class _EventStream:
 
         Returns
         -------
-        AsyncIterator
+        AsyncGenerator
             An async iterator that will return each new event in the stream,
             encoded as expected by the Kubernetes API, until the timeout
             occurs.
@@ -330,7 +330,7 @@ class _EventStream:
             name = match.group(1)
 
         # Construct the iterator.
-        async def next_event() -> AsyncIterator[bytes]:
+        async def next_event() -> AsyncGenerator[bytes]:
             if resource_version:
                 start = int(resource_version)
             else:

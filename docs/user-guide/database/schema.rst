@@ -257,7 +257,7 @@ Then, in :file:`main.py`, add code to check the database schema in the applicati
 .. code-block:: python
    :emphasize-lines: 6-7,14-20
 
-   from collections.abc import AsyncIterator
+   from collections.abc import AsyncGenerator
    from contextlib import asynccontextmanager
 
    import structlog
@@ -269,7 +269,7 @@ Then, in :file:`main.py`, add code to check the database schema in the applicati
 
 
    @asynccontextmanager
-   async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+   async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
        logger = structlog.get_logger("example")
        engine = create_database_engine(
            config.database_url, config.database_password
@@ -300,7 +300,7 @@ This ensures that the checks for the schema will pass when executing tests.
 .. code-block:: python
    :emphasize-lines: 9,26
 
-   from collections.abc import AsyncIterator
+   from collections.abc import AsyncGenerator
 
    import pytest_asyncio
    from asgi_lifespan import LifespanManager
@@ -317,7 +317,7 @@ This ensures that the checks for the schema will pass when executing tests.
 
 
    @pytest_asyncio.fixture
-   async def app() -> AsyncIterator[FastAPI]:
+   async def app() -> AsyncGenerator[FastAPI]:
        logger = structlog.get_logger(config.logger_name)
        engine = create_database_engine(
            config.database_url, config.database_password

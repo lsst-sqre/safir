@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
 
@@ -34,7 +34,7 @@ async def app(
     mock_wobbly: MockWobbly,
     uws_config: UWSConfig,
     logger: BoundLogger,
-) -> AsyncIterator[FastAPI]:
+) -> AsyncGenerator[FastAPI]:
     """Return a configured test application for UWS.
 
     This is a stand-alone test application independent of any real web
@@ -45,7 +45,7 @@ async def app(
     uws.override_arq_queue(arq_queue)
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         await uws.initialize_fastapi()
         yield
         await uws.shutdown_fastapi()
@@ -70,7 +70,7 @@ def arq_queue() -> MockArqQueue:
 @pytest_asyncio.fixture
 async def client(
     app: FastAPI, test_token: str, test_username: str
-) -> AsyncIterator[AsyncClient]:
+) -> AsyncGenerator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
     async with AsyncClient(
         transport=ASGITransport(app=app),

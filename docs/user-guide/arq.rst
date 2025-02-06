@@ -26,7 +26,7 @@ In your application's FastAPI setup module, typically :file:`main.py`, you need 
 
 .. code-block:: python
 
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncGenerator
     from contextlib import asynccontextmanager
 
     from fastapi import Depends, FastAPI
@@ -34,7 +34,7 @@ In your application's FastAPI setup module, typically :file:`main.py`, you need 
 
 
     @asynccontextmanager
-    def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         await arq_dependency.initialize(
             mode=config.arq_mode, redis_settings=config.arq_redis_settings
         )

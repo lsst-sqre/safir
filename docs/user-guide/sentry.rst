@@ -85,7 +85,7 @@ And your ``main.py`` might look like this:
 
 
    @asynccontextmanager
-   async def lifespan(app: FastAPI) -> AsyncIterator: ...
+   async def lifespan(app: FastAPI) -> AsyncGenerator: ...
 
 
    app = FastAPI(title="My App", lifespan=lifespan, ...)

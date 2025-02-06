@@ -15,14 +15,14 @@ This is normally done during the lifespan function for the FastAPI app.
 
 .. code-block:: python
 
-   from collections.abc import AsyncIterator
+   from collections.abc import AsyncGenerator
    from contextlib import asynccontextmanager
 
    from safir.dependencies.http_client import http_client_dependency
 
 
    @asynccontextmanager
-   async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+   async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
        yield
        await http_client_dependency.aclose()
 
@@ -72,7 +72,7 @@ You can do this in a yield fixture to avoid code duplication.
 
 
    @pytest_asyncio.fixture
-   async def app() -> AsyncIterator[FastAPI]:
+   async def app() -> AsyncGenerator[FastAPI]:
        # Add any other necessary application setup here.
        async with LifespanManager(main.app):
            yield main.app
