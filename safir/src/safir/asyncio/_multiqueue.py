@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from datetime import timedelta
 from types import EllipsisType
 from typing import Generic, TypeVar
@@ -44,7 +44,7 @@ class AsyncMultiQueue(Generic[T]):
         self._contents: list[T | EllipsisType] = []
         self._triggers: list[asyncio.Event] = []
 
-    def __aiter__(self) -> AsyncIterator[T]:
+    def __aiter__(self) -> AsyncGenerator[T]:
         """Return an async iterator over the queue."""
         return self.aiter_from(0)
 
@@ -60,7 +60,7 @@ class AsyncMultiQueue(Generic[T]):
 
     def aiter_from(
         self, start: int, timeout: timedelta | None = None
-    ) -> AsyncIterator[T]:
+    ) -> AsyncGenerator[T]:
         """Return an async iterator over the queue.
 
         Each call to this function returns a separate iterator over the same
@@ -79,8 +79,8 @@ class AsyncMultiQueue(Generic[T]):
 
         Returns
         -------
-        AsyncIterator
-            An async iterator over the contents of the queue.
+        AsyncGenerator
+            An async generator over the contents of the queue.
 
         Raises
         ------
@@ -103,7 +103,7 @@ class AsyncMultiQueue(Generic[T]):
         # Construct the iterator, which waits for the trigger and returns any
         # new events until it sees the placeholder for the end of the queue
         # (the ellipsis object).
-        async def iterator() -> AsyncIterator[T]:
+        async def iterator() -> AsyncGenerator[T]:
             position = start
             try:
                 while True:

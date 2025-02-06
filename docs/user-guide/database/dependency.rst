@@ -14,7 +14,7 @@ You must also close the dependency during application shutdown.
 
 .. code-block:: python
 
-   from collections.abc import AsyncIterator
+   from collections.abc import AsyncGenerator
    from contextlib import asynccontextmanager
 
    from fastapi import FastAPI
@@ -24,7 +24,7 @@ You must also close the dependency during application shutdown.
 
 
    @asynccontextmanager
-   async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+   async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
        await db_session_dependency.initialize(
            config.database_url, config.database_password
        )

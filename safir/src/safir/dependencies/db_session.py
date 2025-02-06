@@ -1,6 +1,6 @@
 """Manage an async database session."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 
 from pydantic import SecretStr
 from pydantic_core import Url
@@ -41,7 +41,7 @@ class DatabaseSessionDependency:
         self._engine: AsyncEngine | None = None
         self._session: async_scoped_session | None = None
 
-    async def __call__(self) -> AsyncIterator[async_scoped_session]:
+    async def __call__(self) -> AsyncGenerator[async_scoped_session]:
         """Return the database session manager.
 
         Returns

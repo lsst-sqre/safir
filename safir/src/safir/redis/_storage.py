@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import Generic, TypeVar
 
 try:
@@ -143,7 +143,7 @@ class PydanticRedisStorage(Generic[S]):
             msg = f"Cannot deserialize data for key {full_key}"
             raise DeserializeError(msg, key=full_key, error=error) from e
 
-    async def scan(self, pattern: str) -> AsyncIterator[str]:
+    async def scan(self, pattern: str) -> AsyncGenerator[str]:
         """Scan Redis for a given key pattern, returning each key.
 
         Parameters

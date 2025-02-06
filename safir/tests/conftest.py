@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Generator, Iterator
+from collections.abc import AsyncGenerator, Generator, Iterator
 from datetime import timedelta
 from pathlib import Path
 
@@ -117,7 +117,7 @@ def kafka_connection_settings(
 @pytest_asyncio.fixture
 async def kafka_consumer(
     kafka_connection_settings: KafkaConnectionSettings,
-) -> AsyncIterator[AIOKafkaConsumer]:
+) -> AsyncGenerator[AIOKafkaConsumer]:
     """Provide an AOIKafkaConsumer pointed at a session-scoped kafka container.
 
     All data is cleared from the kafka instance at the end of the test.
@@ -134,7 +134,7 @@ async def kafka_consumer(
 @pytest_asyncio.fixture
 async def kafka_broker(
     kafka_connection_settings: KafkaConnectionSettings,
-) -> AsyncIterator[KafkaBroker]:
+) -> AsyncGenerator[KafkaBroker]:
     """Provide a fast stream KafkaBroker pointed at a session-scoped kafka
     container.
 
@@ -152,7 +152,7 @@ async def kafka_broker(
 @pytest_asyncio.fixture
 async def kafka_admin_client(
     kafka_connection_settings: KafkaConnectionSettings,
-) -> AsyncIterator[AIOKafkaAdminClient]:
+) -> AsyncGenerator[AIOKafkaAdminClient]:
     """Provide an AOIKafkaAdmin client pointed at a session-scoped kafka
     container.
 
@@ -224,7 +224,7 @@ def schema_manager(
 async def event_manager(
     kafka_connection_settings: KafkaConnectionSettings,
     schema_manager_settings: SchemaManagerSettings,
-) -> AsyncIterator[EventManager]:
+) -> AsyncGenerator[EventManager]:
     """Provide an event manager and create a matching Kafka topic."""
     config = KafkaMetricsConfiguration(
         application="testapp",
@@ -285,7 +285,7 @@ def redis() -> Iterator[RedisContainer]:
 
 
 @pytest_asyncio.fixture
-async def redis_client(redis: RedisContainer) -> AsyncIterator[Redis]:
+async def redis_client(redis: RedisContainer) -> AsyncGenerator[Redis]:
     """Create a Redis client for testing.
 
     This must be done separately for each test since it's tied to the per-test

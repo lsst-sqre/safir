@@ -43,7 +43,7 @@ class ArqDependency:
         --------
         .. code-block:: python
 
-           from collections.abc import AsyncIterator
+           from collections.abc import AsyncGenerator
            from contextlib import asynccontextmanager
 
            from fastapi import Depends, FastAPI
@@ -52,7 +52,7 @@ class ArqDependency:
 
 
            @asynccontextmanager
-           async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+           async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
                await arq_dependency.initialize(mode=ArqMode.test)
                yield
 

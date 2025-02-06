@@ -56,7 +56,7 @@ This is most easily done by defining a fixture, as follows.
 
 .. code-block:: python
 
-   from collections.abc import AsyncIterator
+   from collections.abc import AsyncGenerator
 
    import pytest_asyncio
    from fastapi import FastAPI
@@ -64,7 +64,7 @@ This is most easily done by defining a fixture, as follows.
 
 
    @pytest_asyncio.fixture
-   async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+   async def client(app: FastAPI) -> AsyncGenerator[AsyncClient]:
        async with AsyncClient(
            transport=ASGITransport(app=app),  # type: ignore[arg-type]
            base_url="https://example.com/",

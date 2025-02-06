@@ -102,7 +102,7 @@ First, initialize and shut down the UWS application in the ``lifespan`` function
 
 
    @asynccontextmanager
-   async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+   async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
        await uws.initialize_fastapi()
        yield
        await uws.shutdown_fastapi()

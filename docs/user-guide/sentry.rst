@@ -85,13 +85,13 @@ And your ``main.py`` might look like this:
 
 
    @asynccontextmanager
-   async def lifespan(app: FastAPI) -> AsyncIterator: ...
+   async def lifespan(app: FastAPI) -> AsyncGenerator: ...
 
 
    app = FastAPI(title="My App", lifespan=lifespan, ...)
 
-.. _before_send: https://docs.sentry.io/platforms/python/configuration/options/#before-send
-.. _traces_sample_rate: https://docs.sentry.io/platforms/python/configuration/options/#traces-sample-rate
+.. _before_send: https://docs.sentry.io/platforms/python/configuration/options/#before_send
+.. _traces_sample_rate: https://docs.sentry.io/platforms/python/configuration/options/#traces_sample_rate
 .. _configuration options: https://docs.sentry.io/platforms/python/configuration/options/
 
 .. _sentry-exception-types:

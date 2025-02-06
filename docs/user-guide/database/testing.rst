@@ -82,7 +82,7 @@ For example:
 
 .. code-block:: python
 
-   from collections.abc import AsyncIterator
+   from collections.abc import AsyncGenerator
 
    import pytest_asyncio
    from asgi_lifespan import LifespanManager
@@ -95,7 +95,7 @@ For example:
 
 
    @pytest_asyncio.fixture
-   async def app() -> AsyncIterator[FastAPI]:
+   async def app() -> AsyncGenerator[FastAPI]:
        logger = structlog.get_logger(config.logger_name)
        engine = create_database_engine(
            config.database_url, config.database_password
