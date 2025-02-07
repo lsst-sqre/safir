@@ -41,6 +41,8 @@ from kubernetes_asyncio.client import (
     V1ResourceQuota,
     V1Secret,
     V1Service,
+    V1ServiceAccount,
+    V1ServiceAccountList,
     V1ServiceList,
     V1Status,
 )
@@ -2693,6 +2695,193 @@ class MockKubernetesApi:
         """
         self._maybe_error("read_namespaced_service", name, namespace)
         return self._get_object(namespace, "Service", name)
+
+    # SERVICEACCOUNT API
+
+    async def create_namespaced_service_account(
+        self,
+        namespace: str,
+        body: V1ServiceAccount,
+        *,
+        _request_timeout: float | None = None,
+    ) -> None:
+        """Create a service account object.
+
+        Parameters
+        ----------
+        namespace
+            Namespace in which to create the object.
+        body
+            Object to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 409 status if the object already exists.
+        """
+        self._maybe_error("create_namespaced_service_account", namespace, body)
+        self._update_metadata(body, "v1", "ServiceAccount", namespace)
+        stream = self._event_streams[namespace]["ServiceAccount"]
+        body.metadata.resource_version = stream.next_resource_version
+        self._store_object(
+            namespace, "ServiceAccount", body.metadata.name, body
+        )
+        stream.add_event("ADDED", body)
+
+    async def delete_namespaced_service_account(
+        self,
+        name: str,
+        namespace: str,
+        *,
+        grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
+        body: V1DeleteOptions | None = None,
+        _request_timeout: float | None = None,
+    ) -> V1Status:
+        """Delete a service account object.
+
+        Parameters
+        ----------
+        name
+            Name of service account to delete.
+        namespace
+            Namespace of service account to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
+        body
+            Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Status
+            Success status.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the service was not found.
+        """
+        self._maybe_error("delete_namespaced_service_account", name, namespace)
+        service = self._get_object(namespace, "ServiceAccount", name)
+        stream = self._event_streams[namespace]["ServiceAccount"]
+        stream.add_event("DELETED", service)
+        return self._delete_object(
+            namespace, "ServiceAccount", name, propagation_policy
+        )
+
+    async def list_namespaced_service_account(
+        self,
+        namespace: str,
+        *,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
+        watch: bool = False,
+        _preload_content: bool = True,
+        _request_timeout: float | None = None,
+    ) -> V1ServiceList | Mock:
+        """List service account objects in a namespace.
+
+        This does support watches.
+
+        Parameters
+        ----------
+        namespace
+            Namespace of service accounts to list.
+        field_selector
+            Only ``metadata.name=...`` is supported. It is parsed to find the
+            service name and only services matching that name will be returned.
+        label_selector
+            Which objects to retrieve. All labels must match.
+        resource_version
+            Where to start in the event stream when performing a watch. If
+            `None`, starts with the next change.
+        timeout_seconds
+            How long to return events for before exiting when performing a
+            watch.
+        watch
+            Whether to act as a watch.
+        _preload_content
+            Verified to be `False` when performing a watch.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1ServiceAccountList or unittest.mock.Mock
+            List of service accounts in that namespace, when not called as a
+            watch. If called as a watch, returns a mock ``aiohttp.Response``
+            with a ``readline`` metehod that yields the events.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the namespace does not exist.
+        """
+        self._maybe_error(
+            "list_namespaced_service_account", namespace, field_selector
+        )
+        if namespace not in self._objects:
+            msg = f"Namespace {namespace} not found"
+            raise ApiException(status=404, reason=msg)
+        if not watch:
+            accounts = self._list_objects(
+                namespace, "ServiceAccount", field_selector, label_selector
+            )
+            return V1ServiceAccountList(kind="ServiceAccount", items=accounts)
+
+        # All watches must not preload content since we're returning raw JSON.
+        # This is done by the Kubernetes API Watch object.
+        assert not _preload_content
+
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._event_streams[namespace]["ServiceAccount"]
+        return stream.build_watch_response(
+            resource_version,
+            timeout_seconds,
+            field_selector=field_selector,
+            label_selector=label_selector,
+        )
+
+    async def read_namespaced_service_account(
+        self,
+        name: str,
+        namespace: str,
+        *,
+        _request_timeout: float | None = None,
+    ) -> V1Service:
+        """Read a service account.
+
+        Parameters
+        ----------
+        name
+            Name of service account.
+        namespace
+            Namespace of service account.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1ServiceAccount
+            Requested service account.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the service does not exist.
+        """
+        self._maybe_error("read_namespaced_service_account", name, namespace)
+        return self._get_object(namespace, "ServiceAccount", name)
 
     # Internal helper functions.
 
