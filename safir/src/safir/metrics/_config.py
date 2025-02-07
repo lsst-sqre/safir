@@ -196,6 +196,8 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         title="Kafka connection settings",
     )
 
+    kafka_max_batch_size: int = Field(1024 * 16, title="Kafka max_batch_size")
+
     schema_manager: SchemaManagerSettings = Field(
         default_factory=SchemaManagerSettings,
         title="Kafka schema manager settings",
@@ -229,6 +231,7 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         """
         broker = KafkaBroker(
             client_id=f"{BROKER_PREFIX}-{self.application}",
+            max_batch_size=self.kafka_max_batch_size,
             **self.kafka.to_faststream_params(),
         )
         admin_client = AIOKafkaAdminClient(
