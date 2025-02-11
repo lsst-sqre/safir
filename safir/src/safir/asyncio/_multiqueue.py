@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from types import EllipsisType
 from typing import Generic, TypeVar
-
-from safir.datetime import current_datetime
 
 #: Type variable of objects being stored in `AsyncMultiQueue`.
 T = TypeVar("T")
@@ -87,10 +85,7 @@ class AsyncMultiQueue(Generic[T]):
         TimeoutError
             Raised when the timeout is reached.
         """
-        if timeout:
-            end_time = current_datetime(microseconds=True) + timeout
-        else:
-            end_time = None
+        end_time = datetime.now(tz=UTC) + timeout if timeout else None
 
         # Grab a reference to the current contents so that the iterator
         # detaches from the contents on clear.
@@ -118,7 +113,7 @@ class AsyncMultiQueue(Generic[T]):
                     elif contents and contents[-1] is Ellipsis:
                         return
                     if end_time:
-                        now = current_datetime(microseconds=True)
+                        now = datetime.now(tz=UTC)
                         timeout_left = (end_time - now).total_seconds()
                         async with asyncio.timeout(timeout_left):
                             await trigger.wait()

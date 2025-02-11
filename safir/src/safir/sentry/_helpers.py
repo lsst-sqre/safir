@@ -1,11 +1,11 @@
 """Sentry helpers."""
 
-from datetime import timedelta
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
 
 from sentry_sdk.tracing import Span
 from sentry_sdk.types import Event, Hint
-
-from safir.datetime import current_datetime
 
 from ._exceptions import SentryException
 
@@ -20,10 +20,9 @@ __all__ = [
 def duration(span: Span) -> timedelta:
     """Return the time spent in a span (to the present if not finished)."""
     if span.timestamp is None:
-        timestamp = current_datetime(microseconds=True)
+        timestamp = datetime.now(tz=UTC)
     else:
         timestamp = span.timestamp
-
     return timestamp - span.start_timestamp
 
 

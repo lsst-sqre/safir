@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, ClassVar, Self
 
 from httpx import HTTPError, HTTPStatusError
 from pydantic import BaseModel, field_validator
 
-from safir.datetime import current_datetime, format_datetime_for_logging
+from safir.datetime import format_datetime_for_logging
 
 __all__ = [
     "SlackBaseBlock",
@@ -275,10 +275,7 @@ class SlackException(Exception):
         # fix. See https://github.com/python/cpython/issues/76877.
         self.message = message
         self.user = user
-        if failed_at:
-            self.failed_at = failed_at
-        else:
-            self.failed_at = current_datetime(microseconds=True)
+        self.failed_at = failed_at if failed_at else datetime.now(tz=UTC)
 
     def __str__(self) -> str:
         return self.message
