@@ -8,7 +8,7 @@ standard.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Annotated, Any, Generic, Literal, Self, TypeVar
+from typing import Annotated, Any, Generic, Literal, Self, TypeVar, override
 
 from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
 from vo_models.uws import (
@@ -184,6 +184,7 @@ class SignedJobResult(JobResult):
     response via templating or returning the URL as a redirect.
     """
 
+    @override
     def to_xml_model(self) -> ResultReference:
         """Convert to a Pydantic XML model."""
         return ResultReference(

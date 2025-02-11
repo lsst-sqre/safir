@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, override
 
 from pydantic import BaseModel, ConfigDict
 
@@ -91,6 +91,7 @@ class CamelCaseModel(BaseModel):
         alias_generator=to_camel_case, populate_by_name=True
     )
 
+    @override
     @_copy_type(BaseModel.model_dump)
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Export the model as a dictionary.
@@ -102,6 +103,7 @@ class CamelCaseModel(BaseModel):
             kwargs["by_alias"] = True
         return super().model_dump(**kwargs)
 
+    @override
     @_copy_type(BaseModel.model_dump_json)
     def model_dump_json(self, **kwargs: Any) -> str:
         """Export the model as JSON.

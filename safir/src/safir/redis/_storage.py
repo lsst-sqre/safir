@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, override
 
 try:
     import redis.asyncio as redis
@@ -48,6 +48,7 @@ class DeserializeError(SlackException):
         self.key = key
         self.error = error
 
+    @override
     def to_slack(self) -> SlackMessage:
         message = super().to_slack()
         message.fields.append(SlackTextField(heading="Key", text=self.key))
@@ -249,10 +250,12 @@ class EncryptedPydanticRedisStorage(PydanticRedisStorage[S]):
             encryption_key = encryption_key.get_secret_value()
         self._fernet = Fernet(encryption_key.encode())
 
+    @override
     def _serialize(self, obj: S) -> bytes:
         data = obj.model_dump_json().encode()
         return self._fernet.encrypt(data)
 
+    @override
     def _deserialize(self, data: bytes) -> S:
         data = self._fernet.decrypt(data)
         return self._datatype.model_validate_json(data.decode())

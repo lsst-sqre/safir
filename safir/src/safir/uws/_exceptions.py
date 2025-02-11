@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Self
+from typing import Self, override
 
 from vo_models.uws.types import ErrorType
 
@@ -196,6 +196,7 @@ class TaskError(SlackException):
             detail=detail,
         )
 
+    @override
     def to_slack(self) -> SlackMessage:
         message = super().to_slack()
         if self._traceback:

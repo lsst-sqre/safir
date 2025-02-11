@@ -7,7 +7,7 @@ https://github.com/getsentry/sentry-python/blob/c6a89d64db965fe0ece6de10df38ab93
 import contextlib
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, override
 
 import pytest
 import sentry_sdk
@@ -47,6 +47,7 @@ class TestTransport(Transport):
     def __init__(self) -> None:
         Transport.__init__(self)
 
+    @override
     def capture_envelope(self, envelope: Envelope) -> None:
         """No-op capture_envelope for tests."""
 

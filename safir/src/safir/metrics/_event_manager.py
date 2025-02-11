@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from abc import ABCMeta, abstractmethod
 from datetime import UTC, datetime
-from typing import Generic, TypeVar, cast
+from typing import Generic, TypeVar, cast, override
 from uuid import uuid4
 
 import structlog
@@ -148,6 +148,7 @@ class KafkaEventPublisher(EventPublisher, Generic[P]):
         self._publisher = publisher
         self._schema_info = schema_info
 
+    @override
     async def publish(self, payload: P) -> EventMetadata:
         event = self.construct_event(payload)
         await self._manager.publish(event, self._publisher, self._schema_info)
@@ -171,6 +172,7 @@ class NoopEventPublisher(EventPublisher, Generic[P]):
         super().__init__(application, event_class)
         self._logger = logger
 
+    @override
     async def publish(self, payload: P) -> EventMetadata:
         event = self.construct_event(payload)
         self._logger.debug(
@@ -196,6 +198,7 @@ class MockEventPublisher(NoopEventPublisher, Generic[P]):
         super().__init__(application, event_class, logger)
         self._published: PublishedList[P] = PublishedList()
 
+    @override
     async def publish(self, payload: P) -> EventMetadata:
         event = await super().publish(payload)
         self._published.append(payload)
@@ -436,6 +439,7 @@ class KafkaEventManager(EventManager):
         self._schema_manager = schema_manager
         self._manage_kafka = manage_kafka
 
+    @override
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
         if self._manage_kafka:
@@ -443,6 +447,7 @@ class KafkaEventManager(EventManager):
             await self._admin_client.close()
         await super().aclose()
 
+    @override
     async def build_publisher_for_model(
         self, model: type[P]
     ) -> EventPublisher[P]:
@@ -477,6 +482,7 @@ class KafkaEventManager(EventManager):
             schema_info=schema_info,
         )
 
+    @override
     async def initialize(self) -> None:
         """Initialize the Kafka clients if they are managed."""
         if self._manage_kafka:
@@ -570,6 +576,7 @@ class NoopEventManager(EventManager):
         super().__init__(f"{topic_prefix}.{application}", logger)
         self._application = application
 
+    @override
     async def build_publisher_for_model(
         self, model: type[P]
     ) -> EventPublisher[P]:
@@ -620,6 +627,7 @@ class MockEventManager(EventManager):
         super().__init__(f"{topic_prefix}.{application}", logger)
         self._application = application
 
+    @override
     async def build_publisher_for_model(
         self, model: type[P]
     ) -> EventPublisher[P]:

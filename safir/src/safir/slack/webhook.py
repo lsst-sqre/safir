@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine
-from typing import Any, ClassVar
+from typing import Any, ClassVar, override
 
 from fastapi import HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -198,6 +198,7 @@ class SlackRouteErrorHandler(APIRoute):
         """
         cls._alert_client = SlackWebhookClient(hook_url, application, logger)
 
+    @override
     def get_route_handler(
         self,
     ) -> Callable[[Request], Coroutine[Any, Any, Response]]:

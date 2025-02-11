@@ -6,7 +6,7 @@ import abc
 import asyncio
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Self
+from typing import Any, Self, override
 
 from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings
@@ -186,6 +186,7 @@ class RedisArqQueue(ArqQueue):
         )
         return cls(pool, default_queue_name=default_queue_name)
 
+    @override
     async def enqueue(
         self,
         task_name: str,
@@ -213,6 +214,7 @@ class RedisArqQueue(ArqQueue):
             _queue_name=queue_name or self.default_queue_name,
         )
 
+    @override
     async def abort_job(
         self,
         job_id: str,
@@ -223,12 +225,14 @@ class RedisArqQueue(ArqQueue):
         job = self._get_job(job_id, queue_name=queue_name)
         return await job.abort(timeout=timeout)
 
+    @override
     async def get_job_metadata(
         self, job_id: str, queue_name: str | None = None
     ) -> JobMetadata:
         job = self._get_job(job_id, queue_name=queue_name)
         return await JobMetadata.from_job(job)
 
+    @override
     async def get_job_result(
         self, job_id: str, queue_name: str | None = None
     ) -> JobResult:
@@ -253,6 +257,7 @@ class MockArqQueue(ArqQueue):
     def _resolve_queue_name(self, queue_name: str | None) -> str:
         return queue_name or self.default_queue_name
 
+    @override
     async def enqueue(
         self,
         task_name: str,
@@ -273,6 +278,7 @@ class MockArqQueue(ArqQueue):
         self._job_metadata[queue_name][new_job.id] = new_job
         return new_job
 
+    @override
     async def abort_job(
         self,
         job_id: str,
@@ -313,6 +319,7 @@ class MockArqQueue(ArqQueue):
         # Otherwise, the job has already completed, so we can't abort it.
         return False
 
+    @override
     async def get_job_metadata(
         self, job_id: str, queue_name: str | None = None
     ) -> JobMetadata:
@@ -322,6 +329,7 @@ class MockArqQueue(ArqQueue):
         except KeyError as e:
             raise JobNotFound(job_id) from e
 
+    @override
     async def get_job_result(
         self, job_id: str, queue_name: str | None = None
     ) -> JobResult:
