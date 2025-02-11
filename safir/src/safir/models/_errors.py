@@ -1,6 +1,6 @@
 """Error models for FastAPI applications."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-class ErrorLocation(str, Enum):
+class ErrorLocation(StrEnum):
     """Possible locations for an error.
 
     The first element of ``loc`` in `ErrorDetail` should be chosen from one of

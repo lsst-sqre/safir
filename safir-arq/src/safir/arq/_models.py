@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Self
 
 from arq.jobs import Job, JobStatus
@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-class ArqMode(str, Enum):
+class ArqMode(StrEnum):
     """Mode configuration for the Arq queue."""
 
     production = "production"
