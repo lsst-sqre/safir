@@ -191,3 +191,12 @@ The data stored in :file:`tests/data/pod.json` can then contain only the interes
 
    As in the above example, consider passing ``serialize=True`` whenever calling the ``to_dict`` method on a Kubernetes model.
    This tells the Kubernetes library to use the correct Kubernetes camel-case attribute names rather than the Python snake-case attribute names.
+
+Performing actions after object creation
+----------------------------------------
+
+Safir supports registering a callback that is called after object creation.
+To do this, call `~safir.testing.kubernetes.MockKubernetesApi.register_create_hook_for_test` with the kind of the object and the callback.
+Whenever an object of that kind is created, the callback will be called.
+
+This can be used to simulate such Kubernetes behavior as the creation of a default service account for a namespace, or assigning an IP address to an ingress.
