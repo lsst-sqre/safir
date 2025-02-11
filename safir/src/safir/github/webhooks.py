@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -93,7 +93,7 @@ class GitHubAppInstallationEventRepoModel(BaseModel):
         return self.full_name.split("/")[0]
 
 
-class GitHubAppInstallationEventAction(str, Enum):
+class GitHubAppInstallationEventAction(StrEnum):
     """The action performed on an GitHub App ``installation`` webhook
     (`GitHubAppInstallationEventModel`).
     """
@@ -135,7 +135,7 @@ class GitHubAppInstallationEventModel(BaseModel):
     )
 
 
-class GitHubAppInstallationRepositoriesEventAction(str, Enum):
+class GitHubAppInstallationRepositoriesEventAction(StrEnum):
     """The action performed on a GitHub App ``installation_repositories``
     webhook (`GitHubAppInstallationRepositoriesEventModel`).
     """
@@ -170,7 +170,7 @@ class GitHubAppInstallationRepositoriesEventModel(BaseModel):
     )
 
 
-class GitHubPullRequestEventAction(str, Enum):
+class GitHubPullRequestEventAction(StrEnum):
     """The action performed on a GitHub ``pull_request`` webhook
     (`GitHubPullRequestEventModel`).
     """
@@ -266,7 +266,7 @@ class GitHubPullRequestEventModel(BaseModel):
     )
 
 
-class GitHubCheckSuiteEventAction(str, Enum):
+class GitHubCheckSuiteEventAction(StrEnum):
     """The action performed in a GitHub ``check_suite`` webhook
     (`GitHubCheckSuiteEventModel`).
     """
@@ -306,7 +306,7 @@ class GitHubCheckSuiteEventModel(BaseModel):
     )
 
 
-class GitHubCheckRunEventAction(str, Enum):
+class GitHubCheckRunEventAction(StrEnum):
     """The action performed in a GitHub ``check_run`` webhook
     (`GitHubCheckRunEventModel`).
     """
