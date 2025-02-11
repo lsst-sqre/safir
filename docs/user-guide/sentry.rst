@@ -2,14 +2,14 @@
 Integrating Sentry
 ##################
 
-`Sentry`_ is an exception reporting and tracing observability service.
-It has great out-of-the-box integrations with many of the Python libaries that we use, including `FastAPI`_, `SQLAlchemy`_, and `arq`_.
+Sentry_ is an exception reporting and tracing observability service.
+It has great out-of-the-box integrations with many of the Python libaries that we use, including FastAPI_, SQLAlchemy_, and arq_.
 Most apps can get a lot of value out of Sentry by doing nothing other than calling the `init function <https://docs.sentry.io/platforms/python/#configure>`_ early in their app and using some of the helpers described here.
 
 Instrumenting your application
 ==============================
 
-The simplest instrumentation involves calling ``sentry_sdk.init`` as early as possible in your app's ``main.py`` file.
+The simplest instrumentation involves calling ``sentry_sdk.init`` as early as possible in your app's :file:`main.py` file.
 You will need to provide at least:
 
 * A Sentry DSN associated with your app's Sentry project
@@ -17,11 +17,11 @@ You will need to provide at least:
 
 You can optionally provide:
 
-* The `~safir.sentry.before_send_handler` `before_send`_ handler, which adds the environment to the Sentry fingerprint, and handles :ref:`sentry-exception-types` appropriately.
-* A value to configure the `traces_sample_rate`_ so you can easily enable or disable tracing from Phalanx without changing your app's code
+* The `~safir.sentry.before_send_handler` before_send_ handler, which adds the environment to the Sentry fingerprint, and handles :ref:`sentry-exception-types` appropriately.
+* A value to configure the traces_sample_rate_ so you can easily enable or disable tracing from Phalanx without changing your app's code
 * Other `configuration options`_.
 
-The ``sentry_sdk`` will automatically get the DSN and environment from the ``SENTRY_DSN`` and ``SENTRY_ENVIRONMENT`` environment vars, but you can also provide them explicitly via your app's config.
+The ``sentry_sdk`` module will automatically get the DSN and environment from the ``SENTRY_DSN`` and ``SENTRY_ENVIRONMENT`` environment vars, but you can also provide them explicitly via your app's config.
 Unless you want to explicitly instrument app config initialization, you should probably provide these values with the rest of your app's config to keep all config in the same place.
 
 Your config file may look something like this:
@@ -29,13 +29,13 @@ Your config file may look something like this:
 .. code-block:: python
    :caption: src/myapp/config.py
 
-   class Configuration(BaseSettings):
+   class Config(BaseSettings):
        environment_name: Annotated[
            str,
            Field(
                alias="MYAPP_ENVIRONMENT_NAME",
                description=(
-                   "The Phalanx name of the Rubin Science Platform environment."
+                   "Phalanx name of the Rubin Science Platform environment"
                ),
            ),
        ]
@@ -44,7 +44,7 @@ Your config file may look something like this:
            str | None,
            Field(
                alias="MYAPP_SENTRY_DSN",
-               description="DSN for sending events to Sentry.",
+               description="DSN for sending events to Sentry",
            ),
        ] = None
 
@@ -53,9 +53,9 @@ Your config file may look something like this:
            Field(
                alias="MYAPP_SENTRY_TRACES_SAMPLE_RATE",
                description=(
-                   "The percentage of transactions to send to Sentry, expressed "
-                   "as a float between 0 and 1. 0 means send no traces, 1 means "
-                   "send every trace."
+                   "Percentage of transactions to send to Sentry, expressed "
+                   "as a float between 0 and 1. 0 means send no traces, 1 "
+                   "means send every trace."
                ),
                ge=0,
                le=1,
@@ -63,9 +63,9 @@ Your config file may look something like this:
        ] = 0
 
 
-   config = Configuration()
+   config = Config()
 
-And your ``main.py`` might look like this:
+And your :file:`main.py` might look like this:
 
 .. code-block:: python
    :caption: src/myapp/main.py
@@ -111,8 +111,10 @@ If Sentry sends an event that arises from reporting one of these exceptions, the
 
 .. note::
 
-   `Tags <https://docs.sentry.io/platforms/python/enriching-events/tags/>`_ are short key-value pairs that are indexed by Sentry. Use tags for small values that you would like to search by and aggregate over when analyzing multiple Sentry events in the Sentry UI.
-   `Contexts <https://docs.sentry.io/platforms/python/enriching-events/context/>`_ are for more detailed information related to single events. You can not search by context values, but you can store more data in them.
+   `Tags <https://docs.sentry.io/platforms/python/enriching-events/tags/>`_ are short key-value pairs that are indexed by Sentry.
+   Use tags for small values that you would like to search by and aggregate over when analyzing multiple Sentry events in the Sentry UI.
+   `Contexts <https://docs.sentry.io/platforms/python/enriching-events/context/>`_ are for more detailed information related to single events.
+   You can not search by context values, but you can store more data in them.
    You should use a tag for something like ``"query_type": "sync"`` and a context for something like ``"query_info": {"query_text": text}``
 
 .. code-block:: python
@@ -139,8 +141,7 @@ If Sentry sends an event that arises from reporting one of these exceptions, the
 SentryWebException
 ------------------
 
-Similar to :ref:`slack-web-exceptions`, you can use `~safir.sentry.SentryWebException` to report an `HTTPX`_ exception with helpful info in tags and contexts.
-
+Similar to :ref:`slack-web-exceptions`, you can use `~safir.sentry.SentryWebException` to report an httpx_ exception with helpful info in tags and contexts.
 
 .. code-block:: python
 
@@ -162,15 +163,15 @@ Similar to :ref:`slack-web-exceptions`, you can use `~safir.sentry.SentryWebExce
 
 This will set an ``httpx_request_info`` context with the body, and these tags if the info is available:
 
+* ``gafaelfawr_user``
 * ``httpx_request_method``
-* ``gafaelfaw_user``
 * ``httpx_request_url``
 * ``httpx_request_status``
 
 Testing
 =======
 
-Safir includes some functions to build `pytest`_ fixtures to assert you're sending accurate info with your Sentry events.
+Safir includes some functions to build pytest_ fixtures to assert you're sending accurate info with your Sentry events.
 
 * `~safir.testing.sentry.sentry_init_fixture` will yield a function that can be used to initialize Sentry such that it won't actually try to send any events.
   It takes the same arguments as the `normal sentry init function <https://docs.sentry.io/platforms/python/configuration/options/>`_.
@@ -182,24 +183,17 @@ These can be combined to create a pytest fixture that initializes Sentry in a wa
    :caption: conftest.py
 
    @pytest.fixture
-   def sentry_items(
-       monkeypatch: pytest.MonkeyPatch,
-   ) -> Generator[Captured]:
-       """Mock Sentry transport and yield a list that will contain all events."""
+   def sentry_items(monkeypatch: pytest.MonkeyPatch) -> Generator[Captured]:
+       """Mock Sentry transport and yield a list of all published events."""
        with sentry_init_fixture() as init:
-           init(
-               traces_sample_rate=1.0,
-               before_send=before_send,
-           )
+           init(traces_sample_rate=1.0, before_send=before_send)
            events = capture_events_fixture(monkeypatch)
            yield events()
 
 .. code-block:: python
    :caption: my_test.py
 
-   def test_spawn_timeout(
-       sentry_items: Captured,
-   ) -> None:
+   def test_spawn_timeout(sentry_items: Captured) -> None:
        do_something_that_generates_an_error()
 
        # Check that an appropriate error was posted.
@@ -229,6 +223,7 @@ These can be combined to create a pytest fixture that initializes Sentry in a wa
 On a `~safir.testing.sentry.Captured` container, ``errors`` and ``transactions`` are dictionaries.
 Their contents are described in the `Sentry docs <https://develop.sentry.dev/sdk/data-model/event-payloads/>`_.
 You'll probably make most of your assertions against the keys:
+
 * ``tags``
 * ``user``
 * ``contexts``
