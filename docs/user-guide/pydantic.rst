@@ -35,12 +35,12 @@ For example:
 
 
    class Config(BaseSettings):
-       database_url: EnvAsyncPostgresDsn
-       redis_url: EnvRedisDsn
-
        model_config = SettingsConfigDict(
            env_prefix="EXAMPLE_", case_sensitive=False
        )
+
+       database_url: EnvAsyncPostgresDsn
+       redis_url: EnvRedisDsn
 
 These types only adjust DSNs initialized as normal.
 They do not synthesize DSNs if none are set.
@@ -150,11 +150,11 @@ To use it, add a configuration block to any Pydantic model that has snake-case a
 
 
    class Model(BaseModel):
-       some_field: str
-
        model_config = ConfigDict(
            alias_generator=to_camel_case, populate_by_name=True
        )
+
+       some_field: str
 
 By default, only the generated aliases (so, in this case, only the camel-case form of the attribute, ``someField``) are supported.
 The additional setting ``allow_population_by_field_name``, tells Pydantic to allow either ``some_field`` or ``someField`` in the input.

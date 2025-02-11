@@ -309,6 +309,10 @@ class KafkaConnectionSettings(BaseSettings):
        blah = config.validated.sasl_username  # Static type error
     """
 
+    model_config = SettingsConfigDict(
+        case_sensitive=False, extra="forbid", populate_by_name=True
+    )
+
     bootstrap_servers: str = Field(
         title="Kafka bootstrap servers",
         description=(
@@ -409,10 +413,6 @@ class KafkaConnectionSettings(BaseSettings):
             "protocols."
         ),
         validation_alias=AliasChoices("saslPassword", "KAFKA_SASL_PASSWORD"),
-    )
-
-    model_config = SettingsConfigDict(
-        case_sensitive=False, extra="forbid", populate_by_name=True
     )
 
     @model_validator(mode="after")

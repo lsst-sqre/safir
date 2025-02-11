@@ -26,11 +26,11 @@ class Config(BaseSettings):
     ``TEST_DATABASE_PASSWORD`` to match the database that it should use.
     """
 
+    model_config = SettingsConfigDict(env_prefix="TEST_", case_sensitive=False)
+
     database_url: EnvAsyncPostgresDsn = Url("postgresql://localhost/safir")
     database_password: SecretStr = SecretStr("INSECURE")
     log_level: LogLevel = LogLevel.DEBUG
-
-    model_config = SettingsConfigDict(env_prefix="TEST_", case_sensitive=False)
 
 
 config = Config()
