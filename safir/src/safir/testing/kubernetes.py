@@ -7,7 +7,7 @@ import json
 import os
 import re
 from collections import defaultdict
-from collections.abc import AsyncGenerator, Callable, Iterator
+from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator
 from datetime import timedelta
 from typing import Any, Protocol
 from unittest.mock import AsyncMock, Mock, patch
@@ -407,6 +407,7 @@ class MockKubernetesApi:
         self.error_callback: Callable[..., None] | None = None
         self.initial_pod_phase = "Running"
 
+        self._create_hooks: dict[str, Callable[..., Awaitable[None]]] = {}
         self._custom_kinds: dict[str, str] = {}
         self._nodes = V1NodeList(items=[])
         self._objects: dict[str, dict[str, dict[str, Any]]] = {}
@@ -462,6 +463,30 @@ class MockKubernetesApi:
             for _, body in sorted(self._objects[namespace][kind].items()):
                 result.append(body)
         return result
+
+    def register_create_hook_for_test(
+        self, kind: str, hook: Callable[..., Awaitable[None]] | None
+    ) -> None:
+        """Register a creation hook for a particular kind of object.
+
+        The registered hook replaces any existing hook for that object.
+
+        Parameters
+        ----------
+        kind
+            Kind of object. This must use the same capitalization convention
+            as Kubernetes itself does (for example, ``ServiceAccount`, not
+            ``serviceaccount``).
+        hook:
+            Async callback that is called after a new object of this type is
+            created, or `None` to remove any hooks for that kind of object.
+            The hook will be called with one argument, the newly created
+            object.
+        """
+        if hook:
+            self._create_hooks[kind] = hook
+        elif kind in self._create_hooks:
+            del self._create_hooks[kind]
 
     def set_nodes_for_test(self, nodes: list[V1Node]) -> None:
         """Set the node structures that will be returned by `list_node`.
@@ -526,10 +551,9 @@ class MockKubernetesApi:
             assert namespace == body["metadata"]["namespace"]
         else:
             body["metadata"]["namespace"] = namespace
-        stream = self._event_streams[namespace][key]
-        body["metadata"]["resourceVersion"] = stream.next_resource_version
-        self._store_object(namespace, key, body["metadata"]["name"], body)
-        stream.add_custom_event("ADDED", body)
+        await self._store_object(
+            namespace, key, body["metadata"]["name"], body
+        )
 
     async def delete_namespaced_custom_object(
         self,
@@ -579,9 +603,6 @@ class MockKubernetesApi:
         """
         self._maybe_error("delete_namespaced_custom_object", name, namespace)
         key = f"{group}/{version}/{plural}"
-        obj = self._get_object(namespace, key, name)
-        stream = self._event_streams[namespace][key]
-        stream.add_custom_event("DELETED", obj)
         return self._delete_object(namespace, key, name, propagation_policy)
 
     async def get_namespaced_custom_object(
@@ -816,10 +837,7 @@ class MockKubernetesApi:
             assert change["op"] == "replace"
             assert change["path"] == "/status"
             obj["status"] = change["value"]
-        stream = self._event_streams[namespace][key]
-        obj["metadata"]["resourceVersion"] = stream.next_resource_version
-        self._store_object(namespace, key, name, obj, replace=True)
-        stream.add_custom_event("MODIFIED", obj)
+        await self._store_object(namespace, key, name, obj, replace=True)
         return obj
 
     async def replace_namespaced_custom_object(
@@ -869,10 +887,7 @@ class MockKubernetesApi:
         key = f"{group}/{version}/{plural}"
         assert key == self._custom_kinds[body["kind"]]
         assert namespace == body["metadata"]["namespace"]
-        stream = self._event_streams[namespace][key]
-        body["metadata"]["resourceVersion"] = stream.next_resource_version
-        self._store_object(namespace, key, name, body, replace=True)
-        stream.add_custom_event("MODIFIED", body)
+        await self._store_object(namespace, key, name, body, replace=True)
 
     # CONFIGMAP API
 
@@ -902,7 +917,7 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_config_map", namespace, body)
         self._update_metadata(body, "v1", "ConfigMap", namespace)
         name = body.metadata.name
-        self._store_object(namespace, "ConfigMap", name, body)
+        await self._store_object(namespace, "ConfigMap", name, body)
 
     async def delete_namespaced_config_map(
         self,
@@ -1005,6 +1020,9 @@ class MockKubernetesApi:
         body.metadata.resource_version = stream.next_resource_version
         stream.add_event("ADDED", body)
         self._events[namespace].append(body)
+        if "Event" in self._create_hooks:
+            hook = self._create_hooks["Event"]
+            await hook(body)
 
     async def list_namespaced_event(
         self,
@@ -1097,14 +1115,11 @@ class MockKubernetesApi:
         self._update_metadata(
             body, "networking.k8s.io/v1", "Ingress", namespace
         )
-        name = body.metadata.name
-        stream = self._event_streams[namespace]["Ingress"]
-        body.metadata.resource_version = stream.next_resource_version
         body.status = V1IngressStatus(
             load_balancer=V1LoadBalancerStatus(ingress=[])
         )
-        self._store_object(namespace, "Ingress", name, body)
-        stream.add_event("ADDED", body)
+        name = body.metadata.name
+        await self._store_object(namespace, "Ingress", name, body)
 
     async def delete_namespaced_ingress(
         self,
@@ -1144,9 +1159,6 @@ class MockKubernetesApi:
             Raised with 404 status if the ingress was not found.
         """
         self._maybe_error("delete_namespaced_ingress", name, namespace)
-        ingress = self._get_object(namespace, "Ingress", name)
-        stream = self._event_streams[namespace]["Ingress"]
-        stream.add_event("DELETED", ingress)
         return self._delete_object(
             namespace, "Ingress", name, propagation_policy
         )
@@ -1268,10 +1280,9 @@ class MockKubernetesApi:
             assert change["op"] == "replace"
             assert change["path"] == "/status/loadBalancer/ingress"
             ingress.status.load_balancer.ingress = change["value"]
-        stream = self._event_streams[namespace]["Ingress"]
-        ingress.metadata.resource_version = stream.next_resource_version
-        self._store_object(namespace, "Ingress", name, ingress, replace=True)
-        stream.add_event("MODIFIED", ingress)
+        await self._store_object(
+            namespace, "Ingress", name, ingress, replace=True
+        )
         return ingress
 
     async def read_namespaced_ingress(
@@ -1341,15 +1352,13 @@ class MockKubernetesApi:
         """
         self._maybe_error("create_namespaced_job", namespace, body)
         self._update_metadata(body, "batch/v1", "Job", namespace)
-        name = body.metadata.name
-        stream = self._event_streams[namespace]["Job"]
-        body.metadata.resource_version = stream.next_resource_version
-        self._store_object(namespace, "Job", name, body)
+        await self._store_object(namespace, "Job", body.metadata.name, body)
 
         # Normally, Kubernetes will immediately spawn a Pod using the
         # specification in the Job. Simulate that here. We have to copy the
         # components of the spec metadata so that we don't modify the Job when
         # we flesh out the metadata of the Pod.
+        name = body.metadata.name
         metadata = V1ObjectMeta()
         if body.spec.template.metadata:
             source = body.spec.template.metadata
@@ -1423,9 +1432,7 @@ class MockKubernetesApi:
             for pod in pods.items:
                 await self.delete_namespaced_pod(pod.metadata.name, namespace)
 
-        job = self._get_object(namespace, "Job", name)
-        stream = self._event_streams[namespace]["Job"]
-        stream.add_event("DELETED", job)
+        # Perform the actual deletion.
         return self._delete_object(namespace, "Job", name, propagation_policy)
 
     async def list_namespaced_job(
@@ -1567,8 +1574,7 @@ class MockKubernetesApi:
         if name in self._objects:
             msg = f"Namespace {name} already exists"
             raise ApiException(status=409, reason=msg)
-        self._store_object(name, "Namespace", name, body)
-        self._namespace_stream.add_event("ADDED", body)
+        await self._store_object(name, "Namespace", name, body)
 
     async def delete_namespace(
         self,
@@ -1770,7 +1776,7 @@ class MockKubernetesApi:
             body, "networking.k8s.io/v1", "NetworkPolicy", namespace
         )
         name = body.metadata.name
-        self._store_object(namespace, "NetworkPolicy", name, body)
+        await self._store_object(namespace, "NetworkPolicy", name, body)
 
     async def read_namespaced_network_policy(
         self,
@@ -1864,12 +1870,9 @@ class MockKubernetesApi:
             "create_namespaced_persistent_volume_claim", namespace, body
         )
         self._update_metadata(body, "v1", "PersistentVolumeClaim", namespace)
-        stream = self._event_streams[namespace]["PersistentVolumeClaim"]
-        body.metadata.resource_version = stream.next_resource_version
-        self._store_object(
+        await self._store_object(
             namespace, "PersistentVolumeClaim", body.metadata.name, body
         )
-        stream.add_event("ADDED", body)
 
     async def delete_namespaced_persistent_volume_claim(
         self,
@@ -1911,9 +1914,6 @@ class MockKubernetesApi:
         self._maybe_error(
             "delete_namespaced_persistent_volume_claim", name, namespace
         )
-        pvc = self._get_object(namespace, "PersistentVolumeClaim", name)
-        stream = self._event_streams[namespace]["PersistentVolumeClaim"]
-        stream.add_event("DELETED", pvc)
         return self._delete_object(
             namespace, "PersistentVolumeClaim", name, propagation_policy
         )
@@ -2071,10 +2071,10 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_pod", namespace, body)
         self._update_metadata(body, "v1", "Pod", namespace)
         body.status = V1PodStatus(phase=self.initial_pod_phase)
-        stream = self._event_streams[namespace]["Pod"]
-        body.metadata.resource_version = stream.next_resource_version
-        self._store_object(namespace, "Pod", body.metadata.name, body)
-        stream.add_event("ADDED", body)
+        await self._store_object(namespace, "Pod", body.metadata.name, body)
+
+        # Post an event for the pod start if configured to mark pods as
+        # started automatically.
         if self.initial_pod_phase == "Running":
             event = CoreV1Event(
                 metadata=V1ObjectMeta(
@@ -2125,9 +2125,6 @@ class MockKubernetesApi:
             Raised with 404 status if the pod was not found.
         """
         self._maybe_error("delete_namespaced_pod", name, namespace)
-        pod = self._get_object(namespace, "Pod", name)
-        stream = self._event_streams[namespace]["Pod"]
-        stream.add_event("DELETED", pod)
         return self._delete_object(namespace, "Pod", name, propagation_policy)
 
     async def list_namespaced_pod(
@@ -2245,10 +2242,7 @@ class MockKubernetesApi:
             assert change["op"] == "replace"
             assert change["path"] == "/status/phase"
             pod.status.phase = change["value"]
-        stream = self._event_streams[namespace]["Pod"]
-        pod.metadata.resource_version = stream.next_resource_version
-        self._store_object(namespace, "Pod", name, pod, replace=True)
-        stream.add_event("MODIFIED", pod)
+        await self._store_object(namespace, "Pod", name, pod, replace=True)
         return pod
 
     async def read_namespaced_pod(
@@ -2344,7 +2338,7 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_resource_quota", namespace, body)
         self._update_metadata(body, "v1", "ResourceQuota", namespace)
         name = body.metadata.name
-        self._store_object(namespace, "ResourceQuota", name, body)
+        await self._store_object(namespace, "ResourceQuota", name, body)
 
     async def read_namespaced_resource_quota(
         self,
@@ -2404,7 +2398,7 @@ class MockKubernetesApi:
         """
         self._maybe_error("create_namespaced_secret", namespace, body)
         self._update_metadata(body, "v1", "Secret", namespace)
-        self._store_object(namespace, "Secret", body.metadata.name, body)
+        await self._store_object(namespace, "Secret", body.metadata.name, body)
 
     async def patch_namespaced_secret(
         self,
@@ -2451,7 +2445,9 @@ class MockKubernetesApi:
                 secret.metadata.labels = change["value"]
             else:
                 raise AssertionError(f"unsupported path {change['path']}")
-        self._store_object(namespace, "Secret", name, secret, replace=True)
+        await self._store_object(
+            namespace, "Secret", name, secret, replace=True
+        )
 
     async def read_namespaced_secret(
         self,
@@ -2511,7 +2507,7 @@ class MockKubernetesApi:
             Raised with 404 status if the secret does not exist.
         """
         self._maybe_error("replace_namespaced_secret", namespace, body)
-        self._store_object(namespace, "Secret", name, body, replace=True)
+        await self._store_object(namespace, "Secret", name, body, replace=True)
 
     # SERVICE API
 
@@ -2540,10 +2536,9 @@ class MockKubernetesApi:
         """
         self._maybe_error("create_namespaced_service", namespace, body)
         self._update_metadata(body, "v1", "Service", namespace)
-        stream = self._event_streams[namespace]["Service"]
-        body.metadata.resource_version = stream.next_resource_version
-        self._store_object(namespace, "Service", body.metadata.name, body)
-        stream.add_event("ADDED", body)
+        await self._store_object(
+            namespace, "Service", body.metadata.name, body
+        )
 
     async def delete_namespaced_service(
         self,
@@ -2583,9 +2578,6 @@ class MockKubernetesApi:
             Raised with 404 status if the service was not found.
         """
         self._maybe_error("delete_namespaced_service", name, namespace)
-        service = self._get_object(namespace, "Service", name)
-        stream = self._event_streams[namespace]["Service"]
-        stream.add_event("DELETED", service)
         return self._delete_object(
             namespace, "Service", name, propagation_policy
         )
@@ -2723,12 +2715,9 @@ class MockKubernetesApi:
         """
         self._maybe_error("create_namespaced_service_account", namespace, body)
         self._update_metadata(body, "v1", "ServiceAccount", namespace)
-        stream = self._event_streams[namespace]["ServiceAccount"]
-        body.metadata.resource_version = stream.next_resource_version
-        self._store_object(
+        await self._store_object(
             namespace, "ServiceAccount", body.metadata.name, body
         )
-        stream.add_event("ADDED", body)
 
     async def delete_namespaced_service_account(
         self,
@@ -2768,9 +2757,6 @@ class MockKubernetesApi:
             Raised with 404 status if the service was not found.
         """
         self._maybe_error("delete_namespaced_service_account", name, namespace)
-        service = self._get_object(namespace, "ServiceAccount", name)
-        stream = self._event_streams[namespace]["ServiceAccount"]
-        stream.add_event("DELETED", service)
         return self._delete_object(
             namespace, "ServiceAccount", name, propagation_policy
         )
@@ -2916,12 +2902,13 @@ class MockKubernetesApi:
         if propagation_policy not in ("Foreground", "Background", "Orphan"):
             msg = f"Invalid propagation_policy {propagation_policy}"
             raise AssertionError(msg)
-
-        # Called for the side effect of raising an exception if the object is
-        # not found.
-        self._get_object(namespace, key, name)
-
+        obj = self._get_object(namespace, key, name)
         del self._objects[namespace][key][name]
+        stream = self._event_streams[namespace][key]
+        if isinstance(obj, dict):
+            stream.add_custom_event("DELETED", obj)
+        else:
+            stream.add_event("DELETED", obj)
         return V1Status(code=200)
 
     def _get_object(self, namespace: str, key: str, name: str) -> Any:
@@ -3019,7 +3006,7 @@ class MockKubernetesApi:
             callback = self.error_callback
             callback(method, *args)
 
-    def _store_object(
+    async def _store_object(
         self,
         namespace: str,
         key: str,
@@ -3035,7 +3022,8 @@ class MockKubernetesApi:
         namespace
             Namespace in which to store the object.
         key
-            Key under which to store the object (generally the kind).
+            Kind of the object for most objects, or a more complex key for
+            custom objects.
         name
             Name of object.
         obj
@@ -3062,7 +3050,31 @@ class MockKubernetesApi:
             if name in self._objects[namespace][key]:
                 msg = f"{namespace}/{name} exists"
                 raise ApiException(status=409, reason=msg)
-        self._objects[namespace][key][name] = obj
+        if key == "Namespace":
+            stream = self._namespace_stream
+        else:
+            stream = self._event_streams[namespace][key]
+        if isinstance(obj, dict):
+            obj["metadata"]["resourceVersion"] = stream.next_resource_version
+            self._objects[namespace][key][name] = obj
+            stream.add_custom_event("MODIFIED" if replace else "ADDED", obj)
+        else:
+            obj.metadata.resource_version = stream.next_resource_version
+            self._objects[namespace][key][name] = obj
+            stream.add_event("MODIFIED" if replace else "ADDED", obj)
+
+        # Handling creation hooks by kind for custom objects is a bit
+        # complicated because we only have the key, which has the API path for
+        # the custom object but not the capitalization of the kind. However,
+        # it should be registered in self._custom_kinds by this point, so we
+        # can find it there.
+        kind = key
+        for candidate, full_key in self._custom_kinds.items():
+            if full_key == key:
+                kind = candidate
+        if kind in self._create_hooks:
+            hook = self._create_hooks[kind]
+            await hook(obj)
 
     def _update_metadata(
         self, body: Any, api_version: str, kind: str, namespace: str | None
