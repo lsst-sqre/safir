@@ -147,7 +147,7 @@ class ClientRequestError(SlackIgnoredException):
         self.field_path = field_path
 
     def to_dict(self) -> dict[str, list[str] | str]:
-        """Convert the exception to a dictionary suitable for the exception.
+        """Convert the exception to a dictionary suitable for the response.
 
         Returns
         -------

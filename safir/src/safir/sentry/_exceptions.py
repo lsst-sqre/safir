@@ -5,14 +5,16 @@ from typing import Any, Self
 from httpx import HTTPError, HTTPStatusError
 from sentry_sdk.types import Event
 
+__all__ = [
+    "SentryException",
+    "SentryWebException",
+]
+
 
 class SentryException(Exception):
     """Enriches the Sentry context when paired with the ``enrich`` handler."""
 
-    def __init__(
-        self,
-        message: str,
-    ) -> None:
+    def __init__(self, message: str) -> None:
         # Do not call the parent Exception constructor here, because calling
         # it with a different number of arguments than the constructor
         # argument of derived exceptions breaks pickling. See the end of
