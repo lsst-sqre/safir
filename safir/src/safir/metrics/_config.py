@@ -36,6 +36,10 @@ __all__ = [
 class EventsConfiguration(BaseSettings):
     """Configuration for emitting events."""
 
+    model_config = SettingsConfigDict(
+        env_prefix="METRICS_", populate_by_name=True
+    )
+
     topic_prefix: str = Field(
         "lsst.square.metrics.events",
         title="Metrics topic prefix",
@@ -46,10 +50,6 @@ class EventsConfiguration(BaseSettings):
         validation_alias=AliasChoices(
             "topicPrefix", "METRICS_EVENTS_TOPIC_PREFIX"
         ),
-    )
-
-    model_config = SettingsConfigDict(
-        env_prefix="METRICS_", populate_by_name=True
     )
 
 
@@ -113,6 +113,8 @@ class BaseMetricsConfiguration(BaseSettings, ABC):
 class DisabledMetricsConfiguration(BaseMetricsConfiguration):
     """Metrics configuration when metrics reporting is disabled."""
 
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
+
     enabled: Annotated[
         bool, AfterValidator(lambda x: _require_bool(x, False))
     ] = Field(
@@ -124,8 +126,6 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
         ),
         validation_alias=AliasChoices("enabled", "METRICS_ENABLED"),
     )
-
-    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     def make_manager(
         self, logger: BoundLogger | None = None
@@ -139,6 +139,8 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
 
 class MockMetricsConfiguration(BaseMetricsConfiguration):
     """Metrics configuration when metrics publishing is mocked."""
+
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     enabled: Annotated[
         bool, AfterValidator(lambda x: _require_bool(x, False))
@@ -164,8 +166,6 @@ class MockMetricsConfiguration(BaseMetricsConfiguration):
         )
     )
 
-    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
-
     def make_manager(
         self, logger: BoundLogger | None = None
     ) -> MockEventManager:
@@ -178,6 +178,12 @@ class MockMetricsConfiguration(BaseMetricsConfiguration):
 
 class KafkaMetricsConfiguration(BaseMetricsConfiguration):
     """Metrics configuration when enabled, including Kafka configuration."""
+
+    model_config = SettingsConfigDict(
+        alias_generator=to_camel,
+        extra="forbid",
+        populate_by_name=True,
+    )
 
     enabled: Annotated[
         bool, AfterValidator(lambda x: _require_bool(x, True))
@@ -199,12 +205,6 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
     schema_manager: SchemaManagerSettings = Field(
         default_factory=SchemaManagerSettings,
         title="Kafka schema manager settings",
-    )
-
-    model_config = SettingsConfigDict(
-        alias_generator=to_camel,
-        extra="forbid",
-        populate_by_name=True,
     )
 
     def make_manager(

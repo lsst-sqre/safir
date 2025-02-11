@@ -41,11 +41,11 @@ def to_camel_case(string: str) -> str:
     .. code-block:: python
 
        class Model(BaseModel):
-           some_field: str
-
            model_config = ConfigDict(
                alias_generator=to_camel_case, populate_by_name=True
            )
+
+           some_field: str
 
     This must be added to every class that uses ``snake_case`` for an
     attribute and that needs to be initialized from ``camelCase``.

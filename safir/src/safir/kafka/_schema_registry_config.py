@@ -27,6 +27,13 @@ class SchemaRegistryClientParams(TypedDict):
 class SchemaManagerSettings(BaseSettings):
     """Settings for constructing a `~safir.kafka.PydanticSchemaManager`."""
 
+    model_config = SettingsConfigDict(
+        case_sensitive=False,
+        env_prefix="SCHEMA_MANAGER_",
+        extra="forbid",
+        populate_by_name=True,
+    )
+
     registry_url: AnyUrl = Field(
         title="Schema registry URL",
         description="URL of a a Confluent-compatible schema registry",
@@ -46,13 +53,6 @@ class SchemaManagerSettings(BaseSettings):
             " production, it's best to not set a suffix."
         ),
         examples=["_dev1"],
-    )
-
-    model_config = SettingsConfigDict(
-        case_sensitive=False,
-        env_prefix="SCHEMA_MANAGER_",
-        extra="forbid",
-        populate_by_name=True,
     )
 
     def to_registry_params(self) -> SchemaRegistryClientParams:
