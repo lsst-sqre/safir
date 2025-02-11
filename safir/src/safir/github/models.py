@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from base64 import b64decode
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -128,7 +128,7 @@ class GitHubRepositoryModel(BaseModel):
     )
 
 
-class GitHubPullState(str, Enum):
+class GitHubPullState(StrEnum):
     """The state of a GitHub pull request (PR).
 
     https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
@@ -227,7 +227,7 @@ class GitHubBlobModel(BaseModel):
             )
 
 
-class GitHubCheckSuiteStatus(str, Enum):
+class GitHubCheckSuiteStatus(StrEnum):
     """The status of a GitHub check suite."""
 
     queued = "queued"
@@ -240,7 +240,7 @@ class GitHubCheckSuiteStatus(str, Enum):
     """The check suite has completed."""
 
 
-class GitHubCheckSuiteConclusion(str, Enum):
+class GitHubCheckSuiteConclusion(StrEnum):
     """The conclusion state of a GitHub check suite."""
 
     success = "success"
@@ -301,7 +301,7 @@ class GitHubCheckSuiteModel(BaseModel):
     )
 
 
-class GitHubCheckRunStatus(str, Enum):
+class GitHubCheckRunStatus(StrEnum):
     """The check run status."""
 
     queued = "queued"
@@ -314,7 +314,7 @@ class GitHubCheckRunStatus(str, Enum):
     """The check run has completed."""
 
 
-class GitHubCheckRunConclusion(str, Enum):
+class GitHubCheckRunConclusion(StrEnum):
     """The check run conclusion state."""
 
     success = "success"
@@ -341,7 +341,7 @@ class GitHubCheckRunConclusion(str, Enum):
     """The check run is stale."""
 
 
-class GitHubCheckRunAnnotationLevel(str, Enum):
+class GitHubCheckRunAnnotationLevel(StrEnum):
     """The level of a check run output annotation."""
 
     notice = "notice"
