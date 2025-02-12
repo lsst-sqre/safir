@@ -9,6 +9,18 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-9.3.0'></a>
+## 9.3.0 (2025-02-11)
+
+### New features
+
+- Add new `register_create_hook_for_test` method on the mock Kubernetes API that allows the caller to register a callback that is called whenever an object of a given kind is created.
+- Add create, delete, read, and list (with watches) support for `ServiceAccount` objects to the mock Kubernetes API.
+
+### Bug fixes
+
+- Declare Safir functions returning async generators with a return type of `AsyncGenerator`, not `AsyncIterator`. In most situations this does not matter, but `AsyncGenerator` has additional methods (such as `aclose`) that `AsyncIterator` does not have and is therefore more correct.
+
 <a id='changelog-9.2.0'></a>
 ## 9.2.0 (2025-01-22)
 
