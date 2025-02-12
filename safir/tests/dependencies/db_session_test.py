@@ -8,9 +8,8 @@ import pytest
 import structlog
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import String
+from sqlalchemy import String, select
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.future import select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from safir.database import (
