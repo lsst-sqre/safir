@@ -1,7 +1,5 @@
 """Construction of UWS backend workers."""
 
-from __future__ import annotations
-
 import asyncio
 import os
 import signal
@@ -12,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from traceback import format_exception
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar
 from urllib.parse import urlsplit
 
 from arq import func
@@ -22,15 +20,11 @@ from structlog.stdlib import BoundLogger
 
 from . import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue, WorkerSettings
 
-T = TypeVar("T", bound="BaseModel")
-"""Type for job parameters."""
-
 UWS_QUEUE_NAME = "uws:queue"
 """Name of the arq queue for internal UWS messages."""
 
 __all__ = [
     "UWS_QUEUE_NAME",
-    "T",
     "WorkerConfig",
     "WorkerError",
     "WorkerErrorType",
@@ -45,7 +39,7 @@ __all__ = [
 
 
 @dataclass
-class WorkerConfig(Generic[T]):
+class WorkerConfig[T: BaseModel]:
     """Minimal configuration needed for building a UWS backend worker."""
 
     arq_mode: ArqMode
@@ -269,7 +263,7 @@ def _restart_pool(pool: ProcessPoolExecutor) -> ProcessPoolExecutor:
     return ProcessPoolExecutor(1)
 
 
-def build_worker(
+def build_worker[T: BaseModel](
     worker: Callable[[T, WorkerJobInfo, BoundLogger], list[WorkerResult]],
     config: WorkerConfig[T],
     logger: BoundLogger,

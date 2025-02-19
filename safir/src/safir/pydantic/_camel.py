@@ -3,13 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar, override
+from typing import Any, override
 
 from pydantic import BaseModel, ConfigDict
-
-P = ParamSpec("P")
-T = TypeVar("T")
-
 
 __all__ = [
     "CamelCaseModel",
@@ -56,7 +52,7 @@ def to_camel_case(string: str) -> str:
     return components[0] + "".join(c.title() for c in components[1:])
 
 
-def _copy_type(
+def _copy_type[**P, T](
     parent: Callable[P, T],
 ) -> Callable[[Callable[..., T]], Callable[P, T]]:
     """Copy the type of a parent method.

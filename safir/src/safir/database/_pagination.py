@@ -4,13 +4,11 @@ This pagination support uses keyset pagination rather than relying on database
 cursors, since the latter interact poorly with horizontally scaled services.
 """
 
-from __future__ import annotations
-
 import re
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Generic, Self, TypeVar, override
+from typing import Self, override
 from urllib.parse import parse_qs, urlencode
 
 from pydantic import BaseModel
@@ -26,12 +24,6 @@ from ._datetime import datetime_to_db
 
 _LINK_REGEX = re.compile(r'\s*<(?P<target>[^>]+)>;\s*rel="(?P<type>[^"]+)"')
 """Matches a component of a valid ``Link`` header."""
-
-C = TypeVar("C", bound="PaginationCursor")
-"""Type of a cursor for a paginated list."""
-
-E = TypeVar("E", bound="BaseModel")
-"""Type of an entry in a paginated list."""
 
 __all__ = [
     "CountedPaginatedList",
@@ -98,7 +90,7 @@ class PaginationLinkData:
 
 
 @dataclass
-class PaginationCursor(Generic[E], metaclass=ABCMeta):
+class PaginationCursor[E: BaseModel](metaclass=ABCMeta):
     """Generic pagnination cursor for keyset pagination.
 
     The generic type parameter is the Pydantic model into which each row will
@@ -216,7 +208,7 @@ class PaginationCursor(Generic[E], metaclass=ABCMeta):
 
 
 @dataclass
-class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
+class DatetimeIdCursor[E: BaseModel](PaginationCursor[E], metaclass=ABCMeta):
     """Pagination cursor using a `~datetime.datetime` and unique column ID.
 
     Cursors that first order by time and then by a unique integer column ID
@@ -324,7 +316,7 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
 
 
 @dataclass
-class PaginatedList(Generic[E, C]):
+class PaginatedList[E: BaseModel, C: PaginationCursor]:
     """Paginated SQL results with accompanying pagination metadata.
 
     Holds a paginated list of any Pydantic type with pagination cursors. Can
@@ -422,7 +414,7 @@ class PaginatedList(Generic[E, C]):
         return header
 
 
-class PaginatedQueryRunner(Generic[E, C]):
+class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
     """Run database queries that return paginated results.
 
     This class implements the logic for keyset pagination based on arbitrary
@@ -696,7 +688,9 @@ class PaginatedQueryRunner(Generic[E, C]):
 
 
 @dataclass
-class CountedPaginatedList(PaginatedList[E, C]):
+class CountedPaginatedList[E: BaseModel, C: PaginationCursor](
+    PaginatedList[E, C]
+):
     """Paginated SQL results with pagination metadata and total count.
 
     Holds a paginated list of any Pydantic type, complete with a count and
@@ -709,7 +703,9 @@ class CountedPaginatedList(PaginatedList[E, C]):
     """Total number of entries if queried without pagination."""
 
 
-class CountedPaginatedQueryRunner(PaginatedQueryRunner[E, C]):
+class CountedPaginatedQueryRunner[E: BaseModel, C: PaginationCursor](
+    PaginatedQueryRunner[E, C]
+):
     """Run database queries that return paginated results with counts.
 
     This variation of `PaginatedQueryRunner` always runs a second query to

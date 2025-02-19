@@ -1,9 +1,7 @@
 """Store Pydantic models in Redis with optional encryption."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncGenerator
-from typing import Generic, TypeVar, override
+from typing import override
 
 try:
     import redis.asyncio as redis
@@ -56,11 +54,7 @@ class DeserializeError(SlackException):
         return message
 
 
-#: Type variable of Pydantic object being stored in `PydanticRedisStorage`.
-S = TypeVar("S", bound="BaseModel")
-
-
-class PydanticRedisStorage(Generic[S]):
+class PydanticRedisStorage[S: BaseModel]:
     """JSON-serialized encrypted storage in Redis.
 
     Parameters
@@ -216,7 +210,7 @@ class PydanticRedisStorage(Generic[S]):
         return self._datatype.model_validate_json(data.decode())
 
 
-class EncryptedPydanticRedisStorage(PydanticRedisStorage[S]):
+class EncryptedPydanticRedisStorage[S: BaseModel](PydanticRedisStorage[S]):
     """A Pydantic-based Redis store that encrypts data.
 
     Parameters

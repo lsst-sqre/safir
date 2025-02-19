@@ -1,20 +1,13 @@
 """An asyncio multiple reader, multiple writer queue."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from types import EllipsisType
-from typing import Generic, TypeVar
-
-#: Type variable of objects being stored in `AsyncMultiQueue`.
-T = TypeVar("T")
 
 __all__ = [
     "AsyncMultiQueue",
     "AsyncMultiQueueError",
-    "T",
 ]
 
 
@@ -22,7 +15,7 @@ class AsyncMultiQueueError(Exception):
     """Invalid sequence of calls when writing to `AsyncMultiQueue`."""
 
 
-class AsyncMultiQueue(Generic[T]):
+class AsyncMultiQueue[T]:
     """An asyncio multiple reader, multiple writer queue.
 
     Provides a generic queue for asyncio that supports multiple readers (via

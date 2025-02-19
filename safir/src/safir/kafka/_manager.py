@@ -11,7 +11,7 @@ import inspect
 import re
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, TypeVar
+from typing import Any
 
 import structlog
 from dataclasses_avroschema.pydantic import AvroBaseModel
@@ -33,8 +33,6 @@ __all__ = [
     "PydanticSchemaManager",
     "SchemaInfo",
 ]
-
-P = TypeVar("P", bound=AvroBaseModel)
 
 
 class Compatibility(StrEnum):

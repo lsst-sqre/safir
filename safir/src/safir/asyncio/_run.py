@@ -1,26 +1,13 @@
 """A decorator to run a function under `asyncio.run`."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import ParamSpec, TypeVar
 
-#: Parameter spec for functions decorated by `run_with_asyncio`.
-P = ParamSpec("P")
-
-#: Type variable for return type of decorated by `run_with_asyncio`.
-F = TypeVar("F")
-
-__all__ = [
-    "F",
-    "P",
-    "run_with_asyncio",
-]
+__all__ = ["run_with_asyncio"]
 
 
-def run_with_asyncio(
+def run_with_asyncio[**P, F](
     f: Callable[P, Coroutine[None, None, F]],
 ) -> Callable[P, F]:
     """Run the decorated function with `asyncio.run`.
