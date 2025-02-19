@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TypeAlias
 
 from arq.connections import RedisSettings
 from pydantic import Field, HttpUrl, SecretStr
@@ -17,10 +16,10 @@ from safir.pydantic import EnvRedisDsn, HumanTimedelta, SecondsTimedelta
 
 from ._models import Job, ParametersModel
 
-DestructionValidator: TypeAlias = Callable[[datetime, Job], datetime]
+type DestructionValidator = Callable[[datetime, Job], datetime]
 """Type for a validator for a new destruction time."""
 
-ExecutionDurationValidator: TypeAlias = Callable[
+type ExecutionDurationValidator = Callable[
     [timedelta | None, Job], timedelta | None
 ]
 """Type for a validator for a new execution duration."""
