@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from datetime import UTC, datetime
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, override
 
 from httpx import HTTPError, HTTPStatusError
 from pydantic import BaseModel, field_validator
@@ -63,6 +63,7 @@ class SlackTextBlock(SlackBaseBlock):
     users will not be treated as special.
     """
 
+    @override
     def to_slack(self) -> dict[str, Any]:
         """Convert to a Slack Block Kit block.
 
@@ -91,6 +92,7 @@ class SlackCodeBlock(SlackBaseBlock):
     code: str
     """Text of the field as a code block."""
 
+    @override
     def to_slack(self) -> dict[str, Any]:
         """Convert to a Slack Block Kit block.
 
@@ -398,6 +400,7 @@ class SlackWebException(SlackException):
             result += f"\nBody:\n{self.body}\n"
         return result
 
+    @override
     def to_slack(self) -> SlackMessage:
         """Convert to a Slack message for Slack alerting.
 

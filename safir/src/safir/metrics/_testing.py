@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from pprint import pformat
-from typing import Any, Generic, TypeAlias, TypeVar
+from typing import Any, Generic, TypeAlias, TypeVar, override
 from unittest.mock import ANY as MOCK_ANY
 
 from ._models import EventPayload
@@ -72,6 +72,7 @@ class BaseAssertionError(Generic[P], ABC, AssertionError):
 class PublishedTooFewError(BaseAssertionError):
     """Expected more events than have actually been published."""
 
+    @override
     def errormsg(self) -> str:
         return "Expected more events than have actually been published"
 
@@ -79,6 +80,7 @@ class PublishedTooFewError(BaseAssertionError):
 class PublishedCountError(BaseAssertionError):
     """Expected has a different number of items than were published."""
 
+    @override
     def errormsg(self) -> str:
         return "Expected has a different number of items than were published"
 
@@ -86,6 +88,7 @@ class PublishedCountError(BaseAssertionError):
 class NotPublishedConsecutivelyError(BaseAssertionError):
     """Expected events were not published consecutively."""
 
+    @override
     def errormsg(self) -> str:
         return "Expected events were not published consecutively"
 
@@ -104,6 +107,7 @@ class NotPublishedError(BaseAssertionError):
         self.not_found = not_found
         super().__init__(expected, actual, actual_models)
 
+    @override
     def errormsg(self) -> str:
         return (
             f"Some expected items not published\n"

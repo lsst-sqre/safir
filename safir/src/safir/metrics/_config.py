@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Annotated, TypeAlias
+from typing import Annotated, TypeAlias, override
 
 import structlog
 from aiokafka.admin.client import AIOKafkaAdminClient
@@ -127,6 +127,7 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
         validation_alias=AliasChoices("enabled", "METRICS_ENABLED"),
     )
 
+    @override
     def make_manager(
         self, logger: BoundLogger | None = None
     ) -> NoopEventManager:
@@ -166,6 +167,7 @@ class MockMetricsConfiguration(BaseMetricsConfiguration):
         )
     )
 
+    @override
     def make_manager(
         self, logger: BoundLogger | None = None
     ) -> MockEventManager:
@@ -207,6 +209,7 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         title="Kafka schema manager settings",
     )
 
+    @override
     def make_manager(
         self, logger: BoundLogger | None = None
     ) -> KafkaEventManager:

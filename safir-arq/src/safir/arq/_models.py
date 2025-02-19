@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Self
+from typing import Any, Self, override
 
 from arq.jobs import Job, JobStatus
 
@@ -174,6 +174,7 @@ class JobResult(JobMetadata):
     result: Any
     """The job's result."""
 
+    @override
     @classmethod
     async def from_job(cls, job: Job) -> Self:
         """Initialize the `JobResult` from an arq `~arq.jobs.Job`.

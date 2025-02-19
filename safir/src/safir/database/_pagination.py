@@ -10,7 +10,7 @@ import re
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Generic, Self, TypeVar
+from typing import Generic, Self, TypeVar, override
 from urllib.parse import parse_qs, urlencode
 
 from pydantic import BaseModel
@@ -258,6 +258,7 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
     def time_column() -> InstrumentedAttribute:
         """Return SQL model attribute holding the time position."""
 
+    @override
     @classmethod
     def from_str(cls, cursor: str) -> Self:
         previous = cursor.startswith("p")
@@ -273,6 +274,7 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
         except Exception as e:
             raise InvalidCursorError(f"Cannot parse cursor: {e!s}") from e
 
+    @override
     @classmethod
     def apply_order(cls, stmt: Select, *, reverse: bool = False) -> Select:
         if reverse:
@@ -282,6 +284,7 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
                 cls.time_column().desc(), cls.id_column().desc()
             )
 
+    @override
     def apply_cursor(self, stmt: Select) -> Select:
         time = datetime_to_db(self.time)
         time_column = self.time_column()
@@ -301,6 +304,7 @@ class DatetimeIdCursor(PaginationCursor[E], metaclass=ABCMeta):
                 )
             )
 
+    @override
     def invert(self) -> Self:
         return type(self)(
             time=self.time, id=self.id, previous=not self.previous
@@ -725,6 +729,7 @@ class CountedPaginatedQueryRunner(PaginatedQueryRunner[E, C]):
         or previous batch of entries.
     """
 
+    @override
     async def query_object(
         self,
         session: async_scoped_session,
@@ -781,6 +786,7 @@ class CountedPaginatedQueryRunner(PaginatedQueryRunner[E, C]):
             count=count,
         )
 
+    @override
     async def query_row(
         self,
         session: async_scoped_session,
