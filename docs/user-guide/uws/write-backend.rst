@@ -185,7 +185,7 @@ The backend worker will generally use a separate Docker image from the frontend 
 This allows it to use a different software stack, such as the Science Pipelines Docker image.
 You will then need to install the backend worker code and its prerequisites so that it's suitable for use as an arq worker.
 
-The backend worker image must have a suitable Python 3.11 or later with Pydantic_ and structlog_.
+The backend worker image must have a suitable Python 3.12 or later with Pydantic_ and structlog_.
 On top of this, install the safir-arq PyPI package, which contains just the portions of Safir required to talk to arq and create a backend worker, and the safir-logging PyPI package, which contains the code to configure structlog.
 
 Finally, install your application, but without its dependencies.
