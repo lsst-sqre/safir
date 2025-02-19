@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Annotated, TypeAlias, override
+from typing import Annotated, override
 
 import structlog
 from aiokafka.admin.client import AIOKafkaAdminClient
@@ -251,7 +251,7 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         )
 
 
-MetricsConfiguration: TypeAlias = (
+type MetricsConfiguration = (
     MockMetricsConfiguration
     | DisabledMetricsConfiguration
     | KafkaMetricsConfiguration

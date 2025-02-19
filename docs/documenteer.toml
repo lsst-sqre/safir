@@ -17,10 +17,12 @@ nitpick_ignore_regex = [
     ['py:.*', 'pydantic.*'],
     ['py:.*', 'respx.*'],
     ['py:.*', 'starlette.*'],
+    # Sphinx bug handling the type keyword
+    ['py:.*', '.*\.TypeAliasType'],
     # autodoc_pydantic does not handle validators or Annotated correctly.
-    ["py:obj", ".*\\.all fields"],
-    ["py:obj", "lambda.*"],
-    ["py:obj", "ExecutionPhase.*"]
+    ['py:obj', '.*\.all fields'],
+    ['py:obj', 'lambda.*'],
+    ['py:obj', 'ExecutionPhase.*']
 ]
 nitpick_ignore = [
     # These don't appear to have documentation but show up in the inheritance
@@ -28,8 +30,8 @@ nitpick_ignore = [
     ["py:class", "unittest.mock.Base"],
     ["py:class", "unittest.mock.CallableMixin"],
     # autodoc_pydantic generates some spurious links that can't be resolved.
-    ['py:class', 'unittest.mock.Base'],
-    ['py:class', 'unittest.mock.CallableMixin'],
+    ["py:class", "unittest.mock.Base"],
+    ["py:class", "unittest.mock.CallableMixin"],
     ["py:obj", "ComputedFieldInfo"],
     ["py:class", "lambda"],
     ["py:obj", "typing.P"],
@@ -38,8 +40,7 @@ nitpick_ignore = [
     ["py:class", "arq.typing.StartupShutdown"],
     ["py:class", "arq.typing.WorkerCoroutine"],
     ["py:class", "arq.worker.Function"],
-    # Including the documentation for these generates the pages but doesn't
-    # include them in the table of contents, so for now they're excluded.
+    # Sphinx apparently cannot handle type aliases.
     ["py:obj", "safir.pydantic.EnvAsyncPostgresDsn"],
     ["py:obj", "safir.pydantic.EnvRedisDsn"],
     ["py:obj", "safir.pydantic.HumanTimedelta"],

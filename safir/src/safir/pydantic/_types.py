@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
-from typing import Annotated, TypeAlias
+from typing import Annotated
 
 from pydantic import (
     AfterValidator,
@@ -52,7 +52,7 @@ def _validate_env_async_postgres_dsn(v: Url) -> Url:
         return v
 
 
-EnvAsyncPostgresDsn: TypeAlias = Annotated[
+type EnvAsyncPostgresDsn = Annotated[
     Url,
     UrlConstraints(
         host_required=True,
@@ -92,7 +92,7 @@ def _validate_env_redis_dsn(v: Url) -> Url:
         return v
 
 
-EnvRedisDsn: TypeAlias = Annotated[
+type EnvRedisDsn = Annotated[
     Url,
     UrlConstraints(
         allowed_schemes=["redis"],
@@ -118,7 +118,7 @@ def _validate_human_timedelta(v: str | float | timedelta) -> float | timedelta:
         return parse_timedelta(v)
 
 
-HumanTimedelta: TypeAlias = Annotated[
+type HumanTimedelta = Annotated[
     timedelta,
     BeforeValidator(_validate_human_timedelta),
     PlainSerializer(
@@ -144,7 +144,7 @@ valid strings are ``8d`` (8 days), ``4h 3minutes`` (four hours and three
 minutes), and ``5w4d`` (five weeks and four days).
 """
 
-SecondsTimedelta: TypeAlias = Annotated[
+type SecondsTimedelta = Annotated[
     timedelta,
     BeforeValidator(lambda v: v if not isinstance(v, str) else float(v)),
     PlainSerializer(
@@ -159,9 +159,7 @@ built-in Pydantic handling of `~datetime.timedelta`, an integer number of
 seconds as a string is accepted, and ISO 8601 durations are not supported.
 """
 
-UtcDatetime: TypeAlias = Annotated[
-    datetime, AfterValidator(normalize_datetime)
-]
+type UtcDatetime = Annotated[datetime, AfterValidator(normalize_datetime)]
 """Coerce a `~datetime.datetime` to UTC.
 
 Accepts as input all of the normal Pydantic representations of a
@@ -169,7 +167,7 @@ Accepts as input all of the normal Pydantic representations of a
 UTC.
 """
 
-IvoaIsoDatetime: TypeAlias = Annotated[
+type IvoaIsoDatetime = Annotated[
     datetime,
     BeforeValidator(normalize_isodatetime),
     PlainSerializer(isodatetime, return_type=str, when_used="json"),

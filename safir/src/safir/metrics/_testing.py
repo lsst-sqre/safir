@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from pprint import pformat
-from typing import Any, TypeAlias, override
+from typing import Any, override
 from unittest.mock import ANY as MOCK_ANY
 
 from ._models import EventPayload
@@ -21,7 +21,7 @@ __all__ = [
 ANY = MOCK_ANY
 """An object that compares equal to anything, reexported from unittest.mock."""
 
-ModelDumpList: TypeAlias = list[dict[str, Any]]
+type ModelDumpList = list[dict[str, Any]]
 """Type alias for a list of dumped Pydantic models."""
 
 
