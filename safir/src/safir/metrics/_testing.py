@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from pprint import pformat
-from typing import Any, Generic, TypeAlias, TypeVar, override
+from typing import Any, TypeAlias, override
 from unittest.mock import ANY as MOCK_ANY
 
 from ._models import EventPayload
@@ -17,9 +17,6 @@ __all__ = [
     "PublishedList",
     "PublishedTooFewError",
 ]
-
-P = TypeVar("P", bound=EventPayload)
-"""Generic event payload type."""
 
 ANY = MOCK_ANY
 """An object that compares equal to anything, reexported from unittest.mock."""
@@ -42,7 +39,7 @@ NOT_NONE = _NotNone()
 """An object to indicate that a value can be anything except None."""
 
 
-class BaseAssertionError(Generic[P], ABC, AssertionError):
+class BaseAssertionError[P: EventPayload](ABC, AssertionError):
     """Base assertion error with common attributes and messaging."""
 
     def __init__(
@@ -69,7 +66,7 @@ class BaseAssertionError(Generic[P], ABC, AssertionError):
         """Return a string to be added to the exception message."""
 
 
-class PublishedTooFewError(BaseAssertionError):
+class PublishedTooFewError[P: EventPayload](BaseAssertionError[P]):
     """Expected more events than have actually been published."""
 
     @override
@@ -77,7 +74,7 @@ class PublishedTooFewError(BaseAssertionError):
         return "Expected more events than have actually been published"
 
 
-class PublishedCountError(BaseAssertionError):
+class PublishedCountError[P: EventPayload](BaseAssertionError[P]):
     """Expected has a different number of items than were published."""
 
     @override
@@ -85,7 +82,7 @@ class PublishedCountError(BaseAssertionError):
         return "Expected has a different number of items than were published"
 
 
-class NotPublishedConsecutivelyError(BaseAssertionError):
+class NotPublishedConsecutivelyError[P: EventPayload](BaseAssertionError[P]):
     """Expected events were not published consecutively."""
 
     @override
@@ -93,7 +90,7 @@ class NotPublishedConsecutivelyError(BaseAssertionError):
         return "Expected events were not published consecutively"
 
 
-class NotPublishedError(BaseAssertionError):
+class NotPublishedError[P: EventPayload](BaseAssertionError[P]):
     """Some expected items were not published."""
 
     def __init__(
@@ -116,7 +113,7 @@ class NotPublishedError(BaseAssertionError):
         )
 
 
-class PublishedList(list[P]):
+class PublishedList[P: EventPayload](list[P]):
     """A list of event payload models with assertion helpers.
 
     All assertion helpers take lists of dicts as expected items and use the

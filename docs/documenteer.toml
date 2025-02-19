@@ -9,6 +9,7 @@ package = "safir"
 rst_epilog_file = "_rst_epilog.rst"
 nitpicky = true
 nitpick_ignore_regex = [
+    ['py:.*', 'dataclasses_avroschema.*'],
     ['py:.*', 'faststream.*'],
     ['py:.*', 'fastapi.*'],
     ['py:.*', 'kubernetes_asyncio.*'],
@@ -16,9 +17,10 @@ nitpick_ignore_regex = [
     ['py:.*', 'pydantic.*'],
     ['py:.*', 'respx.*'],
     ['py:.*', 'starlette.*'],
-    # Bug in autodoc_pydantic re: models with validators
+    # autodoc_pydantic does not handle validators or Annotated correctly.
     ["py:obj", ".*\\.all fields"],
-    ['py:.*', 'dataclasses_avroschema.*'],
+    ["py:obj", "lambda.*"],
+    ["py:obj", "ExecutionPhase.*"]
 ]
 nitpick_ignore = [
     # These don't appear to have documentation but show up in the inheritance
@@ -30,6 +32,7 @@ nitpick_ignore = [
     ['py:class', 'unittest.mock.CallableMixin'],
     ["py:obj", "ComputedFieldInfo"],
     ["py:class", "lambda"],
+    ["py:obj", "typing.P"],
     # arq doesn't provide documentation for all of its types.
     ["py:class", "arq.cron.CronJob"],
     ["py:class", "arq.typing.StartupShutdown"],
@@ -43,17 +46,6 @@ nitpick_ignore = [
     ["py:obj", "safir.pydantic.IvoaIsoDatetime"],
     ["py:obj", "safir.pydantic.SecondsTimedelta"],
     ["py:obj", "safir.pydantic.UtcDatetime"],
-    # TypeVar references used as parameters to Generic seem to create target
-    # not found errors even if they are exported when they are used in private
-    # submodules.
-    ["py:obj", "safir.asyncio._multiqueue.T"],
-    ["py:obj", "safir.asyncio._run.F"],
-    ["py:obj", "safir.asyncio._run.P"],
-    ["py:obj", "safir.database._pagination.C"],
-    ["py:obj", "safir.database._pagination.E"],
-    ["py:obj", "safir.redis._storage.S"],
-    ["py:obj", "safir.metrics._event_manager.P"],
-    ["py:obj", "safir.metrics._testing.P"],
     # SQLAlchemy DeclarativeBase documentation has references that Sphinx
     # can't resolve properly.
     ["py:class", "sqlalchemy.inspection.Inspectable"],
@@ -61,7 +53,8 @@ nitpick_ignore = [
     ["py:class", "_orm.registry"],
     ["py:class", "_schema.MetaData"],
     ["py:class", "_schema.Table"],
-    # See https://github.com/sphinx-doc/sphinx/issues/13178
+    # See https://github.com/sphinx-doc/sphinx/issues/13178 which, although
+    # closed, appears to still not be fixed
     ["py:class", "pathlib._local.Path"],
     # The AOIKafkaAdminClient is considered experimental and not officially
     # exported

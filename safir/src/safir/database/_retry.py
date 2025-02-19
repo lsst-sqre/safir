@@ -1,54 +1,42 @@
 """Database transaction retry support."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import ParamSpec, TypeVar, overload
+from typing import overload
 
 from sqlalchemy.exc import DBAPIError
 
-#: Return type of a database call being retried.
-RetryT = TypeVar("RetryT")
-
-#: Parameters of a database call being retried.
-RetryP = ParamSpec("RetryP")
-
-__all__ = [
-    "RetryP",
-    "RetryT",
-    "retry_async_transaction",
-]
+__all__ = ["retry_async_transaction"]
 
 
 @overload
-def retry_async_transaction(
-    __func: Callable[RetryP, Coroutine[None, None, RetryT]], /
-) -> Callable[RetryP, Coroutine[None, None, RetryT]]: ...
+def retry_async_transaction[**P, T](
+    __func: Callable[P, Coroutine[None, None, T]], /
+) -> Callable[P, Coroutine[None, None, T]]: ...
 
 
 @overload
-def retry_async_transaction(
+def retry_async_transaction[**P, T](
     *, delay: float = 0.5, max_tries: int = 3
 ) -> Callable[
-    [Callable[RetryP, Coroutine[None, None, RetryT]]],
-    Callable[RetryP, Coroutine[None, None, RetryT]],
+    [Callable[P, Coroutine[None, None, T]]],
+    Callable[P, Coroutine[None, None, T]],
 ]: ...
 
 
-def retry_async_transaction(
-    __func: Callable[RetryP, Coroutine[None, None, RetryT]] | None = None,
+def retry_async_transaction[**P, T](
+    __func: Callable[P, Coroutine[None, None, T]] | None = None,
     /,
     *,
     delay: float = 0.5,
     max_tries: int = 3,
 ) -> (
-    Callable[RetryP, Coroutine[None, None, RetryT]]
+    Callable[P, Coroutine[None, None, T]]
     | Callable[
-        [Callable[RetryP, Coroutine[None, None, RetryT]]],
-        Callable[RetryP, Coroutine[None, None, RetryT]],
+        [Callable[P, Coroutine[None, None, T]]],
+        Callable[P, Coroutine[None, None, T]],
     ]
 ):
     """Retry if a transaction failed.
@@ -100,12 +88,10 @@ def retry_async_transaction(
     """
 
     def decorator(
-        f: Callable[RetryP, Coroutine[None, None, RetryT]],
-    ) -> Callable[RetryP, Coroutine[None, None, RetryT]]:
+        f: Callable[P, Coroutine[None, None, T]],
+    ) -> Callable[P, Coroutine[None, None, T]]:
         @wraps(f)
-        async def wrapper(
-            *args: RetryP.args, **kwargs: RetryP.kwargs
-        ) -> RetryT:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             for _ in range(1, max_tries):
                 with contextlib.suppress(DBAPIError):
                     return await f(*args, **kwargs)

@@ -5,10 +5,8 @@ most of these models. Descriptive language here is paraphrased from this
 standard.
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
-from typing import Annotated, Any, Generic, Literal, Self, TypeVar, override
+from typing import Annotated, Any, Literal, Self, override
 
 from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
 from vo_models.uws import (
@@ -23,18 +21,6 @@ from vo_models.uws.types import ErrorType, ExecutionPhase, UWSVersion
 
 from safir.arq.uws import WorkerResult
 from safir.pydantic import SecondsTimedelta, UtcDatetime
-
-P = TypeVar("P", bound="ParametersModel")
-"""Generic type for the parameters model."""
-
-S = TypeVar("S", bound=JobSummary)
-"""Generic type for the XML job summary for a given parameters model."""
-
-W = TypeVar("W", bound=BaseModel)
-"""Generic type for the parameters model passed to workers."""
-
-X = TypeVar("X", bound=Parameters)
-"""Generic type for the XML parameters model."""
 
 __all__ = [
     "ACTIVE_PHASES",
@@ -61,7 +47,7 @@ ACTIVE_PHASES = {
 """Phases in which the job is active and can be waited on."""
 
 
-class ParametersModel(BaseModel, ABC, Generic[W, X]):
+class ParametersModel[W: BaseModel, X: Parameters](BaseModel, ABC):
     """Defines the interface for a model suitable for job parameters."""
 
     @abstractmethod
@@ -402,7 +388,7 @@ class SerializedJob(JobBase):
         )
 
 
-class Job(SerializedJob, Generic[P]):
+class Job[P: ParametersModel](SerializedJob):
     """A single UWS job with deserialized parameters."""
 
     parameters: Annotated[
@@ -452,7 +438,7 @@ class Job(SerializedJob, Generic[P]):
         job = self.model_dump(mode="json")
         return SerializedJob.model_validate(job)
 
-    def to_xml_model(self, job_summary_type: type[S]) -> S:
+    def to_xml_model[S: JobSummary](self, job_summary_type: type[S]) -> S:
         """Convert to a Pydantic XML model.
 
         Parameters

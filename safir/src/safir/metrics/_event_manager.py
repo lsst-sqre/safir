@@ -1,11 +1,9 @@
 """Tools for publishing events from appliactions for later analysis."""
 
-from __future__ import annotations
-
 import time
 from abc import ABCMeta, abstractmethod
 from datetime import UTC, datetime
-from typing import Generic, TypeVar, cast, override
+from typing import cast, override
 from uuid import uuid4
 
 import structlog
@@ -25,9 +23,6 @@ from ._exceptions import (
 from ._models import EventMetadata, EventPayload
 from ._testing import PublishedList
 
-P = TypeVar("P", bound=EventPayload)
-"""Generic event payload type."""
-
 __all__ = [
     "EventManager",
     "EventPublisher",
@@ -40,7 +35,7 @@ __all__ = [
 ]
 
 
-class EventPublisher(Generic[P], metaclass=ABCMeta):
+class EventPublisher[P: EventPayload](metaclass=ABCMeta):
     """Interface for event publishers.
 
     Represents a generic publisher of application metrics events.
@@ -109,7 +104,7 @@ class EventPublisher(Generic[P], metaclass=ABCMeta):
         return datetime.fromtimestamp(ns / 1e9, tz=UTC)
 
 
-class KafkaEventPublisher(EventPublisher, Generic[P]):
+class KafkaEventPublisher[P: EventPayload](EventPublisher[P]):
     """Publishes one type of event.
 
     You shouldn't need to instantiate instances of this class yourself.
@@ -138,7 +133,7 @@ class KafkaEventPublisher(EventPublisher, Generic[P]):
         self,
         *,
         application: str,
-        manager: KafkaEventManager,
+        manager: "KafkaEventManager",
         event_class: type[P],
         publisher: AsyncAPIDefaultPublisher,
         schema_info: SchemaInfo,
@@ -152,10 +147,10 @@ class KafkaEventPublisher(EventPublisher, Generic[P]):
     async def publish(self, payload: P) -> EventMetadata:
         event = self.construct_event(payload)
         await self._manager.publish(event, self._publisher, self._schema_info)
-        return event
+        return cast(EventMetadata, event)
 
 
-class NoopEventPublisher(EventPublisher, Generic[P]):
+class NoopEventPublisher[P: EventPayload](EventPublisher[P]):
     """Event publisher that quietly does nothing.
 
     This is used in applications when event publishing is disabled, so that
@@ -178,10 +173,10 @@ class NoopEventPublisher(EventPublisher, Generic[P]):
         self._logger.debug(
             "Would have published event", metrics_event=event.model_dump()
         )
-        return event
+        return cast(EventMetadata, event)
 
 
-class MockEventPublisher(NoopEventPublisher, Generic[P]):
+class MockEventPublisher[P: EventPayload](NoopEventPublisher[P]):
     """Event publisher that quietly does nothing and records all payloads.
 
     This is meant to be used in unit tests to enable assertions on published
@@ -252,7 +247,7 @@ class EventManager(metaclass=ABCMeta):
         self._initialized = False
 
     @abstractmethod
-    async def build_publisher_for_model(
+    async def build_publisher_for_model[P: EventPayload](
         self, model: type[P]
     ) -> EventPublisher[P]:
         """Implementation-specific construction of the event publisher.
@@ -273,7 +268,7 @@ class EventManager(metaclass=ABCMeta):
             An appropriate event publisher implementation instance.
         """
 
-    async def create_publisher(
+    async def create_publisher[P: EventPayload](
         self, name: str, payload_model: type[P]
     ) -> EventPublisher[P]:
         """Create an `~safir.metrics.EventPublisher` for a type of event.
@@ -448,7 +443,7 @@ class KafkaEventManager(EventManager):
         await super().aclose()
 
     @override
-    async def build_publisher_for_model(
+    async def build_publisher_for_model[P: EventPayload](
         self, model: type[P]
     ) -> EventPublisher[P]:
         """Build a Kafka publisher for a specific enriched model.
@@ -490,7 +485,7 @@ class KafkaEventManager(EventManager):
             await self._admin_client.start()
         self._initialized = True
 
-    async def publish(
+    async def publish[P: EventPayload](
         self,
         event: P,
         publisher: AsyncAPIDefaultPublisher,
@@ -577,7 +572,7 @@ class NoopEventManager(EventManager):
         self._application = application
 
     @override
-    async def build_publisher_for_model(
+    async def build_publisher_for_model[P: EventPayload](
         self, model: type[P]
     ) -> EventPublisher[P]:
         """Build a no-op publisher for a specific enriched model.
@@ -628,7 +623,7 @@ class MockEventManager(EventManager):
         self._application = application
 
     @override
-    async def build_publisher_for_model(
+    async def build_publisher_for_model[P: EventPayload](
         self, model: type[P]
     ) -> EventPublisher[P]:
         """Build a no-op recording publisher for a specific enriched model.

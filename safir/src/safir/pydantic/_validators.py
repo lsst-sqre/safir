@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, TypeVar
+from typing import Any
 
 from pydantic import BaseModel
 
 from safir.datetime import parse_isodatetime
-
-T = TypeVar("T")
 
 __all__ = [
     "normalize_datetime",
@@ -188,7 +186,7 @@ def validate_exactly_one_of(
     else:
         options = ", ".join(settings[:-1]) + ", and " + settings[-1]
 
-    def validator(model: T) -> T:
+    def validator[T: BaseModel](model: T) -> T:
         seen = False
         for setting in settings:
             if getattr(model, setting, None) is not None:
