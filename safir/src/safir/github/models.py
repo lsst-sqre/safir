@@ -381,6 +381,10 @@ class GitHubCheckRunPrInfoModel(BaseModel):
 
     url: HttpUrl = Field(description="GitHub API URL for this pull request.")
 
+    number: int = Field(
+        description="The number that identifies the pull request."
+    )
+
 
 class GitHubCheckRunModel(BaseModel):
     """A Pydantic model for the "check_run" field in a check_run webhook
