@@ -9,6 +9,17 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-10.0.0'></a>
+## 10.0.0 (2025-02-24)
+
+### Backwards-incompatible changes
+
+- Safir now requires a minimum Python version of 3.12.
+
+### New features
+
+- Added `number` field to `GitHubCheckRunPrInfoModel` to capture the pull request number in GitHub check events
+
 <a id='changelog-9.3.0'></a>
 ## 9.3.0 (2025-02-11)
 
