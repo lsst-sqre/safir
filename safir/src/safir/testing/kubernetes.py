@@ -33,8 +33,10 @@ from kubernetes_asyncio.client import (
     V1NodeList,
     V1ObjectMeta,
     V1ObjectReference,
+    V1PersistentVolume,
     V1PersistentVolumeClaim,
     V1PersistentVolumeClaimList,
+    V1PersistentVolumeList,
     V1Pod,
     V1PodList,
     V1PodStatus,
@@ -370,6 +372,8 @@ class MockKubernetesApi:
     verify that a namespace was properly created (although not the order of
     creation), check for the namespace object explicitly with `read_namespace`
     or `list_namespace`.
+
+    Cluster-scoped objects will use an implicit namespace of ``__cluster__``.
 
     Objects stored with ``create_*`` or ``replace_*`` methods are **NOT**
     copied. The object provided will be stored, so changing that object will
@@ -1839,6 +1843,177 @@ class MockKubernetesApi:
             if _check_labels(n.metadata.labels, label_selector)
         ]
         return V1NodeList(items=nodes)
+
+    # PERSISTENTVOLUME API
+
+    async def create_persistent_volume(
+        self,
+        body: V1PersistentVolume,
+        *,
+        _request_timeout: float | None = None,
+    ) -> None:
+        """Create a persistent volume.
+
+        Parameters
+        ----------
+        body
+            Persistent volume to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 409 status if the persistent volume already
+            exists.
+        """
+        self._maybe_error("create_persistent_volume", body)
+        self._update_metadata(body, "v1", "PersistentVolume", "__cluster__")
+        await self._store_object(
+            "__cluster__", "PersistentVolume", body.metadata.name, body
+        )
+
+    async def delete_persistent_volume(
+        self,
+        name: str,
+        *,
+        grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
+        body: V1DeleteOptions | None = None,
+        _request_timeout: float | None = None,
+    ) -> V1Status:
+        """Delete a persistent volume object.
+
+        Parameters
+        ----------
+        name
+            Name of persistent volume to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
+        body
+            Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Status
+            Success status.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the ingress was not found.
+        """
+        self._maybe_error("delete_persistent_volume", name, "__cluster__")
+        return self._delete_object(
+            "__cluster__", "PersistentVolume", name, propagation_policy
+        )
+
+    async def list_persistent_volume(
+        self,
+        *,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
+        watch: bool = False,
+        _preload_content: bool = True,
+        _request_timeout: float | None = None,
+    ) -> V1PersistentVolumeList | Mock:
+        """List persistent volume objects.
+
+        This does support watches.
+
+        Parameters
+        ----------
+        field_selector
+            Only ``metadata.name=...`` is supported. It is parsed to find the
+            persistent volume claim name and only persistent volume claims
+            matching that name will be returned.
+        label_selector
+            Which objects to retrieve. All labels must match.
+        resource_version
+            Where to start in the event stream when performing a watch. If
+            `None`, starts with the next change.
+        timeout_seconds
+            How long to return events for before exiting when performing a
+            watch.
+        watch
+            Whether to act as a watch.
+        _preload_content
+            Verified to be `False` when performing a watch.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1PersistentVolumeList
+            List of persistent volumes, when not called as a watch.
+            If called as a watch, returns a mock ``aiohttp.Response``
+            with a ``readline`` metehod that yields the events.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        """
+        self._maybe_error(
+            "list_persistent_volume",
+            field_selector,
+        )
+        if not watch:
+            pvs = self._list_objects(
+                "__cluster__",
+                "PersistentVolume",
+                field_selector,
+                label_selector,
+            )
+            return V1PersistentVolumeList(kind="PersistentVolume", items=pvs)
+
+        # All watches must not preload content since we're returning raw JSON.
+        # This is done by the Kubernetes API Watch object.
+        assert not _preload_content
+
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._event_streams["__cluster__"]["PersistentVolume"]
+        return stream.build_watch_response(
+            resource_version,
+            timeout_seconds,
+            field_selector=field_selector,
+            label_selector=label_selector,
+        )
+
+    async def read_persistent_volume(
+        self,
+        name: str,
+        *,
+        _request_timeout: float | None = None,
+    ) -> V1PersistentVolume:
+        """Read a persistent volume.
+
+        Parameters
+        ----------
+        name
+            Name of the persistent volume.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1PersistentVolume
+            Persistent volume object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the persistent volume was not
+            found.
+        """
+        self._maybe_error("read_persistent_volume", name, "__cluster__")
+        return self._get_object("__cluster__", "PersistentVolume", name)
 
     # PERSISTENTVOLUMECLAIM API
 
