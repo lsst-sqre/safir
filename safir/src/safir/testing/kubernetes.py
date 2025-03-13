@@ -373,8 +373,6 @@ class MockKubernetesApi:
     creation), check for the namespace object explicitly with `read_namespace`
     or `list_namespace`.
 
-    Cluster-scoped objects will use an implicit namespace of ``__cluster__``.
-
     Objects stored with ``create_*`` or ``replace_*`` methods are **NOT**
     copied. The object provided will be stored, so changing that object will
     change the object returned by subsequent API calls. Likewise, the object
@@ -411,6 +409,7 @@ class MockKubernetesApi:
         self.error_callback: Callable[..., None] | None = None
         self.initial_pod_phase = "Running"
 
+        self._cluster_objects: dict[str, dict[str, Any]] = {}
         self._create_hooks: dict[str, Callable[..., Awaitable[None]]] = {}
         self._custom_kinds: dict[str, str] = {}
         self._nodes = V1NodeList(items=[])
@@ -419,6 +418,8 @@ class MockKubernetesApi:
         self._namespace_stream = _EventStream()
         self._event_streams: defaultdict[str, defaultdict[str, _EventStream]]
         self._event_streams = defaultdict(lambda: defaultdict(_EventStream))
+        self._cluster_event_streams: defaultdict[str, _EventStream]
+        self._cluster_event_streams = defaultdict(_EventStream)
 
     def get_all_objects_for_test(self, kind: str) -> list[Any]:
         """Return all objects of a given kind sorted by namespace and name.
@@ -1869,8 +1870,8 @@ class MockKubernetesApi:
         """
         self._maybe_error("create_persistent_volume", body)
         self._update_metadata(body, "v1", "PersistentVolume", "__cluster__")
-        await self._store_object(
-            "__cluster__", "PersistentVolume", body.metadata.name, body
+        await self._store_cluster_object(
+            "PersistentVolume", body.metadata.name, body
         )
 
     async def delete_persistent_volume(
@@ -1908,8 +1909,8 @@ class MockKubernetesApi:
             Raised with 404 status if the ingress was not found.
         """
         self._maybe_error("delete_persistent_volume", name, "__cluster__")
-        return self._delete_object(
-            "__cluster__", "PersistentVolume", name, propagation_policy
+        return self._delete_cluster_object(
+            "PersistentVolume", name, propagation_policy
         )
 
     async def list_persistent_volume(
@@ -1965,8 +1966,7 @@ class MockKubernetesApi:
             field_selector,
         )
         if not watch:
-            pvs = self._list_objects(
-                "__cluster__",
+            pvs = self._list_cluster_objects(
                 "PersistentVolume",
                 field_selector,
                 label_selector,
@@ -1978,7 +1978,7 @@ class MockKubernetesApi:
         assert not _preload_content
 
         # Return the mock response expected by the Kubernetes API.
-        stream = self._event_streams["__cluster__"]["PersistentVolume"]
+        stream = self._cluster_event_streams["PersistentVolume"]
         return stream.build_watch_response(
             resource_version,
             timeout_seconds,
@@ -2013,7 +2013,7 @@ class MockKubernetesApi:
             found.
         """
         self._maybe_error("read_persistent_volume", name, "__cluster__")
-        return self._get_object("__cluster__", "PersistentVolume", name)
+        return self._get_cluster_object("PersistentVolume", name)
 
     # PERSISTENTVOLUMECLAIM API
 
@@ -3086,6 +3086,44 @@ class MockKubernetesApi:
             stream.add_event("DELETED", obj)
         return V1Status(code=200)
 
+    def _delete_cluster_object(
+        self, key: str, name: str, propagation_policy: str
+    ) -> V1Status:
+        """Delete a cluster-scoped object from internal data structures.
+
+        Parameters
+        ----------
+        key
+            Key under which the object is stored (usually the kind).
+        name
+            Name of the object.
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Status
+            200 return status if the object was found and deleted.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with a 404 status if the object is not found.
+        """
+        if propagation_policy not in ("Foreground", "Background", "Orphan"):
+            msg = f"Invalid propagation_policy {propagation_policy}"
+            raise AssertionError(msg)
+        obj = self._get_cluster_object(key, name)
+        del self._cluster_objects[key][name]
+        stream = self._cluster_event_streams[key]
+        if isinstance(obj, dict):
+            stream.add_custom_event("DELETED", obj)
+        else:
+            stream.add_event("DELETED", obj)
+        return V1Status(code=200)
+
     def _get_object(self, namespace: str, key: str, name: str) -> Any:
         """Retrieve an object from internal data structures.
 
@@ -3115,6 +3153,31 @@ class MockKubernetesApi:
             reason = f"{namespace}/{name} not found"
             raise ApiException(status=404, reason=reason)
         return self._objects[namespace][key][name]
+
+    def _get_cluster_object(self, key: str, name: str) -> Any:
+        """Retrieve a cluster-scoped object from internal data structures.
+
+        Parameters
+        ----------
+        key
+            Key under which the object is stored (usually the kind).
+        name
+            Name of the object.
+
+        Returns
+        -------
+        Any
+            Object if found.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with a 404 status if the object is not found.
+        """
+        if name not in self._cluster_objects.get(key, {}):
+            reason = f"{name} not found"
+            raise ApiException(status=404, reason=reason)
+        return self._cluster_objects[key][name]
 
     def _list_objects(
         self,
@@ -3168,6 +3231,58 @@ class MockKubernetesApi:
         return [
             o
             for o in self._objects[namespace][key].values()
+            if _check_labels(o.metadata.labels, label_selector)
+        ]
+
+    def _list_cluster_objects(
+        self,
+        key: str,
+        field_selector: str | None,
+        label_selector: str | None,
+    ) -> list[Any]:
+        """List cluster-scoped objects, possibly with selector restrictions.
+
+        Parameters
+        ----------
+        key
+            Key under which the object is stored (usually the kind).
+        field_selector
+            If present, only ``metadata.name=...`` is supported. It is parsed
+            to find the object name and only an object matching that name will
+            be returned.
+        label_selector
+            Which matching objects to retrieve by label. All labels must
+            match.
+
+        Returns
+        -------
+        list
+            List of matching objects.
+        """
+        if key not in self._cluster_objects:
+            return []
+
+        # If there is a field selector, only name selectors are supported and
+        # we should retrieve the object by name.
+        if field_selector:
+            match = re.match(r"metadata\.name=(.*)$", field_selector)
+            if not match or not match.group(1):
+                msg = f"Field selector {field_selector} not supported"
+                raise ValueError(msg)
+            try:
+                obj = self._get_cluster_object(key, match.group(1))
+                if _check_labels(obj.metadata.labels, label_selector):
+                    return [obj]
+                else:
+                    return []
+            except ApiException:
+                return []
+
+        # Otherwise, construct the list of all objects matching the label
+        # selector.
+        return [
+            o
+            for o in self._cluster_objects[key].values()
             if _check_labels(o.metadata.labels, label_selector)
         ]
 
@@ -3250,6 +3365,55 @@ class MockKubernetesApi:
         if kind in self._create_hooks:
             hook = self._create_hooks[kind]
             await hook(obj)
+
+    async def _store_cluster_object(
+        self,
+        key: str,
+        name: str,
+        obj: Any,
+        *,
+        replace: bool = False,
+    ) -> None:
+        """Store a cluster-scoped object in internal data structures.
+
+        Parameters
+        ----------
+        key
+            Kind of the object for most objects, or a more complex key for
+            custom objects.
+        name
+            Name of object.
+        obj
+            Object to store.
+        replace
+            If `True`, the object must already exist, to mirror the Kubernetes
+            replace semantices. If `False`, a conflict error is raised if the
+            object already exists.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the object does not exist and ``replace``
+            was `True`, and with 409 status if the object does exist and
+            ``replace`` was `False`.
+        """
+        if replace:
+            self._get_cluster_object(key, name)
+        else:
+            if key not in self._cluster_objects:
+                self._cluster_objects[key] = {}
+            if name in self._cluster_objects[key]:
+                msg = f"{name} exists"
+                raise ApiException(status=409, reason=msg)
+        stream = self._cluster_event_streams[key]
+        if isinstance(obj, dict):
+            obj["metadata"]["resourceVersion"] = stream.next_resource_version
+            self._cluster_objects[key][name] = obj
+            stream.add_custom_event("MODIFIED" if replace else "ADDED", obj)
+        else:
+            obj.metadata.resource_version = stream.next_resource_version
+            self._cluster_objects[key][name] = obj
+            stream.add_event("MODIFIED" if replace else "ADDED", obj)
 
     def _update_metadata(
         self, body: Any, api_version: str, kind: str, namespace: str | None
