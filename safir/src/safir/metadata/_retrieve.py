@@ -59,7 +59,7 @@ def get_metadata(*, package_name: str, application_name: str) -> Metadata:
     project_urls, Source code
         Used as the ``respository_url``.
     """
-    pkg_metadata = cast(Message, metadata(package_name))
+    pkg_metadata = cast("Message", metadata(package_name))
 
     # Newer packages that use pyproject.toml only do not use the Home-page
     # field (setuptools in pyproject.toml mode does not support it) and use

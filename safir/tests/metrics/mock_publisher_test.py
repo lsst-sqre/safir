@@ -47,7 +47,7 @@ async def publish() -> PublishedList:
 
     await manager.aclose()
 
-    return cast(MockEventPublisher, pub).published
+    return cast("MockEventPublisher", pub).published
 
 
 @pytest.mark.asyncio

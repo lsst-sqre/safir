@@ -147,7 +147,7 @@ class KafkaEventPublisher[P: EventPayload](EventPublisher[P]):
     async def publish(self, payload: P) -> EventMetadata:
         event = self.construct_event(payload)
         await self._manager.publish(event, self._publisher, self._schema_info)
-        return cast(EventMetadata, event)
+        return cast("EventMetadata", event)
 
 
 class NoopEventPublisher[P: EventPayload](EventPublisher[P]):
@@ -173,7 +173,7 @@ class NoopEventPublisher[P: EventPayload](EventPublisher[P]):
         self._logger.debug(
             "Would have published event", metrics_event=event.model_dump()
         )
-        return cast(EventMetadata, event)
+        return cast("EventMetadata", event)
 
 
 class MockEventPublisher[P: EventPayload](NoopEventPublisher[P]):
@@ -319,7 +319,7 @@ class EventManager(metaclass=ABCMeta):
 
         # Construct the event model.
         model = cast(
-            type[P],
+            "type[P]",
             create_model(
                 "EventModel",
                 __base__=(payload_model, EventMetadata, MetaBase),
