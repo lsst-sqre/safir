@@ -81,7 +81,7 @@ async def assert_from_kafka(
     serializer = AsyncAvroMessageSerializer(schema_registry)
     deserialized_dict = await serializer.decode_message(message.value)
     assert deserialized_dict is not None
-    event_class = cast(type[AvroBaseModel], event._event_class)
+    event_class = cast("type[AvroBaseModel]", event._event_class)
     deserialized = event_class(**deserialized_dict)
 
     assert isinstance(deserialized, EventMetadata)

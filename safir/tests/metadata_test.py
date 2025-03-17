@@ -13,7 +13,7 @@ from safir.metadata import get_metadata, get_project_url
 
 @pytest.fixture(scope="session")
 def safir_metadata() -> Message:
-    return cast(Message, metadata("safir"))
+    return cast("Message", metadata("safir"))
 
 
 def test_get_project_url(safir_metadata: Message) -> None:

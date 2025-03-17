@@ -10,13 +10,15 @@ utility functions to aid with that test setup.
 from __future__ import annotations
 
 import errno
-import logging
 import os
 import socket
 import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
+
+import structlog
+from structlog.stdlib import BoundLogger
 
 __all__ = [
     "ServerNotListeningError",
@@ -84,6 +86,7 @@ def spawn_uvicorn(
     capture: bool = False,
     timeout: float = 5.0,
     env: dict[str, str] | None = None,
+    logger: BoundLogger | None = None,
 ) -> UvicornProcess:
     """Spawn an ASGI app as a separate Uvicorn process.
 
@@ -110,6 +113,9 @@ def spawn_uvicorn(
         How long to wait in seconds.
     env
         Extra environment variable settings.
+    logger
+        Logger to use for logging, if given. If not, a new structlog logger
+        will be created.
 
     Returns
     -------
@@ -118,16 +124,23 @@ def spawn_uvicorn(
 
     Raises
     ------
+    RuntimeError
+        Raised if no logger was provided and no logger could be obtained from
+        structlog.
     ServerNotListeningError
-        Server did not start within the timeout. Generally this means it had
-        some fatal error during startup.
+        Raised if the server did not start within the timeout. Generally this
+        means it had some fatal error during startup.
     ValueError
-        Either both or neither of app and factory were given.
+        Raised if either both or neither of app and factory were given.
     """
     if app and factory:
         raise ValueError("Only one of app or factory may be given")
     if not app and not factory:
         raise ValueError("Neither of app nor factory was given")
+    if not logger:
+        logger = structlog.get_logger("safir.testing.uvicorn")
+        if not logger:
+            raise RuntimeError("Cannot get logger")
     env = {**os.environ, **env} if env else {**os.environ}
 
     # Get a random port for the app to listen on.
@@ -145,7 +158,7 @@ def spawn_uvicorn(
         env["PYTHONPATH"] += f":{Path.cwd()}"
     else:
         env["PYTHONPATH"] = str(Path.cwd())
-    logging.info("Starting server with command %s", " ".join(cmd))
+    logger.info("Starting server", command=cmd)
     if capture:
         process = subprocess.Popen(
             cmd,
@@ -167,7 +180,7 @@ def spawn_uvicorn(
     sock.close()
 
     # Wait for it to start listening.
-    logging.info("Waiting for server to start")
+    logger.info("Waiting for server to start")
     _wait_for_server(port, timeout)
 
     # Server successfully started. Return its properties.
