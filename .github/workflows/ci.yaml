@@ -109,23 +109,20 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Test building and publishing safir
-        uses: lsst-sqre/build-and-publish-to-pypi@v2
+        uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           upload: false
           working-directory: "safir"
 
       - name: Test building and publishing safir-arq
-        uses: lsst-sqre/build-and-publish-to-pypi@v2
+        uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           upload: false
           working-directory: "safir-arq"
 
       - name: Test building and publishing safir-logging
-        uses: lsst-sqre/build-and-publish-to-pypi@v2
+        uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           upload: false
           working-directory: "safir-logging"
 
@@ -147,17 +144,14 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - uses: lsst-sqre/build-and-publish-to-pypi@v2
+      - uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           working-directory: "safir"
 
-      - uses: lsst-sqre/build-and-publish-to-pypi@v2
+      - uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           working-directory: "safir-arq"
 
-      - uses: lsst-sqre/build-and-publish-to-pypi@v2
+      - uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           working-directory: "safir-logging"

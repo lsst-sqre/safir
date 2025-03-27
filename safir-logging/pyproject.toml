@@ -2,8 +2,9 @@
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 name = "safir-logging"
 description = "Logging for the Rubin Observatory SQuaRE framework, Safir."
-license = {file = "LICENSE"}
-readme= "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
 keywords = [
     "rubin",
     "lsst",
@@ -11,7 +12,6 @@ keywords = [
 # https://pypi.org/classifiers/
 classifiers = [
     "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
