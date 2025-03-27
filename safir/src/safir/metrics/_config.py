@@ -79,6 +79,8 @@ class BaseMetricsConfiguration(BaseSettings, ABC):
     clients.
     """
 
+    model_config = SettingsConfigDict(populate_by_name=True)
+
     application: str = Field(
         ...,
         title="Application name",
