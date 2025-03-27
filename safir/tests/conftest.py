@@ -208,7 +208,7 @@ def schema_manager_settings(
     )
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 def schema_manager(
     schema_manager_settings: SchemaManagerSettings,
 ) -> PydanticSchemaManager:
