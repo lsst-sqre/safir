@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 from urllib.parse import quote, urlparse
 
 from pydantic import SecretStr
@@ -30,7 +31,8 @@ def build_database_url(
     """Build the authenticated URL for the database.
 
     Unless ``is_async`` is set to `False`, the database scheme is forced to
-    ``postgresql+asyncpg`` if it is ``postgresql``.
+    ``postgresql+asyncpg`` if it is ``postgresql``, and ``mysql+asyncmy`` if
+    it is ``mysql``.
 
     Parameters
     ----------
@@ -57,6 +59,8 @@ def build_database_url(
     parsed_url = urlparse(url)
     if parsed_url.scheme == "postgresql":
         parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
+    elif parsed_url.scheme == "mysql":
+        parsed_url = parsed_url._replace(scheme="mysql+asyncmy")
     if password:
         if isinstance(password, SecretStr):
             password = password.get_secret_value()
@@ -79,6 +83,7 @@ def create_database_engine(
     password: str | SecretStr | None,
     *,
     isolation_level: str | None = None,
+    connect_args: dict[str, Any] | None = None,
 ) -> AsyncEngine:
     """Create a new async database engine.
 
@@ -91,6 +96,9 @@ def create_database_engine(
     isolation_level
         If specified, sets a non-default isolation level for the database
         engine.
+    connect_args
+        Additional connection arguments to pass directly to the underlying
+        database driver.
 
     Returns
     -------
@@ -104,10 +112,12 @@ def create_database_engine(
         A password was provided but the connection URL has no username.
     """
     url = build_database_url(url, password)
+    kwargs: dict[str, Any] = {}
     if isolation_level:
-        return create_async_engine(url, isolation_level=isolation_level)
-    else:
-        return create_async_engine(url)
+        kwargs["isolation_level"] = isolation_level
+    if connect_args:
+        kwargs["connect_args"] = connect_args
+    return create_async_engine(url, **kwargs)
 
 
 async def create_async_session(
