@@ -1574,7 +1574,7 @@ class MockKubernetesApi:
             Raised with 409 status if the namespace already exists.
         """
         self._maybe_error("create_namespace", body)
-        self._update_metadata(body, "v1", "Namespace", None)
+        self._update_metadata(body, "v1", "Namespace")
         name = body.metadata.name
         if name in self._objects:
             msg = f"Namespace {name} already exists"
@@ -1869,7 +1869,7 @@ class MockKubernetesApi:
             exists.
         """
         self._maybe_error("create_persistent_volume", body)
-        self._update_metadata(body, "v1", "PersistentVolume", "__cluster__")
+        self._update_metadata(body, "v1", "PersistentVolume")
         await self._store_cluster_object(
             "PersistentVolume", body.metadata.name, body
         )
@@ -1908,7 +1908,7 @@ class MockKubernetesApi:
         kubernetes_asyncio.client.ApiException
             Raised with 404 status if the ingress was not found.
         """
-        self._maybe_error("delete_persistent_volume", name, "__cluster__")
+        self._maybe_error("delete_persistent_volume", name)
         return self._delete_cluster_object(
             "PersistentVolume", name, propagation_policy
         )
@@ -2012,7 +2012,7 @@ class MockKubernetesApi:
             Raised with 404 status if the persistent volume was not
             found.
         """
-        self._maybe_error("read_persistent_volume", name, "__cluster__")
+        self._maybe_error("read_persistent_volume", name)
         return self._get_cluster_object("PersistentVolume", name)
 
     # PERSISTENTVOLUMECLAIM API
@@ -3416,7 +3416,11 @@ class MockKubernetesApi:
             stream.add_event("MODIFIED" if replace else "ADDED", obj)
 
     def _update_metadata(
-        self, body: Any, api_version: str, kind: str, namespace: str | None
+        self,
+        body: Any,
+        api_version: str,
+        kind: str,
+        namespace: str | None = None,
     ) -> None:
         """Check and potentially update the metadata of a stored object.
 
