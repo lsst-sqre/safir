@@ -1,5 +1,6 @@
 .. _Alembic: https://alembic.sqlalchemy.org/en/latest/
 .. _arq: https://arq-docs.helpmanual.io
+.. _asyncmy: https://github.com/long2ice/asyncmy
 .. _asyncpg: https://magicstack.github.io/asyncpg/current/
 .. _Click: https://click.palletsprojects.com/en/stable/
 .. _cryptography: https://cryptography.io/en/latest/
