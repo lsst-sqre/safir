@@ -33,8 +33,10 @@ from kubernetes_asyncio.client import (
     V1NodeList,
     V1ObjectMeta,
     V1ObjectReference,
+    V1PersistentVolume,
     V1PersistentVolumeClaim,
     V1PersistentVolumeClaimList,
+    V1PersistentVolumeList,
     V1Pod,
     V1PodList,
     V1PodStatus,
@@ -407,6 +409,7 @@ class MockKubernetesApi:
         self.error_callback: Callable[..., None] | None = None
         self.initial_pod_phase = "Running"
 
+        self._cluster_objects: dict[str, dict[str, Any]] = {}
         self._create_hooks: dict[str, Callable[..., Awaitable[None]]] = {}
         self._custom_kinds: dict[str, str] = {}
         self._nodes = V1NodeList(items=[])
@@ -415,6 +418,8 @@ class MockKubernetesApi:
         self._namespace_stream = _EventStream()
         self._event_streams: defaultdict[str, defaultdict[str, _EventStream]]
         self._event_streams = defaultdict(lambda: defaultdict(_EventStream))
+        self._cluster_event_streams: defaultdict[str, _EventStream]
+        self._cluster_event_streams = defaultdict(_EventStream)
 
     def get_all_objects_for_test(self, kind: str) -> list[Any]:
         """Return all objects of a given kind sorted by namespace and name.
@@ -1569,7 +1574,7 @@ class MockKubernetesApi:
             Raised with 409 status if the namespace already exists.
         """
         self._maybe_error("create_namespace", body)
-        self._update_metadata(body, "v1", "Namespace", None)
+        self._update_metadata(body, "v1", "Namespace")
         name = body.metadata.name
         if name in self._objects:
             msg = f"Namespace {name} already exists"
@@ -1839,6 +1844,176 @@ class MockKubernetesApi:
             if _check_labels(n.metadata.labels, label_selector)
         ]
         return V1NodeList(items=nodes)
+
+    # PERSISTENTVOLUME API
+
+    async def create_persistent_volume(
+        self,
+        body: V1PersistentVolume,
+        *,
+        _request_timeout: float | None = None,
+    ) -> None:
+        """Create a persistent volume.
+
+        Parameters
+        ----------
+        body
+            Persistent volume to create.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 409 status if the persistent volume already
+            exists.
+        """
+        self._maybe_error("create_persistent_volume", body)
+        self._update_metadata(body, "v1", "PersistentVolume")
+        await self._store_cluster_object(
+            "PersistentVolume", body.metadata.name, body
+        )
+
+    async def delete_persistent_volume(
+        self,
+        name: str,
+        *,
+        grace_period_seconds: int | None = None,
+        propagation_policy: str = "Foreground",
+        body: V1DeleteOptions | None = None,
+        _request_timeout: float | None = None,
+    ) -> V1Status:
+        """Delete a persistent volume object.
+
+        Parameters
+        ----------
+        name
+            Name of persistent volume to delete.
+        grace_period_seconds
+            Grace period for object deletion (currently ignored).
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
+        body
+            Delete options (currently ignored).
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Status
+            Success status.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the ingress was not found.
+        """
+        self._maybe_error("delete_persistent_volume", name)
+        return self._delete_cluster_object(
+            "PersistentVolume", name, propagation_policy
+        )
+
+    async def list_persistent_volume(
+        self,
+        *,
+        field_selector: str | None = None,
+        label_selector: str | None = None,
+        resource_version: str | None = None,
+        timeout_seconds: int | None = None,
+        watch: bool = False,
+        _preload_content: bool = True,
+        _request_timeout: float | None = None,
+    ) -> V1PersistentVolumeList | Mock:
+        """List persistent volume objects.
+
+        This does support watches.
+
+        Parameters
+        ----------
+        field_selector
+            Only ``metadata.name=...`` is supported. It is parsed to find the
+            persistent volume claim name and only persistent volume claims
+            matching that name will be returned.
+        label_selector
+            Which objects to retrieve. All labels must match.
+        resource_version
+            Where to start in the event stream when performing a watch. If
+            `None`, starts with the next change.
+        timeout_seconds
+            How long to return events for before exiting when performing a
+            watch.
+        watch
+            Whether to act as a watch.
+        _preload_content
+            Verified to be `False` when performing a watch.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1PersistentVolumeList
+            List of persistent volumes, when not called as a watch.
+            If called as a watch, returns a mock ``aiohttp.Response``
+            with a ``readline`` metehod that yields the events.
+
+        Raises
+        ------
+        AssertionError
+            Some other ``field_selector`` was provided.
+        """
+        self._maybe_error(
+            "list_persistent_volume",
+            field_selector,
+        )
+        if not watch:
+            pvs = self._list_cluster_objects(
+                "PersistentVolume",
+                field_selector,
+                label_selector,
+            )
+            return V1PersistentVolumeList(kind="PersistentVolume", items=pvs)
+
+        # All watches must not preload content since we're returning raw JSON.
+        # This is done by the Kubernetes API Watch object.
+        assert not _preload_content
+
+        # Return the mock response expected by the Kubernetes API.
+        stream = self._cluster_event_streams["PersistentVolume"]
+        return stream.build_watch_response(
+            resource_version,
+            timeout_seconds,
+            field_selector=field_selector,
+            label_selector=label_selector,
+        )
+
+    async def read_persistent_volume(
+        self,
+        name: str,
+        *,
+        _request_timeout: float | None = None,
+    ) -> V1PersistentVolume:
+        """Read a persistent volume.
+
+        Parameters
+        ----------
+        name
+            Name of the persistent volume.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1PersistentVolume
+            Persistent volume object.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the persistent volume was not
+            found.
+        """
+        self._maybe_error("read_persistent_volume", name)
+        return self._get_cluster_object("PersistentVolume", name)
 
     # PERSISTENTVOLUMECLAIM API
 
@@ -2911,6 +3086,44 @@ class MockKubernetesApi:
             stream.add_event("DELETED", obj)
         return V1Status(code=200)
 
+    def _delete_cluster_object(
+        self, key: str, name: str, propagation_policy: str
+    ) -> V1Status:
+        """Delete a cluster-scoped object from internal data structures.
+
+        Parameters
+        ----------
+        key
+            Key under which the object is stored (usually the kind).
+        name
+            Name of the object.
+        propagation_policy
+            Propagation policy for deletion. Has no effect on the mock.
+        _request_timeout
+            Ignored, accepted for compatibility with the Kubernetes API.
+
+        Returns
+        -------
+        kubernetes_asyncio.client.V1Status
+            200 return status if the object was found and deleted.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with a 404 status if the object is not found.
+        """
+        if propagation_policy not in ("Foreground", "Background", "Orphan"):
+            msg = f"Invalid propagation_policy {propagation_policy}"
+            raise AssertionError(msg)
+        obj = self._get_cluster_object(key, name)
+        del self._cluster_objects[key][name]
+        stream = self._cluster_event_streams[key]
+        if isinstance(obj, dict):
+            stream.add_custom_event("DELETED", obj)
+        else:
+            stream.add_event("DELETED", obj)
+        return V1Status(code=200)
+
     def _get_object(self, namespace: str, key: str, name: str) -> Any:
         """Retrieve an object from internal data structures.
 
@@ -2940,6 +3153,31 @@ class MockKubernetesApi:
             reason = f"{namespace}/{name} not found"
             raise ApiException(status=404, reason=reason)
         return self._objects[namespace][key][name]
+
+    def _get_cluster_object(self, key: str, name: str) -> Any:
+        """Retrieve a cluster-scoped object from internal data structures.
+
+        Parameters
+        ----------
+        key
+            Key under which the object is stored (usually the kind).
+        name
+            Name of the object.
+
+        Returns
+        -------
+        Any
+            Object if found.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with a 404 status if the object is not found.
+        """
+        if name not in self._cluster_objects.get(key, {}):
+            reason = f"{name} not found"
+            raise ApiException(status=404, reason=reason)
+        return self._cluster_objects[key][name]
 
     def _list_objects(
         self,
@@ -2993,6 +3231,58 @@ class MockKubernetesApi:
         return [
             o
             for o in self._objects[namespace][key].values()
+            if _check_labels(o.metadata.labels, label_selector)
+        ]
+
+    def _list_cluster_objects(
+        self,
+        key: str,
+        field_selector: str | None,
+        label_selector: str | None,
+    ) -> list[Any]:
+        """List cluster-scoped objects, possibly with selector restrictions.
+
+        Parameters
+        ----------
+        key
+            Key under which the object is stored (usually the kind).
+        field_selector
+            If present, only ``metadata.name=...`` is supported. It is parsed
+            to find the object name and only an object matching that name will
+            be returned.
+        label_selector
+            Which matching objects to retrieve by label. All labels must
+            match.
+
+        Returns
+        -------
+        list
+            List of matching objects.
+        """
+        if key not in self._cluster_objects:
+            return []
+
+        # If there is a field selector, only name selectors are supported and
+        # we should retrieve the object by name.
+        if field_selector:
+            match = re.match(r"metadata\.name=(.*)$", field_selector)
+            if not match or not match.group(1):
+                msg = f"Field selector {field_selector} not supported"
+                raise ValueError(msg)
+            try:
+                obj = self._get_cluster_object(key, match.group(1))
+                if _check_labels(obj.metadata.labels, label_selector):
+                    return [obj]
+                else:
+                    return []
+            except ApiException:
+                return []
+
+        # Otherwise, construct the list of all objects matching the label
+        # selector.
+        return [
+            o
+            for o in self._cluster_objects[key].values()
             if _check_labels(o.metadata.labels, label_selector)
         ]
 
@@ -3076,8 +3366,61 @@ class MockKubernetesApi:
             hook = self._create_hooks[kind]
             await hook(obj)
 
+    async def _store_cluster_object(
+        self,
+        key: str,
+        name: str,
+        obj: Any,
+        *,
+        replace: bool = False,
+    ) -> None:
+        """Store a cluster-scoped object in internal data structures.
+
+        Parameters
+        ----------
+        key
+            Kind of the object for most objects, or a more complex key for
+            custom objects.
+        name
+            Name of object.
+        obj
+            Object to store.
+        replace
+            If `True`, the object must already exist, to mirror the Kubernetes
+            replace semantices. If `False`, a conflict error is raised if the
+            object already exists.
+
+        Raises
+        ------
+        kubernetes_asyncio.client.ApiException
+            Raised with 404 status if the object does not exist and ``replace``
+            was `True`, and with 409 status if the object does exist and
+            ``replace`` was `False`.
+        """
+        if replace:
+            self._get_cluster_object(key, name)
+        else:
+            if key not in self._cluster_objects:
+                self._cluster_objects[key] = {}
+            if name in self._cluster_objects[key]:
+                msg = f"{name} exists"
+                raise ApiException(status=409, reason=msg)
+        stream = self._cluster_event_streams[key]
+        if isinstance(obj, dict):
+            obj["metadata"]["resourceVersion"] = stream.next_resource_version
+            self._cluster_objects[key][name] = obj
+            stream.add_custom_event("MODIFIED" if replace else "ADDED", obj)
+        else:
+            obj.metadata.resource_version = stream.next_resource_version
+            self._cluster_objects[key][name] = obj
+            stream.add_event("MODIFIED" if replace else "ADDED", obj)
+
     def _update_metadata(
-        self, body: Any, api_version: str, kind: str, namespace: str | None
+        self,
+        body: Any,
+        api_version: str,
+        kind: str,
+        namespace: str | None = None,
     ) -> None:
         """Check and potentially update the metadata of a stored object.
 
