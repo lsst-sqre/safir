@@ -9,6 +9,15 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-10.1.0'></a>
+## 10.1.0 (2025-04-23)
+
+### New features
+
+- `create_async_engine` now rewrites URLs with a scheme of `mysql` to use `mysql+asyncmy`, similar to the existing rewrite of `postgresql` to `postgresql+asyncpg`.
+- Add an optional `connect_args` parameter to `create_async_engine` that can be used to pass parameters directly to the underlying database driver. This may be used to, for example, configure TLS settings.
+- Add create, delete, read, and list (with watches) support for `PersistentVolume` objects to the mock Kubernetes API. These are not integrated with `PersistentVolumeClaim` objects; the user of the mock must create them separately.
+
 <a id='changelog-10.0.0'></a>
 ## 10.0.0 (2025-02-24)
 
@@ -18,7 +27,7 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 ### New features
 
-- Added `number` field to `GitHubCheckRunPrInfoModel` to capture the pull request number in GitHub check events
+- Add `number` field to `GitHubCheckRunPrInfoModel` to capture the pull request number in GitHub check events.
 
 <a id='changelog-9.3.0'></a>
 ## 9.3.0 (2025-02-11)
