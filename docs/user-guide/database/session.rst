@@ -30,6 +30,8 @@ To get a new async database connection, use code like the following:
 Creating the engine is separate from creating the session so that the engine can be disposed of properly.
 This ensures the connection pool is closed.
 
+The ``connect_args``, ``max_overflow``, ``pool_size``, and ``pool_timeout`` parameters to `~safir.database.create_database_engine` have the same meaning as the corresponding arguments to `sqlalchemy.create_engine`.
+
 .. _probing-db-connection:
 
 Probing the database connection

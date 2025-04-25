@@ -82,8 +82,11 @@ def create_database_engine(
     url: str | Url,
     password: str | SecretStr | None,
     *,
-    isolation_level: str | None = None,
     connect_args: dict[str, Any] | None = None,
+    isolation_level: str | None = None,
+    max_overflow: int | None = None,
+    pool_size: int | None = None,
+    pool_timeout: float | None = None,
 ) -> AsyncEngine:
     """Create a new async database engine.
 
@@ -93,12 +96,19 @@ def create_database_engine(
         Database connection URL, not including the password.
     password
         Database connection password.
-    isolation_level
-        If specified, sets a non-default isolation level for the database
-        engine.
     connect_args
         Additional connection arguments to pass directly to the underlying
         database driver.
+    isolation_level
+        If specified, sets a non-default isolation level for the database
+        engine.
+    max_overflow
+        Maximum number of connections over the pool size for surge traffic.
+    pool_size
+        Connection pool size.
+    pool_timeout
+        How long to wait for a connection from the connection pool before
+        giving up.
 
     Returns
     -------
@@ -113,10 +123,16 @@ def create_database_engine(
     """
     url = build_database_url(url, password)
     kwargs: dict[str, Any] = {}
-    if isolation_level:
-        kwargs["isolation_level"] = isolation_level
     if connect_args:
         kwargs["connect_args"] = connect_args
+    if isolation_level:
+        kwargs["isolation_level"] = isolation_level
+    if max_overflow is not None:
+        kwargs["max_overflow"] = max_overflow
+    if pool_size is not None:
+        kwargs["pool_size"] = pool_size
+    if pool_timeout is not None:
+        kwargs["pool_timeout"] = pool_timeout
     return create_async_engine(url, **kwargs)
 
 
