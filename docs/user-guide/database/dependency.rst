@@ -34,6 +34,8 @@ You must also close the dependency during application shutdown.
 
    app = FastAPI(lifespan=lifespan)
 
+`~safir.dependencies.db_session.DatabaseSessionDependency.initialize` takes the same optional parameters as `~safir.database.create_database_engine`.
+
 As with some of the examples above, this assumes the application has a ``config`` object with the application settings, including the database URL and password.
 
 Using the dependency

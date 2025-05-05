@@ -1,6 +1,7 @@
 """Manage an async database session."""
 
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from pydantic import SecretStr
 from pydantic_core import Url
@@ -71,7 +72,11 @@ class DatabaseSessionDependency:
         url: str | Url,
         password: str | SecretStr | None,
         *,
+        connect_args: dict[str, Any] | None = None,
         isolation_level: str | None = None,
+        max_overflow: int | None = None,
+        pool_size: int | None = None,
+        pool_timeout: float | None = None,
     ) -> None:
         """Initialize the session dependency.
 
@@ -81,15 +86,35 @@ class DatabaseSessionDependency:
             Database connection URL, not including the password.
         password
             Database connection password.
+        connect_args
+            Additional connection arguments to pass directly to the underlying
+            database driver.
         isolation_level
             If specified, sets a non-default isolation level for the database
             engine.
+        max_overflow
+            Maximum number of connections over the pool size for surge
+            traffic.
+        pool_size
+            Connection pool size.
+        pool_timeout
+            How long to wait for a connection from the connection pool before
+            giving up.
         """
         if self._engine:
             await self._engine.dispose()
-        self._engine = create_database_engine(
-            url, password, isolation_level=isolation_level
-        )
+        kwargs: dict[str, Any] = {}
+        if connect_args:
+            kwargs["connect_args"] = connect_args
+        if isolation_level:
+            kwargs["isolation_level"] = isolation_level
+        if max_overflow is not None:
+            kwargs["max_overflow"] = max_overflow
+        if pool_size is not None:
+            kwargs["pool_size"] = pool_size
+        if pool_timeout is not None:
+            kwargs["pool_timeout"] = pool_timeout
+        self._engine = create_database_engine(url, password, **kwargs)
         self._session = await create_async_session(self._engine)
 
 
