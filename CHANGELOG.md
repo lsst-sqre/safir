@@ -9,6 +9,14 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-10.2.0'></a>
+## 10.2.0 (2025-05-05)
+
+### New features
+
+- Add additional parameters `max_overflow`, `pool_size`, and `pool_timeout` to `safir.database.create_database_engine`. These are passed to the SQLAlchemy `create_async_engine` function and can be used to tweak pool behavior.
+- Add additional parameters `connect_args`, `max_overflow`, `pool_size`, and `pool_timeout` to the `initialize` method of the database session FastAPI dependency. These parameters are passed to `create_database_engine` when creating the underlying engine.
+
 <a id='changelog-10.1.0'></a>
 ## 10.1.0 (2025-04-23)
 
