@@ -5,10 +5,7 @@ description = "The Rubin Observatory SQuaRE framework for FastAPI services."
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
-keywords = [
-    "rubin",
-    "lsst",
-]
+keywords = ["rubin", "lsst"]
 # https://pypi.org/classifiers/
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -24,7 +21,7 @@ classifiers = [
 requires-python = ">=3.12"
 dependencies = [
     "aiokafka>=0.11,<1",
-    "click<9",
+    "click>=8.2.0,<9",
     "cryptography<45",
     "dataclasses-avroschema>=0.65.7,<1",
     "fastapi>=0.100,<1",

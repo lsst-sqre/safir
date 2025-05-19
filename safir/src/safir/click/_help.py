@@ -75,9 +75,9 @@ def display_help(
 
     # Subtopic handling. This requires some care with typing, since the
     # commands attribute (although present) is not documented, and the
-    # get_command method is only available on MultiCommands.
+    # get_command method is only available on Groups.
     group = main.commands[topic]
-    if isinstance(group, click.MultiCommand):
+    if isinstance(group, click.Group):
         command = group.get_command(ctx, subtopic)
         if command:
             ctx.info_name = f"{topic} {subtopic}"
