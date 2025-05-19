@@ -75,7 +75,7 @@ kubernetes = [
     "kubernetes_asyncio<33"
 ]
 redis = [
-    "redis>4.5.2,<6",
+    "redis>4.5.2,<7",
 ]
 uws = [
     "google-auth<3",
