@@ -23,7 +23,7 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "arq>=0.23,<1",
+    "arq>=0.26,<1",
     "pydantic>2,<3",
     "pydantic-core",
     "structlog>=21.2.0",
