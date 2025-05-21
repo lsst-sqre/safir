@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import pytest
+from aiokafka.admin.client import AIOKafkaAdminClient
+from faststream.kafka import KafkaBroker
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
+from safir.kafka import KafkaConnectionSettings, SchemaManagerSettings
 from safir.metrics import (
     DisabledMetricsConfiguration,
+    EventsConfiguration,
+    KafkaClients,
     KafkaEventManager,
     KafkaMetricsConfiguration,
     MetricsConfiguration,
@@ -73,3 +78,31 @@ async def test_kafka(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(config.metrics, KafkaMetricsConfiguration)
     manager = config.metrics.make_manager()
     assert isinstance(manager, KafkaEventManager)
+
+
+@pytest.mark.asyncio
+async def test_kafka_unmanaged(
+    *,
+    kafka_broker: KafkaBroker,
+    kafka_admin_client: AIOKafkaAdminClient,
+    kafka_connection_settings: KafkaConnectionSettings,
+    schema_manager_settings: SchemaManagerSettings,
+) -> None:
+    config = KafkaMetricsConfiguration(
+        application="testapp",
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        kafka=kafka_connection_settings,
+        schema_manager=schema_manager_settings,
+    )
+
+    manager = config.make_manager(
+        kafka_clients=KafkaClients(
+            broker=kafka_broker, admin_client=kafka_admin_client
+        )
+    )
+    assert isinstance(manager, KafkaEventManager)
+
+    # Make sure that the manager doesn't close the broker or admin client.
+    await manager.aclose()
+    assert not manager._admin_client._closed
+    assert await manager._broker.ping(timeout=1)

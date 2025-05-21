@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Annotated, override
 
 import structlog
@@ -26,6 +27,7 @@ __all__ = [
     "BaseMetricsConfiguration",
     "DisabledMetricsConfiguration",
     "EventsConfiguration",
+    "KafkaClients",
     "KafkaMetricsConfiguration",
     "MetricsConfiguration",
     "MockMetricsConfiguration",
@@ -66,6 +68,17 @@ def _require_bool(v: bool, wanted: bool) -> bool:  # noqa: FBT001
     return v
 
 
+@dataclass
+class KafkaClients:
+    """Kafka clients that an `~safir.metrics.EventManager` should use."""
+
+    broker: KafkaBroker
+    """FastStream Kafka broker."""
+
+    admin_client: AIOKafkaAdminClient
+    """Kafka admin client."""
+
+
 class BaseMetricsConfiguration(BaseSettings, ABC):
     """Metrics configuration, including the required Kafka configuration.
 
@@ -96,14 +109,25 @@ class BaseMetricsConfiguration(BaseSettings, ABC):
     )
 
     @abstractmethod
-    def make_manager(self, logger: BoundLogger | None = None) -> EventManager:
-        """Construct an EventManager.
+    def make_manager(
+        self,
+        logger: BoundLogger | None = None,
+        *,
+        kafka_clients: KafkaClients | None = None,
+    ) -> EventManager:
+        """Construct an `~safir.metrics.EventManager`.
 
         Parameters
         ----------
         logger
             Logger to use for internal logging. If not given, the
             ``safir.metrics`` logger will be used.
+        kafka_clients
+            Kafka broker and admin client to use. If not given, a new Kafka
+            broker and admin client will be created and automatically closed
+            when the event manager is closed. If clients are provided, closing
+            the event manager will have no effect on them and the caller is
+            responsible for closing them.
 
         Returns
         -------
@@ -131,7 +155,10 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
 
     @override
     def make_manager(
-        self, logger: BoundLogger | None = None
+        self,
+        logger: BoundLogger | None = None,
+        *,
+        kafka_clients: KafkaClients | None = None,
     ) -> NoopEventManager:
         if not logger:
             logger = structlog.get_logger("safir.metrics")
@@ -171,7 +198,10 @@ class MockMetricsConfiguration(BaseMetricsConfiguration):
 
     @override
     def make_manager(
-        self, logger: BoundLogger | None = None
+        self,
+        logger: BoundLogger | None = None,
+        *,
+        kafka_clients: KafkaClients | None = None,
     ) -> MockEventManager:
         if not logger:
             logger = structlog.get_logger("safir.metrics")
@@ -213,42 +243,33 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
 
     @override
     def make_manager(
-        self, logger: BoundLogger | None = None
+        self,
+        logger: BoundLogger | None = None,
+        *,
+        kafka_clients: KafkaClients | None = None,
     ) -> KafkaEventManager:
-        """Construct an EventManager and all of it's Kafka dependencies.
-
-        If your app doesn't use Kafka or the Schema Registry, this is a
-        shortcut to getting a working event manager without having to manually
-        construct all of the Kafka dependencies.
-
-        Parameters
-        ----------
-        logger
-            Logger to use for internal logging. If not given, the
-            ``safir.metrics`` logger will be used.
-
-        Returns
-        -------
-        EventManager
-            An event manager appropriate to the configuration.
-        """
-        broker = KafkaBroker(
-            client_id=f"{BROKER_PREFIX}-{self.application}",
-            **self.kafka.to_faststream_params(),
-        )
-        admin_client = AIOKafkaAdminClient(
-            client_id=f"{ADMIN_CLIENT_PREFIX}-{self.application}",
-            **self.kafka.to_aiokafka_params(),
-        )
+        manage_kafka = kafka_clients is None
+        if kafka_clients:
+            kafka_broker = kafka_clients.broker
+            kafka_admin_client = kafka_clients.admin_client
+        else:
+            kafka_broker = KafkaBroker(
+                client_id=f"{BROKER_PREFIX}-{self.application}",
+                **self.kafka.to_faststream_params(),
+            )
+            kafka_admin_client = AIOKafkaAdminClient(
+                client_id=f"{ADMIN_CLIENT_PREFIX}-{self.application}",
+                **self.kafka.to_aiokafka_params(),
+            )
         schema_manager = self.schema_manager.make_manager(logger=logger)
 
         return KafkaEventManager(
             application=self.application,
             topic_prefix=self.events.topic_prefix,
-            kafka_broker=broker,
-            kafka_admin_client=admin_client,
+            kafka_broker=kafka_broker,
+            kafka_admin_client=kafka_admin_client,
             schema_manager=schema_manager,
-            manage_kafka=True,
+            manage_kafka=manage_kafka,
             logger=logger,
         )
 

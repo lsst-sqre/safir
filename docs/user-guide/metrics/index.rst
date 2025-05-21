@@ -472,17 +472,49 @@ This ``default_factory`` setting is not required if the configuration is provide
 Your app uses Kafka
 -------------------
 
-If your app uses Kafka for things other than metrics publishing (maybe it's a FastStream_ app), you can use the :ref:`Safir Kafka connection helpers <kafka-integration>` to create clients and pass them to the `~safir.metrics.EventManager` constructor.
+If your app uses Kafka for things other than metrics publishing (maybe it's a FastStream_ app), you can pass an existing FastStream Kafka broker and aiokafka admin client to `~safir.metrics.BaseMetricsConfiguration.make_manager` as the ``kafka_clients`` argument.
+These clients will be used rather than creating new ones, and they will not be started or stopped by the `~safir.metrics.EventManager`.
 
-.. note::
+.. code-block:: python
+   :caption: config.py
 
-   The ``manage_kafaka`` parameter is `False` here.  This means that calling `~safir.metrics.EventManager.aclose` on your `~safir.metrics.EventManager` will NOT stop the Kafka clients.
-   You are expected to do this yourself somewhere else in your app.
+   from aiokafka.admin.client import AIOKafkaAdminClient
+   from faststream.kafka import KafkaBroker
+   from pydantic_settings import BaseSettings
+   from safir.metrics import (
+       KafkaClients,
+       MetricsConfiguration,
+       metrics_configuration_factory,
+   )
+
+
+   class Config(BaseSettings):
+       metrics: MetricsConfiguration = Field(
+           default_factory=metrics_configuration_factory,
+           title="Metrics configuration",
+       )
+
+
+   config = Config()
+   kafka_broker = KafkaBroker(...)  # created elsewhere by your application
+   admin_client = AIOKafkaAdminClient(...)  # created elsewhere
+   manager = config.metrics.make_manager(
+       kafka_clients=KafkaClients(
+           broker=kafka_broker, admin_client=admin_client
+       )
+   )
+
+This is the recommended approach when reusing a Kafka broker since `~safir.metrics.BaseMetricsConfiguration.make_manager` will still honor the metrics configuration and create no-op or mock event managers if requested, in which case the provided Kafka broker will be ignored.
+An internal schema manager client will still be created and managed by the event manager in this case.
+
+If you want full manual control, you can create the event manager directly and provide a Kafka broker, admin client, and schema manager.
 
 .. code-block:: python
 
+   from aiokafka.admin.client import AIOKafkaAdminClient
+   from faststream.kafka import kafkaBroker
    from safir.kafka import KafkaConnectionSettings, SchemaManagerSettings
-   from safir.metrics import EventManager, MetricsConfiguration
+   from safir.metrics import EventsConfiguration, KafkaEventManager
 
    kafka_config = KafkaConnectionSettings()
    schema_manager_config = SchemaManagerSettings()
@@ -491,12 +523,10 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
    # You can use this in all parts of your app
    broker = KafkaBroker(**kafka_config.to_faststream_params())
 
-   admin_client = AIOKafkaAdminClient(
-       **kafka_config.to_aiokafka_params(),
-   )
+   admin_client = AIOKafkaAdminClient(**kafka_config.to_aiokafka_params())
    schema_manager = schema_manager_config.make_manager()
 
-   return EventManager(
+   event_manager = KafkaEventManager(
        application="myapp",
        topic_prefix=events_config.topic_prefix,
        kafka_broker=broker,
@@ -505,4 +535,5 @@ If your app uses Kafka for things other than metrics publishing (maybe it's a Fa
        manage_kafka=False,
    )
 
-.. _FastStream: https://faststream.airt.ai
+Setting ``manage_kafaka`` to `False` here means that calling `~safir.metrics.EventManager.aclose` on your `~safir.metrics.EventManager` will NOT stop the Kafka clients.
+You are expected to do this yourself somewhere else in your app.
