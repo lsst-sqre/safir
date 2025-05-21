@@ -136,3 +136,15 @@ Each `~safir.redis.PydanticRedisStorage` instance works with a specific Pydantic
        redis=redis_client,
        key_prefix="customer:",
    )
+
+Reducing the size of serialized objects
+=======================================
+
+By default, the Pydantic model is serialized to JSON for storage using the default Pydantic serialization, which includes all defined fields.
+This is normally the best serialization to use since it is the most robust against future changes, such as changing default values for fields.
+
+Sometimes, though, you may prefer to reduce the size of the serialized models in exchange for having to be more careful about model changes.
+The `~safir.redis.PydanticRedisStorage.store` method of `~safir.redis.PydanticRedisStorage` and `~safir.redis.EncryptedPydanticRedisStorage` support the Pydantic options ``exclude_unset``, ``exclude_defaults``, and ``exclude_none`` to change the default serialization.
+These options have the same meaning as the corresponding options to Pydantic's ``model_dump_json`` method.
+
+See `the Pydantic documentation <https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_dump_json>`__ for more details.

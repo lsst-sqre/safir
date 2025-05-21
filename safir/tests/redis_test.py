@@ -18,8 +18,8 @@ from safir.slack.blockkit import SlackTextField
 class DemoModel(BaseModel):
     """A demo model for testing."""
 
-    name: str = Field(..., description="The name of the model.")
-    value: int = Field(..., description="The value of the model.")
+    name: str | None = Field(..., description="The name of the model.")
+    value: int = Field(4, description="The value of the model.")
 
 
 async def basic_testing(storage: PydanticRedisStorage[DemoModel]) -> None:
@@ -75,6 +75,42 @@ async def test_encrypted_pydantic_redis_storage(
         encryption_key=Fernet.generate_key().decode(),
     )
     await basic_testing(storage)
+
+
+@pytest.mark.asyncio
+async def test_pydantic_exclude(redis_client: redis.Redis) -> None:
+    """Test exclude parameters to store."""
+    storage = PydanticRedisStorage(datatype=DemoModel, redis=redis_client)
+    none_explicit = DemoModel(name=None, value=4)
+    none_no_value = DemoModel(name=None)
+
+    await storage.store("test", none_explicit)
+    assert await redis_client.get("test") == b'{"name":null,"value":4}'
+    await storage.store("test", none_no_value)
+    assert await redis_client.get("test") == b'{"name":null,"value":4}'
+
+    await storage.store("test", none_explicit, exclude_unset=True)
+    assert await redis_client.get("test") == b'{"name":null,"value":4}'
+    await storage.store("test", none_no_value, exclude_unset=True)
+    assert await redis_client.get("test") == b'{"name":null}'
+
+    await storage.store("test", none_explicit, exclude_defaults=True)
+    assert await redis_client.get("test") == b'{"name":null}'
+    await storage.store("test", none_no_value, exclude_defaults=True)
+    assert await redis_client.get("test") == b'{"name":null}'
+
+    await storage.store("test", none_explicit, exclude_none=True)
+    assert await redis_client.get("test") == b'{"value":4}'
+    await storage.store("test", none_no_value, exclude_none=True)
+    assert await redis_client.get("test") == b'{"value":4}'
+
+    await storage.store(
+        "test", none_explicit, exclude_none=True, exclude_defaults=True
+    )
+    assert await redis_client.get("test") == b"{}"
+
+    await storage.store("mark42", DemoModel(name="Mark", value=42))
+    await storage.store("mark13", DemoModel(name="Mark", value=13))
 
 
 @pytest.mark.asyncio
