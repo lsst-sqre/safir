@@ -157,7 +157,14 @@ class PydanticRedisStorage[S: BaseModel]:
             yield key.decode().removeprefix(self._key_prefix)
 
     async def store(
-        self, key: str, obj: S, lifetime: int | None = None
+        self,
+        key: str,
+        obj: S,
+        lifetime: int | None = None,
+        *,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
     ) -> None:
         """Store an object.
 
@@ -171,28 +178,56 @@ class PydanticRedisStorage[S: BaseModel]:
             The object lifetime in seconds.  The object should expire from the
             data store after that many seconds after the current time.  Pass
             `None` if the object should not expire.
+        exclude_unset
+            If `True`, exclude fields that have not been explicitly set.
+        exclude_defaults
+            If `True`, exclude fields set to their default value.
+        exclude_none
+            If `True`, exclude fields that have a value of `None`.
         """
-        data = self._serialize(obj)
+        data = self._serialize(
+            obj,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+        )
         await self._redis.set(self._prefix_key(key), data, ex=lifetime)
 
     def _prefix_key(self, key: str) -> str:
         """Compute the full Redis key, given the key prefix."""
         return f"{self._key_prefix}{key}"
 
-    def _serialize(self, obj: S) -> bytes:
+    def _serialize(
+        self,
+        obj: S,
+        *,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+    ) -> bytes:
         """Serialize a Pydantic object to bytes that can be stored by Redis.
 
         Parameters
         ----------
         obj
             The Pydantic object to serialize.
+        exclude_unset
+            If `True`, exclude fields that have not been explicitly set.
+        exclude_defaults
+            If `True`, exclude fields set to their default value.
+        exclude_none
+            If `True`, exclude fields that have a value of `None`.
 
         Returns
         -------
         bytes
             The serialized object.
         """
-        return obj.model_dump_json().encode()
+        return obj.model_dump_json(
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+        ).encode()
 
     def _deserialize(self, data: bytes) -> S:
         """Deserialize bytes into a Pydantic object.
@@ -245,8 +280,20 @@ class EncryptedPydanticRedisStorage[S: BaseModel](PydanticRedisStorage[S]):
         self._fernet = Fernet(encryption_key.encode())
 
     @override
-    def _serialize(self, obj: S) -> bytes:
-        data = obj.model_dump_json().encode()
+    def _serialize(
+        self,
+        obj: S,
+        *,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+    ) -> bytes:
+        data = super()._serialize(
+            obj,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+        )
         return self._fernet.encrypt(data)
 
     @override
