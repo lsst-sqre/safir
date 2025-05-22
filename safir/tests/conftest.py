@@ -34,6 +34,10 @@ from safir.sentry import (
     fingerprint_env_handler,
     sentry_exception_handler,
 )
+from safir.testing.containers import (
+    FullKafkaContainer,
+    SchemaRegistryContainer,
+)
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.sentry import (
@@ -42,9 +46,6 @@ from safir.testing.sentry import (
     sentry_init_fixture,
 )
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
-
-from .support.kafka.container import FullKafkaContainer
-from .support.schema_registry import SchemaRegistryContainer
 
 
 @pytest.fixture(scope="session")
@@ -55,16 +56,13 @@ def kafka_docker_network() -> Iterator[Network]:
 
 
 @pytest.fixture(scope="session")
-def kafka_cert_path(
-    tmp_path_factory: pytest.TempPathFactory,
-) -> Path:
+def kafka_cert_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return tmp_path_factory.mktemp("kafka-certs")
 
 
 @pytest.fixture(scope="session")
 def global_kafka_container(
-    kafka_docker_network: Network,
-    kafka_cert_path: Path,
+    kafka_docker_network: Network, kafka_cert_path: Path
 ) -> Iterator[FullKafkaContainer]:
     """Provide a session-scoped kafka container.
 
@@ -75,19 +73,13 @@ def global_kafka_container(
     * ``kafka_consumer``
     * ``kafka_admin_client``
     """
-    container = FullKafkaContainer(limit_broker_to_first_host=True)
+    container = FullKafkaContainer()
     container.with_network(kafka_docker_network)
     container.with_network_aliases("kafka")
     with container as kafka:
-        (kafka_cert_path / "ca.crt").write_text(
-            container.get_secret_file_contents("ca.crt")
-        )
-        (kafka_cert_path / "client.crt").write_text(
-            container.get_secret_file_contents("client.crt")
-        )
-        (kafka_cert_path / "client.key").write_text(
-            container.get_secret_file_contents("client.key")
-        )
+        for filename in ("ca.crt", "client.crt", "client.key"):
+            contents = container.get_secret_file_contents(filename)
+            (kafka_cert_path / filename).write_text(contents)
         yield kafka
 
 
@@ -96,8 +88,8 @@ def kafka_container(
     global_kafka_container: FullKafkaContainer,
 ) -> Iterator[FullKafkaContainer]:
     """Yield the global kafka container, but rid it of data post-test."""
-    yield global_kafka_container
     global_kafka_container.reset()
+    return global_kafka_container
 
 
 @pytest.fixture
@@ -169,8 +161,7 @@ async def kafka_admin_client(
 
 @pytest.fixture(scope="session")
 def global_schema_registry_container(
-    global_kafka_container: FullKafkaContainer,
-    kafka_docker_network: Network,
+    global_kafka_container: FullKafkaContainer, kafka_docker_network: Network
 ) -> Iterator[SchemaRegistryContainer]:
     """Provide a session-scoped schema registry container that can talk to the
     containers in other docker-based kafka fixtures.

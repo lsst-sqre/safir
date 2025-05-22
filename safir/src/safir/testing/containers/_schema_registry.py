@@ -1,4 +1,6 @@
-"""Helpers for tests that require a Confluent schema registry."""
+"""Docker container for testing with a Kafka Confluent schema registry."""
+
+from __future__ import annotations
 
 from typing import Any, Self
 
@@ -8,33 +10,31 @@ from testcontainers.core.container import DockerContainer
 from testcontainers.core.network import Network
 from testcontainers.core.waiting_utils import wait_container_is_ready
 
-from ..constants import SCHEMA_REGISTRY_DOCKER_IMAGE
+from ._constants import CONFLUENT_VERSION_TAG, SCHEMA_REGISTRY_REPOSITORY
 
 __all__ = ["SchemaRegistryContainer"]
 
 
 class SchemaRegistryContainer(DockerContainer):
-    """A ``Testcontainers <https://github.com/testcontainers/testcontainers-python>``
-    Confluent schema registry container.
+    """A Testcontainers_ Confluent schema registry container.
 
     Parameters
     ----------
     network
-        A Docker network to put this container in.
-        The kafa container that will serve as storage must be on the same
-        network.
+        Docker network to put this container in. The Kafa container that will
+        serve as storage must be on the same network.
     kafka_bootstrap_servers
-        A string with a comma-separated list of kafka boostrap servers for the
-        kafka instance that will serve as storage
+        Comma-separated list of Kafka boostrap servers for the Kafka instance
+        that will serve as storage.
     image
-        The docker image to use.
+        Docker image to use.
     """
 
     def __init__(
         self,
         network: Network,
         kafka_bootstrap_servers: str = "kafka:9092",
-        image: str = SCHEMA_REGISTRY_DOCKER_IMAGE,
+        image: str = f"{SCHEMA_REGISTRY_REPOSITORY}:{CONFLUENT_VERSION_TAG}",
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__(image, **kwargs)
@@ -50,16 +50,23 @@ class SchemaRegistryContainer(DockerContainer):
         )
 
     def start(self, *args: list[Any], **kwargs: dict[str, Any]) -> Self:
+        """Start the container.
+
+        Wait for health after starting the container. Any arguments are
+        passed verbatim to the standard testcontainers start method.
+        """
         super().start(*args, **kwargs)
         self.health()
         return self
 
     def get_url(self) -> str:
+        """Construct the URL to the schema registry."""
         host = self.get_container_host_ip()
         port = self.get_exposed_port(self.port)
         return f"http://{host}:{port}"
 
     def reset(self) -> None:
+        """Reset the contents of the schema registry to its initial state."""
         url = f"{self.get_url()}/subjects"
         subjects = httpx.get(url).json()
         for subject in subjects:
@@ -68,6 +75,10 @@ class SchemaRegistryContainer(DockerContainer):
 
     @wait_container_is_ready(ReadError, RemoteProtocolError)
     def health(self) -> None:
-        """We're health when we can be queried from the host network."""
+        """Check the health of the container.
+
+        Consider the container healthy once the schema registry can be
+        contacted from the host network.
+        """
         url = f"{self.get_url()}/subjects"
         httpx.get(url, timeout=5).raise_for_status()
