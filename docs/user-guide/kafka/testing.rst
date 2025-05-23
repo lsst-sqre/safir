@@ -213,7 +213,7 @@ To additionally create a Confluent schema registry server that manages schema in
 
 This uses the ``kafka_docker_network`` fixture so that the schema registry runs in the same network as Kafka.
 
-As with the Kafka container, you will probably want an additional fixtures to create a Safir configuration and a client:
+As with the Kafka container, you will probably want additional fixtures to create a Safir configuration and a client:
 
 .. code-block:: python
 
