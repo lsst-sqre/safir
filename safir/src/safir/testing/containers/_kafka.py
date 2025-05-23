@@ -133,7 +133,7 @@ class FullKafkaContainer(DockerContainer):
 
         # Create a start command that waits for the start script to be created
         # and then runs it. We have to do it this way because the start script
-        # is not backed into the container and we can't add it to the
+        # is not baked into the container and we can't add it to the
         # container until the container is started.
         script = self._START_SCRIPT
         command = (
