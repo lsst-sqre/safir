@@ -53,7 +53,12 @@ class FullKafkaContainer(DockerContainer):
     """
 
     _CLUSTER_ID = "MkU3OEVBNTcwNTJENDM2Qk"
-    """Kafka cluster ID."""
+    """Kafka cluster ID.
+
+    This is arbitrary and has no special meaning. The cluster just needs some
+    cluster ID and this is the one used as an example in some Kafka
+    documentation.
+    """
 
     _MIN_KRAFT_TAG = "7.0.0"
     """Minimum tag version for KRaft support."""
