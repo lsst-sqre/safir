@@ -120,6 +120,11 @@ TLS authentication to Kafka
 
 If you want to test TLS-authenticated connections to Kafka, you can modify the ``global_kafka_container`` fixture as follows to download the self-signed certificates from the container so that they can be used by clients.
 
+.. note::
+
+   Nearly all applications do not need to go to this additional work and can be tested with default plaintext connections as described above.
+   This elaboration is only needed if you specifically need to test TLS or certificate authentication.
+
 .. code-block:: python
 
    from pathlib import Path
