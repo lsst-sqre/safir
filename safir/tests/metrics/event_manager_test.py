@@ -215,14 +215,13 @@ async def test_unmanaged_storage(
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
-        manage_kafka=False,
+        manage_kafka_broker=False,
     )
     await integration_test(
         manager, schema_manager_settings, kafka_consumer, kafka_admin_client
     )
 
     # Make sure storage is NOT cleaned up
-    assert not manager._admin_client._closed
     assert await manager._broker.ping(timeout=1)
 
 
@@ -240,7 +239,7 @@ async def test_topic_not_created(
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
-        manage_kafka=False,
+        manage_kafka_broker=False,
     )
 
     with pytest.raises(KafkaTopicError):
@@ -272,7 +271,7 @@ async def test_create_before_initialize(
         kafka_broker=kafka_broker,
         kafka_admin_client=kafka_admin_client,
         schema_manager=schema_manager,
-        manage_kafka=False,
+        manage_kafka_broker=False,
     )
 
     with pytest.raises(EventManagerUnintializedError):
