@@ -472,8 +472,8 @@ This ``default_factory`` setting is not required if the configuration is provide
 Your app uses Kafka
 -------------------
 
-If your app uses Kafka for things other than metrics publishing (maybe it's a FastStream_ app), you can pass an existing FastStream Kafka broker and aiokafka admin client to `~safir.metrics.BaseMetricsConfiguration.make_manager` as the ``kafka_clients`` argument.
-These clients will be used rather than creating new ones, and they will not be started or stopped by the `~safir.metrics.EventManager`.
+If your app uses Kafka for things other than metrics publishing (maybe it's a FastStream_ app), you can pass an existing FastStream Kafka broker to `~safir.metrics.BaseMetricsConfiguration.make_manager`.
+This broker will be used rather than creating a new one, and it will not be started or stopped by the `~safir.metrics.EventManager`.
 
 .. code-block:: python
    :caption: config.py
@@ -497,15 +497,10 @@ These clients will be used rather than creating new ones, and they will not be s
 
    config = Config()
    kafka_broker = KafkaBroker(...)  # created elsewhere by your application
-   admin_client = AIOKafkaAdminClient(...)  # created elsewhere
-   manager = config.metrics.make_manager(
-       kafka_clients=KafkaClients(
-           broker=kafka_broker, admin_client=admin_client
-       )
-   )
+   manager = config.metrics.make_manager(kafka_broker=kafka_broker)
 
 This is the recommended approach when reusing a Kafka broker since `~safir.metrics.BaseMetricsConfiguration.make_manager` will still honor the metrics configuration and create no-op or mock event managers if requested, in which case the provided Kafka broker will be ignored.
-An internal schema manager client will still be created and managed by the event manager in this case.
+An internal Kafka admin client and schema manager client will still be created and managed by the event manager in this case.
 
 If you want full manual control, you can create the event manager directly and provide a Kafka broker, admin client, and schema manager.
 
@@ -532,8 +527,9 @@ If you want full manual control, you can create the event manager directly and p
        kafka_broker=broker,
        kafka_admin_client=admin_client,
        schema_manager=schema_manager,
-       manage_kafka=False,
+       manage_kafka_broker=False,
    )
 
-Setting ``manage_kafaka`` to `False` here means that calling `~safir.metrics.EventManager.aclose` on your `~safir.metrics.EventManager` will NOT stop the Kafka clients.
+Setting ``manage_kafaka`` to `False` here means that calling `~safir.metrics.EventManager.aclose` on your `~safir.metrics.EventManager` will not start or stop the Kafka broker.
 You are expected to do this yourself somewhere else in your app.
+However, the `~safir.metrics.KafkaEventManager` will start and stop the Kafka admin client.

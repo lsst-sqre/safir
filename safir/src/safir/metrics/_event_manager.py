@@ -365,13 +365,17 @@ class KafkaEventManager(EventManager):
         publishing. For example, it is used to check if the topic exists.
     schema_manager
         Client to the Confluent-compatible schema registry.
-    manage_kafka
-        If `True`, close the ``kafka_broker`` and ``kafka_admin_client`` when
-        `~safir.metrics.EventManager.aclose` is called. If your app's only use
-        of Kafka is to publish metrics events, then this should be `True`. If
-        you have a FastStream app that already configures some of these
-        clients, this should probably be `False`, and you should pass
-        pre-configured clients in.
+    manage_kafka_broker
+        If `True`, start the ``kafka_broker`` on
+        `~safir.metrics.EventManager.initialize` and close the
+        ``kafka_broker`` when `~safir.metrics.EventManager.aclose` is called.
+        If your app's only use of Kafka is to publish metrics events, then
+        this should be `True`. If you have a FastStream app that already
+        configures a Kafka broker that you want to reuse for metrics, this
+        should probably be `False`, and you should pass in your existing Kafka
+        broker. In this case, you will need to start the broker before calling
+        `~safir.metrics.EventManager.initialize` and stop it after closing the
+        event manager.
     logger
         Logger to use for internal logging.
 
@@ -424,7 +428,7 @@ class KafkaEventManager(EventManager):
         kafka_broker: KafkaBroker,
         kafka_admin_client: AIOKafkaAdminClient,
         schema_manager: PydanticSchemaManager,
-        manage_kafka: bool = False,
+        manage_kafka_broker: bool = False,
         logger: BoundLogger | None = None,
     ) -> None:
         super().__init__(f"{topic_prefix}.{application}", logger)
@@ -432,14 +436,14 @@ class KafkaEventManager(EventManager):
         self._broker = kafka_broker
         self._admin_client = kafka_admin_client
         self._schema_manager = schema_manager
-        self._manage_kafka = manage_kafka
+        self._manage_kafka_broker = manage_kafka_broker
 
     @override
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
-        if self._manage_kafka:
+        if self._manage_kafka_broker:
             await self._broker.close()
-            await self._admin_client.close()
+        await self._admin_client.close()
         await super().aclose()
 
     @override
@@ -480,9 +484,9 @@ class KafkaEventManager(EventManager):
     @override
     async def initialize(self) -> None:
         """Initialize the Kafka clients if they are managed."""
-        if self._manage_kafka:
+        if self._manage_kafka_broker:
             await self._broker.start()
-            await self._admin_client.start()
+        await self._admin_client.start()
         self._initialized = True
 
     async def publish[P: EventPayload](
