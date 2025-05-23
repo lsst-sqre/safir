@@ -15,8 +15,7 @@ from safir.kafka import (
     SaslMechanism,
     SecurityProtocol,
 )
-
-from ..support.kafka.container import FullKafkaContainer
+from safir.testing.containers import FullKafkaContainer
 
 
 async def assert_clients(settings: KafkaConnectionSettings) -> None:

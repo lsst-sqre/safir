@@ -60,6 +60,8 @@ nitpick_ignore = [
     # The AOIKafkaAdminClient is considered experimental and not officially
     # exported
     ['py:class', 'aiokafka.admin.client.AIOKafkaAdminClient'],
+    # The Testcontainers Python project is short on API documentation
+    ['py:class', 'testcontainers.core.network.Network'],
 ]
 extensions = [
     "sphinxcontrib.autodoc_pydantic",
@@ -78,6 +80,7 @@ schema_registry = "https://marcosschroh.github.io/python-schema-registry-client"
 sentry_sdk = "https://getsentry.github.io/sentry-python/"
 structlog = "https://www.structlog.org/en/stable"
 sqlalchemy = "https://docs.sqlalchemy.org/en/latest"
+testcontainers = "https://testcontainers-python.readthedocs.io/en/latest"
 vomodels = "https://vo-models.readthedocs.io/latest"
 
 [sphinx.linkcheck]

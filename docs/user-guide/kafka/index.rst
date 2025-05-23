@@ -14,3 +14,4 @@ Guides
 
    kafka-connection-settings
    pydantic-schema-manager
+   testing

@@ -77,6 +77,9 @@ kubernetes = [
 redis = [
     "redis>4.5.2,<7",
 ]
+testcontainers = [
+    "testcontainers>=4.10"
+]
 uws = [
     "google-auth<3",
     "google-cloud-storage<4",

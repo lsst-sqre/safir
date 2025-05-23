@@ -1,3 +1,4 @@
+.. _aiokafka: https://aiokafka.readthedocs.io/en/stable/index.html
 .. _Alembic: https://alembic.sqlalchemy.org/en/latest/
 .. _arq: https://arq-docs.helpmanual.io
 .. _asyncmy: https://github.com/long2ice/asyncmy
@@ -32,6 +33,7 @@
 .. _SQLAlchemy: https://www.sqlalchemy.org/
 .. _structlog: https://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
+.. _Testcontainers: https://github.com/testcontainers/testcontainers-python
 .. _tox: https://tox.wiki/en/latest/
 .. _tox-docker: https://tox-docker.readthedocs.io/en/latest/
 .. _Uvicorn: https://www.uvicorn.org/
