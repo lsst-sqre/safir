@@ -3,6 +3,7 @@
 from ._alembic import configure_alembic_logging
 from ._models import LogLevel, Profile
 from ._structlog import add_log_severity, configure_logging
+from ._testing import parse_log_tuples
 from ._uvicorn import configure_uvicorn_logging
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "configure_alembic_logging",
     "configure_logging",
     "configure_uvicorn_logging",
+    "parse_log_tuples",
 ]
