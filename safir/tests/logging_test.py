@@ -14,7 +14,12 @@ import structlog
 from httpx import AsyncClient
 from pydantic import BaseModel, ValidationError
 
-from safir.logging import LogLevel, Profile, configure_logging
+from safir.logging import (
+    LogLevel,
+    Profile,
+    configure_logging,
+    parse_log_tuples,
+)
 from safir.testing.uvicorn import spawn_uvicorn
 
 # Small app used to test Uvicorn logging configuration.
@@ -309,3 +314,27 @@ async def test_uvicorn_logging(tmp_path: Path) -> None:
         if "Exception in ASGI application" in message["event"]:
             assert "TypeError" in message["exception"]
             assert "in fail" in message["exception"]
+
+
+def test_parse_log_tuples(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    configure_logging(
+        name="myapp",
+        profile=Profile.production,
+        log_level=LogLevel.INFO,
+        add_timestamp=True,
+    )
+
+    logger = structlog.get_logger("myapp")
+    logger = logger.bind(answer=42)
+    logger.info("Hello world")
+
+    assert parse_log_tuples("myapp", caplog.record_tuples) == [
+        {
+            "answer": 42,
+            "event": "Hello world",
+            "severity": "info",
+        }
+    ]
+    assert parse_log_tuples("otherapp", caplog.record_tuples) == []
