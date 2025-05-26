@@ -24,7 +24,6 @@ env:
 
 jobs:
   lint:
-
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -40,7 +39,6 @@ jobs:
         uses: pre-commit/action@v3.0.1
 
   test:
-
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -61,9 +59,8 @@ jobs:
           python-version: ${{ matrix.python }}
 
   docs:
-
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +94,6 @@ jobs:
               || startsWith(github.head_ref, 'tickets/'))
 
   test-packaging:
-
     name: Test packaging
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -127,7 +123,6 @@ jobs:
           working-directory: "safir-logging"
 
   pypi:
-
     name: Upload release to PyPI
     runs-on: ubuntu-latest
     timeout-minutes: 10
