@@ -241,13 +241,13 @@ To test the logging of your application, use the standard `pytest caplog fixture
 
 Every log message produced by your application will be captured in ``caplog.record_tuples``.
 
-Safir provides a function, `~safir.logging.parse_log_tuples`, that parses those records and returns a list of dicts representing the key-value pairs your application logged via structlog with the production logging profile.
+Safir provides a function, `~safir.testing.logging.parse_log_tuples`, that parses those records and returns a list of dicts representing the key-value pairs your application logged via structlog with the production logging profile.
 This allows you to write tests such as this:
 
 .. code-block:: python
 
    import pytest
-   from safir.logging import parse_log_tuples
+   from safir.testing.logging import parse_log_tuples
 
 
    def test_something(caplog: pytest.LogCaptureFixture) -> None:
@@ -259,7 +259,7 @@ This allows you to write tests such as this:
            }
        ]
 
-The first argument to `~safir.logging.parse_log_tuples` is the name of your application logger.
+The first argument to `~safir.testing.logging.parse_log_tuples` is the name of your application logger.
 All messages from any other logger will be filtered out.
 
 Then, every log message from your application will be parsed as JSON and checked and transformed as follows:
@@ -270,13 +270,13 @@ Then, every log message from your application will be parsed as JSON and checked
 #. Any ``request_id`` attribute will be removed.
    If ``request_id`` was present, any ``httpRequest.userAgent`` attribute will be removed.
    These are added by the :ref:`Safir logging dependency <logging-in-handlers>` and may vary with each test run, so are not useful to check in a test suite.
-#. If the ``ignore_debug`` flag was passed to `~safir.logging.parse_log_tuples` and set to `True`, any messages of debug severity are filtered out.
+#. If the ``ignore_debug`` flag was passed to `~safir.testing.logging.parse_log_tuples` and set to `True`, any messages of debug severity are filtered out.
 
 The resulting filtered log messages can then be compared to expected log messages with less boilerplate and without the attributes that tend to change each time the test suite is run.
 
 .. note::
 
-   `~safir.logging.parse_log_tuples` assumes that you have called `~safir.logging.configure_logging` with the `~safir.logging.Profile.production` profile.
+   `~safir.testing.logging.parse_log_tuples` assumes that you have called `~safir.logging.configure_logging` with the `~safir.logging.Profile.production` profile.
    If your application defaults to the `~safir.logging.Profile.development` profile, make sure you change the profile and, if necessary, reset the ``caplog`` fixture before triggering application behavior that will log the messages you want to test.
 
 When testing logging, don't forget the ``caplog.clear()`` method, which can be called at any point to drop all logs accumulated in ``caplog.record_tuples`` and start fresh.
