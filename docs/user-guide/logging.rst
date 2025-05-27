@@ -224,3 +224,60 @@ In that case, you can obtain the logger directly with `structlog.get_logger`:
       logger.info("Hello world")
 
    In many cases, you may *want* to explicitly use the application's root logger if you don't want your log messages to include the full namespace where each log message originated.
+
+Testing application logging
+===========================
+
+To test the logging of your application, use the standard `pytest caplog fixture <https://docs.pytest.org/en/stable/how-to/logging.html#caplog-fixture>`__:
+
+.. code-block:: python
+
+   import pytest
+
+
+   def test_something(caplog: pytest.LogCaptureFixture) -> None:
+       # test something that generates logs
+       ...
+
+Every log message produced by your application will be captured in ``caplog.record_tuples``.
+
+Safir provides a function, `~safir.testing.logging.parse_log_tuples`, that parses those records and returns a list of dicts representing the key-value pairs your application logged via structlog with the production logging profile.
+This allows you to write tests such as this:
+
+.. code-block:: python
+
+   import pytest
+   from safir.testing.logging import parse_log_tuples
+
+
+   def test_something(caplog: pytest.LogCaptureFixture) -> None:
+       # test something that generates logs
+       assert parse_log_tuples("myapp", caplog.record_tuples) == [
+           {
+               "event": "Some expected log emssage",
+               "severity": "info",
+           }
+       ]
+
+The first argument to `~safir.testing.logging.parse_log_tuples` is the name of your application logger.
+All messages from any other logger will be filtered out.
+
+Then, every log message from your application will be parsed as JSON and checked and transformed as follows:
+
+#. The ``logger`` attribute will be verified to match your application logger name and then dropped.
+#. The ``severity`` attribute will be verified to match the lowercase text name of the log severity.
+#. Any ``timestamp`` attribute, if present, will be verified to be an ISO 8601 timestamp with ``Z`` as the time zone, verified to be within an hour of the current time, and then deleted.
+#. Any ``request_id`` attribute will be removed.
+   If ``request_id`` was present, any ``httpRequest.userAgent`` attribute will be removed.
+   These are added by the :ref:`Safir logging dependency <logging-in-handlers>` and may vary with each test run, so are not useful to check in a test suite.
+#. If the ``ignore_debug`` flag was passed to `~safir.testing.logging.parse_log_tuples` and set to `True`, any messages of debug severity are filtered out.
+
+The resulting filtered log messages can then be compared to expected log messages with less boilerplate and without the attributes that tend to change each time the test suite is run.
+
+.. note::
+
+   `~safir.testing.logging.parse_log_tuples` assumes that you have called `~safir.logging.configure_logging` with the `~safir.logging.Profile.production` profile.
+   If your application defaults to the `~safir.logging.Profile.development` profile, make sure you change the profile and, if necessary, reset the ``caplog`` fixture before triggering application behavior that will log the messages you want to test.
+
+When testing logging, don't forget the ``caplog.clear()`` method, which can be called at any point to drop all logs accumulated in ``caplog.record_tuples`` and start fresh.
+This is helpful to discard application startup log messages and narrow your logging testing to only the logs for the operation you want to test.

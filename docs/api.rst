@@ -112,6 +112,9 @@ API reference
 .. automodapi:: safir.testing.kubernetes
    :include-all-objects:
 
+.. automodapi:: safir.testing.logging
+   :include-all-objects:
+
 .. automodapi:: safir.testing.sentry
    :include-all-objects:
 

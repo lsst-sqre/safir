@@ -19,4 +19,4 @@ repos:
     hooks:
       - id: blacken-docs
         additional_dependencies: [black==25.1.0]
-        args: [-l, '76', -t, py311]
+        args: [-l, '76', -t, py313]
