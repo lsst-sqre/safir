@@ -24,7 +24,7 @@ nox.options.reuse_existing_virtualenvs = True
 PIP_DEPENDENCIES = (
     ("-e", "./safir-arq"),
     ("-e", "./safir-logging"),
-    ("-e", "./safir[arq,db,dev,gcs,kubernetes,redis,uws]"),
+    ("-e", "./safir[arq,db,dev,gcs,kubernetes,redis,testcontainers,uws]"),
 )
 
 

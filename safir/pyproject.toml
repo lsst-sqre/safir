@@ -49,6 +49,7 @@ db = [
     "sqlalchemy[asyncio]>=2.0.0,<3",
 ]
 dev = [
+    "alembic[tz]>=1.16",
     "asgi-lifespan",
     "coverage[toml]",
     "fastapi>=0.93.0",
