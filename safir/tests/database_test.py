@@ -255,8 +255,8 @@ def test_alembic(
     database_url: str,
     database_password: str,
     monkeypatch: pytest.MonkeyPatch,
-    event_loop: asyncio.AbstractEventLoop,
 ) -> None:
+    event_loop = asyncio.get_event_loop()
     config.database_url = Url(database_url)
     config.database_password = SecretStr(database_password)
     config_path = (
