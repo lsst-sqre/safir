@@ -29,6 +29,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for setuptools_scm
 
       - name: Run tests in nox
         uses: lsst-sqre/run-nox@v1
