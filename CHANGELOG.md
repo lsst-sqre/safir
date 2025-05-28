@@ -9,6 +9,24 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-11.0.0'></a>
+## 11.0.0 (2025-05-28)
+
+### Backwards-incompatible changes
+
+- Change the `manage_kafka` flag to `safir.metrics.KafkaEventManager` to `manage_kafka_broker`. It now only controls whether the Kafka broker is started and stopped. The Kafka admin client is unconditionally managed (started and stopped) by `KafkaEventManager` and should not be shared with any other application use.
+
+### New features
+
+- Allow an application to pass an existing FastStream Kafka broker into `safir.metrics.BaseMetricsConfiguration.make_manager`. This simplifies metrics integration for Kafka applications with existing brokers, without requiring manual manager construction and losing the auto-selection of the no-op and mock event managers.
+- Support the standard Pydantic `exclude_unset`, `exclude_defaults`, and `exclude_none` arguments to `PydanticRedisStorage.store`.
+- Add `safir.testing.containers.FullKafkaContainer` and `safir.testing.containers.SchemaRegistryContainer` classes based on Testcontainers that create containers for Kafka and the Confluent schema registry, respectively. These classes are intended for use in fixtures or test configuration to enable testing against a local temporary Kafka cluster.
+- Add `safir.testing.logging.parse_log_tuples` utility function to aid in testing structured log messages from applications using the Safir logging framework.
+
+### Other changes
+
+- `safir.testing` is now an implicit namespace package similar to `safir` so that safir-logging can provide a testing module. This should hopefully not cause any user-observable changes.
+
 <a id='changelog-10.2.0'></a>
 ## 10.2.0 (2025-05-05)
 

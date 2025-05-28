@@ -50,6 +50,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for setuptools_scm
 
       - name: Run nox
         uses: lsst-sqre/run-nox@v1
