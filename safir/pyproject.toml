@@ -41,7 +41,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 arq = [
-    "safir-arq",
+    "safir-arq>10.2.0",
 ]
 db = [
     "alembic[tz]<2",
@@ -86,7 +86,7 @@ uws = [
     "google-cloud-storage<4",
     "jinja2<4",
     "python-multipart",
-    "safir-arq",
+    "safir-arq>10.2.0",
     "vo-models>=0.4.1,<1",
 ]
 
