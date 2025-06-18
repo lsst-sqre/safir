@@ -34,6 +34,8 @@ class _NotNone:
     def __repr__(self) -> str:
         return "<NOT NONE>"
 
+    __hash__ = object.__hash__
+
 
 NOT_NONE = _NotNone()
 """An object to indicate that a value can be anything except None."""

@@ -15,6 +15,7 @@ nitpick_ignore_regex = [
     ['py:.*', 'kubernetes_asyncio.*'],
     ['py:.*', 'httpx.*'],
     ['py:.*', 'pydantic.*'],
+    ['py:.*', 'redis.*'],
     ['py:.*', 'respx.*'],
     ['py:.*', 'starlette.*'],
     # Sphinx bug handling the type keyword
@@ -75,7 +76,6 @@ cryptography = "https://cryptography.io/en/latest"
 gidgethub = "https://gidgethub.readthedocs.io/en/latest"
 pytest = "https://docs.pytest.org/en/stable"
 python = "https://docs.python.org/3"
-redis = "https://redis-py.readthedocs.io/en/stable"
 schema_registry = "https://marcosschroh.github.io/python-schema-registry-client"
 sentry_sdk = "https://getsentry.github.io/sentry-python/"
 structlog = "https://www.structlog.org/en/stable"

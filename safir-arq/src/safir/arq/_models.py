@@ -32,34 +32,7 @@ class ArqMode(StrEnum):
 
 @dataclass
 class JobMetadata:
-    """Information about a queued job.
-
-    Attributes
-    ----------
-    id
-        The `arq.jobs.Job` identifier
-    name
-        The task name.
-    args
-        The positional arguments to the task function.
-    kwargs
-        The keyword arguments to the task function.
-    enqueue_time
-        Time when the job was added to the queue.
-    status
-        Status of the job.
-
-        States are defined by the `arq.jobs.JobStatus` enumeration:
-
-        - ``deferred`` (in queue, but waiting a predetermined time to become
-          ready to run)
-        - ``queued`` (queued to run)
-        - ``in_progress`` (actively being run by a worker)
-        - ``complete`` (result is available)
-        - ``not_found`` (the job cannot be found)
-    queue_name
-        Name of the queue this job belongs to.
-    """
+    """Information about a queued job."""
 
     id: str
     """The `~arq.jobs.Job` identifier."""
@@ -124,41 +97,7 @@ class JobMetadata:
 
 @dataclass
 class JobResult(JobMetadata):
-    """The full result of a job, as well as its metadata.
-
-    Attributes
-    ----------
-    id
-        The `~arq.jobs.Job` identifier
-    name
-        The task name.
-    args
-        The positional arguments to the task function.
-    kwargs
-        The keyword arguments to the task function.
-    enqueue_time
-        Time when the job was added to the queue.
-    status
-        Status of the job.
-
-        States are defined by the `arq.jobs.JobStatus` enumeration:
-
-        - ``deferred`` (in queue, but waiting a predetermined time to become
-          ready to run)
-        - ``queued`` (queued to run)
-        - ``in_progress`` (actively being run by a worker)
-        - ``complete`` (result is available)
-        - ``not_found`` (the job cannot be found)
-    start_time
-        Time when the job started.
-    finish_time
-        Time when the job finished.
-    success
-        `True` if the job returned without an exception, `False` if an
-        exception was raised.
-    result
-        The job's result.
-    """
+    """The full result of a job, as well as its metadata."""
 
     start_time: datetime
     """Time when the job started."""
