@@ -638,7 +638,7 @@ async def test_validators(
     assert r.headers["Location"] == "https://example.com/test/jobs/1"
     r = await client.get("/test/jobs/1/destruction")
     assert r.status_code == 200
-    seen = datetime.fromisoformat(r.text[:-1] + "+00:00")
+    seen = datetime.fromisoformat(r.text)
     assert seen >= expected - timedelta(seconds=5)
     assert seen <= expected + timedelta(seconds=5)
 

@@ -36,7 +36,9 @@ def fingerprint_env_handler(event: Event, _: Hint) -> Event:
 
     https://github.com/getsentry/sentry/issues/64354
     """
-    env = event.get("environment", "no environment")
+    env = event.get("environment")
+    if env is None:
+        env = "no environment"
     fingerprint = event.get("fingerprint", [])
     event["fingerprint"] = [
         "{{ default }}",

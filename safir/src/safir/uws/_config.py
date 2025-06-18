@@ -77,10 +77,10 @@ class UWSConfig:
     job_summary_type: type[JobSummary]
     """Type representing the parameter-qualified job summary type.
 
-    Must be set to `~vo_models.uws.JobSummary` qualified with the appropriate
-    subclass of `~vo_models.uws.Parameters`. This is necessary to work around
-    limitations in pydantic-xml, which require the types to be known at class
-    instantiation time.
+    Must be set to `~vo_models.uws.models.JobSummary` qualified with the
+    appropriate subclass of `~vo_models.uws.models.Parameters`. This is
+    necessary to work around limitations in pydantic-xml, which require the
+    types to be known at class instantiation time.
     """
 
     lifetime: timedelta
