@@ -4,6 +4,7 @@ import time
 from abc import ABCMeta, abstractmethod
 from datetime import UTC, datetime
 from typing import cast, override
+from enum import StrEnum, auto
 from uuid import uuid4
 
 import structlog
@@ -35,6 +36,9 @@ __all__ = [
 ]
 
 
+class _State(StrEnum):
+    initialized = auto()
+    uninitialized = auto()
 class EventPublisher[P: EventPayload](metaclass=ABCMeta):
     """Interface for event publishers.
 
@@ -239,12 +243,12 @@ class EventManager(metaclass=ABCMeta):
         self.topic = topic
         self.logger = logger or structlog.get_logger("safir.metrics")
         self._publishers: dict[str, EventPublisher] = {}
-        self._initialized = False
+        self._state = _State.uninitialized
 
     async def aclose(self) -> None:
         """Shut down any internal state or managed clients."""
         self._publishers = {}
-        self._initialized = False
+        self._state = _State.uninitialized
 
     @abstractmethod
     async def build_publisher_for_model[P: EventPayload](
@@ -305,7 +309,7 @@ class EventManager(metaclass=ABCMeta):
             Raised if the topic for publishing events doesn't exist or we
             don't have access to it.
         """
-        if not self._initialized:
+        if self._state == _State.uninitialized:
             msg = "Initialize EventManager before creating event publishers"
             raise EventManagerUnintializedError(msg)
         if name in self._publishers:
@@ -341,7 +345,7 @@ class EventManager(metaclass=ABCMeta):
         This method must be called before calling
         `~safir.metrics.EventManager.create_publisher`.
         """
-        self._initialized = True
+        self._state = _State.initialized
 
 
 class KafkaEventManager(EventManager):
@@ -487,7 +491,7 @@ class KafkaEventManager(EventManager):
         if self._manage_kafka_broker:
             await self._broker.start()
         await self._admin_client.start()
-        self._initialized = True
+        self._state = _State.initialized
 
     async def publish[P: EventPayload](
         self,
@@ -515,7 +519,7 @@ class KafkaEventManager(EventManager):
             Raised if the `initialize` method was not been called before
             calling this method.
         """
-        if not self._initialized:
+        if self._state == _State.uninitialized:
             msg = "Initialize EventManager before creating event publishers"
             raise EventManagerUnintializedError(msg)
         encoded = await self._schema_manager.serialize(event)
