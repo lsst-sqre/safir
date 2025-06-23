@@ -73,8 +73,37 @@ class FullKafkaContainer(DockerContainer):
         ssl_port: int = 29093,
         sasl_plaintext_port: int = 29094,
         sasl_ssl_port: int = 29095,
+        *,
+        constant_host_ports: bool = False,
+        starting_host_port: int = 50000,
         **kwargs: Any,
     ) -> None:
+        """Start a Kafka TestContainer.
+
+        Parameters
+        ----------
+        image
+            The Kafka Docker image to use
+        port
+            Kafka plaintext auth port
+        ssl_port
+            Kafka SSL auth port
+        sasl_plaintext_port
+            Kafka SASL plaintext auth port
+        sasl_ssl_port
+            Kafka SASL SSL auth port
+        constant_host_ports
+            If True, the same host ports will be mapped every time. This is
+            useful when stopping and starting Kafka during a test. Be careful,
+            because if the test fails, then you won't be able to use this
+            TestContainer again until the previous container is removed because
+            there will be a port conflic.
+        starting_host_port
+            If constant_host_ports is True, this is the first port that will be
+            used when mapping host ports. It will be incremented by one for
+            each mapped host port.
+
+        """
         self._verify_min_kraft_version(image)
         super().__init__(image, **kwargs)
 
@@ -82,12 +111,20 @@ class FullKafkaContainer(DockerContainer):
         self.sasl_plaintext_port = sasl_plaintext_port
         self.ssl_port = ssl_port
         self.sasl_ssl_port = sasl_ssl_port
-        self.with_exposed_ports(
-            self.port,
-            self.ssl_port,
-            self.sasl_plaintext_port,
-            self.sasl_ssl_port,
-        )
+
+        for offset, container_port in enumerate(
+            (
+                self.port,
+                self.sasl_plaintext_port,
+                self.ssl_port,
+                self.sasl_ssl_port,
+            )
+        ):
+            if constant_host_ports:
+                host_port = starting_host_port + offset
+            else:
+                host_port = None
+            self.with_bind_ports(container_port, host_port)
 
         self.container_cert_path = Path("/etc/kafka/secrets")
         self.sasl_username = "admin"
@@ -150,13 +187,7 @@ class FullKafkaContainer(DockerContainer):
         # picked up and run.
         super().start()
         self._create_start_script()
-        try:
-            wait_for_logs(self, r".*Kafka Server started.*", timeout=timeout)
-        except TimeoutError:
-            output, errors = self.get_logs()
-            sys.stderr.write(errors.decode())
-            sys.stdout.write(output.decode())
-            raise
+        self.wait_for_ready(timeout)
 
         # Configure SASL.
         self.exec(
@@ -167,6 +198,54 @@ class FullKafkaContainer(DockerContainer):
         )
 
         return self
+
+    def wait_for_ready(self, timeout: int = 30) -> None:
+        """Wait until Kafka is ready to serve requests."""
+        try:
+            wait_for_logs(self, r".*Kafka Server started.*", timeout=timeout)
+        except TimeoutError:
+            output, errors = self.get_logs()
+            sys.stderr.write(errors.decode())
+            sys.stdout.write(output.decode())
+            raise
+
+    def wait_for_ready_again(self, timeout: int = 30) -> None:
+        """Wait until Kafka is ready to serve requests."""
+        try:
+            wait_for_logs(
+                self,
+                r"Kafka Server started.*\n(?:.*\n)+.*Kafka Server started",
+                timeout=timeout,
+            )
+        except TimeoutError:
+            output, errors = self.get_logs()
+            sys.stderr.write(errors.decode())
+            sys.stdout.write(output.decode())
+            raise
+
+    def stop_container(self) -> None:
+        """Stop the container, but don't remove it.
+
+        This is useful in tests for stopping the container and starting it up
+        again with the same ports mapped. The default stop method removes the
+        container too, so if you call start again, it hass different ports
+        mapped.
+        """
+        container = self.get_wrapped_container()
+        if not container:
+            raise RuntimeError("Container does not exist.")
+        container.stop()
+
+    def start_container_again(self) -> None:
+        """Start this container again.
+
+        Can only be called after the container is stopped with stop_container.
+        """
+        container = self.get_wrapped_container()
+        if not container:
+            raise RuntimeError("Container does not exist.")
+        container.start()
+        self.wait_for_ready_again()
 
     def create_file(self, content: bytes, path: str) -> None:
         """Create a file inside the container.
