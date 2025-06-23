@@ -1,10 +1,14 @@
 """Tools for publishing events from appliactions for later analysis."""
 
+import functools
 import time
 from abc import ABCMeta, abstractmethod
 from datetime import UTC, datetime
-from typing import cast, override
+from collections.abc import Callable, Coroutine
+from dataclasses import dataclass
 from enum import StrEnum, auto
+from functools import WRAPPER_ASSIGNMENTS, WRAPPER_UPDATES
+from typing import Concatenate, cast, override
 from uuid import uuid4
 
 import structlog
@@ -20,6 +24,7 @@ from ._exceptions import (
     DuplicateEventError,
     EventManagerUnintializedError,
     KafkaTopicError,
+    UnabandonableError,
 )
 from ._models import EventMetadata, EventPayload
 from ._testing import PublishedList
@@ -38,8 +43,78 @@ __all__ = [
 
 
 class _State(StrEnum):
+    error = auto()
     initialized = auto()
     uninitialized = auto()
+
+
+def abandonable[**P, R, T: "KafkaEventManager"](
+    func: Callable[Concatenate[T, P], Coroutine[None, None, R]],
+) -> Callable[Concatenate[T, P], Coroutine[None, None, R | None]]:
+    """Catch exceptions from wrapped function and log errors instead.
+
+    Doesn't catch exceptions that are subclasses of UnabandonableError.
+    Changes the original return value R into the union R | None.
+
+    This function is meant to be used as a decorator on KafkaEventManager
+    methods. If an exception is caught, puts the KafkaEventManager instance
+    into an error state, logs an error, and returns None. In this error state,
+    subsequent calls to this method will just log an error and return None
+    """
+    async def wrapper(self: T, *args: P.args, **kwargs: P.kwargs) -> R | None:
+        logger = self.logger.bind(attempted_operation=func.__name__)
+        now = datetime.now(tz=UTC)
+
+        if self._state == _State.error:
+                msg = (
+                    f"App metrics collection is in an error state. This may be"
+                    f" due to instability in the underlying metrics"
+                    f" infrastructure like Kafka. Any further attempts at app"
+                    f" metrics operations will be no-ops until"
+                )
+                logger.error(
+                    msg,
+                )
+                return None
+
+        try:
+            # Try to call the original method
+            return await func(self, *args, **kwargs)
+        except UnabandonableError:
+            raise
+        except Exception:
+            self._state = _State.error
+
+            msg = (
+                f"App metrics collection operation failed. This may be due"
+                f" to instability in the underlying metrics infrastructure"
+                f" like Kafka. Any further attempts at app metrics operations"
+                f" will be no-ops until"
+            )
+            logger.exception(
+                msg,
+            )
+        return None
+
+    # functools.wraps injects Any's into the wrapped function definition for
+    # reasons I don't quite understand, and it changes the return type to
+    # _Wrapped:
+    # https://github.com/python/mypy/issues/17171
+    # https://github.com/python/mypy/issues/18204
+    #
+    # The fix here is to mutate the wrapped function just like functools.wraps
+    # does, but to mutably sneak it past mypy:
+    # https://github.com/python/mypy/issues/18204#issuecomment-3004743810
+    functools.update_wrapper(
+        wrapper=wrapper,
+        wrapped=func,
+        assigned=WRAPPER_ASSIGNMENTS,
+        updated=WRAPPER_UPDATES,
+    )
+
+    return wrapper
+
+
 class EventPublisher[P: EventPayload](metaclass=ABCMeta):
     """Interface for event publishers.
 
@@ -472,6 +547,7 @@ class KafkaEventManager(EventManager):
         self._manage_kafka_broker = manage_kafka_broker
 
     @override
+    @abandonable
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
         if self._manage_kafka_broker:
@@ -494,8 +570,26 @@ class KafkaEventManager(EventManager):
         Returns
         -------
         EventPublisher
-            An appropriate event publisher implementation instance.
+            An appropriate event publisher implementation instance. We don't
+            want to crash the whole application if we can't build a publisher
+            due to problems like the metrics infrastructure being unavailable,
+            so return a FailedEventPublisher in those cases.
         """
+        publisher = await self._build_publisher_for_model(model)
+
+        if publisher is None:
+            return FailedEventPublisher(
+                application=self._application,
+                event_class=model,
+                logger=self.logger,
+            )
+        else:
+            return publisher
+
+    @abandonable
+    async def _build_publisher_for_model[P: EventPayload](
+        self, model: type[P]
+    ) -> EventPublisher[P]:
         async_publisher = self._broker.publisher(self.topic, schema=model)
 
         # Verify that the topic exists.
@@ -515,6 +609,7 @@ class KafkaEventManager(EventManager):
         )
 
     @override
+    @abandonable
     async def initialize(self) -> None:
         """Initialize the Kafka clients if they are managed."""
         if self._manage_kafka_broker:
@@ -522,9 +617,10 @@ class KafkaEventManager(EventManager):
         await self._admin_client.start()
         self._state = _State.initialized
 
-    async def publish[P: EventPayload](
+    @abandonable
+    async def publish(
         self,
-        event: P,
+        event: EventPayload,
         publisher: AsyncAPIDefaultPublisher,
         schema_info: SchemaInfo | None,
     ) -> None:
