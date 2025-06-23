@@ -27,6 +27,7 @@ from ._testing import PublishedList
 __all__ = [
     "EventManager",
     "EventPublisher",
+    "FailedEventPublisher",
     "KafkaEventManager",
     "KafkaEventPublisher",
     "MockEventManager",
@@ -176,6 +177,34 @@ class NoopEventPublisher[P: EventPayload](EventPublisher[P]):
         event = self.construct_event(payload)
         self._logger.debug(
             "Would have published event", metrics_event=event.model_dump()
+        )
+        return cast("EventMetadata", event)
+
+
+class FailedEventPublisher[P: EventPayload](EventPublisher[P]):
+    """Event publisher that logs error messages instead of publishing.
+
+    This is used when app metrics initialization has failed due to underlying
+    infrastructure issues, but we don't want to crash the instrumented app.
+    """
+
+    def __init__(
+        self,
+        application: str,
+        event_class: type[P],
+        logger: BoundLogger,
+    ) -> None:
+        super().__init__(application, event_class)
+        self.logger = logger
+
+    @override
+    async def publish(self, payload: P) -> EventMetadata:
+        event = self.construct_event(payload)
+        self.logger.error(
+            "The app metrics system is in an error state. No metrics will be"
+            " published by this app. When the underlying infrastructure"
+            " (Kafka, Schema Manager, etc) is healthy again, this app must be"
+            " restarted."
         )
         return cast("EventMetadata", event)
 
