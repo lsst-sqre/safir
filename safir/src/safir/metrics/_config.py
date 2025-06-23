@@ -232,6 +232,18 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         title="Kafka schema manager settings",
     )
 
+    raise_on_error: bool = Field(
+        False,
+        title="Raise on error",
+        description=(
+            "True if we should raise an exception whenever there is an error"
+            " with the metrics system dependencies, like Kafka or the Schema"
+            " Manager. False if we should just log an error instead. This"
+            " should be False for most production apps so that issues with the"
+            " metrics infrastructure don't bring down the app."
+        ),
+    )
+
     @override
     def make_manager(
         self,
@@ -266,6 +278,7 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
             kafka_admin_client=kafka_admin_client,
             schema_manager=schema_manager,
             manage_kafka_broker=manage_kafka_broker,
+            raise_on_error=self.raise_on_error,
             logger=logger,
         )
 

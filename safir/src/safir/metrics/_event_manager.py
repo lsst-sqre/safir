@@ -83,6 +83,9 @@ def abandonable[**P, R, T: "KafkaEventManager"](
         except UnabandonableError:
             raise
         except Exception:
+            if self._raise_on_error:
+                raise
+
             self._state = _State.error
 
             msg = (
@@ -484,6 +487,12 @@ class KafkaEventManager(EventManager):
         broker. In this case, you will need to start the broker before calling
         `~safir.metrics.EventManager.initialize` and stop it after closing the
         event manager.
+    raise_on_error
+        True if we should raise an exception whenever there is an error with
+        the metrics system dependencies, like Kafka or the Schema Manager.
+        False if we should just log an error instead. This should be False for
+        most production apps so that issues with the metrics infrastructure
+        don't bring down the app.
     logger
         Logger to use for internal logging.
 
@@ -537,6 +546,7 @@ class KafkaEventManager(EventManager):
         kafka_admin_client: AIOKafkaAdminClient,
         schema_manager: PydanticSchemaManager,
         manage_kafka_broker: bool = False,
+        raise_on_error: bool = False,
         logger: BoundLogger | None = None,
     ) -> None:
         super().__init__(f"{topic_prefix}.{application}", logger)
@@ -545,6 +555,7 @@ class KafkaEventManager(EventManager):
         self._admin_client = kafka_admin_client
         self._schema_manager = schema_manager
         self._manage_kafka_broker = manage_kafka_broker
+        self._raise_on_error = raise_on_error
 
     @override
     @abandonable
