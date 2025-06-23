@@ -51,7 +51,6 @@ __all__ = [
     "KafkaEventPublisher",
     "KafkaMetricsConfiguration",
     "KafkaTopicError",
-    "KafkaTopicError",
     "MetricsConfiguration",
     "MockEventManager",
     "MockEventPublisher",
