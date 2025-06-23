@@ -14,7 +14,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
 
 from ..kafka import KafkaConnectionSettings, SchemaManagerSettings
-from ._constants import ADMIN_CLIENT_PREFIX, BROKER_PREFIX
+from ._constants import (
+    ADMIN_CLIENT_PREFIX,
+    BROKER_PREFIX,
+    EVENT_MANAGER_DEFAULT_KAFKA_TIMEOUT_MS,
+)
 from ._event_manager import (
     EventManager,
     KafkaEventManager,
@@ -234,15 +238,23 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         logger: BoundLogger | None = None,
         *,
         kafka_broker: KafkaBroker | None = None,
+        request_timeout_ms: int = EVENT_MANAGER_DEFAULT_KAFKA_TIMEOUT_MS,
     ) -> KafkaEventManager:
+        """Make a KafkaEventManager.
+
+        The request timeout is set low by default so we don't block the
+        instrumented app for too long if kafka is unavailable.
+        """
         manage_kafka_broker = kafka_broker is None
         if not kafka_broker:
             kafka_broker = KafkaBroker(
                 client_id=f"{BROKER_PREFIX}-{self.application}",
+                request_timeout_ms=request_timeout_ms,
                 **self.kafka.to_faststream_params(),
             )
         kafka_admin_client = AIOKafkaAdminClient(
             client_id=f"{ADMIN_CLIENT_PREFIX}-{self.application}",
+            request_timeout_ms=request_timeout_ms,
             **self.kafka.to_aiokafka_params(),
         )
         schema_manager = self.schema_manager.make_manager(logger=logger)
