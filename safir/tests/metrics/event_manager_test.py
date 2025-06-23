@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import math
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import cast
 from uuid import UUID
 
 import pytest
-from aiokafka import AIOKafkaConsumer
+from aiokafka import AIOKafkaConsumer, TopicPartition
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from aiokafka.errors import KafkaConnectionError
 from dataclasses_avroschema.pydantic import AvroBaseModel
@@ -20,6 +20,8 @@ from schema_registry.client.client import AsyncSchemaRegistryClient
 from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
 )
+from structlog.testing import LogCapture
+from time_machine import TimeMachineFixture
 
 from safir.dependencies.metrics import EventDependency, EventMaker
 from safir.kafka import (
@@ -42,6 +44,8 @@ from safir.metrics import (
     KafkaTopicError,
 )
 from safir.metrics._exceptions import UnsupportedAvroSchemaError
+
+from ..support.metrics import MetricsStack
 
 
 class MyEvent(EventPayload):
@@ -391,3 +395,164 @@ async def test_bad_kafka_from_start_raises(
     manager = event_manager_no_kafka_raises
     with pytest.raises(KafkaConnectionError):
         await manager.initialize()
+
+
+@pytest.mark.asyncio
+async def test_bad_kafka_after_initialize(
+    function_scoped_metrics_stack: MetricsStack,
+    log_output: LogCapture,
+    time_machine: TimeMachineFixture,
+) -> None:
+    event_manager = function_scoped_metrics_stack.event_manager
+    kafka_container = function_scoped_metrics_stack.kafka_container
+    schema_registry_client = (
+        function_scoped_metrics_stack.schema_registry_client
+    )
+    max_batch_size = function_scoped_metrics_stack.max_batch_size
+    backoff_interval = (
+        function_scoped_metrics_stack.metrics_config.backoff_interval
+    )
+    kafka_connection_settings = (
+        function_scoped_metrics_stack.kafka_connection_settings
+    )
+
+    # We're gonna call a method on this, so tell the type checker it's not None
+    assert event_manager._broker._producer
+
+    # Create an events dependency
+    events_dependency = EventDependency(Events())
+    await events_dependency.initialize(manager=event_manager)
+
+    event = events_dependency.events.my_event
+
+    # This should make it to kafka
+    await event.publish(
+        MyEvent(
+            foo="working",
+            duration=timedelta(seconds=2, milliseconds=123),
+            duration_union=None,
+        )
+    )
+    await event_manager._broker._producer.flush()
+
+    # Stop Kafka
+    kafka_container.stop_container()
+
+    # Quickly sending a bunch more messages than max_batch_size is set to
+    # should get us an exception here. None of these should make it to Kafka.
+    #
+    # Sometimes, exceptions from aiokafka will be raised here, and sometimes
+    # they will be raised in futures. If we send so many messages so quickly
+    # that the message batch gets filled up, then send calls will block until
+    # the batch is sent, and we'll get an exception here if the batch can't be
+    # sent. If a batch never gets filled up before getting sent, then the
+    # exception will be sitting in a future.
+    for _ in range(max_batch_size + 5):
+        await event.publish(
+            MyEvent(
+                foo="stopped",
+                duration=timedelta(seconds=2, milliseconds=456),
+                duration_union=None,
+            )
+        )
+    await event_manager._broker._producer.flush()
+
+    # This shouldn't raise an exception, but it shouldn't make it to kafka.
+    await event.publish(
+        MyEvent(
+            foo="stopped",
+            duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
+        )
+    )
+    await event_manager._broker._producer.flush()
+
+    # There should be error events in the logs
+    error_logs = [
+        entry
+        for entry in log_output.entries
+        if entry["log_level"] == "error"
+        and entry["attempted_operation"] == "publish"
+    ]
+    assert error_logs
+
+    # Start kafka again
+    kafka_container.start_container_again()
+
+    # These should also not make it to Kafka, even though it's backup, because
+    # we're still in the backoff window
+    for _ in range(max_batch_size + 5):
+        await event.publish(
+            MyEvent(
+                foo="in_backoff",
+                duration=timedelta(seconds=2, milliseconds=456),
+                duration_union=None,
+            )
+        )
+
+    backoff_error_logs = [
+        entry
+        for entry in log_output.entries
+        if entry["log_level"] == "error"
+        and entry["attempted_operation"] == "publish"
+    ]
+    await event_manager._broker._producer.flush()
+    assert len(backoff_error_logs) > len(error_logs)
+
+    # Move time to after the backoff window. This isn't EXACTLY when the
+    # backoff interval expires, but it's close enough for testing.
+    time_machine.move_to(datetime.now(tz=UTC) + backoff_interval, tick=True)
+
+    # These should all make it to Kafka
+    for _ in range(max_batch_size + 5):
+        await event.publish(
+            MyEvent(
+                foo="started_again",
+                duration=timedelta(seconds=2, milliseconds=456),
+                duration_union=None,
+            )
+        )
+    await event_manager._broker._producer.flush()
+
+    # There shouldn't be any more error logs
+    new_error_logs = [
+        entry for entry in log_output.entries if entry["log_level"] == "error"
+    ]
+    assert len(new_error_logs) == len(backoff_error_logs)
+
+    consumer = AIOKafkaConsumer(
+        **kafka_connection_settings.to_aiokafka_params(),
+        client_id="pytest-consumer",
+    )
+
+    # Verify messages made it to Kafka
+    try:
+        await consumer.start()
+        await subscribe_and_wait(consumer, "what.ever.testapp")
+        await consumer.seek_to_beginning()
+        topic = TopicPartition(topic="what.ever.testapp", partition=0)
+        message_groups = await consumer.getmany(
+            topic,
+            timeout_ms=10000,
+        )
+    finally:
+        await consumer.stop()
+
+    messages = message_groups[topic]
+    serializer = AsyncAvroMessageSerializer(schema_registry_client)
+    deserialized = [
+        await serializer.decode_message(message.value) for message in messages
+    ]
+
+    working = [m for m in deserialized if m and m.get("foo") == "working"]
+    started_again = [
+        m for m in deserialized if m and m.get("foo") == "started_again"
+    ]
+
+    # Kafka should have the only the messages from before we stopped the
+    # container, and the messages from after we restarted the container and
+    # after the backoff interval.
+    assert len(messages) == max_batch_size + 5 + 1
+
+    assert len(working) == 1
+    assert len(started_again) == max_batch_size + 5
