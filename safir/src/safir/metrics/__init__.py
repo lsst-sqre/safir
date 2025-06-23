@@ -10,6 +10,7 @@ from ._config import (
 from ._event_manager import (
     EventManager,
     EventPublisher,
+    FailedEventPublisher,
     KafkaEventManager,
     KafkaEventPublisher,
     MockEventManager,
@@ -49,6 +50,7 @@ __all__ = [
     "EventPayload",
     "EventPublisher",
     "EventsConfiguration",
+    "FailedEventPublisher",
     "KafkaEventManager",
     "KafkaEventPublisher",
     "KafkaMetricsConfiguration",
