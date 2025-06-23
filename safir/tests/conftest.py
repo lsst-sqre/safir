@@ -12,7 +12,7 @@ import respx
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from faststream.kafka import KafkaBroker
-from pydantic import AnyUrl
+from pydantic import AnyUrl, HttpUrl
 from redis.asyncio import Redis
 from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
@@ -46,6 +46,9 @@ from safir.testing.sentry import (
     sentry_init_fixture,
 )
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
+
+from .support.metrics import MetricsStack, metrics_stack
+
 
 
 @pytest.fixture(scope="session")
@@ -209,6 +212,20 @@ def schema_manager(
     All data is cleared from the registry at the end of the test.
     """
     return schema_manager_settings.make_manager()
+
+
+@pytest_asyncio.fixture
+async def function_scoped_metrics_stack(
+    tmp_path: Path,
+) -> AsyncGenerator[MetricsStack]:
+    """Provide function-scoped metrics infrastructure.
+
+    This is useful for testing error-handling that involves stopping the
+    container mid-test. Any tests against assumed-healthy kafka infrastructure
+    should use one of the session-scoped fixtures.
+    """
+    async with metrics_stack(tmp_path) as stack:
+        yield stack
 
 
 @pytest_asyncio.fixture
