@@ -9,11 +9,13 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 import respx
+import structlog
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from faststream.kafka import KafkaBroker
 from pydantic import AnyUrl, HttpUrl
 from redis.asyncio import Redis
+from structlog.testing import LogCapture
 from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
@@ -49,6 +51,16 @@ from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
 from .support.metrics import MetricsStack, metrics_stack
 
+
+@pytest.fixture
+def log_output() -> LogCapture:
+    """Capture Structlog logs to assert against."""
+    return LogCapture()
+
+
+@pytest.fixture(autouse=True)
+def configure_structlog(log_output: LogCapture) -> None:
+    structlog.configure(processors=[log_output])
 
 
 @pytest.fixture(scope="session")
