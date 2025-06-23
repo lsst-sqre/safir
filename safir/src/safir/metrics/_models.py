@@ -5,6 +5,7 @@ from typing import Any
 from dataclasses_avroschema.pydantic import AvroBaseModel
 from pydantic import UUID4, AwareDatetime, Field, create_model
 
+from safir.metrics._exceptions import UnsupportedAvroSchemaError
 __all__ = ["EventMetadata", "EventPayload"]
 
 
@@ -110,7 +111,7 @@ class EventPayload(AvroBaseModel):
                 f"Supported avro types are these (or unions of these):"
                 f" {valids}"
             )
-            raise ValueError("\n".join(errors))
+            raise UnsupportedAvroSchemaError("\n".join(errors))
 
     @classmethod
     def _extract_type(cls, spec: str | dict[str, dict[str, Any]]) -> str:
