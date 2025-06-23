@@ -237,6 +237,55 @@ async def event_manager(
     await manager.aclose()
 
 
+@pytest_asyncio.fixture
+async def event_manager_no_kafka_no_raises() -> AsyncGenerator[EventManager]:
+    """Test app resiliency when using metrics with a bad Kafka."""
+    bad_kafka_settings = KafkaConnectionSettings(
+        bootstrap_servers="nope:1234,nada:5678",
+        security_protocol=SecurityProtocol.PLAINTEXT,
+    )
+
+    bad_schema_manager_settings = SchemaManagerSettings(
+        registry_url=HttpUrl("https://nope.com")
+    )
+    config = KafkaMetricsConfiguration(
+        application="testapp",
+        enabled=True,
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        kafka=bad_kafka_settings,
+        schema_manager=bad_schema_manager_settings,
+    )
+
+    manager = config.make_manager()
+    yield manager
+    await manager.aclose()
+
+
+@pytest_asyncio.fixture
+async def event_manager_no_kafka_raises() -> AsyncGenerator[EventManager]:
+    """Test app resiliency when using metrics with a bad Kafka."""
+    bad_kafka_settings = KafkaConnectionSettings(
+        bootstrap_servers="nope:1234,nada:5678",
+        security_protocol=SecurityProtocol.PLAINTEXT,
+    )
+
+    bad_schema_manager_settings = SchemaManagerSettings(
+        registry_url=HttpUrl("https://nope.com")
+    )
+    config = KafkaMetricsConfiguration(
+        application="testapp",
+        enabled=True,
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        kafka=bad_kafka_settings,
+        schema_manager=bad_schema_manager_settings,
+        raise_on_error=True,
+    )
+
+    manager = config.make_manager()
+    yield manager
+    await manager.aclose()
+
+
 @pytest.fixture(scope="session")
 def database_password() -> str:
     return "INSECURE@%PASSWORD/"
