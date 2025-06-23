@@ -3,9 +3,9 @@
 import functools
 import time
 from abc import ABCMeta, abstractmethod
-from datetime import UTC, datetime
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum, auto
 from functools import WRAPPER_ASSIGNMENTS, WRAPPER_UPDATES
 from typing import Concatenate, cast, override
@@ -18,6 +18,8 @@ from faststream.kafka import KafkaBroker
 from faststream.kafka.publisher.asyncapi import AsyncAPIDefaultPublisher
 from pydantic import create_model
 from structlog.stdlib import BoundLogger
+
+from safir.metrics._constants import EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL
 
 from ..kafka import PydanticSchemaManager, SchemaInfo
 from ._exceptions import (
@@ -48,6 +50,14 @@ class _State(StrEnum):
     uninitialized = auto()
 
 
+@dataclass
+class CallTracker:
+    "Track the status and time that an operation was attempted."
+
+    last_state = _State.uninitialized
+    failed_at = datetime(1900, 1, 1, tzinfo=UTC)
+
+
 def abandonable[**P, R, T: "KafkaEventManager"](
     func: Callable[Concatenate[T, P], Coroutine[None, None, R]],
 ) -> Callable[Concatenate[T, P], Coroutine[None, None, R | None]]:
@@ -60,22 +70,41 @@ def abandonable[**P, R, T: "KafkaEventManager"](
     methods. If an exception is caught, puts the KafkaEventManager instance
     into an error state, logs an error, and returns None. In this error state,
     subsequent calls to this method will just log an error and return None
+    instantly. The error state will be reset after a configurable amount of
+    time.
+
     """
+    call_tracker = CallTracker()
+
     async def wrapper(self: T, *args: P.args, **kwargs: P.kwargs) -> R | None:
         logger = self.logger.bind(attempted_operation=func.__name__)
         now = datetime.now(tz=UTC)
 
         if self._state == _State.error:
+            elapsed = now - call_tracker.failed_at
+
+            # If we still have backoff time remaining, log an error and return
+            # None.
+            remaining = self._backoff_interval - elapsed
+            if remaining > timedelta(seconds=0):
+                error_state_seconds_remaining = remaining.total_seconds()
                 msg = (
                     f"App metrics collection is in an error state. This may be"
                     f" due to instability in the underlying metrics"
                     f" infrastructure like Kafka. Any further attempts at app"
                     f" metrics operations will be no-ops until"
+                    f" {remaining.total_seconds()} from now."
                 )
                 logger.error(
                     msg,
+                    error_state_seconds_remaining=error_state_seconds_remaining,
                 )
                 return None
+
+            # If we're past our backoff time, reset our error state and try the
+            # call. This might put us in an error state again.
+            self._state = call_tracker.last_state
+            logger.info("Trying app metrics operation again")
 
         try:
             # Try to call the original method
@@ -86,6 +115,8 @@ def abandonable[**P, R, T: "KafkaEventManager"](
             if self._raise_on_error:
                 raise
 
+            call_tracker.failed_at = now
+            call_tracker.last_state = self._state
             self._state = _State.error
 
             msg = (
@@ -93,9 +124,11 @@ def abandonable[**P, R, T: "KafkaEventManager"](
                 f" to instability in the underlying metrics infrastructure"
                 f" like Kafka. Any further attempts at app metrics operations"
                 f" will be no-ops until"
+                f" {self._backoff_interval.total_seconds()} seconds from now."
             )
             logger.exception(
                 msg,
+                backoff_seconds_remaining=self._backoff_interval.total_seconds(),
             )
         return None
 
@@ -476,6 +509,9 @@ class KafkaEventManager(EventManager):
         publishing. For example, it is used to check if the topic exists.
     schema_manager
         Client to the Confluent-compatible schema registry.
+    backoff_interval
+        The amount of time to wait until further operations are attempted after
+        the KafkaEventManager is put into an error state.
     manage_kafka_broker
         If `True`, start the ``kafka_broker`` on
         `~safir.metrics.EventManager.initialize` and close the
@@ -545,6 +581,7 @@ class KafkaEventManager(EventManager):
         kafka_broker: KafkaBroker,
         kafka_admin_client: AIOKafkaAdminClient,
         schema_manager: PydanticSchemaManager,
+        backoff_interval: timedelta = EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL,
         manage_kafka_broker: bool = False,
         raise_on_error: bool = False,
         logger: BoundLogger | None = None,
@@ -554,6 +591,7 @@ class KafkaEventManager(EventManager):
         self._broker = kafka_broker
         self._admin_client = kafka_admin_client
         self._schema_manager = schema_manager
+        self._backoff_interval = backoff_interval
         self._manage_kafka_broker = manage_kafka_broker
         self._raise_on_error = raise_on_error
 
