@@ -42,6 +42,7 @@ extend = "ruff-shared.toml"
 ]
 "safir/src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
+    "S311",    # test support functions needn't be cryptographically secure
 ]
 "safir/tests/data/database/*alembic/**" = [
     "INP001",  # Alembic files are magical
