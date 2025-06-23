@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Annotated, override
+from typing import Annotated, Any, override
 
 import structlog
 from aiokafka.admin.client import AIOKafkaAdminClient
@@ -263,23 +263,30 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         *,
         kafka_broker: KafkaBroker | None = None,
         request_timeout_ms: int = EVENT_MANAGER_DEFAULT_KAFKA_TIMEOUT_MS,
+        extra_broker_settings: dict[str, Any] | None = None,
+        extra_admin_client_settings: dict[str, Any] | None = None,
     ) -> KafkaEventManager:
         """Make a KafkaEventManager.
 
         The request timeout is set low by default so we don't block the
         instrumented app for too long if kafka is unavailable.
         """
+        extra_broker_settings = extra_broker_settings or {}
+        extra_admin_client_settings = extra_admin_client_settings or {}
+
         manage_kafka_broker = kafka_broker is None
         if not kafka_broker:
             kafka_broker = KafkaBroker(
                 client_id=f"{BROKER_PREFIX}-{self.application}",
                 request_timeout_ms=request_timeout_ms,
                 **self.kafka.to_faststream_params(),
+                **extra_broker_settings,
             )
         kafka_admin_client = AIOKafkaAdminClient(
             client_id=f"{ADMIN_CLIENT_PREFIX}-{self.application}",
             request_timeout_ms=request_timeout_ms,
             **self.kafka.to_aiokafka_params(),
+            **extra_admin_client_settings,
         )
         schema_manager = self.schema_manager.make_manager(logger=logger)
 
