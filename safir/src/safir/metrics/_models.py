@@ -6,6 +6,7 @@ from dataclasses_avroschema.pydantic import AvroBaseModel
 from pydantic import UUID4, AwareDatetime, Field, create_model
 
 from safir.metrics._exceptions import UnsupportedAvroSchemaError
+
 __all__ = ["EventMetadata", "EventPayload"]
 
 

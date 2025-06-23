@@ -13,10 +13,13 @@ from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
 
+from safir.pydantic._types import HumanTimedelta
+
 from ..kafka import KafkaConnectionSettings, SchemaManagerSettings
 from ._constants import (
     ADMIN_CLIENT_PREFIX,
     BROKER_PREFIX,
+    EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL,
     EVENT_MANAGER_DEFAULT_KAFKA_TIMEOUT_MS,
 )
 from ._event_manager import (
@@ -244,6 +247,15 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         ),
     )
 
+    backoff_interval: HumanTimedelta = Field(
+        EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL,
+        title="Backoff interval",
+        description=(
+            "The amount of time to wait until further operations are attempted"
+            " when the event manager is in an error state."
+        ),
+    )
+
     @override
     def make_manager(
         self,
@@ -279,6 +291,7 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
             schema_manager=schema_manager,
             manage_kafka_broker=manage_kafka_broker,
             raise_on_error=self.raise_on_error,
+            backoff_interval=self.backoff_interval,
             logger=logger,
         )
 
