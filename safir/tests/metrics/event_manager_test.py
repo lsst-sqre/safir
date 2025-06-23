@@ -12,6 +12,7 @@ from uuid import UUID
 import pytest
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
+from aiokafka.errors import KafkaConnectionError
 from dataclasses_avroschema.pydantic import AvroBaseModel
 from faststream.kafka import KafkaBroker
 from pydantic import Field
@@ -342,3 +343,51 @@ async def test_disable() -> None:
         MyEvent(foo="bar2", duration=timedelta(seconds=1), duration_union=None)
     )
     await manager.aclose()
+
+
+@pytest.mark.asyncio
+async def test_bad_kafka_from_start_no_raises(
+    event_manager_no_kafka_no_raises: EventManager, log_output: LogCapture
+) -> None:
+    # Initialize the event manager
+    manager = event_manager_no_kafka_no_raises
+    await manager.initialize()
+
+    # Create an events dependency
+    events_dependency = EventDependency(Events())
+    await events_dependency.initialize(manager=manager)
+
+    # Publish events, nothing should blow up
+    event = events_dependency.events.my_event
+    await event.publish(
+        MyEvent(
+            foo="bar1",
+            duration=timedelta(seconds=2, milliseconds=123),
+            duration_union=None,
+        )
+    )
+    await event.publish(
+        MyEvent(
+            foo="bar2",
+            duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
+        )
+    )
+
+    await manager.aclose()
+
+    # We should have logged some errors
+    error_logs = [
+        entry for entry in log_output.entries if entry["log_level"] == "error"
+    ]
+    assert error_logs
+
+
+@pytest.mark.asyncio
+async def test_bad_kafka_from_start_raises(
+    event_manager_no_kafka_raises: EventManager,
+) -> None:
+    # Initialize the event manager
+    manager = event_manager_no_kafka_raises
+    with pytest.raises(KafkaConnectionError):
+        await manager.initialize()
