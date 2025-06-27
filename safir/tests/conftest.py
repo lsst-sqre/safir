@@ -9,11 +9,13 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 import respx
+import structlog
 from aiokafka import AIOKafkaConsumer
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from faststream.kafka import KafkaBroker
-from pydantic import AnyUrl
+from pydantic import AnyUrl, HttpUrl
 from redis.asyncio import Redis
+from structlog.testing import LogCapture
 from testcontainers.core.container import Network
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
@@ -46,6 +48,19 @@ from safir.testing.sentry import (
     sentry_init_fixture,
 )
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
+
+from .support.metrics import MetricsStack, metrics_stack
+
+
+@pytest.fixture
+def log_output() -> LogCapture:
+    """Capture Structlog logs to assert against."""
+    return LogCapture()
+
+
+@pytest.fixture(autouse=True)
+def configure_structlog(log_output: LogCapture) -> None:
+    structlog.configure(processors=[log_output])
 
 
 @pytest.fixture(scope="session")
@@ -212,6 +227,20 @@ def schema_manager(
 
 
 @pytest_asyncio.fixture
+async def function_scoped_metrics_stack(
+    tmp_path: Path,
+) -> AsyncGenerator[MetricsStack]:
+    """Provide function-scoped metrics infrastructure.
+
+    This is useful for testing error-handling that involves stopping the
+    container mid-test. Any tests against assumed-healthy kafka infrastructure
+    should use one of the session-scoped fixtures.
+    """
+    async with metrics_stack(tmp_path) as stack:
+        yield stack
+
+
+@pytest_asyncio.fixture
 async def event_manager(
     kafka_connection_settings: KafkaConnectionSettings,
     schema_manager_settings: SchemaManagerSettings,
@@ -233,6 +262,55 @@ async def event_manager(
         replication_factor=1,
     )
     await manager._admin_client.create_topics([topic])
+    yield manager
+    await manager.aclose()
+
+
+@pytest_asyncio.fixture
+async def event_manager_no_kafka_no_raises() -> AsyncGenerator[EventManager]:
+    """Test app resiliency when using metrics with a bad Kafka."""
+    bad_kafka_settings = KafkaConnectionSettings(
+        bootstrap_servers="nope:1234,nada:5678",
+        security_protocol=SecurityProtocol.PLAINTEXT,
+    )
+
+    bad_schema_manager_settings = SchemaManagerSettings(
+        registry_url=HttpUrl("https://nope.com")
+    )
+    config = KafkaMetricsConfiguration(
+        application="testapp",
+        enabled=True,
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        kafka=bad_kafka_settings,
+        schema_manager=bad_schema_manager_settings,
+    )
+
+    manager = config.make_manager()
+    yield manager
+    await manager.aclose()
+
+
+@pytest_asyncio.fixture
+async def event_manager_no_kafka_raises() -> AsyncGenerator[EventManager]:
+    """Test app resiliency when using metrics with a bad Kafka."""
+    bad_kafka_settings = KafkaConnectionSettings(
+        bootstrap_servers="nope:1234,nada:5678",
+        security_protocol=SecurityProtocol.PLAINTEXT,
+    )
+
+    bad_schema_manager_settings = SchemaManagerSettings(
+        registry_url=HttpUrl("https://nope.com")
+    )
+    config = KafkaMetricsConfiguration(
+        application="testapp",
+        enabled=True,
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        kafka=bad_kafka_settings,
+        schema_manager=bad_schema_manager_settings,
+        raise_on_error=True,
+    )
+
+    manager = config.make_manager()
     yield manager
     await manager.aclose()
 

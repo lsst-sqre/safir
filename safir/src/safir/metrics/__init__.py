@@ -10,6 +10,7 @@ from ._config import (
 from ._event_manager import (
     EventManager,
     EventPublisher,
+    FailedEventPublisher,
     KafkaEventManager,
     KafkaEventPublisher,
     MockEventManager,
@@ -21,6 +22,8 @@ from ._exceptions import (
     DuplicateEventError,
     EventManagerUnintializedError,
     KafkaTopicError,
+    UnabandonableError,
+    UnsupportedAvroSchemaError,
 )
 from ._models import EventMetadata, EventPayload
 from ._testing import (
@@ -47,6 +50,7 @@ __all__ = [
     "EventPayload",
     "EventPublisher",
     "EventsConfiguration",
+    "FailedEventPublisher",
     "KafkaEventManager",
     "KafkaEventPublisher",
     "KafkaMetricsConfiguration",
@@ -62,5 +66,7 @@ __all__ = [
     "PublishedCountError",
     "PublishedList",
     "PublishedTooFewError",
+    "UnabandonableError",
+    "UnsupportedAvroSchemaError",
     "metrics_configuration_factory",
 ]
