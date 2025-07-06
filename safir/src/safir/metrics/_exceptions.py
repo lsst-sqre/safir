@@ -3,13 +3,13 @@
 __all__ = [
     "DuplicateEventError",
     "EventManagerUnintializedError",
+    "EventManagerUsageError",
     "KafkaTopicError",
-    "UnabandonableError",
     "UnsupportedAvroSchemaError",
 ]
 
 
-class UnabandonableError(Exception):
+class EventManagerUsageError(Exception):
     """These exceptions should be raised even in abandonable methods.
 
     They represent application errors that can and should be fixed, vs. errors
@@ -18,15 +18,15 @@ class UnabandonableError(Exception):
     """
 
 
-class UnsupportedAvroSchemaError(UnabandonableError):
+class UnsupportedAvroSchemaError(EventManagerUsageError):
     """Event model is not serializable to Avro."""
 
 
-class EventManagerUnintializedError(UnabandonableError):
+class EventManagerUnintializedError(EventManagerUsageError):
     """An attempt to create a publisher after manager has been initialized."""
 
 
-class DuplicateEventError(UnabandonableError):
+class DuplicateEventError(EventManagerUsageError):
     """Two publishers were registered with the same name."""
 
     def __init__(self, name: str) -> None:
@@ -37,7 +37,7 @@ class DuplicateEventError(UnabandonableError):
         )
 
 
-class KafkaTopicError(UnabandonableError):
+class KafkaTopicError(EventManagerUsageError):
     """A topic does not exist in Kafka, or we don't have access to it."""
 
     def __init__(self, topic: str) -> None:

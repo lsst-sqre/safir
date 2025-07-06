@@ -13,7 +13,7 @@ from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
 
-from safir.pydantic._types import HumanTimedelta
+from safir.pydantic import HumanTimedelta
 
 from ..kafka import KafkaConnectionSettings, SchemaManagerSettings
 from ._constants import (

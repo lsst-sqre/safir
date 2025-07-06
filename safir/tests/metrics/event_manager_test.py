@@ -313,9 +313,7 @@ async def test_invalid_payload(event_manager: EventManager) -> None:
         bad_union_field: dict[str, str] | None = Field()
         bad_dict_field: dict[str, str] = Field()
 
-    with pytest.raises(
-        UnsupportedAvroSchemaError, match="Unsupported Avro Schema"
-    ) as excinfo:
+    with pytest.raises(UnsupportedAvroSchemaError) as excinfo:
         await event_manager.create_publisher("myinvalidevent", MyInvalidEvent)
     err = str(excinfo.value)
 

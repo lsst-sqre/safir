@@ -21,8 +21,8 @@ from ._event_manager import (
 from ._exceptions import (
     DuplicateEventError,
     EventManagerUnintializedError,
+    EventManagerUsageError,
     KafkaTopicError,
-    UnabandonableError,
     UnsupportedAvroSchemaError,
 )
 from ._models import EventMetadata, EventPayload
@@ -46,6 +46,7 @@ __all__ = [
     "DuplicateEventError",
     "EventManager",
     "EventManagerUnintializedError",
+    "EventManagerUsageError",
     "EventMetadata",
     "EventPayload",
     "EventPublisher",
@@ -66,7 +67,6 @@ __all__ = [
     "PublishedCountError",
     "PublishedList",
     "PublishedTooFewError",
-    "UnabandonableError",
     "UnsupportedAvroSchemaError",
     "metrics_configuration_factory",
 ]

@@ -7,7 +7,6 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum, auto
-from functools import WRAPPER_ASSIGNMENTS, WRAPPER_UPDATES
 from typing import Concatenate, cast, override
 from uuid import uuid4
 
@@ -25,8 +24,8 @@ from ..kafka import PydanticSchemaManager, SchemaInfo
 from ._exceptions import (
     DuplicateEventError,
     EventManagerUnintializedError,
+    EventManagerUsageError,
     KafkaTopicError,
-    UnabandonableError,
 )
 from ._models import EventMetadata, EventPayload
 from ._testing import PublishedList
@@ -51,7 +50,7 @@ class _State(StrEnum):
 
 
 @dataclass
-class CallTracker:
+class _CallTracker:
     "Track the status and time that an operation was attempted."
 
     last_state = _State.uninitialized
@@ -63,7 +62,7 @@ def abandonable[**P, R, T: "KafkaEventManager"](
 ) -> Callable[Concatenate[T, P], Coroutine[None, None, R | None]]:
     """Catch exceptions from wrapped function and log errors instead.
 
-    Doesn't catch exceptions that are subclasses of UnabandonableError.
+    Doesn't catch exceptions that are subclasses of EventManagerUsageError.
     Changes the original return value R into the union R | None.
 
     This function is meant to be used as a decorator on KafkaEventManager
@@ -74,7 +73,7 @@ def abandonable[**P, R, T: "KafkaEventManager"](
     time.
 
     """
-    call_tracker = CallTracker()
+    call_tracker = _CallTracker()
 
     async def wrapper(self: T, *args: P.args, **kwargs: P.kwargs) -> R | None:
         logger = self.logger.bind(attempted_operation=func.__name__)
@@ -88,15 +87,12 @@ def abandonable[**P, R, T: "KafkaEventManager"](
             remaining = self._backoff_interval - elapsed
             if remaining > timedelta(seconds=0):
                 error_state_seconds_remaining = remaining.total_seconds()
-                msg = (
+                logger.error(
                     f"App metrics collection is in an error state. This may be"
                     f" due to instability in the underlying metrics"
                     f" infrastructure like Kafka. Any further attempts at app"
                     f" metrics operations will be no-ops until"
-                    f" {remaining.total_seconds()} from now."
-                )
-                logger.error(
-                    msg,
+                    f" {remaining.total_seconds()} from now.",
                     error_state_seconds_remaining=error_state_seconds_remaining,
                 )
                 return None
@@ -109,7 +105,7 @@ def abandonable[**P, R, T: "KafkaEventManager"](
         try:
             # Try to call the original method
             return await func(self, *args, **kwargs)
-        except UnabandonableError:
+        except EventManagerUsageError:
             raise
         except Exception:
             if self._raise_on_error:
@@ -119,15 +115,12 @@ def abandonable[**P, R, T: "KafkaEventManager"](
             call_tracker.last_state = self._state
             self._state = _State.error
 
-            msg = (
+            logger.exception(
                 f"App metrics collection operation failed. This may be due"
                 f" to instability in the underlying metrics infrastructure"
                 f" like Kafka. Any further attempts at app metrics operations"
                 f" will be no-ops until"
-                f" {self._backoff_interval.total_seconds()} seconds from now."
-            )
-            logger.exception(
-                msg,
+                f" {self._backoff_interval.total_seconds()} seconds from now.",
                 backoff_seconds_remaining=self._backoff_interval.total_seconds(),
             )
         return None
@@ -144,8 +137,6 @@ def abandonable[**P, R, T: "KafkaEventManager"](
     functools.update_wrapper(
         wrapper=wrapper,
         wrapped=func,
-        assigned=WRAPPER_ASSIGNMENTS,
-        updated=WRAPPER_UPDATES,
     )
 
     return wrapper

@@ -33,11 +33,26 @@ class MetricsStack:
     """Objects and external services in a full app metrics stack."""
 
     event_manager: KafkaEventManager
+    """An uninialized Kafka event manager."""
+
     kafka_container: FullKafkaContainer
+    """A Kafka docker TestContainer."""
+
     kafka_connection_settings: KafkaConnectionSettings
+    """Connection settings for the Kafka container."""
+
     schema_registry_client: AsyncSchemaRegistryClient
+    """A schema registry client for the schema registry in the stack."""
+
     max_batch_size: int
+    """The maximum number of messages to keep in an aiokafka batch.
+
+    If another message is published while there are this many messages in the
+    batch, aoikafka will block to send the batch.
+    """
+
     metrics_config: KafkaMetricsConfiguration
+    """Metrics configuration for all of the services in the stack."""
 
 
 @asynccontextmanager
