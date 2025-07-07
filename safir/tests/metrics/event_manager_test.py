@@ -14,8 +14,7 @@ from aiokafka import AIOKafkaConsumer, TopicPartition
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from aiokafka.errors import KafkaConnectionError
 from dataclasses_avroschema.pydantic import AvroBaseModel
-from faststream.kafka import KafkaBroker
-from pydantic import Field
+from pydantic import Field, HttpUrl
 from schema_registry.client.client import AsyncSchemaRegistryClient
 from schema_registry.serializers.message_serializer import (
     AsyncAvroMessageSerializer,
@@ -26,8 +25,8 @@ from time_machine import TimeMachineFixture
 from safir.dependencies.metrics import EventDependency, EventMaker
 from safir.kafka import (
     KafkaConnectionSettings,
-    PydanticSchemaManager,
     SchemaManagerSettings,
+    SecurityProtocol,
 )
 from safir.metrics import (
     DisabledMetricsConfiguration,
@@ -44,6 +43,7 @@ from safir.metrics import (
     KafkaTopicError,
 )
 from safir.metrics._exceptions import UnsupportedAvroSchemaError
+from tests.support.kafka import KafkaClients, KafkaStack
 
 from ..support.metrics import MetricsStack
 
@@ -113,17 +113,13 @@ async def assert_from_kafka(
 
 async def integration_test(
     manager: EventManager,
-    schema_manager_settings: SchemaManagerSettings,
+    schema_registry_client: AsyncSchemaRegistryClient,
     kafka_consumer: AIOKafkaConsumer,
     kafka_admin_client: AIOKafkaAdminClient,
     *,
     create_topic: bool = True,
 ) -> None:
     """Test the interaction of the EventManager and the EventsDependency."""
-    schema_registry = AsyncSchemaRegistryClient(
-        **schema_manager_settings.to_registry_params()
-    )
-
     if create_topic:
         topic = NewTopic(
             name="what.ever.testapp",
@@ -169,14 +165,14 @@ async def integration_test(
     assert event._publisher.topic == expected_topic
     await assert_from_kafka(
         kafka_consumer,
-        schema_registry,
+        schema_registry_client,
         event,
         "bar1",
         timedelta(seconds=2.123),
     )
     await assert_from_kafka(
         kafka_consumer,
-        schema_registry,
+        schema_registry_client,
         event,
         "bar2",
         timedelta(seconds=2.456),
@@ -187,23 +183,24 @@ async def integration_test(
 
 @pytest.mark.asyncio
 async def test_managed_storage(
-    kafka_connection_settings: KafkaConnectionSettings,
-    schema_manager_settings: SchemaManagerSettings,
-    kafka_consumer: AIOKafkaConsumer,
-    kafka_admin_client: AIOKafkaAdminClient,
+    kafka_stack: KafkaStack,
+    kafka_clients: KafkaClients,
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
     config = KafkaMetricsConfiguration(
         application="testapp",
         events=EventsConfiguration(topic_prefix="what.ever"),
-        kafka=kafka_connection_settings,
-        schema_manager=schema_manager_settings,
+        kafka=kafka_stack.kafka_connection_settings,
+        schema_manager=kafka_stack.schema_manager_settings,
     )
 
     # Construct an event manager and intialize our events dependency
     manager = config.make_manager()
     await integration_test(
-        manager, schema_manager_settings, kafka_consumer, kafka_admin_client
+        manager,
+        kafka_clients.schema_registry_client,
+        kafka_clients.kafka_consumer,
+        kafka_clients.kafka_admin_client,
     )
 
     # Make sure storage is cleaned up
@@ -213,23 +210,22 @@ async def test_managed_storage(
 
 @pytest.mark.asyncio
 async def test_unmanaged_storage(
-    schema_manager_settings: SchemaManagerSettings,
-    kafka_consumer: AIOKafkaConsumer,
-    kafka_broker: KafkaBroker,
-    kafka_admin_client: AIOKafkaAdminClient,
-    schema_manager: PydanticSchemaManager,
+    kafka_clients: KafkaClients,
 ) -> None:
     """Publish events to actual storage and read them back and verify them."""
     manager = KafkaEventManager(
         application="testapp",
         topic_prefix="what.ever",
-        kafka_broker=kafka_broker,
-        kafka_admin_client=kafka_admin_client,
-        schema_manager=schema_manager,
+        kafka_broker=kafka_clients.kafka_broker,
+        kafka_admin_client=kafka_clients.kafka_admin_client,
+        schema_manager=kafka_clients.schema_manager,
         manage_kafka_broker=False,
     )
     await integration_test(
-        manager, schema_manager_settings, kafka_consumer, kafka_admin_client
+        manager,
+        kafka_clients.schema_registry_client,
+        kafka_clients.kafka_consumer,
+        kafka_clients.kafka_admin_client,
     )
 
     # Make sure storage is NOT cleaned up
@@ -238,12 +234,14 @@ async def test_unmanaged_storage(
 
 @pytest.mark.asyncio
 async def test_topic_not_created(
-    schema_manager_settings: SchemaManagerSettings,
-    kafka_consumer: AIOKafkaConsumer,
-    kafka_broker: KafkaBroker,
-    kafka_admin_client: AIOKafkaAdminClient,
-    schema_manager: PydanticSchemaManager,
+    kafka_clients: KafkaClients,
 ) -> None:
+    kafka_broker = kafka_clients.kafka_broker
+    kafka_consumer = kafka_clients.kafka_consumer
+    kafka_admin_client = kafka_clients.kafka_admin_client
+    schema_registry_client = kafka_clients.schema_registry_client
+    schema_manager = kafka_clients.schema_manager
+
     manager = KafkaEventManager(
         application="testapp",
         topic_prefix="what.ever",
@@ -256,7 +254,7 @@ async def test_topic_not_created(
     with pytest.raises(KafkaTopicError):
         await integration_test(
             manager,
-            schema_manager_settings,
+            schema_registry_client,
             kafka_consumer,
             kafka_admin_client,
             create_topic=False,
@@ -265,16 +263,11 @@ async def test_topic_not_created(
 
 @pytest.mark.asyncio
 async def test_create_before_initialize(
-    kafka_broker: KafkaBroker,
-    kafka_admin_client: AIOKafkaAdminClient,
-    schema_manager: PydanticSchemaManager,
+    kafka_clients: KafkaClients,
 ) -> None:
-    topic = NewTopic(
-        name="what.ever.testapp",
-        num_partitions=1,
-        replication_factor=1,
-    )
-    await kafka_admin_client.create_topics([topic])
+    kafka_admin_client = kafka_clients.kafka_admin_client
+    kafka_broker = kafka_clients.kafka_broker
+    schema_manager = kafka_clients.schema_manager
 
     manager = KafkaEventManager(
         application="testapp",
@@ -348,11 +341,25 @@ async def test_disable() -> None:
 
 
 @pytest.mark.asyncio
-async def test_bad_kafka_from_start_no_raises(
-    event_manager_no_kafka_no_raises: EventManager, log_output: LogCapture
-) -> None:
-    # Initialize the event manager
-    manager = event_manager_no_kafka_no_raises
+async def test_bad_kafka_from_start_no_raises(log_output: LogCapture) -> None:
+    bad_kafka_settings = KafkaConnectionSettings(
+        bootstrap_servers="nope:1234,nada:5678",
+        security_protocol=SecurityProtocol.PLAINTEXT,
+    )
+
+    bad_schema_manager_settings = SchemaManagerSettings(
+        registry_url=HttpUrl("https://nope.com")
+    )
+    config = KafkaMetricsConfiguration(
+        application="testapp",
+        enabled=True,
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        kafka=bad_kafka_settings,
+        schema_manager=bad_schema_manager_settings,
+    )
+
+    manager = config.make_manager()
+
     await manager.initialize()
 
     # Create an events dependency
@@ -386,32 +393,45 @@ async def test_bad_kafka_from_start_no_raises(
 
 
 @pytest.mark.asyncio
-async def test_bad_kafka_from_start_raises(
-    event_manager_no_kafka_raises: EventManager,
-) -> None:
-    # Initialize the event manager
-    manager = event_manager_no_kafka_raises
+async def test_bad_kafka_from_start_raises() -> None:
+    bad_kafka_settings = KafkaConnectionSettings(
+        bootstrap_servers="nope:1234,nada:5678",
+        security_protocol=SecurityProtocol.PLAINTEXT,
+    )
+
+    bad_schema_manager_settings = SchemaManagerSettings(
+        registry_url=HttpUrl("https://nope.com")
+    )
+    config = KafkaMetricsConfiguration(
+        application="testapp",
+        enabled=True,
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        kafka=bad_kafka_settings,
+        schema_manager=bad_schema_manager_settings,
+        raise_on_error=True,
+    )
+
+    manager = config.make_manager()
+
     with pytest.raises(KafkaConnectionError):
         await manager.initialize()
 
 
 @pytest.mark.asyncio
 async def test_bad_kafka_after_initialize(
-    function_scoped_metrics_stack: MetricsStack,
+    resiliency_metrics_stack: MetricsStack,
     log_output: LogCapture,
     time_machine: TimeMachineFixture,
 ) -> None:
-    event_manager = function_scoped_metrics_stack.event_manager
-    kafka_container = function_scoped_metrics_stack.kafka_container
+    event_manager = resiliency_metrics_stack.event_manager
+    kafka_container = resiliency_metrics_stack.kafka_stack.kafka_container
     schema_registry_client = (
-        function_scoped_metrics_stack.schema_registry_client
+        resiliency_metrics_stack.kafka_clients.schema_registry_client
     )
-    max_batch_size = function_scoped_metrics_stack.max_batch_size
-    backoff_interval = (
-        function_scoped_metrics_stack.metrics_config.backoff_interval
-    )
+    max_batch_size = resiliency_metrics_stack.kafka_max_batch_size
+    backoff_interval = resiliency_metrics_stack.metrics_config.backoff_interval
     kafka_connection_settings = (
-        function_scoped_metrics_stack.kafka_connection_settings
+        resiliency_metrics_stack.kafka_stack.kafka_connection_settings
     )
 
     # We're gonna call a method on this, so tell the type checker it's not None

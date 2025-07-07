@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from faststream.kafka import KafkaBroker
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from safir.kafka import KafkaConnectionSettings, SchemaManagerSettings
 from safir.metrics import (
     DisabledMetricsConfiguration,
     EventsConfiguration,
@@ -19,6 +17,7 @@ from safir.metrics import (
     NoopEventManager,
     metrics_configuration_factory,
 )
+from tests.support.kafka import KafkaClients, KafkaStack
 
 
 class Config(BaseSettings):
@@ -80,19 +79,16 @@ async def test_kafka(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_kafka_unmanaged(
-    *,
-    kafka_broker: KafkaBroker,
-    kafka_connection_settings: KafkaConnectionSettings,
-    schema_manager_settings: SchemaManagerSettings,
+    kafka_stack: KafkaStack, kafka_clients: KafkaClients
 ) -> None:
     config = KafkaMetricsConfiguration(
         application="testapp",
         events=EventsConfiguration(topic_prefix="what.ever"),
-        kafka=kafka_connection_settings,
-        schema_manager=schema_manager_settings,
+        kafka=kafka_stack.kafka_connection_settings,
+        schema_manager=kafka_stack.schema_manager_settings,
     )
 
-    manager = config.make_manager(kafka_broker=kafka_broker)
+    manager = config.make_manager(kafka_broker=kafka_clients.kafka_broker)
     assert isinstance(manager, KafkaEventManager)
 
     # Make sure that the manager doesn't close the broker.

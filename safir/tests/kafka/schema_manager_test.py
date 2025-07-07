@@ -19,6 +19,7 @@ from safir.kafka import (
     UnknownSchemaError,
 )
 from safir.kafka._schema_registry_config import SchemaManagerSettings
+from tests.support.kafka import KafkaClients, KafkaStack
 
 
 async def assert_round_trip(
@@ -45,17 +46,17 @@ async def assert_round_trip(
 
 @pytest.mark.asyncio
 async def test_no_metadata(
-    schema_manager: PydanticSchemaManager,
-    schema_manager_settings: SchemaManagerSettings,
+    kafka_stack: KafkaStack,
+    kafka_clients: KafkaClients,
 ) -> None:
     class MyBareModel(AvroBaseModel):
         str_field: str
         int_field: int
 
     info = await assert_round_trip(
-        schema_manager,
+        kafka_clients.schema_manager,
         MyBareModel,
-        schema_manager_settings,
+        kafka_stack.schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -66,8 +67,8 @@ async def test_no_metadata(
 
 @pytest.mark.asyncio
 async def test_name_only_metadata(
-    schema_manager: PydanticSchemaManager,
-    schema_manager_settings: SchemaManagerSettings,
+    kafka_stack: KafkaStack,
+    kafka_clients: KafkaClients,
 ) -> None:
     class MyModel(AvroBaseModel):
         str_field: str
@@ -77,9 +78,9 @@ async def test_name_only_metadata(
             schema_name = "mymodelcustom"
 
     info = await assert_round_trip(
-        schema_manager,
+        kafka_clients.schema_manager,
         MyModel,
-        schema_manager_settings,
+        kafka_stack.schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -90,8 +91,8 @@ async def test_name_only_metadata(
 
 @pytest.mark.asyncio
 async def test_name_and_namespace_metadata(
-    schema_manager: PydanticSchemaManager,
-    schema_manager_settings: SchemaManagerSettings,
+    kafka_stack: KafkaStack,
+    kafka_clients: KafkaClients,
 ) -> None:
     class MyOtherModel(AvroBaseModel):
         str_field: str
@@ -102,9 +103,9 @@ async def test_name_and_namespace_metadata(
             namespace = "my.other.namespace"
 
     info = await assert_round_trip(
-        schema_manager,
+        kafka_clients.schema_manager,
         MyOtherModel,
-        schema_manager_settings,
+        kafka_stack.schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -115,8 +116,8 @@ async def test_name_and_namespace_metadata(
 
 @pytest.mark.asyncio
 async def test_namespace_only_metadata(
-    schema_manager: PydanticSchemaManager,
-    schema_manager_settings: SchemaManagerSettings,
+    kafka_stack: KafkaStack,
+    kafka_clients: KafkaClients,
 ) -> None:
     class YetAnotherModel(AvroBaseModel):
         str_field: str
@@ -126,9 +127,9 @@ async def test_namespace_only_metadata(
             namespace = "yetanothernamespace"
 
     info = await assert_round_trip(
-        schema_manager,
+        kafka_clients.schema_manager,
         YetAnotherModel,
-        schema_manager_settings,
+        kafka_stack.schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -139,10 +140,10 @@ async def test_namespace_only_metadata(
 
 @pytest.mark.asyncio
 async def test_suffix(
-    schema_manager_settings: SchemaManagerSettings,
+    kafka_stack: KafkaStack,
 ) -> None:
     registry = AsyncSchemaRegistryClient(
-        **schema_manager_settings.to_registry_params()
+        **kafka_stack.schema_manager_settings.to_registry_params()
     )
     schema_manager = PydanticSchemaManager(
         registry=registry,
@@ -160,7 +161,7 @@ async def test_suffix(
     info = await assert_round_trip(
         schema_manager,
         MyModel,
-        schema_manager_settings,
+        kafka_stack.schema_manager_settings,
         str_field="blah",
         int_field=123,
     )
@@ -170,9 +171,7 @@ async def test_suffix(
 
 
 @pytest.mark.asyncio
-async def test_invalid_name(
-    schema_manager: PydanticSchemaManager,
-) -> None:
+async def test_invalid_name(kafka_clients: KafkaClients) -> None:
     class YouGiveLove(AvroBaseModel):
         str_field: str
         int_field: int
@@ -181,18 +180,16 @@ async def test_invalid_name(
             schema_name = "a-bad-name"
 
     with pytest.raises(InvalidAvroNameError):
-        await schema_manager.register_model(YouGiveLove)
+        await kafka_clients.schema_manager.register_model(YouGiveLove)
 
 
 @pytest.mark.asyncio
-async def test_forward_compatibility(
-    schema_manager: PydanticSchemaManager,
-) -> None:
+async def test_forward_compatibility(kafka_clients: KafkaClients) -> None:
     class MyForwardModel(AvroBaseModel):
         field1: str
         field2: str
 
-    await schema_manager.register_model(
+    await kafka_clients.schema_manager.register_model(
         MyForwardModel, compatibility=Compatibility.FORWARD
     )
 
@@ -202,7 +199,7 @@ async def test_forward_compatibility(
         field2: str
         field3: str
 
-    await schema_manager.register_model(MyForwardModel)
+    await kafka_clients.schema_manager.register_model(MyForwardModel)
 
     # Adding another field is forward compatible
     class MyForwardModel(AvroBaseModel):  # type: ignore[no-redef]
@@ -211,7 +208,7 @@ async def test_forward_compatibility(
         field3: str
         field4: str
 
-    await schema_manager.register_model(MyForwardModel)
+    await kafka_clients.schema_manager.register_model(MyForwardModel)
 
     # Removing a field without a default is NOT foward compatible, even if
     # there is an identical grandparent or older schema.
@@ -223,7 +220,7 @@ async def test_forward_compatibility(
     with pytest.raises(
         IncompatibleSchemaError, match=r"READER_FIELD_MISSING_DEFAULT_VALUE"
     ):
-        await schema_manager.register_model(MyForwardModel)
+        await kafka_clients.schema_manager.register_model(MyForwardModel)
 
     # Giving a field a default is forward compatible
     class MyForwardModel(AvroBaseModel):  # type: ignore[no-redef]
@@ -232,7 +229,7 @@ async def test_forward_compatibility(
         field3: str
         field4: str = Field(default="blah")
 
-    await schema_manager.register_model(MyForwardModel)
+    await kafka_clients.schema_manager.register_model(MyForwardModel)
 
     # Removing a field with a default is foward compatible
     class MyForwardModel(AvroBaseModel):  # type: ignore[no-redef]
@@ -240,7 +237,7 @@ async def test_forward_compatibility(
         field2: str
         field3: str
 
-    await schema_manager.register_model(MyForwardModel)
+    await kafka_clients.schema_manager.register_model(MyForwardModel)
 
     # Adding new fields is forward compatible
     class MyForwardModel(AvroBaseModel):  # type: ignore[no-redef]
@@ -250,18 +247,16 @@ async def test_forward_compatibility(
         field4: str
         field5: str
 
-    await schema_manager.register_model(MyForwardModel)
+    await kafka_clients.schema_manager.register_model(MyForwardModel)
 
 
 @pytest.mark.asyncio
-async def test_backward_compatibility(
-    schema_manager: PydanticSchemaManager,
-) -> None:
+async def test_backward_compatibility(kafka_clients: KafkaClients) -> None:
     class MyBackwardModel(AvroBaseModel):
         field1: str
         field2: str
 
-    await schema_manager.register_model(
+    await kafka_clients.schema_manager.register_model(
         MyBackwardModel, compatibility=Compatibility.BACKWARD
     )
 
@@ -269,7 +264,7 @@ async def test_backward_compatibility(
     class MyBackwardModel(AvroBaseModel):  # type: ignore[no-redef]
         field1: str
 
-    await schema_manager.register_model(MyBackwardModel)
+    await kafka_clients.schema_manager.register_model(MyBackwardModel)
 
     # Adding fields is NOT backwards compatible, even if an identical schema
     # has been previously registered
@@ -280,27 +275,25 @@ async def test_backward_compatibility(
     with pytest.raises(
         IncompatibleSchemaError, match=r"READER_FIELD_MISSING_DEFAULT_VALUE"
     ):
-        await schema_manager.register_model(MyBackwardModel)
+        await kafka_clients.schema_manager.register_model(MyBackwardModel)
 
     # Adding a field with a default value is backwards compatible
     class MyBackwardModel(AvroBaseModel):  # type: ignore[no-redef]
         field1: str
         field2: str = Field(default="blah")
 
-    await schema_manager.register_model(MyBackwardModel)
+    await kafka_clients.schema_manager.register_model(MyBackwardModel)
 
     # Removing a default value is backwards compatible
     class MyBackwardModel(AvroBaseModel):  # type: ignore[no-redef]
         field1: str
         field2: str
 
-    await schema_manager.register_model(MyBackwardModel)
+    await kafka_clients.schema_manager.register_model(MyBackwardModel)
 
 
 @pytest.mark.asyncio
-async def test_unmanaged_error(
-    schema_manager: PydanticSchemaManager,
-) -> None:
+async def test_unmanaged_error(kafka_clients: KafkaClients) -> None:
     class MyModel(AvroBaseModel):
         str_field: str
         int_field: int
@@ -314,4 +307,4 @@ async def test_unmanaged_error(
         UnknownSchemaError,
         match="model: MyModel with subject: what.ever.MyModel",
     ):
-        await schema_manager.serialize(original)
+        await kafka_clients.schema_manager.serialize(original)

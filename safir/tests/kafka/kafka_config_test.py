@@ -1,7 +1,6 @@
 """Tests for the safir.kafka module."""
 
 import os
-from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -15,7 +14,7 @@ from safir.kafka import (
     SaslMechanism,
     SecurityProtocol,
 )
-from safir.testing.containers import FullKafkaContainer
+from tests.support.kafka import KafkaStack
 
 
 async def assert_clients(settings: KafkaConnectionSettings) -> None:
@@ -47,9 +46,9 @@ async def assert_clients(settings: KafkaConnectionSettings) -> None:
 
 @pytest.mark.asyncio
 async def test_plaintext(
-    monkeypatch: pytest.MonkeyPatch, kafka_container: FullKafkaContainer
+    monkeypatch: pytest.MonkeyPatch, kafka_stack: KafkaStack
 ) -> None:
-    bootstrap_server = kafka_container.get_bootstrap_server()
+    bootstrap_server = kafka_stack.kafka_container.get_bootstrap_server()
     settings = KafkaConnectionSettings(
         bootstrap_servers=bootstrap_server,
         security_protocol=SecurityProtocol.PLAINTEXT,
@@ -69,8 +68,9 @@ async def test_plaintext(
 
 @pytest.mark.asyncio
 async def test_sasl_plaintext(
-    monkeypatch: pytest.MonkeyPatch, kafka_container: FullKafkaContainer
+    monkeypatch: pytest.MonkeyPatch, kafka_stack: KafkaStack
 ) -> None:
+    kafka_container = kafka_stack.kafka_container
     bootstrap_server = kafka_container.get_sasl_plaintext_bootstrap_server()
     with pytest.raises(ValidationError):
         KafkaConnectionSettings(
@@ -108,9 +108,10 @@ async def test_sasl_plaintext(
 @pytest.mark.asyncio
 async def test_sasl_ssl(
     monkeypatch: pytest.MonkeyPatch,
-    kafka_container: FullKafkaContainer,
-    kafka_cert_path: Path,
+    kafka_stack: KafkaStack,
 ) -> None:
+    kafka_container = kafka_stack.kafka_container
+    kafka_cert_path = kafka_stack.kafka_cert_path
     cluster_ca_path = kafka_cert_path / "ca.crt"
 
     bootstrap_server = kafka_container.get_sasl_ssl_bootstrap_server()
@@ -152,10 +153,12 @@ async def test_sasl_ssl(
 
 @pytest.mark.asyncio
 async def test_ssl(
-    kafka_cert_path: Path,
-    kafka_container: FullKafkaContainer,
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, kafka_stack: KafkaStack
 ) -> None:
+    kafka_container = kafka_stack.kafka_container
+    kafka_cert_path = kafka_stack.kafka_cert_path
+
+    cluster_ca_path = kafka_cert_path / "ca.crt"
     cluster_ca_path = kafka_cert_path / "ca.crt"
     client_cert_path = kafka_cert_path / "client.crt"
     client_key_path = kafka_cert_path / "client.key"
