@@ -7,7 +7,7 @@
 .. _cryptography: https://cryptography.io/en/latest/
 .. _FastAPI: https://fastapi.tiangolo.com/
 .. _fastapi_safir_app: https://github.com/lsst/templates/tree/main/project_templates/fastapi_safir_app
-.. _FastStream: https://faststream.airt.ai
+.. _FastStream: https://faststream.ag2.ai
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
 .. _Gidgethub: https://gidgethub.readthedocs.io/en/latest/
 .. _HTTPX: https://www.python-httpx.org/
