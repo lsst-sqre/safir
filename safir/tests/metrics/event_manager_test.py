@@ -341,7 +341,14 @@ async def test_disable() -> None:
 
 
 @pytest.mark.asyncio
-async def test_bad_kafka_from_start_no_raises(log_output: LogCapture) -> None:
+async def test_bad_kafka_from_start_no_raises(
+    log_output: LogCapture,
+    time_machine: TimeMachineFixture,
+) -> None:
+    # This has to be long enough so that we won't exhaust it naturally during
+    # the execution of the test.
+    backoff_interval = timedelta(hours=1)
+
     bad_kafka_settings = KafkaConnectionSettings(
         bootstrap_servers="nope:1234,nada:5678",
         security_protocol=SecurityProtocol.PLAINTEXT,
@@ -356,6 +363,7 @@ async def test_bad_kafka_from_start_no_raises(log_output: LogCapture) -> None:
         events=EventsConfiguration(topic_prefix="what.ever"),
         kafka=bad_kafka_settings,
         schema_manager=bad_schema_manager_settings,
+        backoff_interval=backoff_interval,
     )
 
     manager = config.make_manager()
@@ -385,11 +393,39 @@ async def test_bad_kafka_from_start_no_raises(log_output: LogCapture) -> None:
 
     await manager.aclose()
 
-    # We should have logged some errors
+    # We should have logged one publish error
     error_logs = [
-        entry for entry in log_output.entries if entry["log_level"] == "error"
+        entry
+        for entry in log_output.entries
+        if entry.get("attempted_operation") == "publish"
     ]
-    assert error_logs
+
+    # Move time to after the backoff window. This isn't EXACTLY when the
+    # backoff interval expires, but it's close enough for testing.
+    time_machine.move_to(datetime.now(tz=UTC) + backoff_interval, tick=True)
+
+    await event.publish(
+        MyEvent(
+            foo="bar3",
+            duration=timedelta(seconds=2, milliseconds=123),
+            duration_union=None,
+        )
+    )
+    await event.publish(
+        MyEvent(
+            foo="bar4",
+            duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
+        )
+    )
+
+    # We should only have one more error log
+    error_logs = [
+        entry
+        for entry in log_output.entries
+        if entry.get("attempted_operation") == "publish"
+    ]
+    assert len(error_logs) == 2
 
 
 @pytest.mark.asyncio
@@ -485,20 +521,21 @@ async def test_bad_kafka_after_initialize(
     )
     await event_manager._broker._producer.flush()
 
-    # There should be error events in the logs
+    # There should be one error event in the logs
     error_logs = [
         entry
         for entry in log_output.entries
         if entry["log_level"] == "error"
         and entry["attempted_operation"] == "publish"
     ]
-    assert error_logs
+    assert len(error_logs) == 1
 
-    # Start kafka again
-    kafka_container.start_container_again()
+    # Move time to after the backoff window. This isn't EXACTLY when the
+    # backoff interval expires, but it's close enough for testing.
+    time_machine.move_to(datetime.now(tz=UTC) + backoff_interval, tick=True)
 
-    # These should also not make it to Kafka, even though it's backup, because
-    # we're still in the backoff window
+    # These should also not make it to Kafka, but there should be one more
+    # error log because we're past the backoff window
     for _ in range(max_batch_size + 5):
         await event.publish(
             MyEvent(
@@ -507,17 +544,42 @@ async def test_bad_kafka_after_initialize(
                 duration_union=None,
             )
         )
+    await event_manager._broker._producer.flush()
 
-    backoff_error_logs = [
+    backoff_down_error_logs = [
+        entry
+        for entry in log_output.entries
+        if entry["log_level"] == "error"
+        and entry["attempted_operation"] == "publish"
+    ]
+    assert len(backoff_down_error_logs) == len(error_logs) + 1
+
+    # Start kafka again
+    kafka_container.start_container_again()
+
+    # These should also not make it to Kafka, even though it's back up, because
+    # we're still in the backoff window
+    for _ in range(max_batch_size + 5):
+        await event.publish(
+            MyEvent(
+                foo="in_backoff_again",
+                duration=timedelta(seconds=2, milliseconds=456),
+                duration_union=None,
+            )
+        )
+
+    # We still should not have any more error logs because we're still in the
+    # backoff window
+    backoff_up_error_logs = [
         entry
         for entry in log_output.entries
         if entry["log_level"] == "error"
         and entry["attempted_operation"] == "publish"
     ]
     await event_manager._broker._producer.flush()
-    assert len(backoff_error_logs) > len(error_logs)
+    assert len(backoff_up_error_logs) == len(backoff_down_error_logs)
 
-    # Move time to after the backoff window. This isn't EXACTLY when the
+    # Move time to after the next backoff window. This isn't EXACTLY when the
     # backoff interval expires, but it's close enough for testing.
     time_machine.move_to(datetime.now(tz=UTC) + backoff_interval, tick=True)
 
@@ -536,7 +598,7 @@ async def test_bad_kafka_after_initialize(
     new_error_logs = [
         entry for entry in log_output.entries if entry["log_level"] == "error"
     ]
-    assert len(new_error_logs) == len(backoff_error_logs)
+    assert len(new_error_logs) == len(backoff_up_error_logs)
 
     consumer = AIOKafkaConsumer(
         **kafka_connection_settings.to_aiokafka_params(),
@@ -570,7 +632,7 @@ async def test_bad_kafka_after_initialize(
     # Kafka should have the only the messages from before we stopped the
     # container, and the messages from after we restarted the container and
     # after the backoff interval.
-    assert len(messages) == max_batch_size + 5 + 1
+    assert len(deserialized) == max_batch_size + 5 + 1
 
     assert len(working) == 1
     assert len(started_again) == max_batch_size + 5

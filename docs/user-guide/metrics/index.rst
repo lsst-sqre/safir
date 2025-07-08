@@ -30,6 +30,9 @@ The ``raise_on_error`` config option to ``KafkaMetricsConfiguration`` can be set
 
 The ``backoff_interval`` config option to ``KafkaMetricsConfiguration`` sets the amount of time to wait before trying to send metrics again if an error state is entered after initialization.
 
+While in an error state, only one error message per attempted operation will be logged during a ``backoff_interval``, even if it is attempted multiple times.
+For example, if an event manager gets into an error state, ``backoff_interval`` is set to 5 minutes, and 50 events are published in 1 minute, there will only be one error message logged.
+
 Metrics vs. telemetry
 =====================
 

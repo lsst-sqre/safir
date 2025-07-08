@@ -68,10 +68,9 @@ def abandonable[**P, R, T: "KafkaEventManager"](
     This function is meant to be used as a decorator on KafkaEventManager
     methods. If an exception is caught, puts the KafkaEventManager instance
     into an error state, logs an error, and returns None. In this error state,
-    subsequent calls to this method will just log an error and return None
-    instantly. The error state will be reset after a configurable amount of
-    time.
-
+    subsequent calls to this method will just return None instantly. The error
+    state will be reset after a configurable amount of time and the call will
+    be tried again.
     """
     call_tracker = _CallTracker()
 
@@ -82,19 +81,8 @@ def abandonable[**P, R, T: "KafkaEventManager"](
         if self._state == _State.error:
             elapsed = now - call_tracker.failed_at
 
-            # If we still have backoff time remaining, log an error and return
-            # None.
-            remaining = self._backoff_interval - elapsed
-            if remaining > timedelta(seconds=0):
-                error_state_seconds_remaining = remaining.total_seconds()
-                logger.error(
-                    f"App metrics collection is in an error state. This may be"
-                    f" due to instability in the underlying metrics"
-                    f" infrastructure like Kafka. Any further attempts at app"
-                    f" metrics operations will be no-ops until"
-                    f" {remaining.total_seconds()} from now.",
-                    error_state_seconds_remaining=error_state_seconds_remaining,
-                )
+            # If we still have backoff time remaining, just return None.
+            if elapsed <= self._backoff_interval:
                 return None
 
             # If we're past our backoff time, reset our error state and try the
@@ -294,20 +282,29 @@ class FailedEventPublisher[P: EventPayload](EventPublisher[P]):
         self,
         application: str,
         event_class: type[P],
+        backoff_interval: timedelta,
         logger: BoundLogger,
     ) -> None:
         super().__init__(application, event_class)
         self.logger = logger
+        self._backoff_interval = backoff_interval
+        self._publish_called_at = datetime(1900, 1, 1, tzinfo=UTC)
 
     @override
     async def publish(self, payload: P) -> EventMetadata:
+        """Don't do anything except log a message once per backoff interval."""
+        now = datetime.now(tz=UTC)
+        elapsed = now - self._publish_called_at
+        if elapsed > self._backoff_interval:
+            self._publish_called_at = now
+            self.logger.error(
+                "The app metrics system is in an error state. No metrics will"
+                " be published by this app. When the underlying infrastructure"
+                " (Kafka, Schema Manager, etc) is healthy again, this app must"
+                " be restarted.",
+                attempted_operation="publish",
+            )
         event = self.construct_event(payload)
-        self.logger.error(
-            "The app metrics system is in an error state. No metrics will be"
-            " published by this app. When the underlying infrastructure"
-            " (Kafka, Schema Manager, etc) is healthy again, this app must be"
-            " restarted."
-        )
         return cast("EventMetadata", event)
 
 
@@ -621,6 +618,7 @@ class KafkaEventManager(EventManager):
             return FailedEventPublisher(
                 application=self._application,
                 event_class=model,
+                backoff_interval=self._backoff_interval,
                 logger=self.logger,
             )
         else:
