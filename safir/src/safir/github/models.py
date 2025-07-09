@@ -21,6 +21,7 @@ __all__ = [
     "GitHubCheckSuiteId",
     "GitHubCheckSuiteModel",
     "GitHubCheckSuiteStatus",
+    "GitHubPullRequestHeadModel",
     "GitHubPullRequestModel",
     "GitHubPullState",
     "GitHubRepoOwnerModel",
@@ -141,6 +142,12 @@ class GitHubPullState(StrEnum):
     """The PR is closed."""
 
 
+class GitHubPullRequestHeadModel(BaseModel):
+    """A Pydantic model for the last commit to the head branch of a PR."""
+
+    sha: str = Field(description="Last commit SHA of the PR head branch.")
+
+
 class GitHubPullRequestModel(BaseModel):
     """A Pydantic model for a GitHub Pull Request.
 
@@ -165,6 +172,10 @@ class GitHubPullRequestModel(BaseModel):
     merged: bool = Field(description="True if the PR is merged.")
 
     user: GitHubUserModel = Field(description="The user that opened the PR.")
+
+    head: GitHubPullRequestHeadModel = Field(
+        description="The last commit to the head branch of the PR."
+    )
 
 
 class GitHubBranchCommitModel(BaseModel):

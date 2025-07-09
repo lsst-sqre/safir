@@ -70,6 +70,8 @@ def test_pull_request_event() -> None:
     assert data.action == GitHubPullRequestEventAction.opened
     assert data.pull_request.number == 2
     assert data.pull_request.title == "Update the README with new information."
+    expected_sha = "ec26c3e57ca3a959ca5aad62de7213c562f8c821"
+    assert data.pull_request.head.sha == expected_sha
 
 
 def test_check_suite_completed_event() -> None:
