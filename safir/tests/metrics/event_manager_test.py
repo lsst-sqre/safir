@@ -89,9 +89,14 @@ async def assert_from_kafka(
     assert deserialized.application == "testapp"
 
     # dataclasses-avroschema serializes python datetime's into avro
-    # timestamp-millis's
+    # timestamp-millis's. The timestamp_ns and the timestamp fields could
+    # differ by a millisecond due to differences between time.time_ns and the
+    # passing of datetime objects through the dataclasses-avroschema
+    # serialization and deserialization.
     deserialized_ms = math.trunc(deserialized.timestamp_ns / 1e6)
-    assert deserialized_ms == deserialized.timestamp.timestamp() * 1e3
+    timestamp_ms = deserialized.timestamp.timestamp() * 1e3
+    difference = abs(deserialized_ms - timestamp_ms)
+    assert difference <= 1
 
     # Mypy can't deal with the fact that deserialized has both EventMetadata
     # AND MyEvent as bases, so let's pretend we don't know either :(
