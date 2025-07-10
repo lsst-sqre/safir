@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-11.1.0'></a>
+## 11.1.0 (2025-07-10)
+
+### New features
+
+- `GitHubPullRequestModel` now contains a `head` value, which is a model that contains a `sha` value. This is the latest commit SHA on the head branch of the PR in a `GitHubPullRequestEventModel`.
+
 <a id='changelog-11.0.0'></a>
 ## 11.0.0 (2025-05-28)
 
