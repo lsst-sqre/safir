@@ -132,17 +132,8 @@ class WorkerError(Exception):
 
     Attributes
     ----------
-    cause_type
-        Type of the underlying exception, if there is one.
     detail
         Additional error detail, not including the traceback if any.
-    error_type
-        Indicates whether this exception represents a transient error that may
-        go away if the request is retried or a permanent error with the
-        request.
-    traceback
-        Traceback of the underlying triggering exception, if tracebacks were
-        requested and there is a cause set.
     user
         User whose action triggered this exception, for Slack reporting.
 

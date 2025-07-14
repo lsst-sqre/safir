@@ -11,13 +11,7 @@ __all__ = [
 
 
 class ArqJobError(Exception):
-    """A base class for errors related to arq jobs.
-
-    Attributes
-    ----------
-    job_id
-        The job ID, or `None` if the job ID is not known in this context.
-    """
+    """A base class for errors related to arq jobs."""
 
     def __init__(self, message: str, job_id: str | None) -> None:
         super().__init__(message)
