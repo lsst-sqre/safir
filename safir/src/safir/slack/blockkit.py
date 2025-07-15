@@ -292,7 +292,8 @@ class SlackException(Exception):
         Returns
         -------
         SlackMessage
-            Slack message suitable for posting with `SlackClient`.
+            Slack message suitable for posting with
+            `safir.slack.webhook.SlackWebhookClient`.
         """
         failed_at = format_datetime_for_logging(self.failed_at)
         fields: list[SlackBaseField] = [

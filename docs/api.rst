@@ -84,7 +84,7 @@ API reference
 ..
    If all objects from safir.pydantic are included, the pages for the
    Pydantic types are generated but not linked into any table of contents.
-   This is probably a but in automodapi and should be checked against later
+   This is probably a bug in automodapi and should be checked against later
    verisons to see if it's fixed. Once this is fixed, the nitpick exclusions
    in documenteer.yaml can also be removed.
 

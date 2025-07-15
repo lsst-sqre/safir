@@ -65,7 +65,7 @@ dev = [
     "testcontainers[postgres,redis]",
     "uvicorn",
     # documentation
-    "documenteer[guide]>=1.4.1",
+    "documenteer[guide]>=2.0.0",
     "autodoc_pydantic",
 ]
 gcs = [
