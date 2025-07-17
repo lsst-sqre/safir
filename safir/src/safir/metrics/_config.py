@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Annotated, override
+from typing import Annotated, Any, override
 
 import structlog
 from aiokafka.admin.client import AIOKafkaAdminClient
@@ -13,8 +13,15 @@ from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
 
+from safir.pydantic import HumanTimedelta
+
 from ..kafka import KafkaConnectionSettings, SchemaManagerSettings
-from ._constants import ADMIN_CLIENT_PREFIX, BROKER_PREFIX
+from ._constants import (
+    ADMIN_CLIENT_PREFIX,
+    BROKER_PREFIX,
+    EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL,
+    EVENT_MANAGER_DEFAULT_KAFKA_TIMEOUT_MS,
+)
 from ._event_manager import (
     EventManager,
     KafkaEventManager,
@@ -228,22 +235,58 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
         title="Kafka schema manager settings",
     )
 
+    raise_on_error: bool = Field(
+        False,
+        title="Raise on error",
+        description=(
+            "True if we should raise an exception whenever there is an error"
+            " with the metrics system dependencies, like Kafka or the Schema"
+            " Manager. False if we should just log an error instead. This"
+            " should be False for most production apps so that issues with the"
+            " metrics infrastructure don't bring down the app."
+        ),
+    )
+
+    backoff_interval: HumanTimedelta = Field(
+        EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL,
+        title="Backoff interval",
+        description=(
+            "The amount of time to wait until further operations are attempted"
+            " when the event manager is in an error state."
+        ),
+    )
+
     @override
     def make_manager(
         self,
         logger: BoundLogger | None = None,
         *,
         kafka_broker: KafkaBroker | None = None,
+        request_timeout_ms: int = EVENT_MANAGER_DEFAULT_KAFKA_TIMEOUT_MS,
+        extra_broker_settings: dict[str, Any] | None = None,
+        extra_admin_client_settings: dict[str, Any] | None = None,
     ) -> KafkaEventManager:
+        """Make a KafkaEventManager.
+
+        The request timeout is set low by default so we don't block the
+        instrumented app for too long if kafka is unavailable.
+        """
+        extra_broker_settings = extra_broker_settings or {}
+        extra_admin_client_settings = extra_admin_client_settings or {}
+
         manage_kafka_broker = kafka_broker is None
         if not kafka_broker:
             kafka_broker = KafkaBroker(
                 client_id=f"{BROKER_PREFIX}-{self.application}",
+                request_timeout_ms=request_timeout_ms,
                 **self.kafka.to_faststream_params(),
+                **extra_broker_settings,
             )
         kafka_admin_client = AIOKafkaAdminClient(
             client_id=f"{ADMIN_CLIENT_PREFIX}-{self.application}",
+            request_timeout_ms=request_timeout_ms,
             **self.kafka.to_aiokafka_params(),
+            **extra_admin_client_settings,
         )
         schema_manager = self.schema_manager.make_manager(logger=logger)
 
@@ -254,6 +297,8 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
             kafka_admin_client=kafka_admin_client,
             schema_manager=schema_manager,
             manage_kafka_broker=manage_kafka_broker,
+            raise_on_error=self.raise_on_error,
+            backoff_interval=self.backoff_interval,
             logger=logger,
         )
 

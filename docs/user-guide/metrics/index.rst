@@ -9,6 +9,30 @@ Using these helpers, your can instrument your app to push custom events to a Sas
 .. _Chronograf: https://www.influxdata.com/time-series-platform/chronograf
 .. _graph them: https://sasquatch.lsst.io/user-guide/dashboards.html
 
+Application Resiliency
+======================
+
+.. warning::
+
+   The app metrics functionality prioritizes the resiliency of your instrumented app over the reliability of sending app metrics.
+   If your app metrics instrumentation gets into an error state during initialization, you will have to restart your app to start sending metrics again, even if the underlying infrastructure comes back up.
+
+If the underlying app metrics infrastructure is degraded, like if Kafka or the Schema Registry are not available, the Safir app metrics code tries very hard to not crash or your instrumented application.
+
+Instead of of raising exceptions, it will log error-level messages and put itself into an error state.
+Once in this error state, it will not even try to interact with any underlying infrastructure, which means it will not even try to send metrics for a configurable amount of time.
+It will instead only log error messages.
+
+If this happens during initialization, you will have to restart your app after the underlying infrastructure is fixed to start sending metrics again.
+If this happens after successful initialization, the app may start sending metrics again by itself after the underlying infrastructure is fixed.
+
+The ``raise_on_error`` config option to ``KafkaMetricsConfiguration`` can be set to ``False`` to raise all exceptions to the instrumented app instead of swallowing them and logging errors.
+
+The ``backoff_interval`` config option to ``KafkaMetricsConfiguration`` sets the amount of time to wait before trying to send metrics again if an error state is entered after initialization.
+
+While in an error state, only one error message per attempted operation will be logged during a ``backoff_interval``, even if it is attempted multiple times.
+For example, if an event manager gets into an error state, ``backoff_interval`` is set to 5 minutes, and 50 events are published in 1 minute, there will only be one error message logged.
+
 Metrics vs. telemetry
 =====================
 

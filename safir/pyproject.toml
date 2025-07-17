@@ -63,6 +63,7 @@ dev = [
     "scriv",
     "sqlalchemy[mypy]",
     "testcontainers[postgres,redis]",
+    "time-machine>=2.16.0",
     "uvicorn",
     # documentation
     "documenteer[guide]>=2.0.0",
