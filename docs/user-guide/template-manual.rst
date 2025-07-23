@@ -1,13 +1,11 @@
-.. _create-from-template:
+##########################################
+Manually creating an app from the template
+##########################################
 
-#################################
-Creating an app from the template
-#################################
+The preferred way to create a new Safir-based application is via the Squarebot bot on the Rubin Observatory internal project Slack.
+See :doc:`set-up-from-template` for instructions.
 
-The best way to create a new Safir-based application is with the fastapi_safir_app_ template.
-The quickest way to do this is by running the ``/msg squarebot create project`` Slack command on the Rubin project Slack.
-
-For a manual equivalent, see :doc:`template-manual`.
+If you do not have access to that Slack server or want full control of each step, you can instead run the following steps manually.
 
 1. Install necessary prerequisites
 ==================================
@@ -18,21 +16,40 @@ The fastapi_safir_app_ template does not support earlier versions.
 You will also need to have a recent version of uv_ installed locally.
 See the `uv documentation <https://docs.astral.sh/uv/getting-started/installation/>`__ for installation instructions.
 
-2. Create the project
-=====================
+Then, in a clean Python virtual environment, install templatekit_:
 
-To create a new project, run the command ``/msg squarebot create project`` on the Rubin Observatory internal project Slack.
-Select the ``FastAPI application (Safir)`` template.
+.. prompt:: bash
 
-This will ask a series of questions to configure your new repository, and then create it from the fastapi_safir_app_ template.
-If you are creating a :doc:`UWS service <uws/index>`, select the ``UWS`` flavor.
+   python -m pip install templatekit
 
-3. Clone the repository
-=======================
+2. Start the project with the template
+======================================
 
-Squarebot will create a new GitHub repository and notify you when that is complete.
-Check out that new repository with Git using the command that Squarebot gives you.
-You will be able to interact with this repository like any other GitHub repository.
+Next, you'll actually create the project files using the template.
+
+.. prompt:: bash
+
+   git clone https://github.com/lsst/templates
+   templatekit -r templates make fastapi_safir_app
+
+Answer the prompts, and move into that directory in your shell.
+
+The rest of this tutorial uses ``safirdemo`` as the repository (and package) name:
+
+.. prompt:: bash
+
+   cd safirdemo
+
+3. Initialize the repository
+============================
+
+From the root of the project directory, initialize the Git repository:
+
+.. prompt:: bash
+
+   git init .
+   git add .
+   git commit
 
 4. Initialize the dependencies
 ==============================
@@ -88,7 +105,12 @@ You can format the code by running tox_:
    tox run -e lint
    git commit -a
 
-6. Try the local test commands
+6. Push to GitHub
+=================
+
+Now `create your application's repository on GitHub <https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository>`__ and push to it.
+
+7. Try the local test commands
 ==============================
 
 The preferred way to run tests is with tox_:
@@ -122,7 +144,7 @@ To run all the default test steps, but in parallel:
 
    tox run-parallel -p auto
 
-7. Try the local development server
+8. Try the local development server
 ===================================
 
 In addition to running tests, tox is also configured with a command to spin up a development server:
@@ -139,11 +161,3 @@ In another shell, send an HTTP GET request to the development server:
 
 This development server auto-reloads, so any time you change the code, the server will restart for you.
 
-Next steps
-==========
-
-Now that you have a working application repository, the next steps are to develop your application's logic and interface, and then deploy it to Phalanx.
-
-To learn learn more about developing Safir-based applications like yours, refer to the :doc:`guides in this documentation <index>` and the `FastAPI documentation <https://fastapi.tiangolo.com/>`__.
-
-To learn how to deploy your application to Phalanx, see the `Phalanx documentation <https://phalanx.lsst.io>`__.

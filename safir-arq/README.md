@@ -1,6 +1,6 @@
 # safir-arq
 
-safir-arq is a subpackage of Safir, Rubin Observatory's library for building [FastAPI](https://fastapi.tiangolo.com/) services for the [Rubin Science Platform (Phalanx)](https://github.com/lsst-sqre/phalanx) and [Roundtable](https://github.com/lsst-sqre/roundtable) Kubernetes clusters.
+safir-arq is a subpackage of Safir, Rubin Observatory's library for building [FastAPI](https://fastapi.tiangolo.com/) services for the [Phalanx](https://phalanx.lsst.io) Kubernetes clusters, including the Rubin Science Platform and Roundtable.
 It is a separate PyPI module so that it can be used as a dependency in contexts where the full Safir dependency is undesirable.
 
 safir-arq is available from [PyPI](https://pypi.org/project/safir-arq/):

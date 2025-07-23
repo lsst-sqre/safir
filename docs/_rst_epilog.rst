@@ -36,6 +36,7 @@
 .. _Testcontainers: https://github.com/testcontainers/testcontainers-python
 .. _tox: https://tox.wiki/en/latest/
 .. _tox-docker: https://tox-docker.readthedocs.io/en/latest/
+.. _uv: https://docs.astral.sh/uv/
 .. _Uvicorn: https://www.uvicorn.org/
 .. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.io/en/stable/
 .. _vo-models: https://vo-models.readthedocs.io/latest/
