@@ -16,12 +16,6 @@ The fastapi_safir_app_ template does not support earlier versions.
 You will also need to have a recent version of uv_ installed locally.
 See the `uv documentation <https://docs.astral.sh/uv/getting-started/installation/>`__ for installation instructions.
 
-Then, in a clean Python virtual environment, install templatekit_:
-
-.. prompt:: bash
-
-   python -m pip install templatekit
-
 2. Start the project with the template
 ======================================
 
@@ -30,7 +24,7 @@ Next, you'll actually create the project files using the template.
 .. prompt:: bash
 
    git clone https://github.com/lsst/templates
-   templatekit -r templates make fastapi_safir_app
+   uvx templatekit -r templates make fastapi_safir_app
 
 Answer the prompts, and move into that directory in your shell.
 

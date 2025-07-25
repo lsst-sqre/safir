@@ -31,6 +31,7 @@
 .. _Sentry: https://sentry.io/welcome/
 .. _semver: https://semver.org/
 .. _SQLAlchemy: https://www.sqlalchemy.org/
+.. _SQuaRE Bot: https://squarebot.lsst.io/
 .. _structlog: https://www.structlog.org/en/stable/
 .. _templatekit: https://templatekit.lsst.io
 .. _Testcontainers: https://github.com/testcontainers/testcontainers-python

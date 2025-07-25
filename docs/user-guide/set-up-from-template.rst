@@ -5,7 +5,7 @@ Creating an app from the template
 #################################
 
 The best way to create a new Safir-based application is with the fastapi_safir_app_ template.
-The quickest way to do this is by running the ``/msg squarebot create project`` Slack command on the Rubin project Slack.
+The quickest way to do this is by running the ``/msg @Squarebot create project`` Slack command on the Rubin project Slack.
 
 For a manual equivalent, see :doc:`template-manual`.
 
@@ -21,7 +21,13 @@ See the `uv documentation <https://docs.astral.sh/uv/getting-started/installatio
 2. Create the project
 =====================
 
-To create a new project, run the command ``/msg squarebot create project`` on the Rubin Observatory internal project Slack.
+In the Rubin Observatory internal project Slack, ask `SQuaRE Bot`_ to create a new project:
+
+.. code-block:: text
+   :caption: rubin-obs.slack.com
+
+   /msg @Squarebot create project
+
 Select the ``FastAPI application (Safir)`` template.
 
 This will ask a series of questions to configure your new repository, and then create it from the fastapi_safir_app_ template.
@@ -30,7 +36,7 @@ If you are creating a :doc:`UWS service <uws/index>`, select the ``UWS`` flavor.
 3. Clone the repository
 =======================
 
-Squarebot will create a new GitHub repository and notify you when that is complete.
+SQuaRE Bot will create a new GitHub repository and notify you when that is complete.
 Check out that new repository with Git using the command that Squarebot gives you.
 You will be able to interact with this repository like any other GitHub repository.
 
@@ -146,4 +152,4 @@ Now that you have a working application repository, the next steps are to develo
 
 To learn learn more about developing Safir-based applications like yours, refer to the :doc:`guides in this documentation <index>` and the `FastAPI documentation <https://fastapi.tiangolo.com/>`__.
 
-To learn how to deploy your application to Phalanx, see the `Phalanx documentation <https://phalanx.lsst.io>`__.
+To learn how to deploy your application to Phalanx, see the `Phalanx developer documentation <https://phalanx.lsst.io/developers/index.html>`__.
