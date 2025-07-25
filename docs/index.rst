@@ -4,7 +4,7 @@
 Safir
 #####
 
-Safir is Rubin Observatory's library for building FastAPI_ services for the Rubin Science Platform (Phalanx_) and Roundtable_ Kubernetes clusters.
+Safir is Rubin Observatory's library for building FastAPI_ services for Phalanx_ Kubernetes clusters, including the Rubin Science Platform and Roundtable.
 Safir is developed, maintained, and field tested by the SQuaRE team.
 
 Safir is developed on GitHub at https://github.com/lsst-sqre/safir and is available on PyPI_.

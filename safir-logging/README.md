@@ -1,6 +1,6 @@
 # safir-logging
 
-safir-logging is a subpackage of Safir, Rubin Observatory's library for building [FastAPI](https://fastapi.tiangolo.com/) services for the [Rubin Science Platform (Phalanx)](https://github.com/lsst-sqre/phalanx) and [Roundtable](https://github.com/lsst-sqre/roundtable) Kubernetes clusters.
+safir-logging is a subpackage of Safir, Rubin Observatory's library for building [FastAPI](https://fastapi.tiangolo.com/) services for the [Phalanx](https://phalanx.lsst.io) Kubernetes clusters, including the Rubin Science Platform and Roundtable.
 It is a separate PyPI module so that it can be used as a dependency in contexts where the full Safir dependency is undesirable.
 
 safir-logging is available from [PyPI](https://pypi.org/project/safir-logging/):

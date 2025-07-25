@@ -9,6 +9,7 @@ User guide
    :caption: Tutorials
 
    set-up-from-template
+   template-manual
 
 .. toctree::
    :maxdepth: 1
