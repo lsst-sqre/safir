@@ -1,3 +1,10 @@
+from ._arq import (
+    ArqEvents,
+    ArqJobRunEvent,
+    ArqMetricsError,
+    initialize_arq_metrics,
+    with_arq_metrics,
+)
 from ._config import (
     BaseMetricsConfiguration,
     DisabledMetricsConfiguration,
@@ -40,6 +47,9 @@ from ._testing import (
 __all__ = [
     "ANY",
     "NOT_NONE",
+    "ArqEvents",
+    "ArqJobRunEvent",
+    "ArqMetricsError",
     "BaseAssertionError",
     "BaseMetricsConfiguration",
     "DisabledMetricsConfiguration",
@@ -68,5 +78,7 @@ __all__ = [
     "PublishedList",
     "PublishedTooFewError",
     "UnsupportedAvroSchemaError",
+    "initialize_arq_metrics",
     "metrics_configuration_factory",
+    "with_arq_metrics",
 ]

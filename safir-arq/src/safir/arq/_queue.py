@@ -28,6 +28,14 @@ class ArqQueue(metaclass=abc.ABCMeta):
     implemented either with a real Redis backend, or an in-memory repository
     for testing.
 
+    Parameters
+    ----------
+    enable_metrics_support
+        Set this to True when you are using the `safir.metrics` arq metrics
+        support. When True, additional kwargs will be passed to functions when
+        enqueuing them. The `safir.arq.with_arq_metrics` decorator will use
+        these kwargs when emiting generic Arq app metrics.
+
     See Also
     --------
     RedisArqQueue
@@ -37,9 +45,13 @@ class ArqQueue(metaclass=abc.ABCMeta):
     """
 
     def __init__(
-        self, *, default_queue_name: str = arq_default_queue_name
+        self,
+        *,
+        default_queue_name: str = arq_default_queue_name,
+        enable_metrics_support: bool = False,
     ) -> None:
         self._default_queue_name = default_queue_name
+        self._enable_metrics_support = enable_metrics_support
 
     @property
     def default_queue_name(self) -> str:
@@ -160,6 +172,16 @@ class ArqQueue(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    def _enrich_task_kwargs(
+        self, task_kwargs: dict[Any, Any], queue_name: str
+    ) -> dict[Any, Any]:
+        if self._enable_metrics_support:
+            task_kwargs = {
+                **task_kwargs,
+                "_app_metrics_queue_name": queue_name,
+            }
+        return task_kwargs
+
 
 class RedisArqQueue(ArqQueue):
     """A distributed queue, based on arq and Redis."""
@@ -169,8 +191,12 @@ class RedisArqQueue(ArqQueue):
         pool: ArqRedis,
         *,
         default_queue_name: str = arq_default_queue_name,
+        enable_metrics_support: bool = False,
     ) -> None:
-        super().__init__(default_queue_name=default_queue_name)
+        super().__init__(
+            default_queue_name=default_queue_name,
+            enable_metrics_support=enable_metrics_support,
+        )
         self._pool = pool
 
     @classmethod
@@ -179,12 +205,17 @@ class RedisArqQueue(ArqQueue):
         redis_settings: RedisSettings,
         *,
         default_queue_name: str = arq_default_queue_name,
+        enable_metrics_support: bool = False,
     ) -> Self:
         """Initialize a RedisArqQueue from Redis settings."""
         pool = await create_pool(
             redis_settings, default_queue_name=default_queue_name
         )
-        return cls(pool, default_queue_name=default_queue_name)
+        return cls(
+            pool,
+            default_queue_name=default_queue_name,
+            enable_metrics_support=enable_metrics_support,
+        )
 
     @override
     async def enqueue(
@@ -194,10 +225,12 @@ class RedisArqQueue(ArqQueue):
         _queue_name: str | None = None,
         **task_kwargs: Any,
     ) -> JobMetadata:
+        queue_name = _queue_name or self.default_queue_name
+        task_kwargs = self._enrich_task_kwargs(task_kwargs, queue_name)
         job = await self._pool.enqueue_job(
             task_name,
             *task_args,
-            _queue_name=_queue_name or self.default_queue_name,
+            _queue_name=queue_name,
             **task_kwargs,
         )
         if job:
@@ -244,9 +277,15 @@ class MockArqQueue(ArqQueue):
     """A mocked queue for testing API services."""
 
     def __init__(
-        self, *, default_queue_name: str = arq_default_queue_name
+        self,
+        *,
+        default_queue_name: str = arq_default_queue_name,
+        enable_metrics_support: bool = False,
     ) -> None:
-        super().__init__(default_queue_name=default_queue_name)
+        super().__init__(
+            default_queue_name=default_queue_name,
+            enable_metrics_support=enable_metrics_support,
+        )
         self._job_metadata: dict[str, dict[str, JobMetadata]] = {
             self.default_queue_name: {}
         }
@@ -266,6 +305,7 @@ class MockArqQueue(ArqQueue):
         **task_kwargs: Any,
     ) -> JobMetadata:
         queue_name = self._resolve_queue_name(_queue_name)
+        task_kwargs = self._enrich_task_kwargs(task_kwargs, queue_name)
         new_job = JobMetadata(
             id=str(uuid.uuid4().hex),
             name=task_name,

@@ -18,7 +18,11 @@ class ArqDependency:
         self._arq_queue: ArqQueue | None = None
 
     async def initialize(
-        self, *, mode: ArqMode, redis_settings: RedisSettings | None
+        self,
+        *,
+        mode: ArqMode,
+        redis_settings: RedisSettings | None,
+        enable_metrics_support: bool = False,
     ) -> None:
         """Initialize the dependency (call during the FastAPI start-up event).
 
@@ -38,6 +42,14 @@ class ArqDependency:
             `safir.arq.ArqMode.production`. See arq's
             `~arq.connections.RedisSettings` documentation for details on
             this object.
+        enable_metrics_support
+            Set this to True when you are using the
+            `safir.metrics` arq metrics support. When True,
+            additional kwargs will be passed to functions
+            when enqueuing them. The
+            `safir.arq.with_arq_metrics` decorator will use
+            these kwargs when emiting generic Arq app
+            metrics.
 
         Examples
         --------
@@ -73,9 +85,13 @@ class ArqDependency:
                     "The redis_settings argument must be set for arq in "
                     "production."
                 )
-            self._arq_queue = await RedisArqQueue.initialize(redis_settings)
+            self._arq_queue = await RedisArqQueue.initialize(
+                redis_settings, enable_metrics_support=enable_metrics_support
+            )
         else:
-            self._arq_queue = MockArqQueue()
+            self._arq_queue = MockArqQueue(
+                enable_metrics_support=enable_metrics_support
+            )
 
     async def __call__(self) -> ArqQueue:
         """Get the arq queue.
