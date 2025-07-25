@@ -256,6 +256,106 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
 
 For information on the metadata available from jobs, see `JobMetadata` and `JobResult`.
 
+.. _arq-metrics:
+
+Generic metrics for arq queues
+==============================
+
+You can emit a `safir.metrics.ArqQueueJobEvent` every time arq executes one of your job functions.
+This event contains a ``time_in_queue`` field which is, for a given queue, the difference between when arq would ideally start executing a job, and when it actually does.
+This is useful for deciding if you need more workers processing jobs from that queue.
+
+To enable this, you need to:
+
+* Add app metrics configuration to your app, as in :ref:`metrics-example`
+* Add ``queue`` to the list of fields in the `Sasquatch app metrics configuration`_
+* Create a `safir.metrics.EventManager` and pass it to `safir.metrics.initialize_arq_metrics` in your ``WorkerSettings.on_startup`` function.
+* Generate an ``on_job_start`` function by passing a queue name to `safir.metrics.make_on_job_start`.
+  Make sure you shut this event manager down cleanly in your shutdown function.
+
+Your worker set up in :file:`worker/main.py` might look like this:
+
+.. code-block:: python
+   :emphasize-lines: 9,34,60,76
+
+    from __future__ import annotations
+
+    import uuid
+    from typing import Any
+
+    import httpx
+    import structlog
+    from safir.logging import configure_logging
+    from safir.metrics import initialize_arq_metrics, make_on_job_start
+
+    from ..config import config
+    from .functions import function_a, function_b
+
+
+    async def startup(ctx: dict[Any, Any]) -> None:
+        """Runs during worker start-up to set up the worker context."""
+        configure_logging(
+            profile=config.profile,
+            log_level=config.log_level,
+            name="yourapp",
+        )
+        logger = structlog.get_logger("yourapp")
+        # The instance key uniquely identifies this worker in logs
+        instance_key = uuid.uuid4().hex
+        logger = logger.bind(worker_instance=instance_key)
+
+        http_client = httpx.AsyncClient()
+        ctx["http_client"] = http_client
+
+        ctx["logger"] = logger
+
+        event_manager = config.metrics.make_manager()
+        await event_manager.initialize()
+        await initialize_arq_metrics(event_manager, ctx)
+
+        logger.info("Worker start up complete")
+
+
+    async def shutdown(ctx: dict[Any, Any]) -> None:
+        """Runs during worker shutdown to cleanup resources."""
+        if "logger" in ctx.keys():
+            logger = ctx["logger"]
+        else:
+            logger = structlog.get_logger("yourapp")
+        logger.info("Running worker shutdown.")
+
+        try:
+            await ctx["http_client"].aclose()
+        except Exception as e:
+            logger.warning("Issue closing the http_client: %s", str(e))
+
+        try:
+            await ctx["event_manager"].aclose()
+        except Exception as e:
+            logger.warning("Issue closing the event_manager", detail=str(e))
+
+        logger.info("Worker shutdown complete.")
+
+
+    on_job_start = make_on_job_start(config.queue_name)
+
+
+    class WorkerSettings:
+        """Configuration for the arq worker.
+
+        See `arq.worker.Worker` for details on these attributes.
+        """
+
+        functions = [function_a, function_b]
+
+        redis_settings = config.arq_redis_settings
+
+        on_startup = startup
+
+        on_shutdown = shutdown
+
+        on_job_start = on_job_start
+
 .. _arq-testing:
 
 Testing applications with an arq queue

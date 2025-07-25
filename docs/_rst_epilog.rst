@@ -26,6 +26,7 @@
 .. _respx: https://lundberg.github.io/respx/
 .. _Roundtable: https://roundtable.lsst.io
 .. _Sasquatch: https://sasquatch.lsst.io
+.. _Sasquatch app metrics configuration: https://sasquatch.lsst.io/user-guide/app-metrics.html
 .. _schema registry: https://docs.confluent.io/platform/current/schema-registry/index.html
 .. _scriv: https://scriv.readthedocs.io/en/stable/
 .. _Sentry: https://sentry.io/welcome/
