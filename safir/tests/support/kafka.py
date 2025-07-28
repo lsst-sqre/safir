@@ -203,6 +203,6 @@ async def make_kafka_clients(
         if kafka_consumer:
             await kafka_consumer.stop()
         if kafka_broker:
-            await kafka_broker.close()
+            await kafka_broker.stop()
         if kafka_admin_client:
             await kafka_admin_client.close()
