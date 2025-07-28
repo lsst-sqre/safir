@@ -46,7 +46,7 @@ class SchemaRegistryContainer(DockerContainer):
         )
         self.with_env("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081")
         self.with_env(
-            "SCHEMA_REGISTRY_HOST_NAME", self.get_container_host_ip()
+            "SCHEMA_REGISTRY_HOST_NAME", self.get_docker_client().host()
         )
 
     def start(self, *args: list[Any], **kwargs: dict[str, Any]) -> Self:
