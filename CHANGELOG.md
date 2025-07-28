@@ -9,6 +9,30 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-11.2.0'></a>
+## 11.2.0 (2025-07-28)
+
+### New features
+
+#### App metrics application resiliency
+
+If the underlying app metrics infrastructure is degraded, like if Kafka or the Schema Registry are not available, the Safir app metrics code now tries very hard to not crash or your instrumented application.
+
+Instead of of raising exceptions, it will log error-level messages and put itself into an error state. Once in this error state, it will not even try to interact with any underlying infrastructure, which means it will not even try to send metrics for a configurable amount of time.
+It will instead only log error messages.
+
+If this happens during initialization, you will have to restart your app after the underlying infrastructure is fixed to start sending metrics again. if This happens after successful initialization, the app may start sending metrics again by itself after the underlying infrastructure is fixed.
+
+There are two new config options:
+
+- The `raise_on_error` config option to `KafkaMetricsConfiguration` can be set to `False` to raise all exceptions to the instrumented app instead of swallowing them and logging errors.
+- The `backoff_interval` config option to `KafkaMetricsConfiguration` sets the amount of time to wait before trying to send metrics again if an error state is entered after initialization.
+
+### Bug fixes
+
+- Adjust `SchemaRegistryContainer` to work with the latest release of testcontainers. This may result in the wrong Confluent Schema Registry `host_name` setting if non-standard connection modes are used with that container.
+- Close FastStream brokers with `stop` instead of `close` and require FastStream 0.5.44 or later to avoid deprecation warnings.
+
 <a id='changelog-11.1.0'></a>
 ## 11.1.0 (2025-07-10)
 
