@@ -100,7 +100,7 @@ Typically, you will want to add some additional fixtures to get the Kafka connec
        )
        await broker.start()
        yield broker
-       await broker.close()
+       await broker.stop()
 
 
    @pytest_asyncio.fixture

@@ -588,7 +588,7 @@ class KafkaEventManager(EventManager):
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
         if self._manage_kafka_broker:
-            await self._broker.close()
+            await self._broker.stop()
         await self._admin_client.close()
         await super().aclose()
 

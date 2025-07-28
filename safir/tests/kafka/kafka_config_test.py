@@ -41,7 +41,7 @@ async def assert_clients(settings: KafkaConnectionSettings) -> None:
         if consumer:
             await consumer.stop()
         if broker:
-            await broker.close()
+            await broker.stop()
 
 
 @pytest.mark.asyncio

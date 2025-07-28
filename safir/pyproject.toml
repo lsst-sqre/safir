@@ -25,7 +25,7 @@ dependencies = [
     "cryptography<46",
     "dataclasses-avroschema>=0.65.7,<1",
     "fastapi>=0.100,<1",
-    "faststream>0.5,<0.6",
+    "faststream>=0.5.44,<0.6",
     "gidgethub<6",
     "httpx>=0.20.0,<1",
     "pydantic>2,<3",
