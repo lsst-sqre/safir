@@ -2,8 +2,10 @@ from ._arq import (
     ARQ_EVENTS_CONTEXT_KEY,
     ArqEvents,
     ArqQueueJobEvent,
+    ArqQueueStatsEvent,
     initialize_arq_metrics,
     make_on_job_start,
+    publish_queue_stats,
 )
 from ._config import (
     BaseMetricsConfiguration,
@@ -50,6 +52,7 @@ __all__ = [
     "NOT_NONE",
     "ArqEvents",
     "ArqQueueJobEvent",
+    "ArqQueueStatsEvent",
     "BaseAssertionError",
     "BaseMetricsConfiguration",
     "DisabledMetricsConfiguration",
@@ -81,4 +84,5 @@ __all__ = [
     "initialize_arq_metrics",
     "make_on_job_start",
     "metrics_configuration_factory",
+    "publish_queue_stats",
 ]

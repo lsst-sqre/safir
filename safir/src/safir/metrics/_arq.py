@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Annotated, Any
 
+from arq.connections import RedisSettings, create_pool
 from arq.typing import StartupShutdown
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,8 +16,10 @@ __all__ = [
     "ARQ_EVENTS_CONTEXT_KEY",
     "ArqMetricsError",
     "ArqQueueJobEvent",
+    "ArqQueueStatsEvent",
     "initialize_arq_metrics",
     "make_on_job_start",
+    "publish_queue_stats",
 ]
 
 
@@ -31,6 +34,16 @@ class ArqQueueJobEvent(EventPayload):
 
     queue: str
     """The queue the job was picked from."""
+
+
+class ArqQueueStatsEvent(EventPayload):
+    """Statistics for an Arq queue."""
+
+    num_queued: int
+    """The number of jobs that are currently in the queue."""
+
+    queue: str
+    """The queue that these stats apply to."""
 
 
 class ArqEvents:
@@ -48,6 +61,10 @@ class ArqEvents:
             "arq_job_run", ArqQueueJobEvent
         )
 
+        self.arq_queue_stats = await manager.create_publisher(
+            "arq_queue_stats", ArqQueueStatsEvent
+        )
+
 
 async def initialize_arq_metrics(
     event_manager: EventManager, ctx: dict
@@ -58,7 +75,6 @@ async def initialize_arq_metrics(
     ----------
     event_manager
         And initialized `safir.metrics.EventManager`
-
     ctx
         The context that gets passed to the on_startup function. This will be
         mutated to add the ArqEvents instance.
@@ -129,3 +145,26 @@ def make_on_job_start(queue_name: str) -> StartupShutdown:
         await context.events.arq_queue_job_event.publish(event)
 
     return on_job_start
+
+
+async def publish_queue_stats(
+    queue: str,
+    redis_settings: RedisSettings,
+    arq_events: ArqEvents,
+) -> None:
+    """Publish an event containing statistics about an Arq queue.
+
+    Parameters
+    ----------
+    queue
+        The name of the Arq queue.
+    redis_settings
+        Connection info for the redis instance containing the queue.
+
+    arq_events
+        A collection of Arq metrics event publishers.
+    """
+    redis = await create_pool(redis_settings)
+    num_queued = await redis.zcard(queue)
+    event = ArqQueueStatsEvent(queue=queue, num_queued=num_queued)
+    await arq_events.arq_queue_stats.publish(event)

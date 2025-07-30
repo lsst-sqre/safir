@@ -261,6 +261,11 @@ For information on the metadata available from jobs, see `JobMetadata` and `JobR
 Generic metrics for arq queues
 ==============================
 
+Safir provides tools to publish generic metrics about arq queues.
+Some metrics are emitted for every job, and some should be emitted periodically.
+
+Per-job metrics
+---------------
 You can emit a `safir.metrics.ArqQueueJobEvent` every time arq executes one of your job functions.
 This event contains a ``time_in_queue`` field which is, for a given queue, the difference between when arq would ideally start executing a job, and when it actually does.
 This is useful for deciding if you need more workers processing jobs from that queue.
@@ -355,6 +360,79 @@ Your worker set up in :file:`worker/main.py` might look like this:
         on_shutdown = shutdown
 
         on_job_start = on_job_start
+
+Periodic metrics
+----------------
+
+You can use `safir.metrics.publish_queue_stats` to publish a `safir.metrics.ArqQueueStatsEvent`.
+This queries Redis to get information about a given Arq queue.
+It should be called periodically.
+
+One way to call it periodically is by using a `Kubernetes CronJob`_.
+You could create a `command`_ in your :file:``pyproject.toml`` file and then run that command as the ``command`` for the container in your CronJob.
+
+You could have a file in your app, maybe :file:``periodic_metrics.py``, that looks something like this:
+
+.. code-block:: python
+
+   import asyncio
+
+   from safir.metrics import ArqEvents, publish_queue_stats
+
+   from .config import config
+
+
+   def publish_periodic_metrics() -> None:
+       """Publish queue statistics events.
+
+       This should be run on a schedule.
+       """
+
+       async def publish() -> None:
+           manager = config.metrics.make_manager()
+           try:
+               await manager.initialize()
+               arq_events = ArqEvents()
+               await arq_events.initialize(manager)
+               await publish_queue_stats(
+                   queue=config.queue_name,
+                   arq_events=arq_events,
+                   redis_settings=config.arq_redis_settings,
+               )
+           finally:
+               await manager.aclose()
+
+       asyncio.run(publish())
+
+Then in your :file:``pyproject.toml`` you could have a section like this:
+
+.. code-block:: toml
+
+   [project.scripts]
+   myapp_publish_periodic_metrics = "myapp.periodic_metrics:publish_periodic_metrics"
+
+Finally, in your :file:``cronjob.yaml`` file, you would call that script as your ``command``:
+
+.. code-block:: yaml
+
+   apiVersion: batch/v1
+   kind: CronJob
+   metadata:
+     name: mycronjob
+   spec:
+     schedule: "* * * * *"
+     concurrencyPolicy: "Forbid"
+     jobTemplate:
+       spec:
+         template:
+           spec:
+             containers:
+               - name: periodic-metrics
+                 image: myappimage:sometag
+                 command: ["myapp_publish_periodic_metrics"]
+
+.. _Kubernetes CronJob: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+.. _command: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#creating-executable-scripts
 
 .. _arq-testing:
 
