@@ -55,6 +55,8 @@ For more details and examples of the difference between metrics and telemetery, 
 
 .. _Nublado: https://nublado.lsst.io
 
+.. _metrics-example:
+
 Full example
 ============
 
@@ -70,8 +72,6 @@ Sasquatch config
 ----------------
 
 Add your app to the `Sasquatch app metrics configuration`_!
-
-.. _Sasquatch app metrics configuration: https://sasquatch.lsst.io/user-guide/app-metrics.html
 
 Config
 ------

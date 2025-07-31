@@ -2,14 +2,27 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Generator, Iterator
-from datetime import timedelta
+from collections.abc import (
+    AsyncGenerator,
+    Callable,
+    Generator,
+    Iterator,
+    Sequence,
+)
+from datetime import timedelta, timezone
+from typing import Any
 
 import pytest
 import pytest_asyncio
 import respx
 import structlog
 from aiokafka.admin.client import NewTopic
+from arq.connections import ArqRedis, RedisSettings
+from arq.constants import expires_extra_ms
+from arq.cron import CronJob
+from arq.jobs import Deserializer, Serializer
+from arq.typing import SecondsTimedelta, StartupShutdown, WorkerCoroutine
+from arq.worker import Function, Worker
 from redis.asyncio import Redis
 from structlog.testing import LogCapture
 from testcontainers.postgres import PostgresContainer
@@ -188,6 +201,103 @@ async def redis_client(redis: RedisContainer) -> AsyncGenerator[Redis]:
     client = Redis(host=host, port=port, db=0)
     yield client
     await client.aclose()
+
+
+@pytest_asyncio.fixture
+async def arq_redis(redis: RedisContainer) -> AsyncGenerator[ArqRedis]:
+    """Create ArqRedis connected to the global redis container."""
+    arq_redis_ = ArqRedis(
+        host=redis.get_container_host_ip(),
+        port=redis.get_exposed_port(6379),
+    )
+    await arq_redis_.flushall()
+    yield arq_redis_
+    await arq_redis_.aclose(close_connection_pool=True)
+
+
+@pytest_asyncio.fixture
+async def create_arq_worker(arq_redis: ArqRedis) -> AsyncGenerator[Callable]:
+    """Make a function to make an arq worker connected to the global redis.
+
+    This is the fixture in the arq tests:
+    https://github.com/python-arq/arq/blob/main/tests/conftest.py
+    """
+    worker_: Worker | None = None
+
+    def create(
+        functions: Sequence[Function | WorkerCoroutine],
+        *,
+        queue_name: str | None = None,
+        cron_jobs: Sequence[CronJob] | None = None,
+        redis_settings: RedisSettings | None = None,
+        redis_pool: ArqRedis | None = arq_redis,
+        burst: bool = True,
+        on_startup: StartupShutdown | None = None,
+        on_shutdown: StartupShutdown | None = None,
+        on_job_start: StartupShutdown | None = None,
+        on_job_end: StartupShutdown | None = None,
+        after_job_end: StartupShutdown | None = None,
+        handle_signals: bool = True,
+        job_completion_wait: int = 0,
+        max_jobs: int = 10,
+        job_timeout: SecondsTimedelta = 300,
+        keep_result: SecondsTimedelta = 3600,
+        keep_result_forever: bool = False,
+        poll_delay: int = 0,
+        queue_read_limit: int | None = None,
+        max_tries: int = 5,
+        health_check_interval: SecondsTimedelta = 3600,
+        health_check_key: str | None = None,
+        ctx: dict[Any, Any] | None = None,
+        retry_jobs: bool = True,
+        allow_abort_jobs: bool = False,
+        max_burst_jobs: int = -1,
+        job_serializer: Serializer | None = None,
+        job_deserializer: Deserializer | None = None,
+        expires_extra_ms: int = expires_extra_ms,
+        timezone: timezone | None = None,
+        log_results: bool = True,
+    ) -> Worker:
+        nonlocal worker_
+        worker_ = Worker(
+            functions=functions,
+            queue_name=queue_name,
+            cron_jobs=cron_jobs,
+            redis_settings=redis_settings,
+            redis_pool=redis_pool,
+            burst=burst,
+            on_startup=on_startup,
+            on_shutdown=on_shutdown,
+            on_job_start=on_job_start,
+            on_job_end=on_job_end,
+            after_job_end=after_job_end,
+            handle_signals=handle_signals,
+            job_completion_wait=job_completion_wait,
+            max_jobs=max_jobs,
+            job_timeout=job_timeout,
+            keep_result=keep_result,
+            keep_result_forever=keep_result_forever,
+            poll_delay=poll_delay,
+            queue_read_limit=queue_read_limit,
+            max_tries=max_tries,
+            health_check_interval=health_check_interval,
+            health_check_key=health_check_key,
+            ctx=ctx,
+            retry_jobs=retry_jobs,
+            allow_abort_jobs=allow_abort_jobs,
+            max_burst_jobs=max_burst_jobs,
+            job_serializer=job_serializer,
+            job_deserializer=job_deserializer,
+            expires_extra_ms=expires_extra_ms,
+            timezone=timezone,
+            log_results=log_results,
+        )
+        return worker_
+
+    yield create
+
+    if worker_:
+        await worker_.close()
 
 
 @pytest.fixture
