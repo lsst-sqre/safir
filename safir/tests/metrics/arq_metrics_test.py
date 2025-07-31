@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import cast
 
 import pytest
-from arq.connections import ArqRedis
+from arq.connections import ArqRedis, RedisSettings
 
 from safir.metrics import (
     NOT_NONE,
@@ -18,6 +18,7 @@ from safir.metrics._arq import (
     ArqMetricsError,
     initialize_arq_metrics,
     make_on_job_start,
+    publish_queue_stats,
 )
 
 
@@ -119,3 +120,38 @@ async def test_arq_metrics_misconfiguration(
     # Start the worker
     with pytest.raises(ArqMetricsError):
         await worker.main()
+
+
+@pytest.mark.asyncio
+async def test_publish_queue_stats(arq_redis: ArqRedis) -> None:
+    config = MockMetricsConfiguration(
+        application="testapp",
+        enabled=False,
+        events=EventsConfiguration(topic_prefix="what.ever"),
+        mock=True,
+    )
+    manager = config.make_manager()
+    await manager.initialize()
+    events = ArqEvents()
+    await events.initialize(manager)
+
+    queue_name = "some_queue"
+
+    # Enqueue 5 jobs
+    for _ in range(5):
+        await arq_redis.enqueue_job("somejob", _queue_name=queue_name)
+
+    # Publish stats
+    host = arq_redis.connection_pool.connection_kwargs["host"]
+    port = arq_redis.connection_pool.connection_kwargs["port"]
+
+    redis_settings = RedisSettings(host=host, port=port)
+    await publish_queue_stats(
+        queue=queue_name, redis_settings=redis_settings, arq_events=events
+    )
+
+    # Check our published events
+    publisher = cast("MockEventPublisher", events.arq_queue_stats)
+    publisher.published.assert_published_all(
+        [{"num_queued": 5, "queue": queue_name}]
+    )
