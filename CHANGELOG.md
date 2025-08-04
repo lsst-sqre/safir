@@ -9,6 +9,25 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-11.3.0'></a>
+## 11.3.0 (2025-08-04)
+
+### New features
+
+#### Generic Arq metrics
+
+You can now instrument your [arq](https://github.com/python-arq/arq) jobs to emit an `arq_job_run` app metric with a `queue` tag and a `time_in_queue` field. You can use this to help you decide if and when you need to add more workers.
+
+To enable this, you need to:
+
+* Add app metrics configuration to your app
+* Add `queue` to the list of fields in the Sasquatch app metrics configuration
+* Create a `safir.metrics.EventManager` and pass it to `safir.metrics.initialize_arq_metrics` in your `WorkerSettings.on_startup` function.
+* Generate an `on_job_start` function by passing a queue name to `safir.metrics.make_on_job_start`.
+  Make sure you shut this event manager down cleanly in your shutdown function.
+
+- Add a function to publish metrics for arq queues. Your app is expected to call this function periodically somehow, probably with a Kubernetes CronJob.
+
 <a id='changelog-11.2.0'></a>
 ## 11.2.0 (2025-07-28)
 
