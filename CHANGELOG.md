@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-11.3.1'></a>
+## 11.3.1 (2025-08-05)
+
+### Bug fixes
+
+- metrics: calculate arq time-in-queue value with millisecond precision. This prevents inaccurate and negative values.
+
 <a id='changelog-11.3.0'></a>
 ## 11.3.0 (2025-08-04)
 
