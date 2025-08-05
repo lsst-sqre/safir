@@ -136,7 +136,8 @@ def make_on_job_start(queue_name: str) -> StartupShutdown:
             )
             raise ArqMetricsError(msg) from e
 
-        time_in_queue = current_datetime() - context.ideal_start_time
+        now = current_datetime(microseconds=True)
+        time_in_queue = now - context.ideal_start_time
 
         event = ArqQueueJobEvent(
             time_in_queue=time_in_queue,
