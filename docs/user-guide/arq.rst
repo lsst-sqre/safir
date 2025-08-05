@@ -281,7 +281,7 @@ To enable this, you need to:
 Your worker set up in :file:`worker/main.py` might look like this:
 
 .. code-block:: python
-   :emphasize-lines: 9,34,60,76
+   :emphasize-lines: 9,34,60,77
 
     from __future__ import annotations
 
