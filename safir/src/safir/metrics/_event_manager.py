@@ -18,9 +18,8 @@ from faststream.kafka.publisher.asyncapi import AsyncAPIDefaultPublisher
 from pydantic import create_model
 from structlog.stdlib import BoundLogger
 
-from safir.metrics._constants import EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL
-
-from ..kafka import PydanticSchemaManager, SchemaInfo
+from ..kafka import Compatibility, PydanticSchemaManager, SchemaInfo
+from ._constants import EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL
 from ._exceptions import (
     DuplicateEventError,
     EventManagerUnintializedError,
@@ -635,7 +634,9 @@ class KafkaEventManager(EventManager):
             raise KafkaTopicError(self.topic)
 
         # Register the Avro schema if necessary and get the schema details.
-        schema_info = await self._schema_manager.register_model(model)
+        schema_info = await self._schema_manager.register_model(
+            model, compatibility=Compatibility.NONE
+        )
 
         # Return the corresponding event publisher.
         return KafkaEventPublisher[P](
