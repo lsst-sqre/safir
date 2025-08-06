@@ -72,6 +72,9 @@ API reference
 .. automodapi:: safir.metrics
    :include-all-objects:
 
+.. automodapi:: safir.metrics.arq
+   :include-all-objects:
+
 .. automodapi:: safir.models
    :include-all-objects:
 
