@@ -1,10 +1,21 @@
-"""Tools for collecting generic metrics for Arq jobs and queues."""
+"""Tools for collecting generic metrics for Arq jobs and queues.
+
+This module is importable separately from the rest of the metrics package
+because it depends on the ``arq`` package, which is only installed with the
+optional ``safir[arq]`` extra.
+"""
 
 from datetime import datetime, timedelta
 from typing import Annotated, Any
 
-from arq.connections import RedisSettings, create_pool
-from arq.typing import StartupShutdown
+try:
+    from arq.connections import RedisSettings, create_pool
+    from arq.typing import StartupShutdown
+except ImportError as e:
+    raise ImportError(
+        "The safir.metrics.arq module requires the arq extra. "
+        "Install it with `pip install safir[arq]`."
+    ) from e
 from pydantic import BaseModel, ConfigDict, Field
 
 from safir.datetime._current import current_datetime
@@ -14,6 +25,7 @@ from ._models import EventPayload
 
 __all__ = [
     "ARQ_EVENTS_CONTEXT_KEY",
+    "ArqEvents",
     "ArqMetricsError",
     "ArqQueueJobEvent",
     "ArqQueueStatsEvent",
@@ -116,7 +128,7 @@ def make_on_job_start(queue_name: str) -> StartupShutdown:
 
     This should be set as, or composed with, your ``on_job_start`` function in
     your Arq ``WorkerSettings`` class. You need to also call
-    `safir.metrics.initialize_arq_metrics` in your worker
+    `safir.metrics.arq.initialize_arq_metrics` in your worker
     ``on_startup`` function.
 
     Parameters
@@ -161,7 +173,6 @@ async def publish_queue_stats(
         The name of the Arq queue.
     redis_settings
         Connection info for the redis instance containing the queue.
-
     arq_events
         A collection of Arq metrics event publishers.
     """

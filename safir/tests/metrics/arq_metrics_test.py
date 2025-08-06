@@ -12,7 +12,7 @@ from safir.metrics import (
     MockEventPublisher,
     MockMetricsConfiguration,
 )
-from safir.metrics._arq import (
+from safir.metrics.arq import (
     ARQ_EVENTS_CONTEXT_KEY,
     ArqEvents,
     ArqMetricsError,

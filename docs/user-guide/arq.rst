@@ -266,7 +266,7 @@ Some metrics are emitted for every job, and some should be emitted periodically.
 
 Per-job metrics
 ---------------
-You can emit a `safir.metrics.ArqQueueJobEvent` every time arq executes one of your job functions.
+You can emit a `safir.metrics.arq.ArqQueueJobEvent` every time arq executes one of your job functions.
 This event contains a ``time_in_queue`` field which is, for a given queue, the difference between when arq would ideally start executing a job, and when it actually does.
 This is useful for deciding if you need more workers processing jobs from that queue.
 
@@ -274,8 +274,8 @@ To enable this, you need to:
 
 * Add app metrics configuration to your app, as in :ref:`metrics-example`
 * Add ``queue`` to the list of fields in the `Sasquatch app metrics configuration`_
-* Create a `safir.metrics.EventManager` and pass it to `safir.metrics.initialize_arq_metrics` in your ``WorkerSettings.on_startup`` function.
-* Generate an ``on_job_start`` function by passing a queue name to `safir.metrics.make_on_job_start`.
+* Create a `safir.metrics.EventManager` and pass it to `safir.metrics.arq.initialize_arq_metrics` in your ``WorkerSettings.on_startup`` function.
+* Generate an ``on_job_start`` function by passing a queue name to `safir.metrics.arq.make_on_job_start`.
   Make sure you shut this event manager down cleanly in your shutdown function.
 
 Your worker set up in :file:`worker/main.py` might look like this:
@@ -291,7 +291,7 @@ Your worker set up in :file:`worker/main.py` might look like this:
     import httpx
     import structlog
     from safir.logging import configure_logging
-    from safir.metrics import initialize_arq_metrics, make_on_job_start
+    from safir.metrics.arq import initialize_arq_metrics, make_on_job_start
 
     from ..config import config
     from .functions import function_a, function_b
@@ -364,7 +364,7 @@ Your worker set up in :file:`worker/main.py` might look like this:
 Periodic metrics
 ----------------
 
-You can use `safir.metrics.publish_queue_stats` to publish a `safir.metrics.ArqQueueStatsEvent`.
+You can use `safir.metrics.arq.publish_queue_stats` to publish a `safir.metrics.arq.ArqQueueStatsEvent`.
 This queries Redis to get information about a given Arq queue.
 It should be called periodically.
 
@@ -377,7 +377,7 @@ You could have a file in your app, maybe :file:``periodic_metrics.py``, that loo
 
    import asyncio
 
-   from safir.metrics import ArqEvents, publish_queue_stats
+   from safir.metrics.arq import ArqEvents, publish_queue_stats
 
    from .config import config
 
