@@ -9,6 +9,17 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-12.0.0'></a>
+## 12.0.0 (2025-08-07)
+
+### Backwards-incompatible changes
+
+- Move arq metrics helpers out of `safir.metrics`, to the separately importable `safir.metrics.arq`. This avoids the `safir` package depending on the `arq` package, which is only installed with the `safir[arq]` extra.
+
+### New features
+
+- App metrics Avro schemas are now registered with a compatibility type of "NONE". Any event model changes will be now allowed and no compatibility errors will ever be thrown during initialization.
+
 <a id='changelog-11.3.1'></a>
 ## 11.3.1 (2025-08-05)
 
