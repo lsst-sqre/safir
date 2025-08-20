@@ -11,7 +11,6 @@ from safir.datetime import isodatetime
 from safir.testing.slack import MockSlackWebhook
 from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
 from safir.uws._dependencies import UWSFactory
-from safir.uws._exceptions import TaskError
 
 from ..support.uws import SimpleParameters, SimpleXmlParameters
 
@@ -70,8 +69,7 @@ async def test_temporary_error(
     assert r.status_code == 303
     await runner.mark_in_progress(test_token, "1")
     exc = WorkerTransientError("Something failed")
-    result = TaskError.from_worker_error(exc)
-    job = await runner.mark_complete(test_token, "1", result)
+    job = await runner.mark_complete(test_token, "1", exc)
 
     # Check the results.
     assert job.start_time
@@ -119,8 +117,7 @@ async def test_fatal_error(
     assert r.status_code == 303
     await runner.mark_in_progress(test_token, "1")
     exc = WorkerFatalError("Whoops", "Some details")
-    result = TaskError.from_worker_error(exc)
-    job = await runner.mark_complete(test_token, "1", result)
+    job = await runner.mark_complete(test_token, "1", exc)
 
     # Check the results.
     assert job.start_time

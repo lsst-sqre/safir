@@ -66,7 +66,6 @@ Here is the rough shape of the module that defines this worker:
    WorkerSettings = build_worker(
        example,
        WorkerConfig(
-           arq_mode=ArqMode.production,
            arq_queue_url=os.environ["EXAMPLE_ARQ_QUEUE_URL"],
            arq_queue_password=os.getenv("EXAMPLE_ARQ_QUEUE_PASSWORD"),
            grace_period=timedelta(
@@ -130,7 +129,7 @@ Here is a simple example that calls a ``do_work`` function and translates all ex
            result_url = do_work()
        except Exception as e:
            raise WorkerFatalError(f"{type(e).__name__}: {e!s}") from e
-       return [WorkerResult(result_id="example", url=result_url)]
+       return [WorkerResult(id="example", url=result_url)]
 
 Job metadata
 ============

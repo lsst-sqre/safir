@@ -477,8 +477,10 @@ class JobService:
         if job.phase not in (ExecutionPhase.PENDING, ExecutionPhase.HELD):
             raise InvalidPhaseError(f"Cannot start job in phase {job.phase}")
         logger = self._build_logger_for_job(job)
+        job_url = str(self._config.wobbly_url).rstrip("/") + f"/jobs/{job_id}"
         info = WorkerJobInfo(
             job_id=job.id,
+            job_url=job_url,
             user=user,
             token=token,
             timeout=job.execution_duration or self._config.lifetime,

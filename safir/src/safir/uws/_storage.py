@@ -12,10 +12,11 @@ from vo_models.uws.types import ErrorType, ExecutionPhase
 
 from safir.arq import JobMetadata
 from safir.arq import JobResult as ArqJobResult
+from safir.arq.uws import WorkerError
 from safir.datetime import current_datetime, isodatetime
 
 from ._config import UWSConfig
-from ._exceptions import TaskError, UnknownJobError, WobblyError
+from ._exceptions import UnknownJobError, WobblyError
 from ._models import (
     Job,
     JobCreate,
@@ -184,7 +185,7 @@ class JobStore:
         r = await self._request("GET", token, query=query)
         return [SerializedJob.model_validate(j) for j in r.json()]
 
-    async def mark_aborted(self, token: str, job_id: str) -> None:
+    async def mark_aborted(self, token: str, job_id: str) -> Job:
         """Mark a job as aborted.
 
         Parameters
@@ -194,6 +195,11 @@ class JobStore:
         job_id
             Identifier of the job.
 
+        Returns
+        -------
+        Job
+            New job record.
+
         Raises
         ------
         UnknownJobError
@@ -202,11 +208,13 @@ class JobStore:
             Raised if the Wobbly request fails or returns a failure status.
         """
         update = JobUpdateAborted(phase=ExecutionPhase.ABORTED)
-        await self._request("PATCH", token, job_id, body=update)
+        r = await self._request("PATCH", token, job_id, body=update)
+        job = SerializedJob.model_validate(r.json())
+        return Job.from_serialized_job(job, self._config.parameters_type)
 
     async def mark_completed(
         self, token: str, job_id: str, job_result: ArqJobResult
-    ) -> None:
+    ) -> Job:
         """Mark a job as completed.
 
         Parameters
@@ -218,6 +226,11 @@ class JobStore:
         job_result
             Result of the job.
 
+        Returns
+        -------
+        Job
+            New job record.
+
         Raises
         ------
         UnknownJobError
@@ -226,17 +239,18 @@ class JobStore:
             Raised if the Wobbly request fails or returns a failure status.
         """
         if isinstance(job_result.result, Exception):
-            await self.mark_failed(token, job_id, job_result.result)
-            return
+            return await self.mark_failed(token, job_id, job_result.result)
         results = [JobResult.from_worker_result(r) for r in job_result.result]
         update = JobUpdateCompleted(
             phase=ExecutionPhase.COMPLETED, results=results
         )
-        await self._request("PATCH", token, job_id, body=update)
+        r = await self._request("PATCH", token, job_id, body=update)
+        job = SerializedJob.model_validate(r.json())
+        return Job.from_serialized_job(job, self._config.parameters_type)
 
     async def mark_failed(
         self, token: str, job_id: str, exc: Exception
-    ) -> None:
+    ) -> Job:
         """Mark a job as failed with an error.
 
         Currently, only one error is supported, even though Wobbly supports
@@ -251,6 +265,11 @@ class JobStore:
         exc
             Exception of failed job.
 
+        Returns
+        -------
+        Job
+            New job record.
+
         Raises
         ------
         UnknownJobError
@@ -258,8 +277,8 @@ class JobStore:
         WobblyError
             Raised if the Wobbly request fails or returns a failure status.
         """
-        if isinstance(exc, TaskError):
-            error = exc.to_job_error()
+        if isinstance(exc, WorkerError):
+            error = JobError.from_worker_error(exc)
         else:
             error = JobError(
                 type=ErrorType.FATAL,
@@ -268,11 +287,13 @@ class JobStore:
                 detail=f"{type(exc).__name__}: {exc!s}",
             )
         update = JobUpdateError(phase=ExecutionPhase.ERROR, errors=[error])
-        await self._request("PATCH", token, job_id, body=update)
+        r = await self._request("PATCH", token, job_id, body=update)
+        job = SerializedJob.model_validate(r.json())
+        return Job.from_serialized_job(job, self._config.parameters_type)
 
     async def mark_executing(
         self, token: str, job_id: str, start_time: datetime
-    ) -> None:
+    ) -> Job:
         """Mark a job as executing.
 
         Parameters
@@ -284,6 +305,11 @@ class JobStore:
         start_time
             Time at which the job started executing.
 
+        Returns
+        -------
+        Job
+            New job record.
+
         Raises
         ------
         UnknownJobError
@@ -294,11 +320,13 @@ class JobStore:
         update = JobUpdateExecuting(
             phase=ExecutionPhase.EXECUTING, start_time=start_time
         )
-        await self._request("PATCH", token, job_id, body=update)
+        r = await self._request("PATCH", token, job_id, body=update)
+        job = SerializedJob.model_validate(r.json())
+        return Job.from_serialized_job(job, self._config.parameters_type)
 
     async def mark_queued(
         self, token: str, job_id: str, metadata: JobMetadata
-    ) -> None:
+    ) -> Job:
         """Mark a job as queued for processing.
 
         Parameters
@@ -310,6 +338,11 @@ class JobStore:
         metadata
             Metadata about the underlying arq job.
 
+        Returns
+        -------
+        Job
+            New job record.
+
         Raises
         ------
         UnknownJobError
@@ -320,14 +353,16 @@ class JobStore:
         update = JobUpdateQueued(
             phase=ExecutionPhase.QUEUED, message_id=metadata.id
         )
-        await self._request("PATCH", token, job_id, body=update)
+        r = await self._request("PATCH", token, job_id, body=update)
+        job = SerializedJob.model_validate(r.json())
+        return Job.from_serialized_job(job, self._config.parameters_type)
 
     async def update_metadata(
         self,
         token: str,
         job_id: str,
         metadata: JobUpdateMetadata,
-    ) -> None:
+    ) -> Job:
         """Update the destruction time or execution duration of a job.
 
         Parameters
@@ -339,6 +374,11 @@ class JobStore:
         metadata
             New job metadata.
 
+        Returns
+        -------
+        Job
+            New job record.
+
         Raises
         ------
         UnknownJobError
@@ -346,7 +386,9 @@ class JobStore:
         WobblyError
             Raised if the Wobbly request fails or returns a failure status.
         """
-        await self._request("PATCH", token, job_id, body=metadata)
+        r = await self._request("PATCH", token, job_id, body=metadata)
+        job = SerializedJob.model_validate(r.json())
+        return Job.from_serialized_job(job, self._config.parameters_type)
 
     async def _request(
         self,

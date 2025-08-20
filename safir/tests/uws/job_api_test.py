@@ -210,6 +210,7 @@ async def test_job_run(
     assert metadata.args[0] == {"name": "Jane"}
     assert metadata.args[1] == WorkerJobInfo(
         job_id="1",
+        job_url="https://example.com/wobbly/jobs/1",
         user=test_username,
         token=test_token,
         timeout=ANY,
@@ -224,7 +225,7 @@ async def test_job_run(
     # Tell the queue the job is finished.
     results = [
         WorkerResult(
-            result_id="cutout",
+            id="cutout",
             url="s3://some-bucket/some/path",
             mime_type="application/fits",
         )
@@ -563,7 +564,7 @@ async def test_presigned_url(
     # Tell the queue the job is finished, with an https URL.
     results = [
         WorkerResult(
-            result_id="cutout",
+            id="cutout",
             url="https://example.com/some/path",
             mime_type="application/fits",
         )
