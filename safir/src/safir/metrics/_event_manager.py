@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum, auto
 from typing import Concatenate, cast, override
-from uuid import uuid4
 
 import structlog
 from aiokafka.admin.client import AIOKafkaAdminClient
@@ -163,7 +162,6 @@ class EventPublisher[P: EventPayload](metaclass=ABCMeta):
         """
         time_ns = time.time_ns()
         metadata = EventMetadata(
-            id=uuid4(),
             application=self._application,
             timestamp=self._ns_to_datetime(time_ns),
             timestamp_ns=time_ns,

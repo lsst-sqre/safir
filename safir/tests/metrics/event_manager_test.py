@@ -7,7 +7,6 @@ import math
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import cast
-from uuid import UUID
 
 import pytest
 from aiokafka import AIOKafkaConsumer, TopicPartition
@@ -91,7 +90,6 @@ async def assert_from_kafka(
     deserialized = event_class(**deserialized_dict)
 
     assert isinstance(deserialized, EventMetadata)
-    assert isinstance(deserialized.id, UUID)
     assert deserialized.application == "testapp"
 
     # dataclasses-avroschema serializes python datetime's into avro
