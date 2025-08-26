@@ -148,7 +148,7 @@ async def test_poll(
     # reply after a second and a half when the job finishes.
     results = [
         WorkerResult(
-            result_id="cutout",
+            id="cutout",
             url="s3://some-bucket/some/path",
             mime_type="application/fits",
         )

@@ -132,33 +132,6 @@ Third, install the UWS middleware and error handlers.
    # Install error handlers.
    uws.install_error_handlers(app)
 
-Create the arq worker for database updates
-==========================================
-
-Your application will have two separate arq_ worker pods, one to do the actual work of your application and one to handle database updates and state tracking (via API calls to Wobbly_).
-The code for the second worker is part of the UWS library, but you have to add a small amount of code to enable it and attach it to your application configuration.
-
-Create a subdirectory named :file:`workers` in the source for your application with an empty :file:`workers/__init__.py` file.
-Then, create :file:`workers/uws.py` with the following contents:
-
-.. code-block:: python
-   :caption: workers/uws.py
-
-   import structlog
-   from safir.logging import configure_logging
-
-   from ..config import config, uws
-
-
-   configure_logging(
-       name="example", profile=config.profile, log_level=config.log_level
-   )
-
-   WorkerSettings = uws.build_worker(structlog.get_logger("example"))
-   """arq configuration for the UWS database worker."""
-
-Once again, replace ``example`` with the name of your application.
-
 Next steps
 ==========
 

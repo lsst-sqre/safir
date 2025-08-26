@@ -12,7 +12,7 @@ The :mod:`safir.testing.uws` module provides some additional support to make it 
 Frontend testing fixtures
 =========================
 
-The frontend of a UWS application assumes that arq_ will execute both jobs and the database worker that recovers the results of a job and stores them in the database.
+The frontend of a UWS application assumes that arq_ will execute any created jobs, and those jobs will store the results in a database using Wobbly_.
 It also assumes Wobbly will be available as an API for storing and retrieving jobs in the database.
 During testing of the frontend, arq and Wobbly will not be running, and therefore this execution must be simulated.
 This is done with the `MockWobbly` and `MockUWSJobRunner` classes, but it requires some setup.
@@ -40,7 +40,7 @@ Then, add a Wobbly mock fixture to :file:`tests/conftest.py`:
 Change ``example.config`` to the config module for your application.
 
 You will need to arrange for ``wobbly_url`` to be set in your application configuration during testing.
-Normally the easiest way to do that is to set :samp:`{APPLICATION}_WOBBLY_URL` to some reasonable placeholder value such as ``http://example.com/wobbly`` in your application's tox configuration for running tests.
+Normally the easiest way to do that is to set :samp:`{APPLICATION}_WOBBLY_URL` to some reasonable placeholder value such as ``http://example.com/wobbly`` in your application's tox_ configuration for running tests.
 
 Then, arrange for this fixture to be enabled by the test client for your application.
 Usually the easiest way to do that is to make the ``mock_wobbly`` fixture a parameter to the ``app`` fixture that sets up the application for testing.

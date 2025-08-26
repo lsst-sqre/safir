@@ -2,22 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse
-from structlog.stdlib import BoundLogger
 
-from safir.arq import ArqQueue, WorkerSettings
-from safir.arq.uws import UWS_QUEUE_NAME
+from safir.arq import ArqQueue
 from safir.middleware.ivoa import (
     CaseInsensitiveFormMiddleware,
     CaseInsensitiveQueryMiddleware,
 )
 
 from ._config import UWSConfig
-from ._constants import UWS_DATABASE_TIMEOUT
 from ._dependencies import uws_dependency
 from ._exceptions import UWSError
 from ._handlers import (
@@ -26,12 +21,6 @@ from ._handlers import (
     install_sync_get_handler,
     install_sync_post_handler,
     uws_router,
-)
-from ._workers import (
-    close_uws_worker_context,
-    create_uws_worker_context,
-    uws_job_completed,
-    uws_job_started,
 )
 
 __all__ = ["UWSApplication"]
@@ -69,49 +58,6 @@ class UWSApplication:
 
     def __init__(self, config: UWSConfig) -> None:
         self._config = config
-
-    def build_worker(self, logger: BoundLogger) -> WorkerSettings:
-        """Construct an arq worker configuration for the UWS worker.
-
-        All UWS job status and results must be stored in the underlying
-        database (via Wobbly), since the API serves job information from
-        there. To minimize dependencies for the worker, which may (for
-        example) pin its own version of SQLAlchemy that may not be compatible
-        with that used by the application, the actual worker is not
-        responsible for storing the results in the database. Instead, it
-        returns results via arq, which temporarily puts them in Redis then
-        uses ``on_job_start`` and ``after_job_end`` to notify a different
-        queue. Those results are recovered and stored in the database (via
-        Wobbly) by a separate arq worker.
-
-        This function defines that database worker. It returns a class
-        suitable for assigning to a module variable and referencing as the
-        argument to the :command:`arq` command-line tool to start the worker.
-
-        Parameters
-        ----------
-        logger
-            Logger to use for messages.
-        """
-
-        async def startup(ctx: dict[Any, Any]) -> None:
-            ctx.update(await create_uws_worker_context(self._config, logger))
-
-        async def shutdown(ctx: dict[Any, Any]) -> None:
-            await close_uws_worker_context(ctx)
-
-        # Running 10 jobs simultaneously is the arq default as of arq 0.26.0
-        # and seems reasonable for database workers.
-        return WorkerSettings(
-            functions=[uws_job_started, uws_job_completed],
-            redis_settings=self._config.arq_redis_settings,
-            job_completion_wait=UWS_DATABASE_TIMEOUT,
-            job_timeout=UWS_DATABASE_TIMEOUT,
-            max_jobs=10,
-            queue_name=UWS_QUEUE_NAME,
-            on_startup=startup,
-            on_shutdown=shutdown,
-        )
 
     async def initialize_fastapi(self) -> None:
         """Initialize the UWS subsystem for FastAPI applications.
