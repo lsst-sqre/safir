@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-12.0.1'></a>
+## 12.0.1 (2025-08-25)
+
+### Bug fixes
+
+- Add lower version bounds on the google-auth and google-cloud-storage dependencies so that dependency resolvers will not downgrade them to ancient versions in order to upgrade cachetools.
+
 <a id='changelog-12.0.0'></a>
 ## 12.0.0 (2025-08-07)
 
