@@ -19,7 +19,7 @@ from vo_models.uws import (
 )
 from vo_models.uws.types import ErrorType, ExecutionPhase, UWSVersion
 
-from safir.arq.uws import WorkerResult
+from safir.arq.uws import WorkerError, WorkerResult
 from safir.pydantic import SecondsTimedelta, UtcDatetime
 
 __all__ = [
@@ -98,6 +98,17 @@ class JobError(BaseModel):
         ),
     ] = None
 
+    @classmethod
+    def from_worker_error(cls, exc: WorkerError) -> Self:
+        """Convert a worker exception to a job error."""
+        data = exc.to_job_error()
+        return cls(
+            type=ErrorType(data["type"]) if data["type"] else ErrorType.FATAL,
+            code=data["code"] or "Error",
+            message=data["message"] or "",
+            detail=data["detail"],
+        )
+
     def to_xml_model(self) -> ErrorSummary:
         """Convert to a Pydantic XML model."""
         return ErrorSummary(
@@ -150,7 +161,7 @@ class JobResult(BaseModel):
     def from_worker_result(cls, result: WorkerResult) -> Self:
         """Convert from the `~safir.arq.uws.WorkerResult` model."""
         return cls(
-            id=result.result_id,
+            id=result.id,
             url=result.url,
             size=result.size,
             mime_type=result.mime_type,

@@ -234,8 +234,7 @@ class MockUWSJobRunner:
 
     When running the test suite, the arq queue is replaced with a mock queue
     that doesn't execute workers. That execution has to be simulated by
-    manually updating state in the mock queue and running the UWS database
-    worker functions that normally would be run automatically by the queue.
+    manually invoking the backend worker.
 
     Parameters
     ----------
@@ -311,8 +310,8 @@ class MockUWSJobRunner:
         job = await self._store.get(token, job_id)
         assert job.message_id
         await self._arq.set_in_progress(job.message_id)
-        await self._store.mark_executing(token, job_id, datetime.now(tz=UTC))
-        return await self._store.get(token, job_id)
+        start_time = datetime.now(tz=UTC)
+        return await self._store.mark_executing(token, job_id, start_time)
 
     async def mark_complete(
         self,
@@ -346,5 +345,4 @@ class MockUWSJobRunner:
         assert job.message_id
         await self._arq.set_complete(job.message_id, result=results)
         job_result = await self._arq.get_job_result(job.message_id)
-        await self._store.mark_completed(token, job_id, job_result)
-        return await self._store.get(token, job_id)
+        return await self._store.mark_completed(token, job_id, job_result)

@@ -6,12 +6,10 @@ Universal Worker Service (UWS) is an `IVOA standard <https://www.ivoa.net/docume
 Safir provides a comprehensive library for writing services that use this standard.
 In addition to implementing the UWS protocol, this library dispatches the underlying work to an arq_ worker, allowing that worker to be based on a Rubin Science Pipelines stack container and reuse the astronomy code written for Rubin Observatory.
 
-Applications built with this framework have three components:
+Applications built with this framework have two components:
 
 #. A frontend web service that takes requests that follow the UWS protocol.
-#. A backend arq_ worker, possibly running on a different software stack, that does the work.
-#. A database arq_ worker that handles bookkeeping and result processing for the backend worker.
-   This bookkeeping is done via the Wobbly_ service so that services do not have to manage their own underying PostgreSQL database.
+#. A backend arq_ worker, possibly running on a different software stack, that does the work and reports the results to the Wobbly_ service.
 
 Incoming requests are turned into arq_ jobs, processed by the backend worker, uploaded to Google Cloud Storage, recorded in a database, and then returned to the user via a frontend that reads the result URLs and other metadata from the database.
 
