@@ -3,7 +3,7 @@
 from typing import Any
 
 from dataclasses_avroschema.pydantic import AvroBaseModel
-from pydantic import UUID4, AwareDatetime, Field, create_model
+from pydantic import AwareDatetime, Field, create_model
 
 from safir.metrics._exceptions import UnsupportedAvroSchemaError
 
@@ -17,11 +17,6 @@ class EventMetadata(AvroBaseModel):
     to a class also containing event payload fields, and
     then gets shipped to Kafka, by the ``EventManager``
     """
-
-    id: UUID4 = Field(
-        title="id",
-        description="A globally unique value that identifies this event",
-    )
 
     application: str = Field(
         description="The application generating this event.",
