@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import datetime
 import json
 import os
 import re
@@ -50,7 +51,7 @@ from kubernetes_asyncio.client import (
 )
 
 from safir.asyncio import AsyncMultiQueue
-from safir.datetime import current_datetime, isodatetime
+from safir.datetime import current_datetime
 
 __all__ = [
     "MockKubernetesApi",
@@ -133,6 +134,18 @@ class _KubernetesModel(Protocol):
         self,
         serialize: bool = False,  # noqa: FBT001, FBT002
     ) -> dict[str, Any]: ...
+
+
+class _DatetimeSerializer(json.JSONEncoder):
+    """Allows serialization of `datetime.datetime` objects.
+
+    If one is encountered, serializes it with the object's isoformat() method.
+    """
+
+    def default(self, o: Any) -> Any:
+        if isinstance(o, datetime.datetime):
+            return o.isoformat()
+        return super().default(o)
 
 
 class _EventStream:
@@ -304,7 +317,7 @@ class _EventStream:
                     labels = event["object"]["metadata"]["labels"]
                     if not _check_labels(labels, label_selector):
                         continue
-                    yield json.dumps(event).encode()
+                    yield json.dumps(event, cls=_DatetimeSerializer).encode()
             except TimeoutError:
                 yield b""
 
@@ -2204,7 +2217,7 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_pod", namespace, body)
         self._update_metadata(body, "v1", "Pod", namespace)
         body.status = V1PodStatus(phase=self.initial_pod_phase)
-        body.status.start_time = isodatetime(current_datetime())
+        body.status.start_time = current_datetime()
         await self._store_object(namespace, "Pod", body.metadata.name, body)
 
         # Post an event for the pod start if configured to mark pods as
