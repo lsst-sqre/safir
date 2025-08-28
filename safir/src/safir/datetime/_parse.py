@@ -58,7 +58,8 @@ def parse_isodatetime(time_string: str) -> datetime:
             timestamp += "T00:00:00"
         return datetime.fromisoformat(timestamp + "+00:00")
     else:
-        raise ValueError(f"{time_string} does not match IVOA format")
+        # Perhaps straight-up RFC-3339; try it
+        return datetime.fromisoformat(time_string)
 
 
 def parse_timedelta(text: str) -> timedelta:
