@@ -50,6 +50,7 @@ from kubernetes_asyncio.client import (
 )
 
 from safir.asyncio import AsyncMultiQueue
+from safir.datetime import current_datetime
 
 __all__ = [
     "MockKubernetesApi",
@@ -2203,6 +2204,7 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_pod", namespace, body)
         self._update_metadata(body, "v1", "Pod", namespace)
         body.status = V1PodStatus(phase=self.initial_pod_phase)
+        body.status.start_time = current_datetime().isoformat()
         await self._store_object(namespace, "Pod", body.metadata.name, body)
 
         # Post an event for the pod start if configured to mark pods as
