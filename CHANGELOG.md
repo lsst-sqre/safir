@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-12.1.1'></a>
+## 12.1.1 (2025-08-28)
+
+### Bug fixes
+
+- Correct K8s pod status.start_time format.
+
 <a id='changelog-12.1.0'></a>
 ## 12.1.0 (2025-08-28)
 
