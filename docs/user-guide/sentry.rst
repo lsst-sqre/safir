@@ -19,51 +19,39 @@ You can optionally provide:
 
 * The `~safir.sentry.before_send_handler` before_send_ handler, which adds the environment to the Sentry fingerprint, and handles :ref:`sentry-exception-types` appropriately.
 * A value to configure the traces_sample_rate_ so you can easily enable or disable tracing from Phalanx without changing your app's code
+* A `release`_ that will be added to all events to identify which version of the application generated the event.
 * Other `configuration options`_.
 
-The ``sentry_sdk`` module will automatically get the DSN and environment from the ``SENTRY_DSN`` and ``SENTRY_ENVIRONMENT`` environment vars, but you can also provide them explicitly via your app's config.
-Unless you want to explicitly instrument app config initialization, you should probably provide these values with the rest of your app's config to keep all config in the same place.
+The `~safir.sentry.initialize_sentry` function will parse the DSN, environment, and optionally the traces sample rate from environment variables.
+It takes a ``release`` parameter.
+For most Safir applications, you should pass the value in ``<your application>.__version__``, which is the version discovered by `setuptools-scm`_.
+It will then call ``sentry_sdk.init`` with those values and the `~safir.sentry.before_send_handler` `before_send`_ handler.
+The config values are taken from enviroment variables and not the main app config class because we want to initialize Sentry before the app configuration is initialized, especially in apps that load their config from YAML files.
 
-Your config file may look something like this:
+Your app's `Kubernetes workload`_ template needs to specify these environment variables and their values, which might look like this:
 
-.. code-block:: python
-   :caption: src/myapp/config.py
+.. code-block:: yaml
+   :caption: deployment.yaml
 
-   class Config(BaseSettings):
-       environment_name: Annotated[
-           str,
-           Field(
-               alias="MYAPP_ENVIRONMENT_NAME",
-               description=(
-                   "Phalanx name of the Rubin Science Platform environment"
-               ),
-           ),
-       ]
-
-       sentry_dsn: Annotated[
-           str | None,
-           Field(
-               alias="MYAPP_SENTRY_DSN",
-               description="DSN for sending events to Sentry",
-           ),
-       ] = None
-
-       sentry_traces_sample_rate: Annotated[
-           float,
-           Field(
-               alias="MYAPP_SENTRY_TRACES_SAMPLE_RATE",
-               description=(
-                   "Percentage of transactions to send to Sentry, expressed "
-                   "as a float between 0 and 1. 0 means send no traces, 1 "
-                   "means send every trace."
-               ),
-               ge=0,
-               le=1,
-           ),
-       ] = 0
-
-
-   config = Config()
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: "myapp"
+   spec:
+     template:
+       spec:
+         containers:
+           - name: "app"
+             env:
+               {{- if .Values.sentry.enabled }}
+               - name: "SENTRY_DSN"
+                 valueFrom:
+                   secretKeyRef:
+                     name: "myapp"
+                     key: "sentry-dsn"
+               - name: "SENTRY_ENVIRONMENT"
+                 value: {{ .Values.global.environmentName }}
+               {{- end }}
 
 And your :file:`main.py` might look like this:
 
@@ -72,16 +60,12 @@ And your :file:`main.py` might look like this:
 
    import sentry_sdk
 
-   from safir.sentry import before_send_handler
+   from safir.sentry import initialize_sentry
+
+   import myapp
    from .config import config
 
-
-   sentry_sdk.init(
-       dsn=config.sentry_dsn,
-       environment=config.sentry_environment,
-       traces_sample_rate=config.sentry_traces_sample_rate,
-       before_send=before_send_handler,
-   )
+   initialize_sentry(release=myapp.__version__)
 
 
    @asynccontextmanager
@@ -92,7 +76,10 @@ And your :file:`main.py` might look like this:
 
 .. _before_send: https://docs.sentry.io/platforms/python/configuration/options/#before_send
 .. _traces_sample_rate: https://docs.sentry.io/platforms/python/configuration/options/#traces_sample_rate
+.. _setuptools-scm: https://github.com/pypa/setuptools-scm
 .. _configuration options: https://docs.sentry.io/platforms/python/configuration/options/
+.. _release: https://docs.sentry.io/product/releases/
+.. _Kubernetes workload: https://kubernetes.io/docs/concepts/workloads/
 
 .. _sentry-exception-types:
 
