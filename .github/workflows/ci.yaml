@@ -13,9 +13,10 @@ env:
     branches-ignore:
       # These should always correspond to pull requests, so ignore them for
       # the push trigger and let them be triggered by the pull_request
-      # trigger, avoiding running the workflow twice.  This is a minor
+      # trigger, avoiding running the workflow twice. This is a minor
       # optimization so there's no need to ensure this is comprehensive.
       - "dependabot/**"
+      - "gh-readonly-queue/**"
       - "renovate/**"
       - "tickets/**"
       - "u/**"
@@ -23,21 +24,6 @@ env:
     types: [published]
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.1
-
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -53,12 +39,20 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - name: Run nox
-        uses: lsst-sqre/run-nox@v1
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          cache-dependency: "*/pyproject.toml"
-          nox-sessions: "typing test"
           python-version: ${{ matrix.python }}
+
+      # Use floating latest uv version, since we've had great luck with
+      # backward compatibility. If we run into the problems in the future, we
+      # can do something more complicated with a pinned version updated with a
+      # script run by `make update-deps` similar to service packages.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Run nox
+        run: uv run --only-group nox nox -s lint typing test
 
   docs:
     runs-on: ubuntu-latest
@@ -69,18 +63,24 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - name: Install Graphviz
-        run: sudo apt-get install graphviz
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install extra packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -u graphviz
 
       - name: Run nox
-        uses: lsst-sqre/run-nox@v1
-        with:
-          cache-dependency: "*/pyproject.toml"
-          nox-sessions: "docs docs-linkcheck"
-          python-version: ${{ env.PYTHON_VERSION }}
+        run: uv run --only-group=nox nox -s docs docs-linkcheck
 
       # Only attempt documentation uploads for tagged releases and pull
-      # requests from ticket branches in the same repository.  This avoids
+      # requests from ticket branches in the same repository. This avoids
       # version clutter in the docs and failures when a PR doesn't have access
       # to secrets.
       - name: Upload to LSST the Docs
@@ -91,15 +91,18 @@ jobs:
           username: ${{ secrets.LTD_USERNAME }}
           password: ${{ secrets.LTD_PASSWORD }}
         if: >
-          github.event_name != 'merge_group'
-          && (github.event_name != 'pull_request'
-              || startsWith(github.head_ref, 'tickets/'))
+          (github.event_name == 'push' && github.ref_name == 'main')
+          || (github.event_name == 'release'
+              && github.event.action == 'published')
+          || (github.event_name == 'workflow_dispatch')
+          || (github.event_name == 'pull_request'
+              && startsWith(github.head_ref, 'tickets/'))
 
   test-packaging:
     name: Test packaging
     timeout-minutes: 5
     runs-on: ubuntu-latest
-    needs: [lint, test, docs]
+    needs: [test, docs]
 
     steps:
       - uses: actions/checkout@v5
@@ -110,7 +113,6 @@ jobs:
         uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:
           upload: false
-          working-directory: "safir"
 
       - name: Test building and publishing safir-arq
         uses: lsst-sqre/build-and-publish-to-pypi@v3
@@ -128,7 +130,7 @@ jobs:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [lint, test, docs, test-packaging]
+    needs: [test, docs, test-packaging]
     environment:
       name: pypi
       url: https://pypi.org/p/safir
@@ -142,8 +144,6 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          working-directory: "safir"
 
       - uses: lsst-sqre/build-and-publish-to-pypi@v3
         with:

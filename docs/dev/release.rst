@@ -7,7 +7,7 @@ This information is only useful for maintainers.
 
 Safir's releases are largely automated through GitHub Actions (see the `ci.yaml`_ workflow file for details).
 When a semantic version tag is pushed to GitHub, `Safir is released to PyPI`_ with that version.
-Similarly, documentation is built and pushed for each version (see https://safir.lsst.io/v).
+Similarly, documentation is built and pushed for each version (see https://safir.lsst.io/v/index.html).
 
 .. _`Safir is released to PyPI`: https://pypi.org/project/safir/
 .. _`ci.yaml`: https://github.com/lsst-sqre/safir/blob/main/.github/workflows/ci.yaml
@@ -33,15 +33,16 @@ When it comes time to make the release, there should be a collection of change l
 Those fragments will make up the change log for the new release.
 
 Review those fragments to determine the version number of the next release.
-Safir follows semver_, so follow its rules to pick the next version:
+Safir follows semver_, so follow its rules (summarized below) to pick the next version:
 
 - If there are any backward-incompatible changes, incremeent the major version number and set the other numbers to 0.
 - If there are any new features, increment the minor version number and set the patch version to 0.
 - Otherwise, increment the patch version number.
 
-Then, run ``scriv collect --version <version>`` specifying the version number you decided on.
+Then, run :command:`uv run scriv collect --version <version>` specifying the version number you decided on.
 This will delete the fragment files and collect them into :file:`CHANGELOG.md` under an entry for the new release.
 Review that entry and edit it as needed (proofread, change the order to put more important things first, etc.).
+
 scriv will put blank lines between entries from different files.
 You may wish to remove those blank lines to ensure consistent formatting by various Markdown parsers.
 
@@ -59,22 +60,31 @@ Then, create and push a tag with the semantic version:
    git tag -s X.Y.Z -m "X.Y.Z"
    git push --tags
 
+The ``-s`` flag creates a GnuPG-signed tag.
+If you do not have a GnuPG key, you can omit that flag.
+
 The tag **must** follow the :pep:`440` specification since Safir uses setuptools-scm_ to set version metadata based on Git tags.
 In particular, **don't** prefix the tag with ``v``.
 
 .. _setuptools-scm: https://github.com/pypa/setuptools-scm
 
-The `ci.yaml`_ GitHub Actions workflow uploads the new release to PyPI and documentation to https://safir.lsst.io.
-
 3. Create a GitHub release
 --------------------------
 
-Add a new GitHub release for this version.
-The release title should be the same as the version number.
+Use `GitHub's Release feature <https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository>`__ to create a release:
 
-Paste the contents of the :file:`CHANGELOG.md` entry for this release, without the initial heading specifying the version number and date.
-Adjust the heading depth of the subsections to use ``##`` instead of ``###`` to match the pull request summary.
-Then, press the :guilabel:`Generate release notes` button to include the GitHub-generated summary of pull requests.
+1. In the dropdown under :guilabel:`Select tag`, select the tag you just created.
+
+2. Ensure the branch target is set appropriately (normally ``main``).
+
+3. For the release title, repeat the version string (the value of the tag).
+
+4. Click the :guilabel:`Generate release notes` button to include the GitHub-generated summary of pull requests in the release notes.
+
+5. In the release notes box above the generated notes, paste the contents of the :file:`CHANGELOG.md` entry for this release, without the initial heading specifying the version number and date.
+   Adjust the heading depth of the subsections to use ``##`` instead of ``###`` to match the pull request summary.
+
+The `ci.yaml`_ GitHub Actions workflow will upload the new release to PyPI and documentation to https://safir.lsst.io.
 
 .. _backport-release:
 
@@ -102,7 +112,7 @@ Developing on a release branch
 Once a release branch exists, it becomes the "main" branch for patches of that major-minor version.
 Pull requests should be based on, and merged into, the release branch.
 
-If the development on the release branch is a backport of commits on the ``main`` branch, use ``git cherry-pick`` to copy those commits into a new pull request against the release branch.
+If the development on the release branch is a backport of commits on the ``main`` branch, use :command:`git cherry-pick` to copy those commits into a new pull request against the release branch.
 
 Releasing from a release branch
 -------------------------------
