@@ -1,7 +1,6 @@
 """Sentry helpers."""
 
 from ._config import SentryConfig, initialize_sentry, should_enable_sentry
-from ._exceptions import SentryException, SentryWebException
 from ._helpers import (
     before_send_handler,
     duration,
@@ -11,8 +10,6 @@ from ._helpers import (
 
 __all__ = [
     "SentryConfig",
-    "SentryException",
-    "SentryWebException",
     "before_send_handler",
     "duration",
     "fingerprint_env_handler",

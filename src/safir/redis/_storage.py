@@ -14,6 +14,7 @@ from cryptography.fernet import Fernet
 from pydantic import BaseModel, SecretStr
 
 from safir.slack.blockkit import (
+    SentryEventInfo,
     SlackCodeBlock,
     SlackException,
     SlackMessage,
@@ -52,6 +53,12 @@ class DeserializeError(SlackException):
         message.fields.append(SlackTextField(heading="Key", text=self.key))
         message.blocks.append(SlackCodeBlock(heading="Error", code=self.error))
         return message
+
+    @override
+    def to_sentry(self) -> SentryEventInfo:
+        info = super().to_sentry()
+        info.tags["key"] = self.key
+        return info
 
 
 class PydanticRedisStorage[S: BaseModel]:

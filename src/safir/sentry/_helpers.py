@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from sentry_sdk.attachments import Attachment
 from sentry_sdk.tracing import Span
 from sentry_sdk.types import Event, Hint
 
-from ._exceptions import SentryException
+from ..slack.blockkit import SlackException
 
 __all__ = [
     "before_send_handler",
@@ -49,17 +50,36 @@ def fingerprint_env_handler(event: Event, _: Hint) -> Event:
 
 
 def sentry_exception_handler(event: Event, hint: Hint) -> Event:
-    """Add tags and context from `~safir.sentry.SentryException`."""
+    """Add tags and context from `~safir.slack.blockkit.SlackException`.
+
+    The Sentry event data model is:
+    https://develop.sentry.dev/sdk/data-model/event-payloads/
+    """
     if exc_info := hint.get("exc_info"):
         exc = exc_info[1]
-        if isinstance(exc, SentryException):
-            exc.enrich(event)
+        if isinstance(exc, SlackException):
+            info = exc.to_sentry()
+            event["tags"] = event.setdefault("tags", {})
+            event["tags"].update(info.tags)
+            event["contexts"] = event.setdefault("contexts", {})
+            event["contexts"].update(info.contexts)
+
+            if info.username:
+                event["user"] = event.setdefault("user", {})
+                event["user"]["username"] = info.username
+
+            for key, content in info.attachments.items():
+                attachments = hint.setdefault("attachments", [])
+                attachments.append(
+                    Attachment(filename=key, bytes=content.encode())
+                )
+
     return event
 
 
 def before_send_handler(event: Event, hint: Hint) -> Event:
     """Add the env to the fingerprint, and enrich from
-    `~safir.sentry.SentryException`.
+    `~safir.slack.blockkit.SlackException`.
     """
     event = fingerprint_env_handler(event, hint)
     return sentry_exception_handler(event, hint)

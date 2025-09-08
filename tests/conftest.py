@@ -319,7 +319,7 @@ def sentry_fingerprint_items(
 def sentry_exception_items(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[Captured]:
-    """Mock sentry transport and add SentryException info."""
+    """Mock sentry transport and add custom exception info."""
     with sentry_init_fixture() as init:
         init(
             environment="some_env",

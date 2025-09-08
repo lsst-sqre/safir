@@ -14,6 +14,7 @@ from safir.slack.blockkit import (
     SlackTextField,
     SlackWebException,
 )
+from safir.slack.sentry import SentryEventInfo
 from safir.slack.webhook import SlackIgnoredException
 
 try:
@@ -225,6 +226,20 @@ class TaskError(SlackException):
             text = SlackTextBlock(heading="Detail", text=self._detail)
             message.blocks.append(text)
         return message
+
+    @override
+    def to_sentry(self) -> SentryEventInfo:
+        info = super().to_sentry()
+        if self._traceback:
+            info.attachments["traceback"] = self._traceback
+        if self.started_at:
+            started_at = format_datetime_for_logging(self.started_at)
+            info.contexts.setdefault("info", {})["started_at"] = started_at
+        if self.job_id:
+            info.tags["job_id"] = self.job_id
+        if self._detail:
+            info.contexts.setdefault("info", {})["detail"] = self._detail
+        return info
 
 
 class UsageError(UWSError):

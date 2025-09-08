@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import pickle
+from textwrap import dedent
 from unittest.mock import ANY
 
 import pytest
 import respx
+import sentry_sdk
 import structlog
 from httpx import AsyncClient, HTTPError, Response
 from pydantic import ValidationError
@@ -22,6 +24,7 @@ from safir.slack.blockkit import (
     SlackWebException,
 )
 from safir.slack.webhook import SlackWebhookClient
+from safir.testing.sentry import Captured
 from safir.testing.slack import MockSlackWebhook
 
 
@@ -379,3 +382,38 @@ async def test_web_exception(
             ],
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_web_exception_sentry(
+    respx_mock: respx.Router,
+    sentry_combo_items: Captured,
+) -> None:
+    class SomeError(SlackWebException):
+        pass
+
+    respx_mock.get("https://example.org/").mock(
+        return_value=Response(404, text="some response body")
+    )
+    exception = None
+    try:
+        async with AsyncClient() as client:
+            r = await client.get("https://example.org/")
+            r.raise_for_status()
+    except HTTPError as e:
+        exception = SomeError.from_exception(e)
+        stringified = dedent("""\
+            Status 404 from GET https://example.org/
+            Body:
+            some response body
+        """)
+        assert str(exception) == stringified
+        sentry_sdk.capture_exception(exception)
+
+    (error,) = sentry_combo_items.errors
+    assert error["tags"]["httpx_request_method"] == "GET"
+    assert error["tags"]["httpx_request_url"] == "https://example.org/"
+
+    (attachment,) = sentry_combo_items.attachments
+    assert attachment.filename == "httpx_response_body"
+    assert attachment.bytes.decode() == "some response body"

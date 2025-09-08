@@ -111,6 +111,7 @@ Reporting an exception to a Slack webhook
 
 One useful thing to use a Slack webhook for is to report unexpected or worrisome exceptions.
 Safir provides a base class, `~safir.slack.blockkit.SlackException`, which can be used as a parent class for your application exceptions to produce a nicely-formatted error message in Slack.
+If you are using `Sentry`_, you can also use this class to :ref:`enrich Sentry events <sentry-exceptions>` with tags, contexts, and attachments.
 
 The default `~safir.slack.blockkit.SlackException` constructor takes the username of the user who triggered the exception as an additional optional argument.
 The username is also exposed as the ``user`` attribute of the class and can be set and re-raised by a calling context that knows the user.
