@@ -109,22 +109,11 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - name: Test building and publishing safir
-        uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          upload: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
-      - name: Test building and publishing safir-arq
-        uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          upload: false
-          working-directory: "safir-arq"
-
-      - name: Test building and publishing safir-logging
-        uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          upload: false
-          working-directory: "safir-logging"
+      - name: Build the packages
+        run: uv build --no-sources --all-packages
 
   pypi:
     name: Upload release to PyPI
@@ -143,12 +132,11 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - uses: lsst-sqre/build-and-publish-to-pypi@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
-      - uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          working-directory: "safir-arq"
+      - name: Build the packages
+        run: uv build --no-sources --all-packages
 
-      - uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          working-directory: "safir-logging"
+      - name: Publish the packages
+        run: uv publish

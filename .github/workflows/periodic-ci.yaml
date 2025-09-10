@@ -91,7 +91,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
 
-  pypi:
+  test-packaging:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [test, docs]
@@ -101,22 +101,11 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - name: Test package build of safir
-        uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          upload: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
-      - name: Test package build of safir-arq
-        uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          upload: false
-          working-directory: "safir-arq"
-
-      - name: Test package build of safir-logging
-        uses: lsst-sqre/build-and-publish-to-pypi@v3
-        with:
-          upload: false
-          working-directory: "safir-logging"
+      - name: Build the packages
+        run: uv build --no-sources --all-packages
 
       - name: Report status
         if: failure()
