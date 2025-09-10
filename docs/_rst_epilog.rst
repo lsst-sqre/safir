@@ -31,6 +31,7 @@
 .. _scriv: https://scriv.readthedocs.io/en/stable/
 .. _Sentry: https://sentry.io/welcome/
 .. _semver: https://semver.org/
+.. _Sphinx: https://www.sphinx-doc.org/en/master/
 .. _SQLAlchemy: https://www.sqlalchemy.org/
 .. _SQuaRE Bot: https://squarebot.lsst.io/
 .. _structlog: https://www.structlog.org/en/stable/

@@ -1,10 +1,152 @@
-# This file contains only the tool configuration for linters. The
-# configuration for the component Python projects may be found in the
-# pyproject.toml files in subdirectories.
+[project]
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+name = "safir"
+description = "The Rubin Observatory SQuaRE framework for FastAPI services."
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+keywords = ["rubin", "lsst"]
+# https://pypi.org/classifiers/
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Typing :: Typed",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aiokafka>=0.11,<1",
+    "click>=8.2.0,<9",
+    "cryptography<46",
+    "dataclasses-avroschema>=0.65.7,<1",
+    "fastapi>=0.100,<1",
+    "faststream>=0.5.44,<0.6",
+    "gidgethub<6",
+    "httpx>=0.20.0,<1",
+    "pydantic>2,<3",
+    "pydantic-core",
+    "pydantic-settings!=2.6.0,<3",
+    "python-schema-registry-client>=2.6,<3",
+    "safir-logging",
+    "sentry-sdk>=2,<3",
+    "starlette<1",
+    "structlog>=21.2.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+arq = [
+    "safir-arq>10.2.0",
+]
+db = [
+    "alembic[tz]<2",
+    "asyncpg<1",
+    "sqlalchemy[asyncio]>=2.0.0,<3",
+]
+gcs = [
+    "google-auth>2,<3",
+    "google-cloud-storage>3,<4"
+]
+kubernetes = [
+    "kubernetes_asyncio<34"
+]
+redis = [
+    "redis>4.5.2,<7",
+]
+testcontainers = [
+    "testcontainers>=4.10"
+]
+uws = [
+    "google-auth>2,<3",
+    "google-cloud-storage>3,<4",
+    "jinja2<4",
+    "python-multipart",
+    "safir-arq>10.2.0",
+    "vo-models>=0.4.1,<1",
+]
+
+[[project.authors]]
+name = "Association of Universities for Research in Astronomy, Inc. (AURA)"
+email = "sqre-admin@lists.lsst.org"
+
+[project.urls]
+Homepage = "https://safir.lsst.io"
+Source = "https://github.com/lsst-sqre/safir"
+"Change log" = "https://safir.lsst.io/changelog.html"
+"Issue tracker" = "https://github.com/lsst-sqre/safir/issues"
+
+[build-system]
+requires = [
+    "setuptools>=61",
+    "wheel",
+    "setuptools_scm[toml]>=6.2"
+]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "alembic[tz]>=1.16",
+    "asgi-lifespan",
+    "coverage[toml]",
+    "fastapi>=0.93.0",
+    "pytest>=6.2.0",
+    "pytest-asyncio",
+    "pytest-cov",
+    "redis>=5",
+    "respx",
+    "sqlalchemy[mypy]",
+    "testcontainers[postgres,redis]",
+    "time-machine>=2.16.0",
+    "uvicorn",
+]
+docs = [
+    "autodoc_pydantic",
+    "documenteer[guide]>=2.0.0",
+    "scriv[toml]>=1.5",
+]
+lint = [
+    "pre-commit",
+    "pre-commit-uv",
+    "ruff>=0.12",
+]
+nox = [
+    "nox",
+    "nox-uv",
+]
+typing = [
+    "mypy>=1.15",
+]
+
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["safir"]
+
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
 
 [tool.black]
 line-length = 79
-target-version = ["py312"]
+target-version = ["py313"]
 
 [tool.mypy]
 disallow_untyped_defs = true
@@ -28,23 +170,34 @@ init_typed = true
 warn_required_dynamic_aliases = true
 warn_untyped_fields = true
 
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "strict"
+python_files = [
+    "tests/*.py",
+    "tests/*/*.py"
+]
+norecursedirs = [
+    "tests/data/**"
+]
+
 # Use the generic Ruff configuration in ruff.toml and extend it with only
 # project-specific settings.
 [tool.ruff]
 extend = "ruff-shared.toml"
 
 [tool.ruff.lint.extend-per-file-ignores]
-"*/src/safir/**" = [
+"*/safir/**" = [
     "N818",    # Exception is correct in some cases, others are part of API
 ]
-"safir/src/safir/pydantic/_validators.py" = [
+"src/safir/pydantic/_validators.py" = [
     "TRY004",  # pydantic requires ValueError, not TypeError
 ]
-"safir/src/safir/testing/**" = [
+"src/safir/testing/**" = [
     "S101",    # test support functions are allowed to use assert
     "S311",    # test support functions needn't be cryptographically secure
 ]
-"safir/tests/data/database/*alembic/**" = [
+"tests/data/database/*alembic/**" = [
     "INP001",  # Alembic files are magical
     "D400",    # Alembic migrations have their own format
 ]
@@ -66,3 +219,15 @@ format = "md"
 md_header_level = "2"
 new_fragment_template = "file:changelog.d/_template.md.jinja"
 skip_fragments = "_template.md.jinja"
+
+[tool.setuptools_scm]
+
+[tool.uv.sources]
+safir-arq = { workspace = true }
+safir-logging = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "safir-arq",
+    "safir-logging",
+]
