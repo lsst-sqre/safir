@@ -6,17 +6,23 @@ import asyncio
 from contextlib import suppress
 from pathlib import Path
 
-import alembic
-from alembic import context
-from alembic.config import Config
-from alembic.runtime.migration import MigrationContext
-from alembic.script import ScriptDirectory
+try:
+    import alembic
+    from alembic import context
+    from alembic.config import Config
+    from alembic.runtime.migration import MigrationContext
+    from alembic.script import ScriptDirectory
+    from sqlalchemy import MetaData, text
+    from sqlalchemy.engine import Connection
+    from sqlalchemy.exc import ProgrammingError
+    from sqlalchemy.ext.asyncio import AsyncEngine
+except ImportError as e:
+    raise ImportError(
+        "The safir.database module requires the db extra. "
+        "Install it with `pip install safir[db]`."
+    ) from e
 from pydantic import SecretStr
 from pydantic_core import Url
-from sqlalchemy import MetaData, text
-from sqlalchemy.engine import Connection
-from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.asyncio import AsyncEngine
 from structlog.stdlib import BoundLogger
 
 from ._connection import build_database_url, create_database_engine

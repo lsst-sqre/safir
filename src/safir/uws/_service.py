@@ -7,13 +7,21 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 
 from structlog.stdlib import BoundLogger
-from vo_models.uws import Jobs, JobSummary
-from vo_models.uws.types import ExecutionPhase
-from vo_models.vosi.availability import Availability
 
-from safir.arq import ArqQueue, JobMetadata
-from safir.arq.uws import WorkerJobInfo
 from safir.datetime import isodatetime
+
+try:
+    from vo_models.uws import Jobs, JobSummary
+    from vo_models.uws.types import ExecutionPhase
+    from vo_models.vosi.availability import Availability
+
+    from safir.arq import ArqQueue, JobMetadata
+    from safir.arq.uws import WorkerJobInfo
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 from ._config import UWSConfig
 from ._constants import JOB_STOP_TIMEOUT

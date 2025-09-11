@@ -9,8 +9,14 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse
 from structlog.stdlib import BoundLogger
 
-from safir.arq import ArqQueue, WorkerSettings
-from safir.arq.uws import UWS_QUEUE_NAME
+try:
+    from safir.arq import ArqQueue, WorkerSettings
+    from safir.arq.uws import UWS_QUEUE_NAME
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 from safir.middleware.ivoa import (
     CaseInsensitiveFormMiddleware,
     CaseInsensitiveQueryMiddleware,

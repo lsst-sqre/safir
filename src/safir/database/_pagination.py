@@ -12,9 +12,16 @@ from typing import Self, override
 from urllib.parse import parse_qs, urlencode
 
 from pydantic import BaseModel
-from sqlalchemy import Select, and_, func, or_, select
-from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.orm import InstrumentedAttribute
+
+try:
+    from sqlalchemy import Select, and_, func, or_, select
+    from sqlalchemy.ext.asyncio import async_scoped_session
+    from sqlalchemy.orm import InstrumentedAttribute
+except ImportError as e:
+    raise ImportError(
+        "The safir.database module requires the db extra. "
+        "Install it with `pip install safir[db]`."
+    ) from e
 from starlette.datastructures import URL
 
 from safir.fastapi import ClientRequestError

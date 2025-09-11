@@ -13,42 +13,48 @@ from datetime import timedelta
 from typing import Any, Protocol
 from unittest.mock import AsyncMock, Mock, patch
 
-from kubernetes_asyncio import client, config
-from kubernetes_asyncio.client import (
-    ApiException,
-    CoreV1Event,
-    CoreV1EventList,
-    V1ConfigMap,
-    V1DeleteOptions,
-    V1Ingress,
-    V1IngressList,
-    V1IngressStatus,
-    V1Job,
-    V1JobList,
-    V1JobStatus,
-    V1LoadBalancerStatus,
-    V1Namespace,
-    V1NamespaceList,
-    V1NetworkPolicy,
-    V1Node,
-    V1NodeList,
-    V1ObjectMeta,
-    V1ObjectReference,
-    V1PersistentVolume,
-    V1PersistentVolumeClaim,
-    V1PersistentVolumeClaimList,
-    V1PersistentVolumeList,
-    V1Pod,
-    V1PodList,
-    V1PodStatus,
-    V1ResourceQuota,
-    V1Secret,
-    V1Service,
-    V1ServiceAccount,
-    V1ServiceAccountList,
-    V1ServiceList,
-    V1Status,
-)
+try:
+    from kubernetes_asyncio import client, config
+    from kubernetes_asyncio.client import (
+        ApiException,
+        CoreV1Event,
+        CoreV1EventList,
+        V1ConfigMap,
+        V1DeleteOptions,
+        V1Ingress,
+        V1IngressList,
+        V1IngressStatus,
+        V1Job,
+        V1JobList,
+        V1JobStatus,
+        V1LoadBalancerStatus,
+        V1Namespace,
+        V1NamespaceList,
+        V1NetworkPolicy,
+        V1Node,
+        V1NodeList,
+        V1ObjectMeta,
+        V1ObjectReference,
+        V1PersistentVolume,
+        V1PersistentVolumeClaim,
+        V1PersistentVolumeClaimList,
+        V1PersistentVolumeList,
+        V1Pod,
+        V1PodList,
+        V1PodStatus,
+        V1ResourceQuota,
+        V1Secret,
+        V1Service,
+        V1ServiceAccount,
+        V1ServiceAccountList,
+        V1ServiceList,
+        V1Status,
+    )
+except ImportError as e:
+    raise ImportError(
+        "The safir.testing.kubernetes module requires the kubernetes extra. "
+        "Install it with `pip install safir[kubernetes]`."
+    ) from e
 
 from safir.asyncio import AsyncMultiQueue
 from safir.datetime import current_datetime

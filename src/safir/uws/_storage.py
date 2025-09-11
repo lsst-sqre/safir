@@ -8,11 +8,19 @@ from typing import Any
 
 from httpx import AsyncClient, HTTPError, Response
 from pydantic import BaseModel
-from vo_models.uws.types import ErrorType, ExecutionPhase
 
-from safir.arq import JobMetadata
-from safir.arq import JobResult as ArqJobResult
 from safir.datetime import current_datetime, isodatetime
+
+try:
+    from vo_models.uws.types import ErrorType, ExecutionPhase
+
+    from safir.arq import JobMetadata
+    from safir.arq import JobResult as ArqJobResult
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 from ._config import UWSConfig
 from ._exceptions import TaskError, UnknownJobError, WobblyError

@@ -19,7 +19,16 @@ nox.options.reuse_existing_virtualenvs = True
 
 # Extras to include for most actions. This should be all of the extras from
 # the top-level pyproject.toml.
-_EXTRAS = ["arq", "db", "gcs", "kubernetes", "redis", "testcontainers", "uws"]
+_EXTRAS = [
+    "arq",
+    "db",
+    "gcs",
+    "kafka",
+    "kubernetes",
+    "redis",
+    "testcontainers",
+    "uws",
+]
 
 
 @session(uv_groups=["dev", "docs"], uv_extras=_EXTRAS)

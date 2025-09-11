@@ -6,7 +6,13 @@ from collections.abc import Callable, Coroutine
 from functools import wraps
 from typing import overload
 
-from sqlalchemy.exc import DBAPIError
+try:
+    from sqlalchemy.exc import DBAPIError
+except ImportError as e:
+    raise ImportError(
+        "The safir.database module requires the db extra. "
+        "Install it with `pip install safir[db]`."
+    ) from e
 
 __all__ = ["retry_async_transaction"]
 

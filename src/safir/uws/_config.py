@@ -6,13 +6,21 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from arq.connections import RedisSettings
 from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings
-from vo_models.uws import JobSummary
 
-from safir.arq import ArqMode, build_arq_redis_settings
 from safir.pydantic import EnvRedisDsn, HumanTimedelta, SecondsTimedelta
+
+try:
+    from arq.connections import RedisSettings
+    from vo_models.uws import JobSummary
+
+    from safir.arq import ArqMode, build_arq_redis_settings
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 from ._models import Job, ParametersModel
 

@@ -8,7 +8,7 @@ Usually these classes are used in test fixtures.
 
 The Kafka container is heavily inspired by the standard Testcontainers_ Kafka container but supports TLS and SASL, always uses KRaft, and has some other differences.
 
-To use any of these containers, depend on ``safir[testcontainers]``.
+To use any of these containers, depend on ``safir[kafka,testcontainers]``.
 (In other words, add ``testcontainers`` to your Safir dependency extras.)
 
 Kafka test fixtures

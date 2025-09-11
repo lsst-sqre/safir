@@ -11,12 +11,19 @@ from typing import Concatenate, cast, override
 from uuid import uuid4
 
 import structlog
-from aiokafka.admin.client import AIOKafkaAdminClient
-from dataclasses_avroschema.pydantic import AvroBaseModel
-from faststream.kafka import KafkaBroker
-from faststream.kafka.publisher.asyncapi import AsyncAPIDefaultPublisher
 from pydantic import create_model
 from structlog.stdlib import BoundLogger
+
+try:
+    from aiokafka.admin.client import AIOKafkaAdminClient
+    from dataclasses_avroschema.pydantic import AvroBaseModel
+    from faststream.kafka import KafkaBroker
+    from faststream.kafka.publisher.asyncapi import AsyncAPIDefaultPublisher
+except ImportError as e:
+    raise ImportError(
+        "The safir.metrics module requires the kafka extra. "
+        "Install it with `pip install safir[kafka]`."
+    ) from e
 
 from ..kafka import Compatibility, PydanticSchemaManager, SchemaInfo
 from ._constants import EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL

@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import asyncio
 
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.asyncio import AsyncEngine
-from sqlalchemy.schema import CreateSchema
-from sqlalchemy.sql.schema import MetaData
+try:
+    from sqlalchemy.exc import OperationalError
+    from sqlalchemy.ext.asyncio import AsyncEngine
+    from sqlalchemy.schema import CreateSchema
+    from sqlalchemy.sql.schema import MetaData
+except ImportError as e:
+    raise ImportError(
+        "The safir.database module requires the db extra. "
+        "Install it with `pip install safir[db]`."
+    ) from e
 from structlog.stdlib import BoundLogger
 
 from ._alembic import unstamp_database

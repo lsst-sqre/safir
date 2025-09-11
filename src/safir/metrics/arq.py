@@ -13,8 +13,8 @@ try:
     from arq.typing import StartupShutdown
 except ImportError as e:
     raise ImportError(
-        "The safir.metrics.arq module requires the arq extra. "
-        "Install it with `pip install safir[arq]`."
+        "The safir.metrics.arq module requires the kafka and arq extras. "
+        "Install it with `pip install safir[arq,kafka]`."
     ) from e
 from pydantic import BaseModel, ConfigDict, Field
 

@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-import jinja2
+try:
+    import jinja2
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 from fastapi import Request, Response
 from fastapi.templating import Jinja2Templates
 

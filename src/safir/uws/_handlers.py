@@ -11,8 +11,15 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Form, Query, Request, Response
 from fastapi.responses import PlainTextResponse, RedirectResponse
-from vo_models.uws import Jobs, JobSummary, Results
-from vo_models.uws.types import ExecutionPhase
+
+try:
+    from vo_models.uws import Jobs, JobSummary, Results
+    from vo_models.uws.types import ExecutionPhase
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 from safir.datetime import isodatetime
 from safir.dependencies.gafaelfawr import (

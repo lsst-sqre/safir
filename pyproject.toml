@@ -20,18 +20,14 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "aiokafka>=0.11,<1",
     "click>=8.2.0,<9",
     "cryptography<46",
-    "dataclasses-avroschema>=0.65.7,<1",
     "fastapi>=0.100,<1",
-    "faststream>=0.5.44,<0.6",
     "gidgethub<6",
     "httpx>=0.20.0,<1",
     "pydantic>2,<3",
     "pydantic-core",
     "pydantic-settings!=2.6.0,<3",
-    "python-schema-registry-client>=2.6,<3",
     "safir-logging",
     "sentry-sdk>=2,<3",
     "starlette<1",
@@ -51,6 +47,12 @@ db = [
 gcs = [
     "google-auth>2,<3",
     "google-cloud-storage>3,<4"
+]
+kafka = [
+    "aiokafka>=0.11,<1",
+    "dataclasses-avroschema>=0.65.7,<1",
+    "faststream>=0.5.44,<0.6",
+    "python-schema-registry-client>=2.6,<3",
 ]
 kubernetes = [
     "kubernetes_asyncio<34"
