@@ -9,13 +9,19 @@ import ssl
 from enum import StrEnum
 from typing import Literal, NotRequired, Self, TypedDict
 
-from aiokafka import helpers
-from faststream.security import (
-    BaseSecurity,
-    SASLPlaintext,
-    SASLScram256,
-    SASLScram512,
-)
+try:
+    from aiokafka import helpers
+    from faststream.security import (
+        BaseSecurity,
+        SASLPlaintext,
+        SASLScram256,
+        SASLScram512,
+    )
+except ImportError as e:
+    raise ImportError(
+        "The safir.kafka module requires the kafka extra. "
+        "Install it with `pip install safir[kafka]`."
+    ) from e
 from pydantic import (
     AliasChoices,
     BaseModel,

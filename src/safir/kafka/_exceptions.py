@@ -1,5 +1,15 @@
 """Schema manager exceptions."""
 
+from __future__ import annotations
+
+try:
+    from dataclasses_avroschema.pydantic import AvroBaseModel
+except ImportError as e:
+    raise ImportError(
+        "The safir.kafka module requires the kafka extra. "
+        "Install it with `pip install safir[kafka]`."
+    ) from e
+
 __all__ = [
     "IncompatibleSchemaError",
     "InvalidAvroNameError",
@@ -7,9 +17,6 @@ __all__ = [
     "UnknownDeserializeError",
     "UnknownSchemaError",
 ]
-
-
-from dataclasses_avroschema.pydantic import AvroBaseModel
 
 
 class IncompatibleSchemaError(Exception):

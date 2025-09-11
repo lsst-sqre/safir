@@ -7,7 +7,13 @@ URL to a signed URL suitable for returning to a client of the service.
 
 from __future__ import annotations
 
-from safir.gcs import SignedURLService
+try:
+    from safir.gcs import SignedURLService
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 from ._config import UWSConfig
 from ._models import JobResult, SignedJobResult

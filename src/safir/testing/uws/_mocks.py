@@ -10,24 +10,32 @@ from urllib.parse import parse_qs
 
 import respx
 from httpx import AsyncClient, Request, Response
-from vo_models.uws.types import ExecutionPhase
 
-from safir.arq import JobMetadata, JobResult, MockArqQueue
-from safir.arq.uws import WorkerResult
 from safir.datetime import current_datetime, parse_isodatetime
-from safir.uws import (
-    Job,
-    JobCreate,
-    JobUpdateAborted,
-    JobUpdateCompleted,
-    JobUpdateError,
-    JobUpdateExecuting,
-    JobUpdateMetadata,
-    JobUpdateQueued,
-    SerializedJob,
-    UWSConfig,
-)
-from safir.uws._storage import JobStore
+
+try:
+    from vo_models.uws.types import ExecutionPhase
+
+    from safir.arq import JobMetadata, JobResult, MockArqQueue
+    from safir.arq.uws import WorkerResult
+    from safir.uws import (
+        Job,
+        JobCreate,
+        JobUpdateAborted,
+        JobUpdateCompleted,
+        JobUpdateError,
+        JobUpdateExecuting,
+        JobUpdateMetadata,
+        JobUpdateQueued,
+        SerializedJob,
+        UWSConfig,
+    )
+    from safir.uws._storage import JobStore
+except ImportError as e:
+    raise ImportError(
+        "The safir.testing.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 __all__ = [
     "MockUWSJobRunner",

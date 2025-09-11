@@ -6,14 +6,21 @@ from abc import ABC, abstractmethod
 from typing import Annotated, Any, override
 
 import structlog
-from aiokafka.admin.client import AIOKafkaAdminClient
-from faststream.kafka import KafkaBroker
 from pydantic import AfterValidator, AliasChoices, Field, ValidationError
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
 
 from safir.pydantic import HumanTimedelta
+
+try:
+    from aiokafka.admin.client import AIOKafkaAdminClient
+    from faststream.kafka import KafkaBroker
+except ImportError as e:
+    raise ImportError(
+        "The safir.metrics module requires the kafka extra. "
+        "Install it with `pip install safir[kafka]`."
+    ) from e
 
 from ..kafka import KafkaConnectionSettings, SchemaManagerSettings
 from ._constants import (

@@ -7,6 +7,8 @@ of the hard parts replaced with python-schema-registry-client_.
 .. _python-schema-registry-client: https://marcosschroh.github.io/python-schema-registry-client/
 """
 
+from __future__ import annotations
+
 import inspect
 import re
 from dataclasses import dataclass
@@ -14,13 +16,20 @@ from enum import StrEnum
 from typing import Any
 
 import structlog
-from dataclasses_avroschema.pydantic import AvroBaseModel
-from schema_registry.client import AsyncSchemaRegistryClient
-from schema_registry.client.errors import ClientError
-from schema_registry.serializers.message_serializer import (
-    AsyncAvroMessageSerializer,
-)
 from structlog.stdlib import BoundLogger
+
+try:
+    from dataclasses_avroschema.pydantic import AvroBaseModel
+    from schema_registry.client import AsyncSchemaRegistryClient
+    from schema_registry.client.errors import ClientError
+    from schema_registry.serializers.message_serializer import (
+        AsyncAvroMessageSerializer,
+    )
+except ImportError as e:
+    raise ImportError(
+        "The safir.kafka module requires the kafka extra. "
+        "Install it with `pip install safir[kafka]`."
+    ) from e
 
 from ._exceptions import (
     IncompatibleSchemaError,

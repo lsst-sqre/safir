@@ -30,9 +30,15 @@ from random import randint
 from textwrap import dedent
 from typing import Any, Self
 
-from testcontainers.core.container import DockerContainer
-from testcontainers.core.version import ComparableVersion
-from testcontainers.core.waiting_utils import wait_for_logs
+try:
+    from testcontainers.core.container import DockerContainer
+    from testcontainers.core.version import ComparableVersion
+    from testcontainers.core.waiting_utils import wait_for_logs
+except ImportError as e:
+    raise ImportError(
+        "The safir.testing.containers module requires the testcontainers "
+        "extra. Install it with `pip install safir[testcontainers]`."
+    ) from e
 
 from ._constants import CONFLUENT_VERSION_TAG, KAFKA_REPOSITORY
 

@@ -2,7 +2,13 @@
 
 from typing import Any
 
-from dataclasses_avroschema.pydantic import AvroBaseModel
+try:
+    from dataclasses_avroschema.pydantic import AvroBaseModel
+except ImportError as e:
+    raise ImportError(
+        "The safir.metrics module requires the kafka extra. "
+        "Install it with `pip install safir[kafka]`."
+    ) from e
 from pydantic import UUID4, AwareDatetime, Field, create_model
 
 from safir.metrics._exceptions import UnsupportedAvroSchemaError

@@ -8,14 +8,21 @@ from urllib.parse import quote, urlparse
 
 from pydantic import SecretStr
 from pydantic_core import Url
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    async_scoped_session,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.sql.expression import Select
+
+try:
+    from sqlalchemy.exc import OperationalError
+    from sqlalchemy.ext.asyncio import (
+        AsyncEngine,
+        async_scoped_session,
+        async_sessionmaker,
+        create_async_engine,
+    )
+    from sqlalchemy.sql.expression import Select
+except ImportError as e:
+    raise ImportError(
+        "The safir.database module requires the db extra. "
+        "Install it with `pip install safir[db]`."
+    ) from e
 from structlog.stdlib import BoundLogger
 
 __all__ = [

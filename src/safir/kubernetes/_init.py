@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import os
 
-from kubernetes_asyncio import config
+try:
+    from kubernetes_asyncio import config
+except ImportError as e:
+    raise ImportError(
+        "The safir.kubernetes module requires the kubernetes extra. "
+        "Install it with `pip install safir[kubernetes]`."
+    ) from e
 
 __all__ = ["initialize_kubernetes"]
 

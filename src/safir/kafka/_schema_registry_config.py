@@ -6,10 +6,17 @@ from typing import TypedDict
 
 from pydantic import AliasChoices, AnyUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from schema_registry.client import AsyncSchemaRegistryClient
+
+try:
+    from schema_registry.client import AsyncSchemaRegistryClient
+except ImportError as e:
+    raise ImportError(
+        "The safir.kafka module requires the kafka extra. "
+        "Install it with `pip install safir[kafka]`."
+    ) from e
 from structlog.stdlib import BoundLogger
 
-from safir.kafka._manager import PydanticSchemaManager
+from ._manager import PydanticSchemaManager
 
 __all__ = [
     "SchemaManagerSettings",

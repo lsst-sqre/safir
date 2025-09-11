@@ -186,7 +186,7 @@ async def test_deserialization_error(redis_client: redis.Redis) -> None:
     storage = PydanticRedisStorage(datatype=DemoModel, redis=redis_client)
     await storage._redis.set("key", b"not a valid model")
     with pytest.raises(
-        DeserializeError, match="^Cannot deserialize data for key key"
+        DeserializeError, match=r"^Cannot deserialize data for key key"
     ) as e:
         await storage.get("key")
     slack_message = e.value.to_slack()
@@ -208,7 +208,7 @@ async def test_deserialization_error_with_key_prefix(
     )
     await storage._redis.set("test:key", b"not a valid model")
     with pytest.raises(
-        DeserializeError, match="^Cannot deserialize data for key test:key"
+        DeserializeError, match=r"^Cannot deserialize data for key test:key"
     ) as e:
         await storage.get("key")
     slack_message = e.value.to_slack()

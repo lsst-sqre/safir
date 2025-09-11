@@ -6,9 +6,16 @@ from typing import Any, Self
 
 import httpx
 from httpx import ReadError, RemoteProtocolError
-from testcontainers.core.container import DockerContainer
-from testcontainers.core.network import Network
-from testcontainers.core.waiting_utils import wait_container_is_ready
+
+try:
+    from testcontainers.core.container import DockerContainer
+    from testcontainers.core.network import Network
+    from testcontainers.core.waiting_utils import wait_container_is_ready
+except ImportError as e:
+    raise ImportError(
+        "The safir.testing.containers module requires the testcontainers "
+        "extra. Install it with `pip install safir[testcontainers]`."
+    ) from e
 
 from ._constants import CONFLUENT_VERSION_TAG, SCHEMA_REGISTRY_REPOSITORY
 

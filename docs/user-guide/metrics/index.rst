@@ -5,6 +5,9 @@ Application metrics
 Safir provides helpers for publishing application metrics to Sasquatch_.
 Using these helpers, your can instrument your app to push custom events to a Sasquatch-managed InfluxDB_ instance, and then use the Sasquatch-managed `Chronograf`_ to query and `graph them`_.
 
+Support for application metrics publication via Kafka in Safir is optional.
+To use it, depend on ``safir[kafka]``.
+
 .. _InfluxDB: https://www.influxdata.com
 .. _Chronograf: https://www.influxdata.com/time-series-platform/chronograf
 .. _graph them: https://sasquatch.lsst.io/user-guide/dashboards.html

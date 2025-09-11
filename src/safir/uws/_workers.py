@@ -11,16 +11,22 @@ from typing import Any, ParamSpec
 from httpx import AsyncClient
 from structlog.stdlib import BoundLogger
 
-from safir.arq import (
-    ArqMode,
-    ArqQueue,
-    JobNotFound,
-    JobResult,
-    JobResultUnavailable,
-    MockArqQueue,
-    RedisArqQueue,
-)
-from safir.arq.uws import WorkerError, WorkerTransientError
+try:
+    from safir.arq import (
+        ArqMode,
+        ArqQueue,
+        JobNotFound,
+        JobResult,
+        JobResultUnavailable,
+        MockArqQueue,
+        RedisArqQueue,
+    )
+    from safir.arq.uws import WorkerError, WorkerTransientError
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 from safir.datetime import format_datetime_for_logging
 from safir.dependencies.http_client import http_client_dependency
 from safir.slack.blockkit import SlackException

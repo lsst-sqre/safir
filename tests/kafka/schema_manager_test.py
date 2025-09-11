@@ -305,6 +305,6 @@ async def test_unmanaged_error(kafka_clients: KafkaClients) -> None:
 
     with pytest.raises(
         UnknownSchemaError,
-        match="model: MyModel with subject: what.ever.MyModel",
+        match=r"model: MyModel with subject: what.ever.MyModel",
     ):
         await kafka_clients.schema_manager.serialize(original)

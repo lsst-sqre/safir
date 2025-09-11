@@ -9,18 +9,26 @@ from abc import ABC, abstractmethod
 from typing import Annotated, Any, Literal, Self, override
 
 from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
-from vo_models.uws import (
-    ErrorSummary,
-    JobSummary,
-    Parameters,
-    ResultReference,
-    Results,
-    ShortJobDescription,
-)
-from vo_models.uws.types import ErrorType, ExecutionPhase, UWSVersion
 
-from safir.arq.uws import WorkerResult
 from safir.pydantic import SecondsTimedelta, UtcDatetime
+
+try:
+    from vo_models.uws import (
+        ErrorSummary,
+        JobSummary,
+        Parameters,
+        ResultReference,
+        Results,
+        ShortJobDescription,
+    )
+    from vo_models.uws.types import ErrorType, ExecutionPhase, UWSVersion
+
+    from safir.arq.uws import WorkerResult
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 __all__ = [
     "ACTIVE_PHASES",

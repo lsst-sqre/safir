@@ -11,7 +11,13 @@ from fastapi import Depends, Form, Query
 from httpx import AsyncClient
 from structlog.stdlib import BoundLogger
 
-from safir.arq import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue
+try:
+    from safir.arq import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 from safir.dependencies.http_client import http_client_dependency
 from safir.dependencies.logger import logger_dependency
 

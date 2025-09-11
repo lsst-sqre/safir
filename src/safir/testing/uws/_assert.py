@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from vo_models.uws import JobSummary
+try:
+    from vo_models.uws import JobSummary
+except ImportError as e:
+    raise ImportError(
+        "The safir.testing.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 __all__ = ["assert_job_summary_equal"]
 

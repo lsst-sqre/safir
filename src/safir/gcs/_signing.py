@@ -5,9 +5,15 @@ from __future__ import annotations
 from datetime import timedelta
 from urllib.parse import urlparse
 
-import google.auth
-from google.auth import impersonated_credentials
-from google.cloud import storage
+try:
+    import google.auth
+    from google.auth import impersonated_credentials
+    from google.cloud import storage
+except ImportError as e:
+    raise ImportError(
+        "The safir.gcs module requires the gcs extra. "
+        "Install it with `pip install safir[gcs]`."
+    ) from e
 
 __all__ = ["SignedURLService"]
 

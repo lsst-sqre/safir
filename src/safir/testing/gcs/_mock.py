@@ -9,7 +9,13 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
-from google.cloud import storage
+try:
+    from google.cloud import storage
+except ImportError as e:
+    raise ImportError(
+        "The safir.testing.gcs module requires the gcs extra. "
+        "Install it with `pip install safir[gcs]`."
+    ) from e
 
 __all__ = [
     "MockBlob",

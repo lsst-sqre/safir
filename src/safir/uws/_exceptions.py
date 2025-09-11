@@ -5,9 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Self, override
 
-from vo_models.uws.types import ErrorType
-
-from safir.arq.uws import WorkerError, WorkerErrorType
 from safir.datetime import format_datetime_for_logging
 from safir.slack.blockkit import (
     SlackCodeBlock,
@@ -18,6 +15,16 @@ from safir.slack.blockkit import (
     SlackWebException,
 )
 from safir.slack.webhook import SlackIgnoredException
+
+try:
+    from vo_models.uws.types import ErrorType
+
+    from safir.arq.uws import WorkerError, WorkerErrorType
+except ImportError as e:
+    raise ImportError(
+        "The safir.uws module requires the uws extra. "
+        "Install it with `pip install safir[uws]`."
+    ) from e
 
 from ._models import JobError
 
