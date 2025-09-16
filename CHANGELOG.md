@@ -9,6 +9,28 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-13.0.0'></a>
+## 13.0.0 (2025-09-16)
+
+### Backwards-incompatible changes
+
+- `safir.SentryException` and `safir.SentryWebException` are gone. The functionality to send Sentry metadata from custom exceptions has been moved into `safir.slack.blockkit.SlackException`.
+
+  To convert existing subclasse of `SentryException` and `SentryWebException`:
+
+  1. Inherit from `SlackException` or `SlackWebException` instead
+  1. Move any logic that sets tags, contexts or attachments into a `to_sentry` method that returns a `safir.slack.sentry.SentryEventInfo` object.
+
+- Move Kafka dependencies to an extra. Users of safir.kafka or safir.metrics must now depend on `safir[kafka]`.
+
+### New features
+
+- Add Sentry initialization helpers that get config values from environment variables and enhance reporting of `SentryException`s.
+
+### Bug fixes
+
+- Catch import errors in Safir modules that depend on extra dependencies and report a custom error indicating which extra dependency is required.
+
 <a id='changelog-12.1.2'></a>
 ## 12.1.2 (2025-08-28)
 
