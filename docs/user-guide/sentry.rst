@@ -17,7 +17,7 @@ You will need to provide at least:
 
 You can optionally provide:
 
-* The `~safir.sentry.before_send_handler` before_send_ handler, which adds the environment to the Sentry fingerprint, and handles :ref:`sentry-exception-types` appropriately.
+* The `~safir.sentry.before_send_handler` before_send_ handler, which adds the environment to the Sentry fingerprint, and handles :ref:`sentry-exceptions` appropriately.
 * A value to configure the traces_sample_rate_ so you can easily enable or disable tracing from Phalanx without changing your app's code
 * A `release`_ that will be added to all events to identify which version of the application generated the event.
 * Other `configuration options`_.
@@ -81,79 +81,64 @@ And your :file:`main.py` might look like this:
 .. _release: https://docs.sentry.io/product/releases/
 .. _Kubernetes workload: https://kubernetes.io/docs/concepts/workloads/
 
-.. _sentry-exception-types:
+.. _sentry-exceptions:
 
-Special Sentry exception types
-==============================
+Special Sentry exceptions
+=========================
 
-Similar to :ref:`slack-exceptions`, you can use `~safir.sentry.SentryException` to create custom exceptions that will send specific Sentry tags and contexts with any events that arise from them.
+You can use :ref:`slack-exceptions` to create custom exceptions that will send specific Sentry `tags`_, `contexts`_, and `attachments`_ with any events that arise from them.
 You need to use the `~safir.sentry.before_send_handler` handler for this to work.
 
-SentryException
----------------
+.. _tags: https://docs.sentry.io/platforms/python/enriching-events/tags/
+.. _contexts: https://docs.sentry.io/platforms/python/enriching-events/context/
+.. _attachments: https://docs.sentry.io/platforms/python/enriching-events/attachments/
 
-You can define custom exceptions that inherit from `~safir.sentry.SentryException`.
-These exceptions will have ``tags`` and ``contexts`` attributes.
-If Sentry sends an event that arises from reporting one of these exceptions, the event will have those tags and contexts attached to it.
+You can define a ``to_sentry`` method on any custom exception that inherit from `~safir.slack.blockkit.SlackException`.
+This method returns a `~safir.slack.sentry.SentryEventInfo` object with ``tags``, ``contexts``, ant ``attachments`` attributes.
+These attributes can be set from attributes on the exception object, or any other way you want.
+If Sentry sends an event that arises from reporting one of these exceptions, the event will have those tags, contexts, and attachments attached to it.
 
 .. note::
 
-   `Tags <https://docs.sentry.io/platforms/python/enriching-events/tags/>`_ are short key-value pairs that are indexed by Sentry.
+   Tags are short key-value pairs that are indexed by Sentry.
    Use tags for small values that you would like to search by and aggregate over when analyzing multiple Sentry events in the Sentry UI.
-   `Contexts <https://docs.sentry.io/platforms/python/enriching-events/context/>`_ are for more detailed information related to single events.
-   You can not search by context values, but you can store more data in them.
-   You should use a tag for something like ``"query_type": "sync"`` and a context for something like ``"query_info": {"query_text": text}``
+   Contexts can hold more text, and are for more detailed information related to single events.
+   Attachments can hold the most text, but are the hardest to view in the Sentry UI.
+   You can not search by context or attachment values, but you can store more data in them.
+   You should use a tag for something like ``"query_type": "sync"``, a context for something like ``"query_info": {"query_text": text}``, and an attachment for something like an HTTP response body.
 
 .. code-block:: python
 
-   from safir.sentry import sentry_exception_handler, SentryException
+   from safir.sentry import initialize_sentry
+   from safir.slack.blockkit import SlackException
 
 
-   sentry_sdk.init(before_send=sentry_exception_handler)
+   initialize_sentry()
 
 
-   class SomeError(SentryException):
+   class SomeError(SlackException):
        def __init__(
-           self, message: str, some_tag: str, some_context: dict[str, Any]
+           self, message: str, short: str, medium: str, long: str
        ) -> None:
            super.__init__(message)
-           self.tags["some_tag"] = some_tag
-           self.contexts["some_context"] = some_context
+           self.short = short
+           self.medium = medium
+           self.long = long
+
+       @override
+       def to_sentry(self):
+           info = super().to_sentry()
+           info.tags["some_tag"] = self.short
+           info.contexts["some_context"] = {"some_item": self.medium}
+           info.attachments["some_attachment"] = self.long
 
 
    raise SomeError(
-       "Some error!", some_tag="some_value", some_context={"foo": "bar"}
+       "Some error!",
+       short="some_value",
+       medium="some longer value...",
+       long="A large bunch of text...............",
    )
-
-SentryWebException
-------------------
-
-Similar to :ref:`slack-web-exceptions`, you can use `~safir.sentry.SentryWebException` to report an httpx_ exception with helpful info in tags and contexts.
-
-.. code-block:: python
-
-   from httpx import AsyncClient, HTTPError
-   from safir.sentry import SentryWebException
-
-
-   class FooServiceError(SentryWebException):
-       """An error occurred sending a request to the foo service."""
-
-
-   async def do_something(client: AsyncClient) -> None:
-       # ... set up some request to the foo service ...
-       try:
-           r = await client.get(url)
-           r.raise_for_status()
-       except HTTPError as e:
-           raise FooServiceError.from_exception(e) from e
-
-This will set an ``httpx_request_info`` context with the body, and these tags if the info is available:
-
-* ``gafaelfawr_user``
-* ``httpx_request_method``
-* ``httpx_request_url``
-* ``httpx_request_status``
 
 Testing
 =======
@@ -201,7 +186,7 @@ These can be combined to create a pytest fixture that initializes Sentry in a wa
 
        # Check that an appropriate attachment was posted with the error.
        (attachment,) = sentry_items.attachments
-       assert attachment.filename == "some_attachment.txt"
+       assert attachment.filename == "some_attachment"
        assert "blah" in attachment.bytes.decode()
 
        transaction = sentry_items.transactions[0]

@@ -11,7 +11,10 @@ from pydantic import BaseModel, field_validator
 
 from safir.datetime import format_datetime_for_logging
 
+from .sentry import SentryEventInfo
+
 __all__ = [
+    "SentryEventInfo",
     "SlackBaseBlock",
     "SlackBaseField",
     "SlackCodeBlock",
@@ -234,10 +237,10 @@ class SlackMessage(BaseModel):
 
 
 class SlackException(Exception):
-    """Parent class of exceptions that can be reported to Slack.
+    """Parent class of exceptions that can be reported to Slack or Sentry.
 
     Intended to be subclassed. Subclasses may wish to override the
-    ``to_slack`` method.
+    ``to_slack`` and ``to_sentry`` methods.
 
     Attributes
     ----------
@@ -303,6 +306,14 @@ class SlackException(Exception):
         if self.user:
             fields.append(SlackTextField(heading="User", text=self.user))
         return SlackMessage(message=str(self), fields=fields)
+
+    def to_sentry(self) -> SentryEventInfo:
+        """Return an object with tags and contexts to add to Sentry events.
+
+        This is the generic version that only adds the username as a tag. Child
+        exceptions may want to override it to add more metadata.
+        """
+        return SentryEventInfo(username=self.user)
 
 
 class SlackWebException(SlackException):
@@ -419,6 +430,25 @@ class SlackWebException(SlackException):
             block = SlackCodeBlock(heading="Response", code=self.body)
             message.attachments.append(block)
         return message
+
+    @override
+    def to_sentry(self) -> SentryEventInfo:
+        """Convert to Sentry attributes for Sentry encrichment.
+
+        Returns
+        -------
+        SentryEventInfo
+            Sentry attributes to enrich an event generated from this exception.
+        """
+        info = super().to_sentry()
+        if self.url:
+            if self.method:
+                info.tags["httpx_request_method"] = self.method
+            if self.url:
+                info.tags["httpx_request_url"] = self.url
+        if self.body:
+            info.attachments["httpx_response_body"] = self.body
+        return info
 
 
 def _format_and_truncate_at_end(string: str, max_length: int) -> str:

@@ -1,12 +1,27 @@
 """Tests for Sentry helpers."""
 
-import pytest
-import respx
-import sentry_sdk
-from httpx import AsyncClient, HTTPError, Response
+from typing import override
 
-from safir.sentry import SentryException, SentryWebException
+import sentry_sdk
+
+from safir.slack.blockkit import SentryEventInfo, SlackException
 from safir.testing.sentry import Captured
+
+
+class SomeError(SlackException):
+    """An exception type to test before_send handling."""
+
+    def __init__(self, woo: str, bar: str, user: str | None = None) -> None:
+        self.woo = woo
+        self.bar = bar
+        self.user = user
+
+    @override
+    def to_sentry(self) -> SentryEventInfo:
+        info = super().to_sentry()
+        info.tags["woo"] = self.woo
+        info.contexts["foo"] = {"bar": self.bar}
+        return info
 
 
 def test_env_fingerprint_before_send(
@@ -20,25 +35,18 @@ def test_env_fingerprint_before_send(
 def test_sentry_exception_before_send(
     sentry_exception_items: Captured,
 ) -> None:
-    class SomeError(SentryException): ...
-
-    exc = SomeError("some error")
-    exc.tags["woo"] = "hoo"
-    exc.contexts["foo"] = {"bar": "baz"}
+    exc = SomeError(woo="hoo", bar="baz", user="someuser")
 
     sentry_sdk.capture_exception(exc)
 
     (error,) = sentry_exception_items.errors
     assert error["contexts"]["foo"] == {"bar": "baz"}
     assert error["tags"] == {"woo": "hoo"}
+    assert error["user"]["username"] == "someuser"
 
 
 def test_combined_before_send(sentry_combo_items: Captured) -> None:
-    class SomeError(SentryException): ...
-
-    exc = SomeError("some error")
-    exc.tags["woo"] = "hoo"
-    exc.contexts["foo"] = {"bar": "baz"}
+    exc = SomeError(woo="hoo", bar="baz", user="someuser")
 
     sentry_sdk.capture_exception(exc)
 
@@ -46,49 +54,4 @@ def test_combined_before_send(sentry_combo_items: Captured) -> None:
     assert error["contexts"]["foo"] == {"bar": "baz"}
     assert error["fingerprint"] == ["{{ default }}", "some_env"]
     assert error["tags"] == {"woo": "hoo"}
-
-
-def test_sentry_exception(sentry_exception_items: Captured) -> None:
-    class SomeError(SentryException): ...
-
-    exc = SomeError("some error")
-    exc.tags["woo"] = "hoo"
-    exc.contexts["foo"] = {"bar": "baz"}
-
-    sentry_sdk.capture_exception(exc)
-
-    (error,) = sentry_exception_items.errors
-    assert error["contexts"]["foo"] == {"bar": "baz"}
-    assert error["tags"] == {"woo": "hoo"}
-
-
-@pytest.mark.asyncio
-async def test_sentry_web_exception(
-    respx_mock: respx.Router, sentry_exception_items: Captured
-) -> None:
-    class SomeError(SentryWebException):
-        pass
-
-    respx_mock.get("https://example.org/").mock(return_value=Response(404))
-    exception = None
-    try:
-        async with AsyncClient() as client:
-            r = await client.get("https://example.org/")
-            r.raise_for_status()
-    except HTTPError as e:
-        exception = SomeError.from_exception(e)
-        assert str(exception) == "Status 404 from GET https://example.org/"
-        sentry_sdk.capture_exception(exception)
-
-    (error,) = sentry_exception_items.errors
-    assert error["exception"]["values"][0]["type"] == (
-        "test_sentry_web_exception.<locals>.SomeError"
-    )
-    assert error["exception"]["values"][0]["value"] == (
-        "Status 404 from GET https://example.org/"
-    )
-    assert error["tags"] == {
-        "httpx_request_method": "GET",
-        "httpx_request_status": "404",
-        "httpx_request_url": "https://example.org/",
-    }
+    assert error["user"]["username"] == "someuser"
