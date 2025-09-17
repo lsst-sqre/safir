@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from fastapi import Request, status
+from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from safir.models import ErrorLocation
@@ -133,7 +133,13 @@ class ClientRequestError(SlackIgnoredException):
     Should be overridden by any subclass.
     """
 
-    status_code: ClassVar[int] = status.HTTP_422_UNPROCESSABLE_ENTITY
+    # We use the status code directly here rather than the constant in
+    # fastapi.status to avoid having to increase the lower bound on starlette,
+    # which changed the attribute name for the 422 status:
+    #
+    # https://github.com/Kludex/starlette/pull/2939
+    # https://github.com/fastapi/fastapi/pull/14077/files
+    status_code: ClassVar[int] = 422
     """HTTP status code for this type of validation error."""
 
     def __init__(
