@@ -9,6 +9,26 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-13.0.1'></a>
+## 13.0.1 (2025-09-23)
+
+### Bug fixes
+
+- `safir.sentry.initialize_sentry` now has the correct (though unfortunate) type of `Any` for `**additional_kwargs`
+
+### Other changes
+
+- Starlette deprecated the `HTTP_422_UNPROCESSABLE_ENTITY` constant and
+  changed it to `HTTP_422_UNPROCESSABLE_CONTENT` in [this
+  PR](https://github.com/Kludex/starlette/pull/2939). We could either
+  change this constant in our code, or just use the status code int
+  directly.
+
+  Use status code directly here rather than the new constant in
+  to avoid having to increase the lower bound on starlette. This is the
+  choice that the FastAPI folks made in [this
+  PR](https://github.com/fastapi/fastapi/pull/14077/files).
+
 <a id='changelog-13.0.0'></a>
 ## 13.0.0 (2025-09-16)
 
