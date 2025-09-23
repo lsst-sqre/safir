@@ -59,9 +59,7 @@ def should_enable_sentry() -> bool:
     return bool(os.environ.get("SENTRY_DSN"))
 
 
-def initialize_sentry(
-    release: str, **additional_kwargs: dict[str, Any]
-) -> None:
+def initialize_sentry(release: str, **additional_kwargs: Any) -> None:
     """Initialize Sentry with env var values and the safir before_send handler.
 
     Most Safir apps should provide certain Sentry parameters. This method will
@@ -82,5 +80,9 @@ def initialize_sentry(
 
     config = SentryConfig()
     kwargs = config.model_dump()
-    kwargs.update(**additional_kwargs)
-    sentry_sdk.init(before_send=before_send_handler, release=release, **kwargs)
+    sentry_sdk.init(
+        before_send=before_send_handler,
+        release=release,
+        **kwargs,
+        **additional_kwargs,
+    )
