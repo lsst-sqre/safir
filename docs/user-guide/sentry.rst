@@ -26,7 +26,7 @@ The `~safir.sentry.initialize_sentry` function will parse the DSN, environment, 
 It takes a ``release`` parameter.
 For most Safir applications, you should pass the value in ``<your application>.__version__``, which is the version discovered by `setuptools-scm`_.
 It will then call ``sentry_sdk.init`` with those values and the `~safir.sentry.before_send_handler` `before_send`_ handler.
-The config values are taken from enviroment variables and not the main app config class because we want to initialize Sentry before the app configuration is initialized, especially in apps that load their config from YAML files.
+The config values are taken from enviroment variables and not the main app config class because we want to initialize Sentry before the app configuration is initialized, especially in apps that load their config from YAML files. These environment variables are described in the `~safir.sentry.SentryConfig` model.
 
 Your app's `Kubernetes workload`_ template needs to specify these environment variables and their values, which might look like this:
 
@@ -51,6 +51,8 @@ Your app's `Kubernetes workload`_ template needs to specify these environment va
                      key: "sentry-dsn"
                - name: "SENTRY_ENVIRONMENT"
                  value: {{ .Values.global.environmentName }}
+               - name: "SENTRY_TRACES_SAMPLE_RATE"
+                 value: {{ .Values.sentry.tracesSampleRate }}
                {{- end }}
 
 And your :file:`main.py` might look like this:
