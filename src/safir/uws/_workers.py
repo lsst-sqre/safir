@@ -151,7 +151,7 @@ async def uws_job_started(
         logger.warning("Job not found to mark as started", job_id=job_id)
     except Exception as e:
         if slack:
-            await slack.post_uncaught_exception(e)
+            await slack.post_exception(e)
         raise
 
 
@@ -197,7 +197,7 @@ async def _annotate_worker_error(
             return exc
         case _:
             if slack:
-                await slack.post_uncaught_exception(exc)
+                await slack.post_exception(exc)
             return exc
 
 
@@ -276,5 +276,5 @@ async def uws_job_completed(
         logger.warning("Job not found to mark as completed")
     except Exception as e:
         if slack:
-            await slack.post_uncaught_exception(e)
+            await slack.post_exception(e)
         raise

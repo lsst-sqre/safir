@@ -89,8 +89,14 @@ class SlackWebhookClient:
             msg = "Posting Slack message failed"
             self._logger.exception(msg, message=body)
 
-    async def post_exception(self, exc: SlackException) -> None:
+    async def post_exception(self, exc: Exception) -> None:
         """Post an alert to Slack about an exception.
+
+        If the exception is a `~safir.slack.blockkit.SlackException`, then the
+        Slack message will be constructed by calling it's
+        `~safir.slack.blockkit.SlackException.to_slack` method. If the
+        exception is not a `~safir.slack.blockkit.SlackException`, then a
+        generic Slack message will be constructed.
 
         This method intentionally does not provide a way to include the
         traceback, since it's hard to ensure that the traceback is entirely
@@ -102,28 +108,16 @@ class SlackWebhookClient:
         exc
             The exception to report.
         """
-        message = exc.to_slack()
-        message.message = f"Error in {self._application}: {message.message}"
-        await self.post(message)
-
-    async def post_uncaught_exception(self, exc: Exception) -> None:
-        """Post an alert to Slack about an uncaught webapp exception.
-
-        Parameters
-        ----------
-        exc
-            The exception to report.
-        """
         if isinstance(exc, SlackException):
             message = exc.to_slack()
-            msg = f"Uncaught exception in {self._application}: {exc!s}"
+            msg = f"Error in {self._application}: {exc!s}"
             message.message = msg
         else:
             date = format_datetime_for_logging(current_datetime())
             name = type(exc).__name__
             error = f"{name}: {exc!s}"
             message = SlackMessage(
-                message=f"Uncaught exception in {self._application}",
+                message=f"Error in {self._application}",
                 fields=[
                     SlackTextField(heading="Exception type", text=name),
                     SlackTextField(heading="Failed at", text=date),
@@ -213,7 +207,7 @@ class SlackRouteErrorHandler(APIRoute):
                     raise
                 if not self._alert_client:
                     raise
-                await self._alert_client.post_uncaught_exception(e)
+                await self._alert_client.post_exception(e)
                 raise
 
         return wrapped_route_handler
