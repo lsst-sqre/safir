@@ -110,7 +110,7 @@ class SlackWebhookClient:
         """
         if isinstance(exc, SlackException):
             message = exc.to_slack()
-            msg = f"Error in {self._application}: {exc!s}"
+            msg = f"Error in {self._application}: {message.message}"
             message.message = msg
         else:
             date = format_datetime_for_logging(current_datetime())
@@ -203,6 +203,10 @@ class SlackRouteErrorHandler(APIRoute):
             try:
                 return await original_route_handler(request)
             except Exception as e:
+                # We don't use safir.slack.report_exception here because we
+                # want the exception to propagate to the Sentry uncaught
+                # exception handler so that we get the full instrumentation
+                # from the Sentry FastAPI integration.
                 if isinstance(e, self._IGNORED_EXCEPTIONS):
                     raise
                 if not self._alert_client:

@@ -11,6 +11,8 @@ from typing import Any, ParamSpec
 from httpx import AsyncClient
 from structlog.stdlib import BoundLogger
 
+from safir.sentry._helpers import report_exception
+
 try:
     from safir.arq import (
         ArqMode,
@@ -30,7 +32,7 @@ except ImportError as e:
 from safir.datetime import format_datetime_for_logging
 from safir.dependencies.http_client import http_client_dependency
 from safir.slack.blockkit import SlackException
-from safir.slack.webhook import SlackIgnoredException, SlackWebhookClient
+from safir.slack.webhook import SlackWebhookClient
 
 from ._config import UWSConfig
 from ._constants import JOB_RESULT_TIMEOUT, WOBBLY_REQUEST_TIMEOUT
@@ -150,6 +152,10 @@ async def uws_job_started(
     except UnknownJobError:
         logger.warning("Job not found to mark as started", job_id=job_id)
     except Exception as e:
+        # We don't use safir.slack.report_exception here because we want the
+        # exception to propagate to the Sentry uncaught exception
+        # handler so that we get the full instrumentation from any configured
+        # Sentry integrations.
         if slack:
             await slack.post_exception(e)
         raise
@@ -185,20 +191,14 @@ async def _annotate_worker_error(
             error.job_id = job.id
             error.started_at = job.creation_time
             error.user = job.owner
-            if slack and not error.slack_ignore:
-                await slack.post_exception(error)
+            if not error.slack_ignore:
+                await report_exception(error, slack_client=slack)
             return error
-        case SlackIgnoredException():
-            return exc
         case SlackException():
             exc.user = job.owner
-            if slack:
-                await slack.post_exception(exc)
-            return exc
-        case _:
-            if slack:
-                await slack.post_exception(exc)
-            return exc
+
+    await report_exception(exc, slack_client=slack)
+    return exc
 
 
 async def _get_job_result(arq: ArqQueue, arq_job_id: str) -> JobResult:
@@ -275,6 +275,10 @@ async def uws_job_completed(
     except UnknownJobError:
         logger.warning("Job not found to mark as completed")
     except Exception as e:
+        # We don't use safir.slack.report_exception here because we want the
+        # exception to propagate to the Sentry uncaught exception
+        # handler so that we get the full instrumentation from any configured
+        # Sentry integrations.
         if slack:
             await slack.post_exception(e)
         raise

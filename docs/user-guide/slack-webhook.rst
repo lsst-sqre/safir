@@ -163,6 +163,11 @@ For example:
 
    The full exception message (although not the traceback) is sent to Slack, so it should not contain any sensitive information, security keys, or similar data.
 
+.. tip::
+
+   Consider using `~safir.sentry.report_exception` to post your exceptions. This will post them to either Slack, or Sentry, or both, depending on what is configured in your app.
+   See the :ref:`Sentry docs <notification-helper>` for more information.
+
 .. _slack-web-exceptions:
 
 Reporting HTTPX exceptions

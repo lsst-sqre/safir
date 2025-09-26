@@ -18,7 +18,7 @@ You will need to provide at least:
 You can optionally provide:
 
 * The `~safir.sentry.before_send_handler` before_send_ handler, which adds the environment to the Sentry fingerprint, and handles :ref:`sentry-exceptions` appropriately.
-* A value to configure the traces_sample_rate_ so you can easily enable or disable tracing from Phalanx without changing your app's code
+* A value to configure the traces_sample_rate_ so you can easily enable or disable tracing from `Phalanx`_ without changing your app's code
 * A `release`_ that will be added to all events to identify which version of the application generated the event.
 * Other `configuration options`_.
 
@@ -85,17 +85,17 @@ And your :file:`main.py` might look like this:
 
 .. _sentry-exceptions:
 
-Special Sentry exceptions
-=========================
+Adding Sentry metadata to SlackExceptions
+=========================================
 
-You can use :ref:`slack-exceptions` to create custom exceptions that will send specific Sentry `tags`_, `contexts`_, and `attachments`_ with any events that arise from them.
+You can enrich :ref:`slack-exceptions` to send specific Sentry `tags`_, `contexts`_, and `attachments`_ with any events that arise from them.
 You need to use the `~safir.sentry.before_send_handler` handler for this to work.
 
 .. _tags: https://docs.sentry.io/platforms/python/enriching-events/tags/
 .. _contexts: https://docs.sentry.io/platforms/python/enriching-events/context/
 .. _attachments: https://docs.sentry.io/platforms/python/enriching-events/attachments/
 
-You can define a ``to_sentry`` method on any custom exception that inherit from `~safir.slack.blockkit.SlackException`.
+To do this, define a ``to_sentry`` method on any custom exception that inherits from `~safir.slack.blockkit.SlackException`.
 This method returns a `~safir.slack.sentry.SentryEventInfo` object with ``tags``, ``contexts``, ant ``attachments`` attributes.
 These attributes can be set from attributes on the exception object, or any other way you want.
 If Sentry sends an event that arises from reporting one of these exceptions, the event will have those tags, contexts, and attachments attached to it.
@@ -110,6 +110,8 @@ If Sentry sends an event that arises from reporting one of these exceptions, the
    You should use a tag for something like ``"query_type": "sync"``, a context for something like ``"query_info": {"query_text": text}``, and an attachment for something like an HTTP response body.
 
 .. code-block:: python
+
+   from typing import override
 
    from safir.sentry import initialize_sentry
    from safir.slack.blockkit import SlackException
@@ -128,6 +130,11 @@ If Sentry sends an event that arises from reporting one of these exceptions, the
            self.long = long
 
        @override
+       def to_slack(self):
+           # Construct a SlackMessage
+           pass
+
+       @override
        def to_sentry(self):
            info = super().to_sentry()
            info.tags["some_tag"] = self.short
@@ -141,6 +148,66 @@ If Sentry sends an event that arises from reporting one of these exceptions, the
        medium="some longer value...",
        long="A large bunch of text...............",
    )
+
+.. _notification-helper:
+
+Notification helper
+-------------------
+
+You should implement both `~safir.slack.blockkit.SlackException.to_slack` and `~safir.slack.blockkit.SlackException.to_sentry` on your exceptions, since many Phalanx installations will use either Sentry or Slack for error notifications, but not both.
+The Sentry SDK and `~safir.slack.webhook.SlackRouteErrorHandler` will report uncaught exceptions to each service.
+When you want to handle Exceptions but still send notifications for them, Safir provides the `~safir.sentry.report_exception` function. This will notify Slack, or Sentry, or both, depending on which services are configured and initialized.
+
+.. code-block:: python
+
+   from typing import override
+
+   import structlog
+
+   from safir.sentry import initialize_sentry, report_exception
+   from safir.slack.blockkit import SlackException
+   from safir.slack.webhook import SlackWebhookClient
+
+   initialize_sentry()
+
+   logger = structlog.get_logger(__file__)
+   slack_client = SlackWebhookClient(mock_slack.url, "App", logger)
+
+
+   class SomeError(SlackException):
+       def __init__(
+           self, message: str, short: str, medium: str, long: str
+       ) -> None:
+           super.__init__(message)
+           self.short = short
+           self.medium = medium
+           self.long = long
+
+       @override
+       def to_slack(self):
+           # Construct a SlackMessage
+           pass
+
+       @override
+       def to_sentry(self):
+           info = super().to_sentry()
+           info.tags["some_tag"] = self.short
+           info.contexts["some_context"] = {"some_item": self.medium}
+           info.attachments["some_attachment"] = self.long
+
+
+   try:
+       raise SomeError(
+           "Some error!",
+           short="some_value",
+           medium="some longer value...",
+           long="A large bunch of text...............",
+       )
+   except SomeError as exc:
+       await report_exception(exc, slack_client=slack_client)
+
+   print("SomeError happened, but we're continuing.")
+
 
 Testing
 =======

@@ -237,8 +237,12 @@ class TaskError(SlackException):
             info.contexts.setdefault("info", {})["started_at"] = started_at
         if self.job_id:
             info.tags["job_id"] = self.job_id
-        if self._detail:
-            info.contexts.setdefault("info", {})["detail"] = self._detail
+        if self._detail or self._cause_type:
+            context = info.contexts.setdefault("original_exception", {})
+            if self._detail:
+                context["detail"] = self._detail
+            if self._cause_type:
+                context["cause_type"] = self._cause_type
         return info
 
 
