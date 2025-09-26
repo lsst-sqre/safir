@@ -190,7 +190,7 @@ async def test_route_handler(mock_slack: MockSlackWebhook) -> None:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Uncaught exception in App",
+                        "text": "Error in App",
                         "verbatim": True,
                     },
                 },
@@ -224,7 +224,7 @@ async def test_route_handler(mock_slack: MockSlackWebhook) -> None:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": ("Uncaught exception in App: Slack exception"),
+                        "text": ("Error in App: Slack exception"),
                         "verbatim": True,
                     },
                 },
