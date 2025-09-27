@@ -26,6 +26,7 @@ from safir.arq.uws import (
     build_worker,
 )
 from safir.datetime import current_datetime
+from safir.testing.sentry import Captured
 from safir.testing.slack import MockSlackWebhook
 from safir.uws import JobResult, UWSApplication, UWSConfig
 from safir.uws._constants import UWS_DATABASE_TIMEOUT
@@ -212,6 +213,7 @@ async def test_build_uws_worker(
     test_username: str,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
+    sentry_exception_items: Captured,
     logger: BoundLogger,
 ) -> None:
     uws = UWSApplication(uws_config)
@@ -269,6 +271,7 @@ async def test_build_uws_worker(
     assert now <= job.end_time <= current_datetime()
     assert job.results == [JobResult.from_worker_result(r) for r in results]
     assert mock_slack.messages == []
+    assert sentry_exception_items.errors == []
 
     def nonnegative(value: int) -> None:
         if value < 0:
@@ -380,6 +383,21 @@ async def test_build_uws_worker(
         },
     ]
 
+    traceback_attachment = sentry_exception_items.attachments[0]
+    assert traceback_attachment.filename == "traceback"
+    assert traceback_attachment.bytes.decode() == error.traceback
+
+    sentry_error = sentry_exception_items.errors[0]
+    assert sentry_error["tags"]["job_id"] == "2"
+    assert sentry_error["contexts"]["info"]["started_at"] == ANY
+    sentry_orig = sentry_error["contexts"]["original_exception"]
+    assert sentry_orig["cause_type"] == "ValueError"
+    assert sentry_orig["detail"] == "went wrong"
+
+    sentry_exc = sentry_error["exception"]["values"][0]
+    assert sentry_exc["type"] == "TaskError"
+    assert sentry_exc["value"] == "Something"
+
     # Test starting and erroring a job with an unknown exception.
     mock_slack.messages = []
     job = await job_service.create(test_token, SimpleParameters(name="Ahmed"))
@@ -406,7 +424,7 @@ async def test_build_uws_worker(
             "blocks": [
                 {
                     "text": {
-                        "text": "Uncaught exception in vo-cutouts-db-worker",
+                        "text": "Error in vo-cutouts-db-worker",
                         "type": "mrkdwn",
                         "verbatim": True,
                     },
@@ -437,3 +455,7 @@ async def test_build_uws_worker(
             ],
         },
     ]
+
+    sentry_exc = sentry_exception_items.errors[1]["exception"]["values"][0]
+    assert sentry_exc["type"] == "ValueError"
+    assert sentry_exc["value"] == "some error"
