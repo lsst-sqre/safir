@@ -3,11 +3,11 @@ Sending messages and alerts to a Slack webhook
 ##############################################
 
 It is sometimes useful for a web application to have a mechanism for reporting an urgent error or the results of a consistency audit to human administrators.
-One convenient way to do this is to set up a Slack channel for that purpose and a `Slack incoming webhook <https://api.slack.com/messaging/webhooks>`__ for posting to that channel.
+One convenient way to do this is to set up a Slack channel for that purpose and a `Slack incoming webhook <https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/>`__ for posting to that channel.
 
 This is a write-only way of putting messages on a Slack channel.
 The application cannot read messages; it can only send messages by posting them to the webhook URL.
-Messages are normally formatted using Slack's `Block Kit API <https://api.slack.com/block-kit>`__.
+Messages are normally formatted using Slack's `Block Kit API <https://docs.slack.dev/block-kit>`__.
 
 Safir provides a client for posting such messages and support for using that client to post common types of alerts, such as uncaught exceptions.
 
@@ -36,7 +36,7 @@ Creating a Slack message
 ------------------------
 
 Then, construct a `~safir.slack.blockkit.SlackMessage` that you want to post.
-This has a main message in Slack's highly-simplified `mrkdwn variant of Markdown <https://api.slack.com/reference/surfaces/formatting>`__, zero or more fields, zero or more extra blocks, and zero or more attachments.
+This has a main message in Slack's highly-simplified `mrkdwn variant of Markdown <https://docs.slack.dev/messaging/formatting-message-text/>`__, zero or more fields, zero or more extra blocks, and zero or more attachments.
 
 A field is a heading and a short amount of data (normally a few words or a short line) normally used to hold supplemental information about the message.
 Possible examples are the username of the user that triggered the message, a formatted time when some event happened, or the route that was being accessed.
