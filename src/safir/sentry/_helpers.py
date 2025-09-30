@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import sentry_sdk
 from sentry_sdk.attachments import Attachment
 from sentry_sdk.tracing import Span
 from sentry_sdk.types import Event, Hint
+
+from safir.slack.webhook import SlackIgnoredException, SlackWebhookClient
 
 from ..slack.blockkit import SlackException
 
@@ -14,6 +17,7 @@ __all__ = [
     "before_send_handler",
     "duration",
     "fingerprint_env_handler",
+    "report_exception",
     "sentry_exception_handler",
 ]
 
@@ -83,3 +87,42 @@ def before_send_handler(event: Event, hint: Hint) -> Event:
     """
     event = fingerprint_env_handler(event, hint)
     return sentry_exception_handler(event, hint)
+
+
+async def report_exception(
+    exc: Exception, slack_client: SlackWebhookClient | None
+) -> None:
+    """Notify Sentry and Slack about an exception.
+
+    Use this when you want to be notified about an exception, but stop
+    propagating it. If you want to keep propagating the exception and still
+    support both Slack and Sentry, catch the exception, use
+    `~safir.slack.webhook.SlackWebhookClient.post_exception`, re-raise the
+    exception, and let the Sentry-configured uncaught exception handler notify
+    Sentry if the exception makes it that far.
+
+    If Sentry has not been initialized, then no events will be sent to Sentry.
+    If ``slack_client`` is `None`, then no notifications will be sent to
+    Slack.
+
+    If the exception is an instance of
+    `~safir.slack.webhook.SlackIgnoredException`, no notifications will be
+    sent to either Sentry or Slack. If the exception is an instance of
+    `~safir.slack.blockkit.SlackException`, the Slack message will be generated
+    from its ``to_slack`` method.
+
+    Parameters
+    ----------
+    exc
+        The Exception to send to the notification service.
+
+    slack_client
+        A client to use to send a Slack notification about the exception. If \
+        this is `None`, then no Slack notification will be sent.
+    """
+    if isinstance(exc, SlackIgnoredException):
+        return
+
+    sentry_sdk.capture_exception(exc)
+    if slack_client:
+        await slack_client.post_exception(exc)

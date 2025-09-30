@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import pytest
 from httpx import AsyncClient
 
+from safir.testing.sentry import Captured
 from safir.testing.slack import MockSlackWebhook
 from safir.testing.uws import MockWobbly
 from safir.uws._dependencies import UWSFactory
@@ -30,6 +31,7 @@ async def test_errors(
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
     mock_wobbly: MockWobbly,
+    sentry_exception_items: Captured,
 ) -> None:
     job_service = uws_factory.create_job_service()
     await job_service.create(
@@ -161,5 +163,6 @@ async def test_errors(
     )
     assert r.status_code == 422
 
-    # None of these errors should have produced Slack errors.
+    # None of these errors should have produced Slack or Sentry errors.
     assert mock_slack.messages == []
+    assert sentry_exception_items.errors == []

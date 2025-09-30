@@ -8,6 +8,7 @@ from vo_models.uws import JobSummary
 
 from safir.arq.uws import WorkerFatalError, WorkerTransientError
 from safir.datetime import isodatetime
+from safir.testing.sentry import Captured
 from safir.testing.slack import MockSlackWebhook
 from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
 from safir.uws._dependencies import UWSFactory
@@ -57,6 +58,7 @@ async def test_temporary_error(
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
+    sentry_exception_items: Captured,
 ) -> None:
     job_service = uws_factory.create_job_service()
     await job_service.create(test_token, SimpleParameters(name="Sarah"))
@@ -99,8 +101,9 @@ async def test_temporary_error(
         "ServiceUnavailable: Something failed"
     )
 
-    # For now, this shouldn't have resulted in Slack errors.
+    # For now, this shouldn't have resulted in Slack or Sentry errors.
     assert mock_slack.messages == []
+    assert sentry_exception_items.errors == []
 
 
 @pytest.mark.asyncio
@@ -110,6 +113,7 @@ async def test_fatal_error(
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
+    sentry_exception_items: Captured,
 ) -> None:
     job_service = uws_factory.create_job_service()
     await job_service.create(test_token, SimpleParameters(name="Sarah"))
@@ -148,8 +152,9 @@ async def test_fatal_error(
         "Error: Whoops\n\nSome details"
     )
 
-    # For now, this shouldn't have resulted in Slack errors.
+    # For now, this shouldn't have resulted in Slack or Sentry errors.
     assert mock_slack.messages == []
+    assert sentry_exception_items.errors == []
 
 
 @pytest.mark.asyncio
@@ -159,6 +164,7 @@ async def test_unknown_error(
     runner: MockUWSJobRunner,
     uws_factory: UWSFactory,
     mock_slack: MockSlackWebhook,
+    sentry_exception_items: Captured,
 ) -> None:
     job_service = uws_factory.create_job_service()
     await job_service.create(test_token, SimpleParameters(name="Sarah"))
@@ -198,3 +204,4 @@ async def test_unknown_error(
 
     # For now, this shouldn't have resulted in Slack errors.
     assert mock_slack.messages == []
+    assert sentry_exception_items.errors == []
