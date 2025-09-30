@@ -9,6 +9,21 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.0.0'></a>
+## 14.0.0 (2025-09-30)
+
+### Backwards-incompatible changes
+
+- `safir.slack.SlackWebhookClient.post_uncaught_exception` has been removed. `safir.slack.SlackWebhookClient.post_exception` now handles non-`SlackException` exceptions.
+
+  To make your app compatible, change all `post_uncaught_exception` calls to `post_exception`. The behavior will be the same, except the message will start with "Error in..." instead of "Uncaught exception in..."
+
+### New features
+
+- `safir.sentry.report_exception` will notify Slack and/or Sentry if either integration is configured
+- UWS `TaskError` Sentry instrumentation now contains info about the original exception
+- The UWS helpers now notify both Slack and Sentry about errors
+
 <a id='changelog-13.0.1'></a>
 ## 13.0.1 (2025-09-23)
 
