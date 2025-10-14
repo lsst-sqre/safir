@@ -38,7 +38,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Update dependencies
         run: make update-deps
@@ -71,7 +71,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Install extra packages
         run: |
@@ -102,7 +102,7 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Build the packages
         run: uv build --no-sources --all-packages

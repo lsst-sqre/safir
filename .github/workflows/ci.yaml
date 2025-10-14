@@ -49,7 +49,7 @@ jobs:
       # can do something more complicated with a pinned version updated with a
       # script run by `make update-deps` similar to service packages.
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Run nox
         run: uv run --only-group nox nox -s lint typing test
@@ -69,7 +69,7 @@ jobs:
           version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Install extra packages
         run: |
@@ -110,7 +110,7 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Build the packages
         run: uv build --no-sources --all-packages
@@ -133,7 +133,7 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Build the packages
         run: uv build --no-sources --all-packages
