@@ -304,7 +304,15 @@ async def test_uvicorn_logging(tmp_path: Path) -> None:
     # stderr will be the error log. There will be a bunch of random Uvicorn
     # messages here; just make sure they're all valid JSON. But make sure that
     # the log for the exception we raised includes the full traceback.
-    messages = [json.loads(line) for line in stderr.strip().split("\n")]
+    #
+    # Currently, FastAPI unconditionally emits a user warning with Python
+    # 3.14, which we don't have formatting control over, so ignore those
+    # lines.
+    messages = [
+        json.loads(line)
+        for line in stderr.strip().split("\n")
+        if "UserWarning" not in line and "pydantic.v1" not in line
+    ]
     for message in messages:
         if "Exception in ASGI application" in message["event"]:
             assert "TypeError" in message["exception"]
