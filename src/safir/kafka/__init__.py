@@ -1,4 +1,5 @@
 from ._exceptions import (
+    FastStreamErrorHandler,
     IncompatibleSchemaError,
     InvalidAvroNameError,
     InvalidMetadataError,
@@ -26,6 +27,7 @@ __all__ = [
     "AIOKafkaParams",
     "Compatibility",
     "FastStreamBrokerParams",
+    "FastStreamErrorHandler",
     "IncompatibleSchemaError",
     "InvalidAvroNameError",
     "InvalidMetadataError",

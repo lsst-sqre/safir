@@ -28,6 +28,7 @@ from structlog.testing import LogCapture
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
+from safir.kafka import FastStreamErrorHandler
 from safir.metrics import (
     EventManager,
     EventsConfiguration,
@@ -148,6 +149,16 @@ async def resiliency_metrics_stack(
         kafka_max_batch_size=1,
     ) as stack:
         yield stack
+
+
+@pytest.fixture
+def faststream_error_handler() -> FastStreamErrorHandler:
+    """Create a FastStreamErrorHandler instance.
+
+    This can be used in a test function to configure Slack error reporting for
+    a FastStream broker or router.
+    """
+    return FastStreamErrorHandler()
 
 
 @pytest.fixture(scope="session")

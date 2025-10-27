@@ -6,6 +6,8 @@ Sentry_ is an exception reporting and tracing observability service.
 It has great out-of-the-box integrations with many of the Python libaries that we use, including FastAPI_, SQLAlchemy_, and arq_.
 Most apps can get a lot of value out of Sentry by doing nothing other than calling the `init function <https://docs.sentry.io/platforms/python/#configure>`_ early in their app and using some of the helpers described here.
 
+.. _sentry-instrumentation:
+
 Instrumenting your application
 ==============================
 
