@@ -91,4 +91,6 @@ ignore = [
     '^https://github\.com/lsst-sqre/safir/issues/new',
     # This anchor seems dynamically generated
     '^https://github.com/getsentry/sentry/issues/64354#issuecomment-1927839632',
+    # Timing out when checked form GitHub Actions
+    '^https://arq-docs.helpmanual.io'
 ]
