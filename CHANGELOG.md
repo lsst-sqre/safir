@@ -9,6 +9,18 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.1.0'></a>
+## 14.1.0 (2025-10-30)
+
+### New features
+
+- Add `safir.kafa.FastStreamErrorHandler`, a [FastStream ExceptionMiddleware](https://faststream.ag2.ai/latest/getting-started/middlewares/exception/) to report uncaught errors to external services.
+
+### Other changes
+
+- Ignore https://arq-docs.helpmanual.io links in link check, they frequently time out when checked from GitHub actions.
+- Safir is now tested with Python 3.14 as well as 3.12 and 3.13.
+
 <a id='changelog-14.0.0'></a>
 ## 14.0.0 (2025-09-30)
 
