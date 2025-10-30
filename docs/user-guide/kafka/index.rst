@@ -17,4 +17,5 @@ Guides
 
    kafka-connection-settings
    pydantic-schema-manager
+   faststream
    testing
