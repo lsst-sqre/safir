@@ -18,7 +18,7 @@ try:
     from aiokafka.admin.client import AIOKafkaAdminClient
     from dataclasses_avroschema.pydantic import AvroBaseModel
     from faststream.kafka import KafkaBroker
-    from faststream.kafka.publisher.asyncapi import AsyncAPIDefaultPublisher
+    from faststream.kafka.publisher import DefaultPublisher
 except ImportError as e:
     raise ImportError(
         "The safir.metrics module requires the kafka extra. "
@@ -236,7 +236,7 @@ class KafkaEventPublisher[P: EventPayload](EventPublisher[P]):
         application: str,
         manager: "KafkaEventManager",
         event_class: type[P],
-        publisher: AsyncAPIDefaultPublisher,
+        publisher: DefaultPublisher,
         schema_info: SchemaInfo,
     ) -> None:
         super().__init__(application, event_class)
@@ -667,7 +667,7 @@ class KafkaEventManager(EventManager):
     async def publish(
         self,
         event: EventPayload,
-        publisher: AsyncAPIDefaultPublisher,
+        publisher: DefaultPublisher,
         schema_info: SchemaInfo | None,
     ) -> None:
         """Serialize an event to Avro and publish it to Kafka.

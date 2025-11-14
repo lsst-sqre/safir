@@ -14,6 +14,7 @@ from aiokafka import AIOKafkaConsumer, TopicPartition
 from aiokafka.admin.client import AIOKafkaAdminClient, NewTopic
 from aiokafka.errors import KafkaConnectionError
 from dataclasses_avroschema.pydantic import AvroBaseModel
+from faststream.kafka.publisher.producer import AioKafkaFastProducer
 from pydantic import Field, HttpUrl
 from schema_registry.client.client import AsyncSchemaRegistryClient
 from schema_registry.serializers.message_serializer import (
@@ -72,6 +73,13 @@ async def subscribe_and_wait(consumer: AIOKafkaConsumer, pattern: str) -> None:
     """
     consumer.subscribe(pattern=pattern)
     await asyncio.sleep(0.5)
+
+
+async def flush_producer(manager: KafkaEventManager) -> None:
+    """Hack the type system to flush the underlying aiokafka producer."""
+    assert manager._broker._producer
+    producer = cast("AioKafkaFastProducer", manager._broker._producer)
+    await producer.flush()
 
 
 async def assert_from_kafka(
@@ -487,7 +495,7 @@ async def test_bad_kafka_after_initialize(
             duration_union=None,
         )
     )
-    await event_manager._broker._producer.flush()
+    await flush_producer(event_manager)
 
     # Stop Kafka
     kafka_container.stop_container()
@@ -509,7 +517,7 @@ async def test_bad_kafka_after_initialize(
                 duration_union=None,
             )
         )
-    await event_manager._broker._producer.flush()
+    await flush_producer(event_manager)
 
     # This shouldn't raise an exception, but it shouldn't make it to kafka.
     await event.publish(
@@ -519,7 +527,7 @@ async def test_bad_kafka_after_initialize(
             duration_union=None,
         )
     )
-    await event_manager._broker._producer.flush()
+    await flush_producer(event_manager)
 
     # There should be one error event in the logs
     error_logs = [
@@ -544,7 +552,7 @@ async def test_bad_kafka_after_initialize(
                 duration_union=None,
             )
         )
-    await event_manager._broker._producer.flush()
+    await flush_producer(event_manager)
 
     backoff_down_error_logs = [
         entry
@@ -576,7 +584,7 @@ async def test_bad_kafka_after_initialize(
         if entry["log_level"] == "error"
         and entry["attempted_operation"] == "publish"
     ]
-    await event_manager._broker._producer.flush()
+    await flush_producer(event_manager)
     assert len(backoff_up_error_logs) == len(backoff_down_error_logs)
 
     # Move time to after the next backoff window. This isn't EXACTLY when the
@@ -592,7 +600,7 @@ async def test_bad_kafka_after_initialize(
                 duration_union=None,
             )
         )
-    await event_manager._broker._producer.flush()
+    await flush_producer(event_manager)
 
     # There shouldn't be any more error logs
     new_error_logs = [
