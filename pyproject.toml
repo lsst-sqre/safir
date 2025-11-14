@@ -27,7 +27,7 @@ dependencies = [
     "gidgethub<6",
     "httpx>=0.20.0,<1",
     "pydantic>2,<3",
-    "pydantic-core",
+    "pydantic-core<3",
     "pydantic-settings!=2.6.0,<3",
     "safir-logging",
     "sentry-sdk>=2,<3",
@@ -43,7 +43,7 @@ arq = [
 db = [
     "alembic[tz]<2",
     "asyncpg<1",
-    "sqlalchemy[asyncio]>=2.0.0,<3",
+    "sqlalchemy[asyncio]>=2,<3",
 ]
 gcs = [
     "google-auth>2,<3",
@@ -52,11 +52,11 @@ gcs = [
 kafka = [
     "aiokafka>=0.11,<1",
     "dataclasses-avroschema>=0.65.7,<1",
-    "faststream>=0.5.44,<0.6",
+    "faststream>=0.6,<0.7",
     "python-schema-registry-client>=2.6,<3",
 ]
 kubernetes = [
-    "kubernetes_asyncio<34"
+    "kubernetes-asyncio<34"
 ]
 redis = [
     "redis>4.5.2,<7",

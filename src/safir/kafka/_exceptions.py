@@ -10,7 +10,7 @@ from ..slack.webhook import SlackWebhookClient
 
 try:
     from dataclasses_avroschema.pydantic import AvroBaseModel
-    from faststream.broker.middlewares import ExceptionMiddleware
+    from faststream import ExceptionMiddleware
 except ImportError as e:
     raise ImportError(
         "The safir.kafka module requires the kafka extra. "
