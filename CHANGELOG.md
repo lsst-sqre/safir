@@ -9,6 +9,14 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.1.1'></a>
+## 14.1.1 (2025-11-14)
+
+### Bug fixes
+
+- Update FastStream pin for the `kafka` extra to 0.6, fixing an incompatibility with FastAPI 0.121.
+- Use new wait strategy syntax for the test containers provided by Safir, fixing some deprecation warnings.
+
 <a id='changelog-14.1.0'></a>
 ## 14.1.0 (2025-10-30)
 
