@@ -2964,7 +2964,7 @@ requires-dist = [
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'db'", specifier = ">=2,<3" },
     { name = "starlette", specifier = "<1" },
     { name = "structlog", specifier = ">=21.2.0" },
-    { name = "testcontainers", marker = "extra == 'testcontainers'", specifier = ">=4.10" },
+    { name = "testcontainers", marker = "extra == 'testcontainers'", specifier = ">=4.13" },
     { name = "vo-models", marker = "extra == 'uws'", specifier = ">=0.4.1,<1" },
 ]
 provides-extras = ["arq", "db", "gcs", "kafka", "kubernetes", "redis", "testcontainers", "uws"]

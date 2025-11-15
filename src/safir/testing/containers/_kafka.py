@@ -33,6 +33,7 @@ from typing import Any, Self
 try:
     from testcontainers.core.container import DockerContainer
     from testcontainers.core.version import ComparableVersion
+    from testcontainers.core.wait_strategies import LogMessageWaitStrategy
     from testcontainers.core.waiting_utils import wait_for_logs
 except ImportError as e:
     raise ImportError(
@@ -203,8 +204,9 @@ class FullKafkaContainer(DockerContainer):
 
     def wait_for_ready(self, timeout: int = 30) -> None:
         """Wait until Kafka is ready to serve requests."""
+        predicate = LogMessageWaitStrategy(r".*Kafka Server started.*")
         try:
-            wait_for_logs(self, r".*Kafka Server started.*", timeout=timeout)
+            wait_for_logs(self, predicate)
         except TimeoutError:
             output, errors = self.get_logs()
             sys.stderr.write(errors.decode())
@@ -213,12 +215,10 @@ class FullKafkaContainer(DockerContainer):
 
     def wait_for_ready_again(self, timeout: int = 30) -> None:
         """Wait until Kafka is ready to serve requests."""
+        pattern = r"Kafka Server started.*\n(?:.*\n)+.*Kafka Server started"
+        predicate = LogMessageWaitStrategy(pattern)
         try:
-            wait_for_logs(
-                self,
-                r"Kafka Server started.*\n(?:.*\n)+.*Kafka Server started",
-                timeout=timeout,
-            )
+            wait_for_logs(self, predicate, timeout=timeout)
         except TimeoutError:
             output, errors = self.get_logs()
             sys.stderr.write(errors.decode())

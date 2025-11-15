@@ -62,7 +62,7 @@ redis = [
     "redis>4.5.2,<7",
 ]
 testcontainers = [
-    "testcontainers>=4.10"
+    "testcontainers>=4.13"
 ]
 uws = [
     "google-auth>2,<3",
@@ -176,6 +176,12 @@ warn_untyped_fields = true
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "strict"
+filterwarnings = [
+    # arq calls a deprecated Redis method on worker close
+    "ignore:Call to deprecated close.*:DeprecationWarning",
+    # testcontainers hasn't updated all of the community modules
+    "ignore:.*wait_container_is_ready decorator.*:DeprecationWarning",
+]
 python_files = [
     "tests/*.py",
     "tests/*/*.py"
