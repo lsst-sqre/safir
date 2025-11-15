@@ -5,12 +5,11 @@ from __future__ import annotations
 from typing import Any, Self
 
 import httpx
-from httpx import ReadError, RemoteProtocolError
 
 try:
     from testcontainers.core.container import DockerContainer
     from testcontainers.core.network import Network
-    from testcontainers.core.waiting_utils import wait_container_is_ready
+    from testcontainers.core.wait_strategies import HttpWaitStrategy
 except ImportError as e:
     raise ImportError(
         "The safir.testing.containers module requires the testcontainers "
@@ -63,7 +62,9 @@ class SchemaRegistryContainer(DockerContainer):
         passed verbatim to the standard testcontainers start method.
         """
         super().start(*args, **kwargs)
-        self.health()
+        strategy = HttpWaitStrategy(self.port, "/subjects")
+        strategy.with_startup_timeout(10)
+        strategy.wait_until_ready(self)
         return self
 
     def get_url(self) -> str:
@@ -79,13 +80,3 @@ class SchemaRegistryContainer(DockerContainer):
         for subject in subjects:
             httpx.delete(f"{url}/{subject}")
             httpx.delete(f"{url}/{subject}?permanent=true")
-
-    @wait_container_is_ready(ReadError, RemoteProtocolError)
-    def health(self) -> None:
-        """Check the health of the container.
-
-        Consider the container healthy once the schema registry can be
-        contacted from the host network.
-        """
-        url = f"{self.get_url()}/subjects"
-        httpx.get(url, timeout=5).raise_for_status()
