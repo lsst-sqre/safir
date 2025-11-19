@@ -4,9 +4,8 @@ import functools
 import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from enum import StrEnum, auto
+from enum import Enum, auto
 from typing import Concatenate, cast, override
 from uuid import uuid4
 
@@ -49,23 +48,47 @@ __all__ = [
 ]
 
 
-class _State(StrEnum):
-    error = auto()
-    initialized = auto()
+_UNRECOVERABLE_MSG = (
+    "The app metrics system is in an unrecoverable error state. No metrics"
+    " will be published by this app. When the underlying infrastructure"
+    " (Kafka, Schema Manager, etc.) is healthy again, this app must be"
+    " restarted."
+)
+
+
+class _State(Enum):
+    """The various states that an EventManager can be in."""
+
+    error_recoverable = auto()
+    """Abandonable operations will not be attempted.
+
+    Operations could recover if underlying infrastructure comes back.
+    """
+
+    error_unrecoverable = auto()
+    """Abandonable operations will not be attempted.
+
+    No attempt to recover will be made. Apps will have to restart to publish
+    further metrics.
+    """
+
+    ready_to_publish = auto()
+    """The EventManager has been initialized and is ready to publish events."""
+
     uninitialized = auto()
+    """The EventManager has not been initialized yet."""
 
 
-@dataclass
-class _CallTracker:
-    "Track the status and time that an operation was attempted."
-
-    last_state = _State.uninitialized
-    failed_at = datetime(1900, 1, 1, tzinfo=UTC)
+_ERROR_STATES = {_State.error_recoverable, _State.error_unrecoverable}
 
 
 def abandonable[**P, R, T: "KafkaEventManager"](
-    func: Callable[Concatenate[T, P], Coroutine[None, None, R]],
-) -> Callable[Concatenate[T, P], Coroutine[None, None, R | None]]:
+    *,
+    recoverable: bool,
+) -> Callable[
+    [Callable[Concatenate[T, P], Coroutine[None, None, R]]],
+    Callable[Concatenate[T, P], Coroutine[None, None, R | None]],
+]:
     """Catch exceptions from wrapped function and log errors instead.
 
     Doesn't catch exceptions that are subclasses of EventManagerUsageError.
@@ -74,66 +97,88 @@ def abandonable[**P, R, T: "KafkaEventManager"](
     This function is meant to be used as a decorator on KafkaEventManager
     methods. If an exception is caught, puts the KafkaEventManager instance
     into an error state, logs an error, and returns None. In this error state,
-    subsequent calls to this method will just return None instantly. The error
-    state will be reset after a configurable amount of time and the call will
-    be tried again.
+    subsequent abandonable calls to EventManager methods will just return None
+    instantly. If errors that occur in the decorated method can be recovered
+    from, then the error state will be reset after a configurable amount of
+    time and the real method will be will be tried again the next time it is
+    called.
+
+    Parameters
+    ----------
+    recoverable
+        Whether or not operations in the decorated function should ever be
+        attempted again if an error occurs.
     """
-    call_tracker = _CallTracker()
 
-    async def wrapper(self: T, *args: P.args, **kwargs: P.kwargs) -> R | None:
-        logger = self.logger.bind(attempted_operation=func.__name__)
-        now = datetime.now(tz=UTC)
+    def _abandonable(
+        func: Callable[Concatenate[T, P], Coroutine[None, None, R]],
+    ) -> Callable[Concatenate[T, P], Coroutine[None, None, R | None]]:
+        async def wrapper(
+            self: T, *args: P.args, **kwargs: P.kwargs
+        ) -> R | None:
+            logger = self.logger.bind(attempted_operation=func.__name__)
+            now = datetime.now(tz=UTC)
+            backoff = self._backoff_interval.total_seconds()
+            elapsed = now - self._failed_at
 
-        if self._state == _State.error:
-            elapsed = now - call_tracker.failed_at
-
-            # If we still have backoff time remaining, just return None.
-            if elapsed <= self._backoff_interval:
+            if (
+                self._state in _ERROR_STATES
+                and elapsed <= self._backoff_interval
+            ):
                 return None
 
-            # If we're past our backoff time, reset our error state and try the
-            # call. This might put us in an error state again.
-            self._state = call_tracker.last_state
-            logger.info("Trying app metrics operation again")
+            if self._state == _State.error_unrecoverable:
+                logger.error(_UNRECOVERABLE_MSG)
+                return None
 
-        try:
-            # Try to call the original method
-            return await func(self, *args, **kwargs)
-        except EventManagerUsageError:
-            raise
-        except Exception:
-            if self._raise_on_error:
+            if self._state == _State.error_recoverable:
+                self._state = _State.ready_to_publish
+                logger.info("Trying app metrics operation again")
+
+            try:
+                # Try to call the original method
+                return await func(self, *args, **kwargs)
+            except EventManagerUsageError:
                 raise
+            except Exception:
+                if self._raise_on_error:
+                    raise
 
-            call_tracker.failed_at = now
-            call_tracker.last_state = self._state
-            self._state = _State.error
+                self._failed_at = now
+                if recoverable:
+                    self._state = _State.error_recoverable
+                    msg = (
+                        f"App metrics collection operation failed. This may be"
+                        f" due to instability in the underlying metrics"
+                        f" infrastructure like Kafka. Any further attempts at"
+                        f" app metrics operations will be no-ops until"
+                        f" {self._backoff_interval.total_seconds()} seconds"
+                        f"from now."
+                    )
+                    logger.exception(msg, backoff_seconds_remaining=backoff)
+                else:
+                    self._state = _State.error_unrecoverable
+                    logger.exception(_UNRECOVERABLE_MSG)
 
-            logger.exception(
-                f"App metrics collection operation failed. This may be due"
-                f" to instability in the underlying metrics infrastructure"
-                f" like Kafka. Any further attempts at app metrics operations"
-                f" will be no-ops until"
-                f" {self._backoff_interval.total_seconds()} seconds from now.",
-                backoff_seconds_remaining=self._backoff_interval.total_seconds(),
-            )
-        return None
+            return None
 
-    # functools.wraps injects Any's into the wrapped function definition for
-    # reasons I don't quite understand, and it changes the return type to
-    # _Wrapped:
-    # https://github.com/python/mypy/issues/17171
-    # https://github.com/python/mypy/issues/18204
-    #
-    # The fix here is to mutate the wrapped function just like functools.wraps
-    # does, but to mutably sneak it past mypy:
-    # https://github.com/python/mypy/issues/18204#issuecomment-3004743810
-    functools.update_wrapper(
-        wrapper=wrapper,
-        wrapped=func,
-    )
+        # functools.wraps injects Any's into the wrapped function definition
+        # for reasons I don't quite understand, and it changes the return type
+        # to _Wrapped:
+        # https://github.com/python/mypy/issues/17171
+        # https://github.com/python/mypy/issues/18204
+        #
+        # The fix here is to mutate the wrapped function just like
+        # functools.wraps does, but to mutably sneak it past mypy:
+        # https://github.com/python/mypy/issues/18204#issuecomment-3004743810
+        functools.update_wrapper(
+            wrapper=wrapper,
+            wrapped=func,
+        )
 
-    return wrapper
+        return wrapper
+
+    return _abandonable
 
 
 class EventPublisher[P: EventPayload](metaclass=ABCMeta):
@@ -304,11 +349,7 @@ class FailedEventPublisher[P: EventPayload](EventPublisher[P]):
         if elapsed > self._backoff_interval:
             self._publish_called_at = now
             self.logger.error(
-                "The app metrics system is in an error state. No metrics will"
-                " be published by this app. When the underlying infrastructure"
-                " (Kafka, Schema Manager, etc) is healthy again, this app must"
-                " be restarted.",
-                attempted_operation="publish",
+                _UNRECOVERABLE_MSG, attempted_operation="publish"
             )
         event = self.construct_event(payload)
         return cast("EventMetadata", event)
@@ -378,6 +419,7 @@ class EventManager(metaclass=ABCMeta):
         self.logger = logger or structlog.get_logger("safir.metrics")
         self._publishers: dict[str, EventPublisher] = {}
         self._state = _State.uninitialized
+        self._failed_at: datetime = datetime(1900, 1, 1, tzinfo=UTC)
 
     async def aclose(self) -> None:
         """Shut down any internal state or managed clients."""
@@ -479,7 +521,7 @@ class EventManager(metaclass=ABCMeta):
         This method must be called before calling
         `~safir.metrics.EventManager.create_publisher`.
         """
-        self._state = _State.initialized
+        self._state = _State.ready_to_publish
 
 
 class KafkaEventManager(EventManager):
@@ -590,7 +632,7 @@ class KafkaEventManager(EventManager):
         self._raise_on_error = raise_on_error
 
     @override
-    @abandonable
+    @abandonable(recoverable=False)
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
         if self._manage_kafka_broker:
@@ -630,7 +672,7 @@ class KafkaEventManager(EventManager):
         else:
             return publisher
 
-    @abandonable
+    @abandonable(recoverable=False)
     async def _build_publisher_for_model[P: EventPayload](
         self, model: type[P]
     ) -> EventPublisher[P]:
@@ -655,15 +697,15 @@ class KafkaEventManager(EventManager):
         )
 
     @override
-    @abandonable
+    @abandonable(recoverable=False)
     async def initialize(self) -> None:
         """Initialize the Kafka clients if they are managed."""
         if self._manage_kafka_broker:
             await self._broker.start()
         await self._admin_client.start()
-        self._state = _State.initialized
+        self._state = _State.ready_to_publish
 
-    @abandonable
+    @abandonable(recoverable=True)
     async def publish(
         self,
         event: EventPayload,
@@ -691,7 +733,7 @@ class KafkaEventManager(EventManager):
             calling this method.
         """
         if self._state == _State.uninitialized:
-            msg = "Initialize EventManager before creating event publishers"
+            msg = "Initialize EventManager before publishing events"
             raise EventManagerUnintializedError(msg)
         encoded = await self._schema_manager.serialize(event)
         await publisher.publish(encoded, no_confirm=True)

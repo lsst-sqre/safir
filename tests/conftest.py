@@ -143,6 +143,11 @@ async def resiliency_metrics_stack(
     test_scoped_kafka_stack: KafkaStack,
     test_scoped_kafka_clients: KafkaClients,
 ) -> AsyncGenerator[MetricsStack]:
+    """Yield a metrics stack that is test-scoped.
+
+    This is useful in tests where we want to start and stop kafka components as
+    part of the test.
+    """
     async with make_metrics_stack(
         kafka_stack=test_scoped_kafka_stack,
         kafka_clients=test_scoped_kafka_clients,
