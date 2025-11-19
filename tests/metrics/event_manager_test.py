@@ -33,7 +33,7 @@ from safir.metrics import (
     DisabledMetricsConfiguration,
     DuplicateEventError,
     EventManager,
-    EventManagerUnintializedError,
+    EventManagerUninitializedError,
     EventMetadata,
     EventPayload,
     EventPublisher,
@@ -294,7 +294,7 @@ async def test_create_before_initialize(
         manage_kafka_broker=False,
     )
 
-    with pytest.raises(EventManagerUnintializedError):
+    with pytest.raises(EventManagerUninitializedError):
         await manager.create_publisher("myevent", MyEvent)
 
 

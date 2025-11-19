@@ -28,7 +28,7 @@ from ..kafka import Compatibility, PydanticSchemaManager, SchemaInfo
 from ._constants import EVENT_MANAGER_DEFAULT_BACKOFF_INTERVAL
 from ._exceptions import (
     DuplicateEventError,
-    EventManagerUnintializedError,
+    EventManagerUninitializedError,
     EventManagerUsageError,
     KafkaTopicError,
 )
@@ -478,7 +478,7 @@ class EventManager(metaclass=ABCMeta):
         ------
         DuplicateEventError
             Raised if a publisher with the same name was already registered.
-        EventManagerUnintializedError
+        EventManagerUninitializedError
             Raised if the `initialize` method was not been called before
             calling this method.
         KafkaTopicError
@@ -487,7 +487,7 @@ class EventManager(metaclass=ABCMeta):
         """
         if self._state == _State.uninitialized:
             msg = "Initialize EventManager before creating event publishers"
-            raise EventManagerUnintializedError(msg)
+            raise EventManagerUninitializedError(msg)
         if name in self._publishers:
             raise DuplicateEventError(name)
 
@@ -728,13 +728,13 @@ class KafkaEventManager(EventManager):
 
         Raises
         ------
-        EventManagerUnintializedError
+        EventManagerUninitializedError
             Raised if the `initialize` method was not been called before
             calling this method.
         """
         if self._state == _State.uninitialized:
             msg = "Initialize EventManager before publishing events"
-            raise EventManagerUnintializedError(msg)
+            raise EventManagerUninitializedError(msg)
         encoded = await self._schema_manager.serialize(event)
         await publisher.publish(encoded, no_confirm=True)
         self.logger.debug(

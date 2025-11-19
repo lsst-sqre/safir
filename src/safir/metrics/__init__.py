@@ -20,7 +20,7 @@ from ._event_manager import (
 )
 from ._exceptions import (
     DuplicateEventError,
-    EventManagerUnintializedError,
+    EventManagerUninitializedError,
     EventManagerUsageError,
     KafkaTopicError,
     UnsupportedAvroSchemaError,
@@ -45,7 +45,7 @@ __all__ = [
     "DisabledMetricsConfiguration",
     "DuplicateEventError",
     "EventManager",
-    "EventManagerUnintializedError",
+    "EventManagerUninitializedError",
     "EventManagerUsageError",
     "EventMetadata",
     "EventPayload",
