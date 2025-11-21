@@ -632,13 +632,15 @@ class KafkaEventManager(EventManager):
         self._raise_on_error = raise_on_error
 
     @override
-    @abandonable(recoverable=False)
     async def aclose(self) -> None:
         """Clean up the Kafka clients if they are managed."""
-        if self._manage_kafka_broker:
-            await self._broker.stop()
-        await self._admin_client.close()
-        await super().aclose()
+        try:
+            if self._manage_kafka_broker:
+                await self._broker.stop()
+            await self._admin_client.close()
+            await super().aclose()
+        except Exception:
+            self.logger.exception("Error trying to shut down event manager")
 
     @override
     async def build_publisher_for_model[P: EventPayload](
