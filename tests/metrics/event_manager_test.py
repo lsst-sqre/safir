@@ -33,7 +33,7 @@ from safir.metrics import (
     DisabledMetricsConfiguration,
     DuplicateEventError,
     EventManager,
-    EventManagerUnintializedError,
+    EventManagerUninitializedError,
     EventMetadata,
     EventPayload,
     EventPublisher,
@@ -53,6 +53,14 @@ class MyEvent(EventPayload):
     """An event payload."""
 
     foo: str
+    duration: timedelta
+    duration_union: timedelta | None
+
+
+class MyOtherEvent(EventPayload):
+    """An event payload."""
+
+    bar: str
     duration: timedelta
     duration_union: timedelta | None
 
@@ -286,7 +294,7 @@ async def test_create_before_initialize(
         manage_kafka_broker=False,
     )
 
-    with pytest.raises(EventManagerUnintializedError):
+    with pytest.raises(EventManagerUninitializedError):
         await manager.create_publisher("myevent", MyEvent)
 
 
@@ -468,6 +476,7 @@ async def test_bad_kafka_after_initialize(
     time_machine: TimeMachineFixture,
 ) -> None:
     event_manager = resiliency_metrics_stack.event_manager
+    await event_manager.initialize()
     kafka_container = resiliency_metrics_stack.kafka_stack.kafka_container
     schema_registry_client = (
         resiliency_metrics_stack.kafka_clients.schema_registry_client
@@ -644,3 +653,72 @@ async def test_bad_kafka_after_initialize(
 
     assert len(working) == 1
     assert len(started_again) == max_batch_size + 5
+
+
+@pytest.mark.asyncio
+async def test_bad_schema_manager_mid_registration(
+    resiliency_metrics_stack: MetricsStack,
+    log_output: LogCapture,
+    time_machine: TimeMachineFixture,
+) -> None:
+    event_manager = resiliency_metrics_stack.event_manager
+    registry = resiliency_metrics_stack.kafka_stack.schema_registry_container
+    backoff_interval = resiliency_metrics_stack.metrics_config.backoff_interval
+
+    # This should be a legit event publisher
+    event = await event_manager.create_publisher("myevent", MyEvent)
+
+    registry.stop()
+
+    # This should be a failed event publisher
+    other_event = await event_manager.create_publisher(
+        "myotherevent", MyOtherEvent
+    )
+
+    # These shouldn't raise exceptions, and they shouldn't make it to kafka.
+    await event.publish(
+        MyEvent(
+            foo="stopped",
+            duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
+        )
+    )
+    await other_event.publish(
+        MyOtherEvent(
+            bar="stopped",
+            duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
+        )
+    )
+
+    # There should be one error from trying to build the publisher, and one
+    # error from trying to publish with the FailedPublisher
+    (build_error, publish_error) = log_output.entries
+    assert build_error["attempted_operation"] == "_build_publisher_for_model"
+    assert publish_error["attempted_operation"] == "publish"
+
+    # Clear the log output
+    log_output.entries = []
+
+    # Move time to after the next backoff window. This isn't EXACTLY when the
+    # backoff interval expires, but it's close enough for testing.
+    time_machine.move_to(datetime.now(tz=UTC) + backoff_interval, tick=True)
+
+    await event.publish(
+        MyEvent(
+            foo="stopped",
+            duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
+        )
+    )
+    await other_event.publish(
+        MyOtherEvent(
+            bar="stopped",
+            duration=timedelta(seconds=2, milliseconds=456),
+            duration_union=None,
+        )
+    )
+
+    assert len(log_output.entries) == 2
+    operations = [entry["attempted_operation"] for entry in log_output.entries]
+    assert all(op == "publish" for op in operations)

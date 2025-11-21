@@ -2,7 +2,7 @@
 
 __all__ = [
     "DuplicateEventError",
-    "EventManagerUnintializedError",
+    "EventManagerUninitializedError",
     "EventManagerUsageError",
     "KafkaTopicError",
     "UnsupportedAvroSchemaError",
@@ -22,7 +22,7 @@ class UnsupportedAvroSchemaError(EventManagerUsageError):
     """Event model is not serializable to Avro."""
 
 
-class EventManagerUnintializedError(EventManagerUsageError):
+class EventManagerUninitializedError(EventManagerUsageError):
     """An attempt to create a publisher after manager has been initialized."""
 
 
