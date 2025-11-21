@@ -100,6 +100,7 @@ dev = [
     "pytest>=6.2.0",
     "pytest-asyncio",
     "pytest-cov",
+    "pytest-order",
     "redis>=5",
     "respx",
     "sqlalchemy[mypy]",
