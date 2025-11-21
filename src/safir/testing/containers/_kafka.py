@@ -114,7 +114,7 @@ class FullKafkaContainer(DockerContainer):
         self.ssl_port = ssl_port
         self.sasl_ssl_port = sasl_ssl_port
 
-        starting_host_port = randint(51234, 54321)
+        starting_host_port = randint(61234, 64321)
         for offset, container_port in enumerate(
             (
                 self.port,
