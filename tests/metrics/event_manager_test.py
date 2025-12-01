@@ -469,6 +469,16 @@ async def test_bad_kafka_from_start_raises() -> None:
         await manager.initialize()
 
 
+# This test intetionally breaks aiokafka clients in an unclean way. When the
+# aiokafka objects get garbage collected, Python asyncio logs warning messages
+# that task exceptions were never retrieved. The time that this happens is not
+# deterministic. It can mess up other tests, like tests of the Sentry
+# functionality because the log messages get picked up by the mock Sentry
+# transport if they happen after the Sentry fixtures have initialized. There
+# may be a way to deterministically and cleanly cancel these failed tasks, or
+# it may be a but in the aiokafka library, but until we figure it out we run
+# these last to make sure they don't infect other tests.
+@pytest.mark.order(-1)
 @pytest.mark.asyncio
 async def test_bad_kafka_after_initialize(
     resiliency_metrics_stack: MetricsStack,
@@ -655,6 +665,16 @@ async def test_bad_kafka_after_initialize(
     assert len(started_again) == max_batch_size + 5
 
 
+# This test intetionally breaks aiokafka clients in an unclean way. When the
+# aiokafka objects get garbage collected, Python asyncio logs warning messages
+# that task exceptions were never retrieved. The time that this happens is not
+# deterministic. It can mess up other tests, like tests of the Sentry
+# functionality because the log messages get picked up by the mock Sentry
+# transport if they happen after the Sentry fixtures have initialized. There
+# may be a way to deterministically and cleanly cancel these failed tasks, or
+# it may be a but in the aiokafka library, but until we figure it out we run
+# these last to make sure they don't infect other tests.
+@pytest.mark.order(-1)
 @pytest.mark.asyncio
 async def test_bad_schema_manager_mid_registration(
     resiliency_metrics_stack: MetricsStack,
