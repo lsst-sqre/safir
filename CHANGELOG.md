@@ -9,6 +9,22 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.1.2'></a>
+## 14.1.2 (2025-12-02)
+
+### Bug fixes
+
+- app metrics - Don't raise exceptions when the Schema Manager goes down in the
+middle of registering event publishers. If the Schema Manager went away in the
+time between when an event publisher was successfully created and an attempt at
+creating another event publisher, the app metrics error handling wrapper
+incorrectly set the EventManager state to uninitialized, which made other parts
+of the event manager throw EventManagerUninitializedErrors. This made it so
+that applications using the app metrics functionality were broken until
+restart.
+
+- Correct spelling of `EventManagerUninitializedError`
+
 <a id='changelog-14.1.1'></a>
 ## 14.1.1 (2025-11-14)
 
