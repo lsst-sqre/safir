@@ -1,0 +1,57 @@
+{
+  "attachments": [
+    {
+      "blocks": [
+        {
+          "text": {
+            "text": "*Backtrace*\n```\nSome\nbacktrace\n```",
+            "type": "mrkdwn",
+            "verbatim": true
+          },
+          "type": "section"
+        },
+        {
+          "text": {
+            "text": "*Essay*\nBlah blah blah",
+            "type": "mrkdwn",
+            "verbatim": true
+          },
+          "type": "section"
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "text": {
+        "text": "This is some *Slack message*",
+        "type": "mrkdwn",
+        "verbatim": true
+      },
+      "type": "section"
+    },
+    {
+      "fields": [
+        {
+          "text": "*Some text*\nValue of the field",
+          "type": "mrkdwn",
+          "verbatim": true
+        },
+        {
+          "text": "*Some code*\n```\nHere is\nthe code\n```",
+          "type": "mrkdwn",
+          "verbatim": true
+        }
+      ],
+      "type": "section"
+    },
+    {
+      "text": {
+        "text": "*Log*\nSome\nlong\nlog",
+        "type": "mrkdwn",
+        "verbatim": true
+      },
+      "type": "section"
+    }
+  ]
+}

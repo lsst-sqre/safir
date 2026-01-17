@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pickle
 from textwrap import dedent
-from unittest.mock import ANY
 
 import pytest
 import respx
@@ -24,11 +23,17 @@ from safir.slack.blockkit import (
     SlackWebException,
 )
 from safir.slack.webhook import SlackWebhookClient
+from safir.testing.data import Data
 from safir.testing.sentry import Captured
 from safir.testing.slack import MockSlackWebhook
 
 
-def test_message() -> None:
+def test_message(data: Data) -> None:
+    # Unfortunately, because blocks, attachments, and fields are lists of base
+    # classes, SlackMessage objects cannot be deserialized from JSON. We
+    # therefore have to inline the object definitions rather than using
+    # data.read_pydantic until we're willing to make a breaking change to the
+    # data structures.
     message = SlackMessage(
         message="This is some *Slack message*  \n  ",
         fields=[
@@ -41,138 +46,28 @@ def test_message() -> None:
             SlackTextBlock(heading="Essay", text="Blah blah blah"),
         ],
     )
-    assert message.to_slack() == {
-        "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "This is some *Slack message*",
-                    "verbatim": True,
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Some text*\nValue of the field",
-                        "verbatim": True,
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Some code*\n```\nHere is\nthe code\n```",
-                        "verbatim": True,
-                    },
-                ],
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Log*\nSome\nlong\nlog",
-                    "verbatim": True,
-                },
-            },
-        ],
-        "attachments": [
-            {
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*Backtrace*\n```\nSome\nbacktrace\n```",
-                            "verbatim": True,
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*Essay*\nBlah blah blah",
-                            "verbatim": True,
-                        },
-                    },
-                ]
-            }
-        ],
-    }
+    data.assert_json_matches(message.to_slack(), "slack/message")
 
     message = SlackMessage(message="Single line message", verbatim=False)
-    assert message.to_slack() == {
-        "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Single line message",
-                    "verbatim": False,
-                },
-            }
-        ]
-    }
+    data.assert_json_matches(message.to_slack(), "slack/single-line")
 
     message = SlackMessage(
         message="Message with <special> & one `field`",
         fields=[SlackTextField(heading="Something", text="Blah")],
     )
-    assert message.to_slack() == {
-        "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Message with &lt;special&gt; &amp; one `field`",
-                    "verbatim": True,
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Something*\nBlah",
-                        "verbatim": True,
-                    },
-                ],
-            },
-            {"type": "divider"},
-        ]
-    }
+    data.assert_json_matches(message.to_slack(), "slack/special")
 
     message = SlackMessage(
         message="Message with one block",
         blocks=[SlackTextBlock(heading="Something", text="Blah")],
     )
-    assert message.to_slack() == {
-        "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Message with one block",
-                    "verbatim": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Something*\nBlah",
-                    "verbatim": True,
-                },
-            },
-            {"type": "divider"},
-        ]
-    }
+    data.assert_json_matches(message.to_slack(), "slack/one-block")
 
 
 def test_validation() -> None:
     """Test errors caught by validation."""
-    fields: list[SlackBaseField] = [
-        SlackTextField(heading="Something", text="foo")
-    ] * 11
+    field: SlackBaseField = SlackTextField(heading="Something", text="foo")
+    fields = [field] * 11
     message = SlackMessage(message="Ten fields", fields=fields[:10])
     assert len(message.fields) == 10
     with pytest.raises(ValidationError):
@@ -249,7 +144,7 @@ def test_message_truncation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_exception(mock_slack: MockSlackWebhook) -> None:
+async def test_exception(data: Data, mock_slack: MockSlackWebhook) -> None:
     logger = structlog.get_logger(__file__)
     slack = SlackWebhookClient(mock_slack.url, "App", logger)
 
@@ -261,41 +156,7 @@ async def test_exception(mock_slack: MockSlackWebhook) -> None:
     except SlackException as e:
         await slack.post_exception(e)
 
-    assert mock_slack.messages == [
-        {
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Error in App: Some error",
-                        "verbatim": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "*Exception type*\nSomeError",
-                            "verbatim": True,
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": ANY,
-                            "verbatim": True,
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "*User*\nsomeuser",
-                            "verbatim": True,
-                        },
-                    ],
-                },
-                {"type": "divider"},
-            ],
-        }
-    ]
+    data.assert_json_matches(mock_slack.messages, "slack/exception")
 
 
 class SlackSubclassException(SlackException):
@@ -325,7 +186,7 @@ def test_exception_pickling() -> None:
 
 @pytest.mark.asyncio
 async def test_web_exception(
-    respx_mock: respx.Router, mock_slack: MockSlackWebhook
+    data: Data, respx_mock: respx.Router, mock_slack: MockSlackWebhook
 ) -> None:
     logger = structlog.get_logger(__file__)
     slack = SlackWebhookClient(mock_slack.url, "App", logger)
@@ -344,44 +205,7 @@ async def test_web_exception(
         assert str(exception) == "Status 404 from GET https://example.org/"
         await slack.post_exception(exception)
 
-    assert mock_slack.messages == [
-        {
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Error in App: " + str(exception),
-                        "verbatim": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "*Exception type*\nSomeError",
-                            "verbatim": True,
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": ANY,
-                            "verbatim": True,
-                        },
-                    ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*URL*\nGET https://example.org/",
-                        "verbatim": True,
-                    },
-                },
-                {"type": "divider"},
-            ],
-        }
-    ]
+    data.assert_json_matches(mock_slack.messages, "slack/web-exception")
 
 
 @pytest.mark.asyncio

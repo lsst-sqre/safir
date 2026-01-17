@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import (
     AsyncGenerator,
     Callable,
@@ -10,6 +11,7 @@ from collections.abc import (
     Sequence,
 )
 from datetime import timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -39,6 +41,7 @@ from safir.sentry import (
     fingerprint_env_handler,
     sentry_exception_handler,
 )
+from safir.testing.data import Data
 from safir.testing.gcs import MockStorageClient, patch_google_storage
 from safir.testing.kubernetes import MockKubernetesApi, patch_kubernetes
 from safir.testing.sentry import (
@@ -66,6 +69,12 @@ def log_output() -> LogCapture:
 @pytest.fixture(autouse=True)
 def configure_structlog(log_output: LogCapture) -> None:
     structlog.configure(processors=[log_output])
+
+
+@pytest.fixture
+def data() -> Data:
+    update = bool(os.getenv("UPDATE_TEST_DATA"))
+    return Data(Path(__file__).parent / "data", update_test_data=update)
 
 
 @pytest.fixture(scope="session")

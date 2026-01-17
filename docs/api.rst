@@ -109,6 +109,9 @@ API reference
 .. automodapi:: safir.testing.containers
    :include-all-objects:
 
+.. automodapi:: safir.testing.data
+   :include-all-objects:
+
 .. automodapi:: safir.testing.gcs
    :include-all-objects:
 

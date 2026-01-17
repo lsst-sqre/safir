@@ -37,3 +37,4 @@ User guide
    asyncio-queue
    uws/index
    sentry
+   test-data
