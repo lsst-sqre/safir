@@ -9,6 +9,14 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.1.3'></a>
+## 14.1.3 (2026-01-21)
+
+### Bug fixes
+
+- Pin `aiokafka` because the latest release breaks `faststream`:
+  https://github.com/aio-libs/aiokafka/issues/1147
+
 <a id='changelog-14.1.2'></a>
 ## 14.1.2 (2025-12-02)
 
