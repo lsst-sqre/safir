@@ -50,7 +50,9 @@ gcs = [
     "google-cloud-storage>3,<4"
 ]
 kafka = [
-    "aiokafka>=0.11,<1",
+    # constrained to 0.13.0 until this breaking change is reverted, or a
+    # compatible faststream version is released.
+    "aiokafka>=0.11,<0.13.0",
     "dataclasses-avroschema>=0.65.7,<1",
     "faststream>=0.6,<0.7",
     "python-schema-registry-client>=2.6,<3",
