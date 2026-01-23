@@ -21,16 +21,26 @@ Generally this fixture will look like the following:
 .. code-block:: python
 
    import os
+   import pytest
    from pathlib import Path
    from safir.testing.data import Data
 
 
+   def pytest_addoption(parser: pytest.Parser) -> None:
+       parser.addoption(
+           "--update-test-data",
+           action="store_true",
+           default=False,
+           help="Overwrite expected test output with current results",
+       )
+
+
    @pytest.fixture
-   def data() -> Data:
-       update = bool(os.getenv("UPDATE_TEST_DATA"))
+   def data(request: pytest.FixtureRequest) -> Data:
+       update = request.config.getoption("--update-test-data")
        return Data(Path(__file__).parent / "data", update_test_data=update)
 
-If the environment variable ``UPDATE_TEST_DATA`` is set, this fixture will arrange for test data files corresponding to expected outputs to be updated as the tests run.
+This approach adds a new pytest_ option, ``--update-test-data``, which if passed to pytest will tell the library to update expected test outputs as the tests are run.
 This is discussed further below.
 
 Using the test data
@@ -60,22 +70,19 @@ Updating expected test outputs
 ==============================
 
 If the ``update_test_data`` constructor argument for `Data` is `True`, all of the ``assert_*`` methods will replace the existing expected data with the data passed to that function.
-If you use the :ref:`above fixture <test-data-fixture>`, you can do this by setting the environment variable ``UPDATE_TEST_DATA`` to any true value when running the test.
+If you use the :ref:`above fixture <test-data-fixture>`, you can do this by passing the argument ``--update-test-data`` to pytest.
 
-For packages using nox_, environment variables are passed down by default, so one can run, for example:
+For packages using nox_, one can run, for example:
 
 .. prompt:: bash
 
-   UPDATE_TEST_DATA=1 nox -s test
+   nox -s test -- --update-test-data
 
-For packages using tox_, you will need to configure tox to pass the ``UPDATE_TEST_DATA`` environment variable through by adding to the relevant rules:
+For packages using tox_, a typical invocation is similar:
 
-.. code-block:: ini
+.. prompt:: bash
 
-   passenv =
-       UPDATE_TEST_DATA
-
-Usually the environment that needs this setting is ``testenv:py``, or ``testenv`` if there is no separate ``py`` environment.
+   tox run -e py -- --update-test-data
 
 Test code (or any other code) can also explicitly write strings, data structures, or Pydantic files (serialized to JSON) to test data files using the `~Data.write_text`, `~Data.write_json`, and `~Data.write_pydantic` methods.
 This may be useful in temporary code converting existing tests to use external test data.

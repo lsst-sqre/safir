@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import (
     AsyncGenerator,
     Callable,
@@ -60,6 +59,15 @@ from .support.kafka import (
 from .support.metrics import MetricsStack, make_metrics_stack
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--update-test-data",
+        action="store_true",
+        default=False,
+        help="Overwrite expected test output with current results",
+    )
+
+
 @pytest.fixture
 def log_output() -> LogCapture:
     """Capture Structlog logs to assert against."""
@@ -72,8 +80,8 @@ def configure_structlog(log_output: LogCapture) -> None:
 
 
 @pytest.fixture
-def data() -> Data:
-    update = bool(os.getenv("UPDATE_TEST_DATA"))
+def data(request: pytest.FixtureRequest) -> Data:
+    update = request.config.getoption("--update-test-data")
     return Data(Path(__file__).parent / "data", update_test_data=update)
 
 
