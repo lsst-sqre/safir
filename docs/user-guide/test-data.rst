@@ -80,11 +80,20 @@ Usually the environment that needs this setting is ``testenv:py``, or ``testenv`
 Test code (or any other code) can also explicitly write strings, data structures, or Pydantic files (serialized to JSON) to test data files using the `~Data.write_text`, `~Data.write_json`, and `~Data.write_pydantic` methods.
 This may be useful in temporary code converting existing tests to use external test data.
 
+Creating initial test data
+--------------------------
+
+This method for updating test data can be used to create the initial test data for expected outputs.
+Simply write the test, using the appropriate ``assert_*`` methods, ensure that the parent directories of any expected output files exist, and then run the test suite with test data updating enabled as described above.
+The tests will write expected output files based on the observed output, which you can then review and add to Git.
+
 Wildcards in test output
 ------------------------
 
 The `~Data.read_json` and `~Data.assert_json_matches` methods (and only those methods, not the others) convert the special string ``"<ANY>"`` in a JSON value to the `unittest.mock.ANY` wildcard.
 This can be used for fields that contain serialized timestamps, unique identifiers, or other values that change with every test run.
+
+When creating the initial test data, run the tests with updates enabled and then edit the resulting JSON, replacing the values of any fields that should be wildcards with the special string ``"<ANY>"``.
 
 When test data is updated by `~Data.assert_json_matches` or `~Data.write_json`, any fields that contained ``"<ANY>"`` wildcards in the previous stored data are replaced with the same wildcard before the new data is stored.
 In other words, wildcards are preserved across data updates.
