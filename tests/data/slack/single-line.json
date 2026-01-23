@@ -1,0 +1,12 @@
+{
+  "blocks": [
+    {
+      "text": {
+        "text": "Single line message",
+        "type": "mrkdwn",
+        "verbatim": false
+      },
+      "type": "section"
+    }
+  ]
+}

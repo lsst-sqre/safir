@@ -1,0 +1,25 @@
+{
+  "blocks": [
+    {
+      "text": {
+        "text": "Message with &lt;special&gt; &amp; one `field`",
+        "type": "mrkdwn",
+        "verbatim": true
+      },
+      "type": "section"
+    },
+    {
+      "fields": [
+        {
+          "text": "*Something*\nBlah",
+          "type": "mrkdwn",
+          "verbatim": true
+        }
+      ],
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    }
+  ]
+}

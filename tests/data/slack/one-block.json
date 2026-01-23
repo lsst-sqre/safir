@@ -1,0 +1,23 @@
+{
+  "blocks": [
+    {
+      "text": {
+        "text": "Message with one block",
+        "type": "mrkdwn",
+        "verbatim": true
+      },
+      "type": "section"
+    },
+    {
+      "text": {
+        "text": "*Something*\nBlah",
+        "type": "mrkdwn",
+        "verbatim": true
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    }
+  ]
+}

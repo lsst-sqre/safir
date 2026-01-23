@@ -1,0 +1,40 @@
+[
+  {
+    "blocks": [
+      {
+        "text": {
+          "text": "Error in App: Status 404 from GET https://example.org/",
+          "type": "mrkdwn",
+          "verbatim": true
+        },
+        "type": "section"
+      },
+      {
+        "fields": [
+          {
+            "text": "*Exception type*\nSomeError",
+            "type": "mrkdwn",
+            "verbatim": true
+          },
+          {
+            "text": "<ANY>",
+            "type": "mrkdwn",
+            "verbatim": true
+          }
+        ],
+        "type": "section"
+      },
+      {
+        "text": {
+          "text": "*URL*\nGET https://example.org/",
+          "type": "mrkdwn",
+          "verbatim": true
+        },
+        "type": "section"
+      },
+      {
+        "type": "divider"
+      }
+    ]
+  }
+]
