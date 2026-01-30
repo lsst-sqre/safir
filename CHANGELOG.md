@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.2.0'></a>
+## 14.2.0 (2026-01-30)
+
+### New features
+
+- Add new `safir.testing.data.Data` class for managing test data. This class should be created in a pytest fixture and provides methods to read test data in various formats and check test results against expected output, optionally updating the expected output.
+
 <a id='changelog-14.1.3'></a>
 ## 14.1.3 (2026-01-21)
 
