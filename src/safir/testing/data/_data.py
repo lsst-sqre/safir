@@ -1,12 +1,17 @@
 """Read and optionally update test data."""
 
 import json
+from collections.abc import Iterator
+from contextlib import contextmanager
 from itertools import zip_longest
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import ANY
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from pyfakefs.fake_filesystem import FakeFilesystem
 
 __all__ = ["Data"]
 
@@ -38,6 +43,10 @@ class Data:
         Path to the root of the test data. Generally this will be discovered
         based on the path to the :file:`conftest.py` from which this class
         is initialized.
+    fake_filesystem
+        If given, the currently active fake filesystem object from pyfakefs.
+        This fake filesystem will be paused during writes so that updating
+        test data will still work for tests that use a fake filesystem.
     update_test_data
         Whether to overwrite expected output in ``assert_*`` methods.
 
@@ -59,7 +68,14 @@ class Data:
            return Data(Path(__file__).parent / "data", update_test_data=update)
     """
 
-    def __init__(self, root: Path, *, update_test_data: bool = False) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        fake_filesystem: "FakeFilesystem | None" = None,
+        update_test_data: bool = False,
+    ) -> None:
+        self._fake_fs = fake_filesystem
         self._root = root
         self._update = update_test_data
 
@@ -217,11 +233,12 @@ class Data:
             Path relative to :file:`tests/data` of the expected output. A
             ``.json`` extension will be added automatically.
         """
-        if self.path(path, "json").exists():
-            data = self._copy_wildcards(data, self.read_json(path))
-        with self.path(path, "json").open("w") as f:
-            json.dump(data, f, indent=2, sort_keys=True)
-            f.write("\n")
+        with self._pause_fake_fs():
+            if self.path(path, "json").exists():
+                data = self._copy_wildcards(data, self.read_json(path))
+            with self.path(path, "json").open("w") as f:
+                json.dump(data, f, indent=2, sort_keys=True)
+                f.write("\n")
 
     def write_pydantic(self, data: BaseModel, path: str) -> None:
         """Write a Pydantic model as JSON to the test data directory.
@@ -246,7 +263,8 @@ class Data:
         path
             Path relative to :file:`tests/data` of the expected output.
         """
-        self.path(path).write_text(data)
+        with self._pause_fake_fs():
+            self.path(path).write_text(data)
 
     def _copy_wildcards(self, new: Any, old: Any) -> Any:
         """Recursively copy `unittest.mock.ANY` wildcards to new data.
@@ -314,3 +332,21 @@ class Data:
                 return ANY
             case _:
                 return data
+
+    @contextmanager
+    def _pause_fake_fs(self) -> Iterator[None]:
+        """Pause any fake file system from pyfakefs.
+
+        Used as a context manager around write operations that should write to
+        the real underlying file system, not to any fake file system
+        maintained by pyfakefs. The ``_root`` `~pathlib.Path` object has to be
+        recreated when pausing or unpausing the fake file system to correctly
+        switch from fake to real and back.
+        """
+        if self._fake_fs:
+            self._fake_fs.pause()
+            self._root = Path(str(self._root))
+        yield
+        if self._fake_fs:
+            self._fake_fs.resume()
+            self._root = Path(str(self._root))
