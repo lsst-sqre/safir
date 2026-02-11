@@ -61,7 +61,7 @@ kubernetes = [
     "kubernetes-asyncio<34"
 ]
 redis = [
-    "redis>4.5.2,<7",
+    "redis>4.5.2,<8",
 ]
 testcontainers = [
     "testcontainers>=4.13"
