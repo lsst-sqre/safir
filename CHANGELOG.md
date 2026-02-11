@@ -9,6 +9,15 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.2.1'></a>
+## 14.2.1 (2026-02-10)
+
+### Bug fixes
+
+- Fix the return values of several mock Kubernetes functions in unusual edge cases.
+- Fix the typing of mock Kubernetes functions to match the typing provided by `kubernetes-asyncio`.
+- Support tokens as well as quoted strings for the `rel` attribute of `Link` HTTP headers in the `PaginationLinkData` parser.
+
 <a id='changelog-14.2.0'></a>
 ## 14.2.0 (2026-01-30)
 
