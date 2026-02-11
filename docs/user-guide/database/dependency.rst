@@ -49,14 +49,12 @@ Any handler that needs a database session can depend on the `~safir.dependencies
 
    from fastapi import Depends
    from safir.dependencies.db_session import db_session_dependency
-   from sqlalchemy.ext.asyncio import async_scoped_session
+   from sqlalchemy.ext.asyncio import AsyncSession
 
 
    @app.get("/")
    async def get_index(
-       session: Annotated[
-           async_scoped_session, Depends(db_session_dependency)
-       ],
+       session: Annotated[AsyncSession, Depends(db_session_dependency)],
    ) -> Dict[str, str]:
        async with session.begin():
            # ... do something with session here ...
