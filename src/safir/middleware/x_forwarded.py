@@ -41,7 +41,7 @@ class XForwardedMiddleware:
         self, app: ASGIApp, *, proxies: list[_BaseNetwork] | None = None
     ) -> None:
         self._app = app
-        self._proxies = proxies if proxies else []
+        self._proxies = proxies or []
 
     async def __call__(
         self, scope: Scope, receive: Receive, send: Send

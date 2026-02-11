@@ -23,11 +23,11 @@ try:
         V1DeleteOptions,
         V1Ingress,
         V1IngressList,
+        V1IngressLoadBalancerStatus,
         V1IngressStatus,
         V1Job,
         V1JobList,
         V1JobStatus,
-        V1LoadBalancerStatus,
         V1Namespace,
         V1NamespaceList,
         V1NetworkPolicy,
@@ -389,7 +389,7 @@ class MockKubernetesApi:
         self._cluster_objects: dict[str, dict[str, Any]] = {}
         self._create_hooks: dict[str, Callable[..., Awaitable[None]]] = {}
         self._custom_kinds: dict[str, str] = {}
-        self._nodes = V1NodeList(items=[])
+        self._nodes: list[V1Node] = []
         self._objects: dict[str, dict[str, dict[str, Any]]] = {}
         self._events: defaultdict[str, list[CoreV1Event]] = defaultdict(list)
         self._namespace_stream = _EventStream()
@@ -747,7 +747,7 @@ class MockKubernetesApi:
             objs = self._list_objects(
                 namespace, key, field_selector, label_selector
             )
-            return {"items": objs}
+            return V1IngressList(items=objs)
 
         # All watches must not preload content since we're returning raw JSON.
         # This is done by the Kubernetes API Watch object.
@@ -1098,7 +1098,7 @@ class MockKubernetesApi:
             body, "networking.k8s.io/v1", "Ingress", namespace
         )
         body.status = V1IngressStatus(
-            load_balancer=V1LoadBalancerStatus(ingress=[])
+            load_balancer=V1IngressLoadBalancerStatus(ingress=[])
         )
         name = body.metadata.name
         await self._store_object(namespace, "Ingress", name, body)
@@ -1477,7 +1477,7 @@ class MockKubernetesApi:
             jobs = self._list_objects(
                 namespace, "Job", field_selector, label_selector
             )
-            return V1PodList(kind="Job", items=jobs)
+            return V1JobList(items=jobs)
 
         # All watches must not preload content since we're returning raw JSON.
         # This is done by the Kubernetes API Watch object.
@@ -1593,8 +1593,8 @@ class MockKubernetesApi:
         if name not in self._objects:
             raise ApiException(status=404, reason=f"{name} not found")
         try:
-            body = await self.read_namespace(name)
-            self._namespace_stream.add_event("DELETED", body)
+            namespace = await self.read_namespace(name)
+            self._namespace_stream.add_event("DELETED", namespace)
         except ApiException:
             pass
         del self._objects[name]
@@ -1701,11 +1701,11 @@ class MockKubernetesApi:
                     name = match.group(1)
                     obj = self._get_object(name, "Namespace", name)
                     if _check_labels(obj.metadata.labels, label_selector):
-                        return [obj]
+                        return V1NamespaceList(items=[obj])
                     else:
-                        return []
+                        return V1NamespaceList(items=[])
                 except ApiException:
-                    return []
+                    return V1NamespaceList(items=[])
             namespaces = []
             for name in self._objects:
                 try:
@@ -2081,7 +2081,7 @@ class MockKubernetesApi:
         watch: bool = False,
         _preload_content: bool = True,
         _request_timeout: float | None = None,
-    ) -> V1IngressList | Mock:
+    ) -> V1PersistentVolumeClaimList | Mock:
         """List persistent volume claim objects in a namespace.
 
         This does support watches.
@@ -2601,6 +2601,7 @@ class MockKubernetesApi:
         await self._store_object(
             namespace, "Secret", name, secret, replace=True
         )
+        return secret
 
     async def read_namespaced_secret(
         self,
@@ -2925,7 +2926,7 @@ class MockKubernetesApi:
         watch: bool = False,
         _preload_content: bool = True,
         _request_timeout: float | None = None,
-    ) -> V1ServiceList | Mock:
+    ) -> V1ServiceAccountList | Mock:
         """List service account objects in a namespace.
 
         This does support watches.

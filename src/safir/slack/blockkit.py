@@ -280,7 +280,7 @@ class SlackException(Exception):
         # fix. See https://github.com/python/cpython/issues/76877.
         self.message = message
         self.user = user
-        self.failed_at = failed_at if failed_at else datetime.now(tz=UTC)
+        self.failed_at = failed_at or datetime.now(tz=UTC)
 
     def __str__(self) -> str:
         return self.message
