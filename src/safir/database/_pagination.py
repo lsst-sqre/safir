@@ -30,7 +30,12 @@ from safir.models import ErrorLocation
 from ._datetime import datetime_to_db
 
 _LINK_REGEX = re.compile(r'\s*<(?P<target>[^>]+)>;\s*rel="(?P<type>[^"]+)"')
-"""Matches a component of a valid ``Link`` header."""
+"""Matches a component of a valid ``Link`` header with a quoted type."""
+
+_LINK_TOKEN_REGEX = re.compile(
+    r"\s*<(?P<target>[^>]+)>;\s*rel=(?P<type>[A-Za-z0-9!#$%&\'*+.^_`|~-]+)"
+)
+"""Matches a component of a valid ``Link`` header with a quoted type."""
 
 __all__ = [
     "CountedPaginatedList",
@@ -83,7 +88,10 @@ class PaginationLinkData:
         links = {}
         if header:
             for element in header.split(","):
-                if m := re.match(_LINK_REGEX, element):
+                m = re.match(_LINK_REGEX, element)
+                if not m:
+                    m = re.match(_LINK_TOKEN_REGEX, element)
+                if m:
                     if m.group("type") in ("prev", "next", "first"):
                         links[m.group("type")] = m.group("target")
                     elif m.group("type") == "previous":
