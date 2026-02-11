@@ -18,6 +18,7 @@ env:
       - "dependabot/**"
       - "gh-readonly-queue/**"
       - "renovate/**"
+      - "t/**"
       - "tickets/**"
       - "u/**"
   release:
@@ -97,7 +98,8 @@ jobs:
               && github.event.action == 'published')
           || (github.event_name == 'workflow_dispatch')
           || (github.event_name == 'pull_request'
-              && startsWith(github.head_ref, 'tickets/'))
+              && (startsWith(github.head_ref, 'tickets/')
+                  || startsWith(github.head_ref, 't/')))
 
   test-packaging:
     name: Test packaging

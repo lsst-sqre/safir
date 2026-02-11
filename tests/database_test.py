@@ -545,9 +545,9 @@ def test_link_data() -> None:
     assert link.first_url == "https://example.com/query"
 
     header = (
-        '<https://example.com/query?limit=10>; rel="first", '
-        '<https://example.com/query?limit=10&cursor=15_2>; rel="next", '
-        '<https://example.com/query?limit=10&cursor=p5_1>; rel="prev"'
+        "<https://example.com/query?limit=10>; rel=first, "
+        "<https://example.com/query?limit=10&cursor=15_2>; rel=next, "
+        "<https://example.com/query?limit=10&cursor=p5_1>; rel=prev"
     )
     link = PaginationLinkData.from_header(header)
     assert link.prev_url == "https://example.com/query?limit=10&cursor=p5_1"
