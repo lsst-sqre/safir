@@ -113,7 +113,7 @@ async def watch_events(
     namespace: str,
     *,
     resource_version: str | None = None,
-) -> list[CoreV1Event]:
+) -> list[dict[str, Any]]:
     """Watch events, returning when an event with message ``Done`` is seen."""
     method = mock_kubernetes.list_namespaced_event
     watch_args = {
@@ -224,7 +224,7 @@ async def watch_pod_events(
         "namespace": namespace,
         "timeout_seconds": 10,  # Just in case, so tests don't hang
     }
-    async with Watch(V1Pod).stream(method, **watch_args) as stream:
+    async with Watch("V1Pod").stream(method, **watch_args) as stream:
         seen = []
         async for event in stream:
             seen.append(event)

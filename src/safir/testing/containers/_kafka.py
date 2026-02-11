@@ -419,7 +419,7 @@ class FullKafkaContainer(DockerContainer):
         image
             Docker image to run.
         """
-        actual_version = image.split(":")[-1]
+        actual_version = image.rsplit(":", maxsplit=1)[-1]
         if ComparableVersion(actual_version) < self._MIN_KRAFT_TAG:
             raise ValueError(
                 f"Provided Confluent Platform's version {actual_version} "
