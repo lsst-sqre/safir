@@ -58,7 +58,7 @@ kafka = [
     "python-schema-registry-client>=2.6,<3",
 ]
 kubernetes = [
-    "kubernetes-asyncio<35"
+    "kubernetes-asyncio<36"
 ]
 redis = [
     "redis>4.5.2,<8",
