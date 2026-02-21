@@ -66,6 +66,9 @@ To compare test outputs to expected values, use the corresponding methods `~Data
 These methods take the observed output and a path fragment, load expected output from the file specified by that path fragment, and then assert equality.
 The assertion is configured to use pytest's rich assertion rewriting, so it will provide a diff on inequality of complex structures.
 
+`~Data.read_text` and `~Data.assert_text_matches` optionally take a ``strip`` argument that, if set to true, removes trailing whitespace such as newlines before returning or comparing the data.
+This allows the test data files on disk to end in newlines, which is more convenient for editors and programs such as :command:`git diff`.
+
 Updating expected test outputs
 ==============================
 
@@ -86,6 +89,7 @@ For packages using tox_, a typical invocation is similar:
 
 Test code (or any other code) can also explicitly write strings, data structures, or Pydantic files (serialized to JSON) to test data files using the `~Data.write_text`, `~Data.write_json`, and `~Data.write_pydantic` methods.
 This may be useful in temporary code converting existing tests to use external test data.
+The `~Data.write_text` method takes an optional ``add_newline`` argument that should be used in conjunction with the ``strip`` arguments to `~Data.read_text` and `~Data.assert_text_matches` to add a newline to the data as stored on disk and remove it again on read.
 
 Creating initial test data
 --------------------------

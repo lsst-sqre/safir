@@ -112,8 +112,24 @@ def test_text(tmp_path: Path) -> None:
         data.assert_text_matches("some\ntest data\n", "foo/data")
 
 
+def test_text_strip(tmp_path: Path) -> None:
+    data = Data(tmp_path)
+    data.write_text("some test data", "data", add_newline=True)
+    assert (tmp_path / "data").read_text() == "some test data\n"
+    assert data.read_text("data", strip=True) == "some test data"
+    data.assert_text_matches("some test data", "data", strip=True)
+    with pytest.raises(AssertionError):
+        data.assert_text_matches("some test data", "data")
+
+
 def test_text_update(tmp_path: Path) -> None:
     data = Data(tmp_path, update_test_data=True)
     assert not (tmp_path / "test-data").exists()
     data.assert_text_matches("some\ntest data", "test-data")
     assert (tmp_path / "test-data").read_text() == "some\ntest data"
+
+
+def test_text_update_strip(tmp_path: Path) -> None:
+    data = Data(tmp_path, update_test_data=True)
+    data.assert_text_matches("some test data", "data", strip=True)
+    assert (tmp_path / "data").read_text() == "some test data\n"

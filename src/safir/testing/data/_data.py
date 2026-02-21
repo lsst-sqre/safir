@@ -131,7 +131,9 @@ class Data:
             self.write_pydantic(seen, path)
         assert seen.model_dump(mode="json") == self.read_json(path)
 
-    def assert_text_matches(self, seen: str, path: str) -> None:
+    def assert_text_matches(
+        self, seen: str, path: str, *, strip: bool = False
+    ) -> None:
         """Raise an assertion if the saved expected output doesn't match.
 
         Parameters
@@ -140,6 +142,9 @@ class Data:
             Observed data in the test to be compared.
         path
             Path relative to :file:`tests/data` of the expected output.
+        strip
+            If `True`, expect the stored file to end in a newline, add the
+            newline when updating it, and remove the newline when reading it.
 
         Raises
         ------
@@ -147,8 +152,8 @@ class Data:
             Raised if the data doesn't match.
         """
         if self._update:
-            self.write_text(seen, path)
-        assert seen == self.read_text(path)
+            self.write_text(seen, path, add_newline=strip)
+        assert seen == self.read_text(path, strip=strip)
 
     def path(self, path: str, extension: str | None = None) -> Path:
         """Construct a path to a test data file.
@@ -207,20 +212,24 @@ class Data:
         """
         return model_type.model_validate(self.read_json(path))
 
-    def read_text(self, path: str) -> str:
+    def read_text(self, path: str, *, strip: bool = False) -> str:
         """Read test data as text.
 
         Parameters
         ----------
         path
             Path relative to :file:`tests/data`.
+        strip
+            If `True`, remove trailing whitespace such as a newline from the
+            contents of the file.
 
         Returns
         -------
         str
             Contents of file.
         """
-        return self.path(path).read_text()
+        text = self.path(path).read_text()
+        return text.rstrip() if strip else text
 
     def write_json(self, data: Any, path: str) -> None:
         """Write data as JSON to the test data directory.
@@ -253,7 +262,9 @@ class Data:
         """
         self.write_json(data.model_dump(mode="json"), path)
 
-    def write_text(self, data: str, path: str) -> None:
+    def write_text(
+        self, data: str, path: str, *, add_newline: bool = False
+    ) -> None:
         """Write data as text to the test data directory.
 
         Parameters
@@ -262,8 +273,13 @@ class Data:
             New data to write.
         path
             Path relative to :file:`tests/data` of the expected output.
+        add_newline
+            If `True`, add a trailing newline so that files as stored on disk
+            end with a newline.
         """
         with self._pause_fake_fs():
+            if add_newline:
+                data += "\n"
             self.path(path).write_text(data)
 
     def _copy_wildcards(self, new: Any, old: Any) -> Any:
