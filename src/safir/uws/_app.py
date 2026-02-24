@@ -48,7 +48,7 @@ async def _uws_error_handler(
 ) -> PlainTextResponse:
     response = f"{exc.error_code}: {exc!s}\n"
     if exc.detail:
-        response += "\n{exc.detail}"
+        response += f"\n{exc.detail}"
     return PlainTextResponse(response, status_code=exc.status_code)
 
 
