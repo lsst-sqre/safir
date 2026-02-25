@@ -89,7 +89,11 @@ For packages using tox_, a typical invocation is similar:
 
 Test code (or any other code) can also explicitly write strings, data structures, or Pydantic files (serialized to JSON) to test data files using the `~Data.write_text`, `~Data.write_json`, and `~Data.write_pydantic` methods.
 This may be useful in temporary code converting existing tests to use external test data.
+
 The `~Data.write_text` method takes an optional ``add_newline`` argument that should be used in conjunction with the ``strip`` arguments to `~Data.read_text` and `~Data.assert_text_matches` to add a newline to the data as stored on disk and remove it again on read.
+
+`~Data.assert_pydantic_matches` and `~Data.write_pydantic` take an optional ``exclude_defaults`` parameter that will be passed down to the Pydantic serialization and will exclude fields set to their default values from the written test data.
+This will produce more compact (and thus easier for humans to review) test data, at the cost of not noticing changes to field defaults that should have broke existing tests.
 
 Creating initial test data
 --------------------------
@@ -108,6 +112,11 @@ When creating the initial test data, run the tests with updates enabled and then
 
 When test data is updated by `~Data.assert_json_matches` or `~Data.write_json`, any fields that contained ``"<ANY>"`` wildcards in the previous stored data are replaced with the same wildcard before the new data is stored.
 In other words, wildcards are preserved across data updates.
+
+.. warning::
+
+   If an ``"<ANY>"`` wildcard matches a field with a default value, and the test data was saved with ``exclude_defaults=True`` in effect and that field set to its default value, the wildcard will be dropped because the field as a whole will be dropped from the saved test data.
+   Consider avoiding ``exclude_defaults=True`` when comparing against data with wildcards to avoid this edge case.
 
 Adding more methods
 ===================

@@ -73,8 +73,8 @@ def test_json_wildcard_nested(tmp_path: Path) -> None:
 class Model(BaseModel):
     """Small model for Pydantic testing."""
 
-    foo: int
-    bar: str
+    foo: int = 3
+    bar: str | None = None
 
 
 def test_pydantic(tmp_path: Path) -> None:
@@ -90,6 +90,19 @@ def test_pydantic(tmp_path: Path) -> None:
         data.assert_pydantic_matches(model, "model")
 
 
+def test_pydantic_exclude(tmp_path: Path) -> None:
+    data = Data(tmp_path)
+    model = Model(foo=4)
+    data.write_pydantic(model, "model")
+    assert data.read_json("model") == {"foo": 4, "bar": None}
+    data.write_pydantic(model, "model", exclude_defaults=True)
+    assert data.read_json("model") == {"foo": 4}
+    model.foo = 3
+    data.write_pydantic(model, "model", exclude_defaults=True)
+    assert data.read_json("model") == {}
+    data.assert_pydantic_matches(model, "model", exclude_defaults=True)
+
+
 def test_pydantic_update(tmp_path: Path) -> None:
     data = Data(tmp_path, update_test_data=True)
     model = Model(foo=4, bar="something")
@@ -97,9 +110,13 @@ def test_pydantic_update(tmp_path: Path) -> None:
     data.assert_pydantic_matches(model, "model")
     model_json = data.read_json("model")
     assert model_json == {"foo": 4, "bar": "something"}
-    expected = data.read_pydantic(Model, "model")
-    assert isinstance(expected, Model)
-    assert model == expected
+    assert model == data.read_pydantic(Model, "model")
+
+    # Try again with exclude_defaults=True.
+    model = Model(foo=4, bar=None)
+    data.assert_pydantic_matches(model, "model", exclude_defaults=True)
+    model_json = data.read_json("model")
+    assert model_json == {"foo": 4}
 
 
 def test_text(tmp_path: Path) -> None:

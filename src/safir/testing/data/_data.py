@@ -102,7 +102,9 @@ class Data:
             self.write_json(seen, path)
         assert seen == self.read_json(path)
 
-    def assert_pydantic_matches(self, seen: BaseModel, path: str) -> None:
+    def assert_pydantic_matches(
+        self, seen: BaseModel, path: str, *, exclude_defaults: bool = False
+    ) -> None:
         """Raise an assertion if the saved Pydantic model doesn't match.
 
         The Pydantic model is serialized to JSON and then compared against the
@@ -121,6 +123,9 @@ class Data:
         path
             Path relative to :file:`tests/data` of the expected output. A
             ``.json`` extension will be added automatically.
+        exclude_defaults
+            Whether to exclude attributes set to their default values when
+            dumping the Pydantic model for comparison purposes.
 
         Raises
         ------
@@ -128,8 +133,11 @@ class Data:
             Raised if the data doesn't match.
         """
         if self._update:
-            self.write_pydantic(seen, path)
-        assert seen.model_dump(mode="json") == self.read_json(path)
+            self.write_pydantic(seen, path, exclude_defaults=exclude_defaults)
+        seen_json = seen.model_dump(
+            mode="json", exclude_defaults=exclude_defaults
+        )
+        assert seen_json == self.read_json(path)
 
     def assert_text_matches(
         self, seen: str, path: str, *, strip: bool = False
@@ -249,7 +257,9 @@ class Data:
                 json.dump(data, f, indent=2, sort_keys=True)
                 f.write("\n")
 
-    def write_pydantic(self, data: BaseModel, path: str) -> None:
+    def write_pydantic(
+        self, data: BaseModel, path: str, *, exclude_defaults: bool = False
+    ) -> None:
         """Write a Pydantic model as JSON to the test data directory.
 
         Parameters
@@ -259,8 +269,14 @@ class Data:
         path
             Path relative to :file:`tests/data` of the expected output. A
             ``.json`` extension will be added automatically.
+        exclude_defaults
+            Whether to exclude attributes set to their default values when
+            dumping the Pydantic model for comparison purposes.
         """
-        self.write_json(data.model_dump(mode="json"), path)
+        data_json = data.model_dump(
+            mode="json", exclude_defaults=exclude_defaults
+        )
+        self.write_json(data_json, path)
 
     def write_text(
         self, data: str, path: str, *, add_newline: bool = False
