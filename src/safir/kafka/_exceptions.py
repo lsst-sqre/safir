@@ -1,7 +1,5 @@
 """Schema manager exceptions."""
 
-from __future__ import annotations
-
 from typing import override
 
 from pydantic import SecretStr

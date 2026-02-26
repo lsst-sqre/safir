@@ -1,7 +1,5 @@
 """Test handling of jobs that fail."""
 
-from __future__ import annotations
-
 import pytest
 from httpx import AsyncClient
 from vo_models.uws import JobSummary

@@ -1,7 +1,5 @@
 """Assert helpers for testing services using the Safir UWS support."""
 
-from __future__ import annotations
-
 try:
     from vo_models.uws import JobSummary
 except ImportError as e:

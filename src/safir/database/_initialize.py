@@ -1,7 +1,5 @@
 """Database initialization."""
 
-from __future__ import annotations
-
 import asyncio
 
 try:

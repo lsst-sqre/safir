@@ -1,7 +1,5 @@
 """Configuration for the Kafka Schema Registry."""
 
-from __future__ import annotations
-
 from typing import TypedDict
 
 from pydantic import AliasChoices, AnyUrl, Field

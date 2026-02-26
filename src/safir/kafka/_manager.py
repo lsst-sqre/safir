@@ -7,8 +7,6 @@ of the hard parts replaced with python-schema-registry-client_.
 .. _python-schema-registry-client: https://marcosschroh.github.io/python-schema-registry-client/
 """
 
-from __future__ import annotations
-
 import inspect
 import re
 from dataclasses import dataclass

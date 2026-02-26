@@ -1,7 +1,5 @@
 """Utilities for configuring uvicorn to use structlog."""
 
-from __future__ import annotations
-
 import logging
 import logging.config
 import re

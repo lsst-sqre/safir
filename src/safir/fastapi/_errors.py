@@ -1,7 +1,5 @@
 """Error handling support for FastAPI."""
 
-from __future__ import annotations
-
 from typing import ClassVar
 
 from fastapi import Request

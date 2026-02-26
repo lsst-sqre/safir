@@ -1,7 +1,5 @@
 """Update the request based on ``X-Forwarded-For`` headers."""
 
-from __future__ import annotations
-
 from copy import copy
 from ipaddress import _BaseAddress, _BaseNetwork, ip_address
 

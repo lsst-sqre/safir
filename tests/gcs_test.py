@@ -1,7 +1,5 @@
 """Tests for Google Cloud Storage support code."""
 
-from __future__ import annotations
-
 from datetime import timedelta
 
 import pytest

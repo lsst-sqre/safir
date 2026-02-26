@@ -1,7 +1,5 @@
 """Support classes for testing Alembic."""
 
-from __future__ import annotations
-
 from pydantic import SecretStr
 from pydantic_core import Url
 from pydantic_settings import BaseSettings, SettingsConfigDict

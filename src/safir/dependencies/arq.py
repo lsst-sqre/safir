@@ -1,7 +1,5 @@
 """A FastAPI dependency that supplies a Redis connection for arq_."""
 
-from __future__ import annotations
-
 from arq.connections import RedisSettings
 
 from safir.arq import ArqMode, ArqQueue, MockArqQueue, RedisArqQueue

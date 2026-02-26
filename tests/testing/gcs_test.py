@@ -4,8 +4,6 @@ These are just basic sanity checks that the mocking is working correctly and
 the basic calls work.
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 

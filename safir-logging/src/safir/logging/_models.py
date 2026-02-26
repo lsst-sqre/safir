@@ -1,7 +1,5 @@
 """Models for structlog-based logging."""
 
-from __future__ import annotations
-
 from enum import Enum
 from typing import Any, Self, override
 

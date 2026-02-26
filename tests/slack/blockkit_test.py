@@ -1,7 +1,5 @@
 """Test Slack client."""
 
-from __future__ import annotations
-
 import pickle
 from textwrap import dedent
 

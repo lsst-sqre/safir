@@ -1,7 +1,5 @@
 """Exceptions for the Universal Worker Service."""
 
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 from typing import Self, override
 

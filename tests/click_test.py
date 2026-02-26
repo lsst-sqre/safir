@@ -1,7 +1,5 @@
 """Tests for Click utility functions."""
 
-from __future__ import annotations
-
 import click
 from click.testing import CliRunner
 

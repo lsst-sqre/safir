@@ -1,7 +1,5 @@
 """Tests for `safir.models`."""
 
-from __future__ import annotations
-
 import json
 
 from safir.models import ErrorModel

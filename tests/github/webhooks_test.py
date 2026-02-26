@@ -1,7 +1,5 @@
 """Tests for the `safir.github.webhooks` module."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from safir.github.models import (

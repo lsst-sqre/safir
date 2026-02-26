@@ -1,7 +1,5 @@
 """Help command implementation for Click."""
 
-from __future__ import annotations
-
 import click
 
 __all__ = ["display_help"]

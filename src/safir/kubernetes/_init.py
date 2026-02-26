@@ -1,7 +1,5 @@
 """Initializing a Kubernetes client."""
 
-from __future__ import annotations
-
 import os
 
 try:

@@ -1,7 +1,5 @@
 """Fixtures for tests of the testing support infrastructure."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path

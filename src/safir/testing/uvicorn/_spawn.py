@@ -7,8 +7,6 @@ with Selenium or when testing Uvicorn integration. This module provides
 utility functions to aid with that test setup.
 """
 
-from __future__ import annotations
-
 import errno
 import os
 import socket

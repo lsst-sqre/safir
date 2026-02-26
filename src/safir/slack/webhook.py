@@ -1,7 +1,5 @@
 """Send messages to Slack."""
 
-from __future__ import annotations
-
 from collections.abc import Callable, Coroutine
 from typing import Any, ClassVar, override
 

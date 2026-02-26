@@ -1,7 +1,5 @@
 """Test IVOA middleware."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncGenerator
 from typing import Annotated
 

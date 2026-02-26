@@ -1,7 +1,5 @@
 """Tests for the safir.testing.logging module."""
 
-from __future__ import annotations
-
 import json
 import logging
 import uuid

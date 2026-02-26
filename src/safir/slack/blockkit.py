@@ -1,7 +1,5 @@
 """Slack Block Kit message models."""
 
-from __future__ import annotations
-
 from abc import ABCMeta, abstractmethod
 from datetime import UTC, datetime
 from typing import Any, ClassVar, Self, override

@@ -1,7 +1,5 @@
 """nox build configuration for Safir."""
 
-from __future__ import annotations
-
 import shutil
 import sys
 from pathlib import Path
