@@ -1,7 +1,5 @@
 """Docker container for testing with a Kafka Confluent schema registry."""
 
-from __future__ import annotations
-
 from typing import Any, Self
 
 import httpx

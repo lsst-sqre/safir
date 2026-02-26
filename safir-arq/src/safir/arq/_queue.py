@@ -1,7 +1,5 @@
 """An arq_ client with a mock for testing."""
 
-from __future__ import annotations
-
 import abc
 import asyncio
 import uuid

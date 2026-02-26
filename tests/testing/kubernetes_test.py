@@ -4,8 +4,6 @@ These are just basic sanity checks that the mocking is working correctly and
 the basic calls work. There is no attempt to test all of the supported APIs.
 """
 
-from __future__ import annotations
-
 import asyncio
 from typing import Any
 

@@ -1,7 +1,5 @@
 """Tests for the database session dependency."""
 
-from __future__ import annotations
-
 from typing import Annotated
 
 import pytest

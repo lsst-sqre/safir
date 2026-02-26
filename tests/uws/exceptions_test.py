@@ -1,7 +1,5 @@
 """Tests for UWS exception classes."""
 
-from __future__ import annotations
-
 import pickle
 
 from safir.arq.uws import (

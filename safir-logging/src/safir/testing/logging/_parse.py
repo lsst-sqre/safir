@@ -1,7 +1,5 @@
 """Helper functions for testing logging."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta

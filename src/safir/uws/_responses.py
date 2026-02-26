@@ -1,7 +1,5 @@
 """Return internal objects as XML responses."""
 
-from __future__ import annotations
-
 try:
     import jinja2
 except ImportError as e:

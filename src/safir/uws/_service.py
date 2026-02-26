@@ -1,7 +1,5 @@
 """Service layer for a UWS service."""
 
-from __future__ import annotations
-
 import asyncio
 from contextlib import suppress
 from datetime import datetime, timedelta

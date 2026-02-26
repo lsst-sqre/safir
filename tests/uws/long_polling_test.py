@@ -1,7 +1,5 @@
 """Test for long polling when retrieving jobs."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import timedelta
 

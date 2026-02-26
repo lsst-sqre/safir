@@ -1,7 +1,5 @@
 """Mock Slack server for testing Slack messaging."""
 
-from __future__ import annotations
-
 import json
 from typing import Any
 

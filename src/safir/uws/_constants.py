@@ -1,7 +1,5 @@
 """Constants for the UWS work queue."""
 
-from __future__ import annotations
-
 from datetime import timedelta
 
 __all__ = [

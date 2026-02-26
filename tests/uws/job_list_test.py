@@ -4,8 +4,6 @@ These tests don't assume any given application, and therefore don't use the
 API to create a job, instead inserting it directly via the UWSService.
 """
 
-from __future__ import annotations
-
 from datetime import timedelta
 
 import pytest

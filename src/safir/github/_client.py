@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import gidgethub.apps
 import httpx
 from gidgethub.httpx import GitHubAPI

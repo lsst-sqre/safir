@@ -1,7 +1,5 @@
 """HTTP client dependency for FastAPI."""
 
-from __future__ import annotations
-
 import httpx
 
 __all__ = [

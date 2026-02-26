@@ -1,7 +1,5 @@
 """Mock Kubernetes API for testing."""
 
-from __future__ import annotations
-
 import copy
 import datetime
 import json

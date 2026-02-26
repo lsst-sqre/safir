@@ -1,7 +1,5 @@
 """Pydantic models for GitHub v3 REST API resources."""
 
-from __future__ import annotations
-
 from base64 import b64decode
 from enum import StrEnum
 
@@ -280,6 +278,20 @@ class GitHubCheckSuiteConclusion(StrEnum):
     """The check suite is stale."""
 
 
+class GitHubCheckRunPrInfoModel(BaseModel):
+    """A Pydantic model of the ``pull_requests[]`` items in a check run
+    GitHub API model (`GitHubCheckRunModel`).
+
+    https://docs.github.com/en/rest/checks/runs#get-a-check-run
+    """
+
+    url: HttpUrl = Field(description="GitHub API URL for this pull request.")
+
+    number: int = Field(
+        description="The number that identifies the pull request."
+    )
+
+
 class GitHubCheckSuiteModel(BaseModel):
     """A Pydantic model for the ``check_suite`` field in a ``check_suite``
     webhook (`~safir.github.webhooks.GitHubCheckSuiteEventModel`).
@@ -381,20 +393,6 @@ class GitHubCheckRunOutput(BaseModel):
     )
 
     text: str | None = Field(None, description="Extended report (markdown)")
-
-
-class GitHubCheckRunPrInfoModel(BaseModel):
-    """A Pydantic model of the ``pull_requests[]`` items in a check run
-    GitHub API model (`GitHubCheckRunModel`).
-
-    https://docs.github.com/en/rest/checks/runs#get-a-check-run
-    """
-
-    url: HttpUrl = Field(description="GitHub API URL for this pull request.")
-
-    number: int = Field(
-        description="The number that identifies the pull request."
-    )
 
 
 class GitHubCheckRunModel(BaseModel):

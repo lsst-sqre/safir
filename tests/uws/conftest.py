@@ -1,7 +1,5 @@
 """pytest fixtures for UWS testing."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 from datetime import timedelta

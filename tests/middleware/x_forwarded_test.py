@@ -1,7 +1,5 @@
 """Test ``X-Forwarded-For`` middleware."""
 
-from __future__ import annotations
-
 from ipaddress import _BaseNetwork, ip_network
 
 import pytest

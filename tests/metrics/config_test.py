@@ -1,7 +1,5 @@
 """Test metrics configuration."""
 
-from __future__ import annotations
-
 import pytest
 from pydantic import Field
 from pydantic_settings import BaseSettings

@@ -1,7 +1,5 @@
 """Managing database engines and sessions."""
 
-from __future__ import annotations
-
 import asyncio
 from typing import Any
 from urllib.parse import quote, urlparse

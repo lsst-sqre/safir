@@ -1,7 +1,5 @@
 """Utilities to retrieve package metadata."""
 
-from __future__ import annotations
-
 from email.message import Message
 from importlib.metadata import metadata
 from typing import cast

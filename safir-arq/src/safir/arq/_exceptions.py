@@ -1,7 +1,5 @@
 """Exceptions for the arq_ client."""
 
-from __future__ import annotations
-
 __all__ = [
     "ArqJobError",
     "JobNotFound",

@@ -1,7 +1,5 @@
 """Test the logger FastAPI dependency."""
 
-from __future__ import annotations
-
 import json
 from typing import Annotated
 from unittest.mock import ANY

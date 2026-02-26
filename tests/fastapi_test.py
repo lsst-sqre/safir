@@ -1,7 +1,5 @@
 """Tests for FastAPI helper code."""
 
-from __future__ import annotations
-
 import pytest
 from fastapi import FastAPI, status
 from httpx import ASGITransport, AsyncClient

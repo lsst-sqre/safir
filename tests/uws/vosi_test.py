@@ -1,7 +1,5 @@
 """Tests for VOSI functionality provided by the UWS library."""
 
-from __future__ import annotations
-
 import pytest
 from httpx import AsyncClient
 from vo_models.vosi.availability import Availability

@@ -1,7 +1,5 @@
 """Alembic support using an async database backend."""
 
-from __future__ import annotations
-
 import asyncio
 from contextlib import suppress
 from pathlib import Path

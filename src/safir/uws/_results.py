@@ -5,8 +5,6 @@ be returned to the user as a URL. This translation layer converts the ``s3``
 URL to a signed URL suitable for returning to a client of the service.
 """
 
-from __future__ import annotations
-
 try:
     from safir.gcs import SignedURLService
 except ImportError as e:

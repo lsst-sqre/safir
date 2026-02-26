@@ -1,7 +1,5 @@
 """Tests for arq worker construction."""
 
-from __future__ import annotations
-
 import asyncio
 import time
 from datetime import timedelta

@@ -1,7 +1,5 @@
 """Tests for the safir.redis module."""
 
-from __future__ import annotations
-
 import pytest
 import redis.asyncio as redis
 from cryptography.fernet import Fernet

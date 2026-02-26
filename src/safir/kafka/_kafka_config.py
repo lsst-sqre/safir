@@ -3,8 +3,6 @@
 Adapted from Jonathan Sick's kafka work in `Ook <https://ook.lsst.io>`_.
 """
 
-from __future__ import annotations
-
 import ssl
 from enum import StrEnum
 from typing import Literal, NotRequired, Self, TypedDict

@@ -1,7 +1,5 @@
 """Mock Google Cloud Storage API for testing."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from io import BufferedReader

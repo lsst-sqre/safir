@@ -108,8 +108,6 @@ The :file:`src/yourapp/worker/main.py` module looks like:
 
 .. code-block:: python
 
-    from __future__ import annotations
-
     import uuid
     from typing import Any
 
@@ -281,9 +279,7 @@ To enable this, you need to:
 Your worker set up in :file:`worker/main.py` might look like this:
 
 .. code-block:: python
-   :emphasize-lines: 9,34,60,77
-
-    from __future__ import annotations
+   :emphasize-lines: 7,32,58,75
 
     import uuid
     from typing import Any

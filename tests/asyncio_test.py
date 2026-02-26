@@ -1,7 +1,5 @@
 """Tests for asyncio utility functions."""
 
-from __future__ import annotations
-
 import asyncio
 
 import pytest

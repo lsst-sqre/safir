@@ -3,8 +3,6 @@
 Most of the arq support code is tested by testing the FastAPI dependency.
 """
 
-from __future__ import annotations
-
 from pydantic import SecretStr
 from pydantic_core import Url
 

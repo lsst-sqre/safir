@@ -1,7 +1,5 @@
 """Define arq workers for an application using UWS."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 import uuid

@@ -1,7 +1,5 @@
 """Functions to get the current date and time."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 
 __all__ = ["current_datetime"]

@@ -1,7 +1,5 @@
 """Configuration for arq_ clients and workers."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from dataclasses import dataclass
 
