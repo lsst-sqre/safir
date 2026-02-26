@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import override
+
 from pydantic import SecretStr
 from structlog.stdlib import BoundLogger
 
@@ -135,5 +137,6 @@ class UnknownSchemaError(Exception):
         )
         super().__init__(self.message)
 
+    @override
     def __str__(self) -> str:
         return self.message

@@ -317,6 +317,7 @@ class DatetimeIdCursor[E: BaseModel](PaginationCursor[E], metaclass=ABCMeta):
             time=self.time, id=self.id, previous=not self.previous
         )
 
+    @override
     def __str__(self) -> str:
         previous = "p" if self.previous else ""
         timestamp = self.time.timestamp()

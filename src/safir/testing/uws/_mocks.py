@@ -199,6 +199,8 @@ class MockWobbly:
             case ExecutionPhase.QUEUED:
                 queued_update = JobUpdateQueued.model_validate(body)
                 job.message_id = queued_update.message_id
+            case _:
+                return Response(400, text=f"Invalid phase {body['phase']}")
         job.phase = ExecutionPhase[body["phase"]]
         return Response(200, json=job.model_dump(mode="json"))
 

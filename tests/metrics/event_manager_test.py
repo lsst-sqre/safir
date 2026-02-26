@@ -6,7 +6,7 @@ import asyncio
 import math
 from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import cast
+from typing import cast, override
 from uuid import UUID
 
 import pytest
@@ -68,6 +68,7 @@ class MyOtherEvent(EventPayload):
 class Events(EventMaker):
     """A class to hold event publishers."""
 
+    @override
     async def initialize(self, manager: EventManager) -> None:
         self.my_event = await manager.create_publisher("myevent", MyEvent)
 

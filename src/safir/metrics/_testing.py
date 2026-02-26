@@ -28,9 +28,11 @@ type ModelDumpList = list[dict[str, Any]]
 class _NotNone:
     """A helper object that compares equal to everything except None."""
 
+    @override
     def __eq__(self, other: object) -> bool:
         return other is not None
 
+    @override
     def __repr__(self) -> str:
         return "<NOT NONE>"
 

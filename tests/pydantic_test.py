@@ -206,7 +206,8 @@ def test_utcdatetime() -> None:
     utc_date = mst_date.astimezone(UTC)
     assert TestModel.model_validate({"time": mst_date}).time == utc_date
 
-    naive_date = datetime.utcnow()  # noqa: DTZ003
+    naive_date = datetime.fromisoformat("2026-02-26T09:27:43")
+    assert naive_date.tzinfo is None
     aware_date = TestModel.model_validate({"time": naive_date}).time
     assert aware_date == naive_date.replace(tzinfo=UTC)
     assert aware_date.tzinfo == UTC
@@ -259,7 +260,8 @@ def test_normalize_datetime() -> None:
     utc_date = mst_date.astimezone(UTC)
     assert TestModel(time=mst_date).time == utc_date
 
-    naive_date = datetime.utcnow()  # noqa: DTZ003
+    naive_date = datetime.fromisoformat("2026-02-26T09:27:43")
+    assert naive_date.tzinfo is None
     aware_date = TestModel(time=naive_date).time
     assert aware_date == naive_date.replace(tzinfo=UTC)
     assert aware_date.tzinfo == UTC

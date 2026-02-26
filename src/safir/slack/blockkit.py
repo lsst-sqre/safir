@@ -282,6 +282,7 @@ class SlackException(Exception):
         self.user = user
         self.failed_at = failed_at or datetime.now(tz=UTC)
 
+    @override
     def __str__(self) -> str:
         return self.message
 
@@ -406,6 +407,7 @@ class SlackWebException(SlackException):
         self.status = status
         self.body = body
 
+    @override
     def __str__(self) -> str:
         result = self.message
         if self.body:

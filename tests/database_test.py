@@ -8,7 +8,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Self, override
 from urllib.parse import unquote, urlparse
 
 import pytest
@@ -340,6 +340,7 @@ class PaginationTable(PaginationBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     time: Mapped[datetime]
 
+    @override
     def __repr__(self) -> str:
         return f"PaginationTable(id={self.id}, time={self.time})"
 
@@ -351,14 +352,17 @@ class PaginationModel(BaseModel):
 
 @dataclass
 class TableCursor(DatetimeIdCursor[PaginationModel]):
+    @override
     @staticmethod
     def id_column() -> InstrumentedAttribute:
         return PaginationTable.id
 
+    @override
     @staticmethod
     def time_column() -> InstrumentedAttribute:
         return PaginationTable.time
 
+    @override
     @classmethod
     def from_entry(
         cls, entry: PaginationModel, *, reverse: bool = False
