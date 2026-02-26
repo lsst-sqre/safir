@@ -226,7 +226,6 @@ extend = "ruff-shared.toml"
 [tool.ruff.lint.isort]
 detect-same-package = false
 known-first-party = ["safir", "tests"]
-split-on-trailing-comma = false
 
 [tool.scriv]
 categories = [
