@@ -196,6 +196,8 @@ async def _annotate_worker_error(
             return error
         case SlackException():
             exc.user = job.owner
+        case _:
+            pass
 
     await report_exception(exc, slack_client=slack)
     return exc

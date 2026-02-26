@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from traceback import format_exception
-from typing import Any, ClassVar
+from typing import Any, ClassVar, override
 from urllib.parse import urlsplit
 
 from arq import func
@@ -164,6 +164,7 @@ class WorkerError(Exception):
         self._traceback: str | None = None
         self._add_traceback = add_traceback
 
+    @override
     def __reduce__(self) -> str | tuple:
         # Ensure the cause information is serialized before pickling.
         self._cause_type = self._serialize_cause_type()

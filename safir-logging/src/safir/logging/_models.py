@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Self
+from typing import Any, Self, override
 
 __all__ = [
     "LogLevel",
@@ -34,6 +34,7 @@ class LogLevel(Enum):
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
 
+    @override
     @classmethod
     def _missing_(cls, value: Any) -> Self | None:
         """Allow strings in any case to be used to create the enum."""

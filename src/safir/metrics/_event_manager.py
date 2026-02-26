@@ -738,7 +738,14 @@ class KafkaEventManager(EventManager):
             msg = "Initialize EventManager before publishing events"
             raise EventManagerUninitializedError(msg)
         encoded = await self._schema_manager.serialize(event)
-        await publisher.publish(encoded, no_confirm=True)
+
+        # mypy seems to think that, despite no_confirm=True, this returns an
+        # awaitable that we are supposed to resolve. So far as I can tell,
+        # this is wrong.
+        await publisher.publish(  # type: ignore[unused-awaitable]
+            encoded, no_confirm=True
+        )
+
         self.logger.debug(
             "Published metrics event",
             metrics_event=event.model_dump(),

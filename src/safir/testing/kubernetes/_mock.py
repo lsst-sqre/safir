@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator
 from datetime import timedelta
-from typing import Any, Protocol
+from typing import Any, Protocol, override
 from unittest.mock import AsyncMock, Mock, patch
 
 try:
@@ -148,6 +148,7 @@ class _DatetimeSerializer(json.JSONEncoder):
     If one is encountered, serializes it with the object's isoformat() method.
     """
 
+    @override
     def default(self, o: Any) -> Any:
         if isinstance(o, datetime.datetime):
             return o.isoformat()

@@ -156,6 +156,16 @@ target-version = ["py313"]
 [tool.mypy]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+enable_error_code = [
+    "deprecated",
+    "exhaustive-match",
+    "explicit-override",
+    "ignore-without-code",
+    "redundant-expr",
+    "redundant-self",
+    "truthy-iterable",
+    "unused-awaitable",
+]
 ignore_missing_imports = true
 local_partial_types = true
 no_implicit_reexport = true

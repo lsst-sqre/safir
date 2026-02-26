@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, override
 
 from arq.connections import RedisSettings
 from fastapi import Form, Query
@@ -33,9 +33,11 @@ class SimpleParameters(
 ):
     name: str
 
+    @override
     def to_worker_parameters(self) -> SimpleWorkerParameters:
         return SimpleWorkerParameters(name=self.name)
 
+    @override
     def to_xml_model(self) -> SimpleXmlParameters:
         return SimpleXmlParameters(name=Parameter(id="name", value=self.name))
 
