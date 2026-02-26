@@ -1,11 +1,5 @@
 name: Python CI
 
-env:
-  # Default Python version used for all jobs other than test, which uses a
-  # matrix of supported versions. Quote the version to avoid interpretation as
-  # a floating point number.
-  PYTHON_VERSION: "3.13"
-
 "on":
   merge_group: {}
   pull_request: {}
@@ -41,17 +35,14 @@ jobs:
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python }}
-
       # Use floating latest uv version, since we've had great luck with
       # backward compatibility. If we run into the problems in the future, we
       # can do something more complicated with a pinned version updated with a
       # script run by `make update-deps` similar to service packages.
       - name: Install uv
         uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python }}
 
       - name: Run nox
         run: uv run --only-group nox nox -s lint typing test
@@ -64,11 +55,6 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # full history for setuptools_scm
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7

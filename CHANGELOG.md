@@ -9,6 +9,18 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-14.3.0'></a>
+## 14.3.0 (2026-02-26)
+
+### New features
+
+- Add new `strip` argument to the `read_text` and `assert_text_matches` methods of `safir.testing.Data`, and an `add_newline` argument to `write_text`. If set to true, a newline is added to the text when written to the file system and removed on read, so files on disk end in a newline. This is more convenient for editors and programs like `git diff`.
+- Add an optional `exclude_defaults` parameter to the `assert_pydantic_matches` and `write_pydantic` methods of `safir.testing.Data`. This allows generating more compact test data by omitting fields set to their defaults.
+
+### Bug fixes
+
+- Fix expansion of error detail in UWS exception handling.
+
 <a id='changelog-14.2.1'></a>
 ## 14.2.1 (2026-02-10)
 
