@@ -30,24 +30,15 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 ### Bug fixes
 
-- Pin `aiokafka` because the latest release breaks `faststream`:
-  https://github.com/aio-libs/aiokafka/issues/1147
+- Pin `aiokafka` because the latest release breaks `faststream`.
 
 <a id='changelog-14.1.2'></a>
 ## 14.1.2 (2025-12-02)
 
 ### Bug fixes
 
-- app metrics - Don't raise exceptions when the Schema Manager goes down in the
-middle of registering event publishers. If the Schema Manager went away in the
-time between when an event publisher was successfully created and an attempt at
-creating another event publisher, the app metrics error handling wrapper
-incorrectly set the EventManager state to uninitialized, which made other parts
-of the event manager throw EventManagerUninitializedErrors. This made it so
-that applications using the app metrics functionality were broken until
-restart.
-
-- Correct spelling of `EventManagerUninitializedError`
+- Don't raise exceptions when the Schema Manager goes down in the middle of registering event publishers. If the Schema Manager went away in the time between when an event publisher was successfully created and an attempt at creating another event publisher, the app metrics error handling wrapper incorrectly set the EventManager state to uninitialized, which made other parts of the event manager throw EventManagerUninitializedErrors. This made it so that applications using the app metrics functionality were broken until restart.
+- Correct spelling of `EventManagerUninitializedError`.
 
 <a id='changelog-14.1.1'></a>
 ## 14.1.1 (2025-11-14)
@@ -66,7 +57,6 @@ restart.
 
 ### Other changes
 
-- Ignore https://arq-docs.helpmanual.io links in link check, they frequently time out when checked from GitHub actions.
 - Safir is now tested with Python 3.14 as well as 3.12 and 3.13.
 
 <a id='changelog-14.0.0'></a>
@@ -74,9 +64,7 @@ restart.
 
 ### Backwards-incompatible changes
 
-- `safir.slack.SlackWebhookClient.post_uncaught_exception` has been removed. `safir.slack.SlackWebhookClient.post_exception` now handles non-`SlackException` exceptions.
-
-  To make your app compatible, change all `post_uncaught_exception` calls to `post_exception`. The behavior will be the same, except the message will start with "Error in..." instead of "Uncaught exception in..."
+- Remove `post_uncaught_exception` from `SlackWebhookClient`. The `post_exception` now handles non-`SlackException` exceptions. Users can change all instances of `post_uncaught_exception` to `post_exception` and will see the same behavior, except the message will start with "Error in" instead of "Uncaught exception in".
 
 ### New features
 
@@ -89,20 +77,7 @@ restart.
 
 ### Bug fixes
 
-- `safir.sentry.initialize_sentry` now has the correct (though unfortunate) type of `Any` for `**additional_kwargs`
-
-### Other changes
-
-- Starlette deprecated the `HTTP_422_UNPROCESSABLE_ENTITY` constant and
-  changed it to `HTTP_422_UNPROCESSABLE_CONTENT` in [this
-  PR](https://github.com/Kludex/starlette/pull/2939). We could either
-  change this constant in our code, or just use the status code int
-  directly.
-
-  Use status code directly here rather than the new constant in
-  to avoid having to increase the lower bound on starlette. This is the
-  choice that the FastAPI folks made in [this
-  PR](https://github.com/fastapi/fastapi/pull/14077/files).
+- Set the correct, if unfortunate, type of `Any` for the `**additional_kwargs` argument to `safir.sentry.initialize_sentry`.
 
 <a id='changelog-13.0.0'></a>
 ## 13.0.0 (2025-09-16)
@@ -114,13 +89,13 @@ restart.
   To convert existing subclasse of `SentryException` and `SentryWebException`:
 
   1. Inherit from `SlackException` or `SlackWebException` instead
-  1. Move any logic that sets tags, contexts or attachments into a `to_sentry` method that returns a `safir.slack.sentry.SentryEventInfo` object.
+  2. Move any logic that sets tags, contexts or attachments into a `to_sentry` method that returns a `safir.slack.sentry.SentryEventInfo` object.
 
 - Move Kafka dependencies to an extra. Users of safir.kafka or safir.metrics must now depend on `safir[kafka]`.
 
 ### New features
 
-- Add Sentry initialization helpers that get config values from environment variables and enhance reporting of `SentryException`s.
+- Add Sentry initialization helpers that get configuration values from environment variables and enhance reporting of a `SentryException`.
 
 ### Bug fixes
 
@@ -131,21 +106,21 @@ restart.
 
 ### Bug fixes
 
-- `start_time` in pod.status now stored as datetime.datetime and serialized in `next_event()`
+- In the Kubernetes mock, store `status.start_time` as a datetime object and serialize it properly in event streams.
 
 <a id='changelog-12.1.1'></a>
 ## 12.1.1 (2025-08-28)
 
 ### Bug fixes
 
-- Correct K8s pod status.start_time format.
+- In the Kubernetes mock, fix the format of the `status.start_time` attribute added to Kubernetes Pod objects.
 
 <a id='changelog-12.1.0'></a>
 ## 12.1.0 (2025-08-28)
 
 ### New features
 
-- Added start_time to status in Kubernetes mock for pod.
+- On creation of a Pod resource in the Kubernetes mock, set `start_time` in the `status` field to the current time.
 
 <a id='changelog-12.0.1'></a>
 ## 12.0.1 (2025-08-25)
@@ -163,14 +138,14 @@ restart.
 
 ### New features
 
-- App metrics Avro schemas are now registered with a compatibility type of "NONE". Any event model changes will be now allowed and no compatibility errors will ever be thrown during initialization.
+- App metrics Avro schemas are now registered with a compatibility type of `NONE`. Any event model changes will be now allowed and no compatibility errors will ever be thrown during initialization.
 
 <a id='changelog-11.3.1'></a>
 ## 11.3.1 (2025-08-05)
 
 ### Bug fixes
 
-- metrics: calculate arq time-in-queue value with millisecond precision. This prevents inaccurate and negative values.
+- Calculate arq time-in-queue metrics with millisecond precision. This prevents inaccurate and negative values.
 
 <a id='changelog-11.3.0'></a>
 ## 11.3.0 (2025-08-04)
@@ -183,13 +158,14 @@ You can now instrument your [arq](https://github.com/python-arq/arq) jobs to emi
 
 To enable this, you need to:
 
-* Add app metrics configuration to your app
-* Add `queue` to the list of fields in the Sasquatch app metrics configuration
-* Create a `safir.metrics.EventManager` and pass it to `safir.metrics.initialize_arq_metrics` in your `WorkerSettings.on_startup` function.
-* Generate an `on_job_start` function by passing a queue name to `safir.metrics.make_on_job_start`.
+- Add app metrics configuration to your app
+- Add `queue` to the list of fields in the Sasquatch app metrics configuration
+- Create a `safir.metrics.EventManager` and pass it to `safir.metrics.initialize_arq_metrics` in your `WorkerSettings.on_startup` function.
+- Generate an `on_job_start` function by passing a queue name to `safir.metrics.make_on_job_start`.
   Make sure you shut this event manager down cleanly in your shutdown function.
 
-- Add a function to publish metrics for arq queues. Your app is expected to call this function periodically somehow, probably with a Kubernetes CronJob.
+Then, create a `CronJob` Kubernetes resource that periodically invokes `safir.metrics.arq.publish_queue_stats` with Kafka initialized.
+This will publish the event metrics collected by the arq jobs.
 
 <a id='changelog-11.2.0'></a>
 ## 11.2.0 (2025-07-28)
