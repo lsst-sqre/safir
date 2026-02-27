@@ -45,7 +45,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Run nox
-        run: uv run --only-group nox nox -s lint typing test
+        run: uv run --only-group=nox nox -P $UV_PYTHON -s lint typing test
 
   docs:
     runs-on: ubuntu-latest
