@@ -30,6 +30,7 @@ async def assert_round_trip(
     **kwargs: Any,
 ) -> SchemaInfo:
     info = await manager.register_model(model)
+    await asyncio.sleep(1)
     original = model(**kwargs)
     serialized = await manager.serialize(original)
 
