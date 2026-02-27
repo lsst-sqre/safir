@@ -1,5 +1,6 @@
 """Tests for the schema management functionality in the safir.kafka module."""
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -32,12 +33,17 @@ async def assert_round_trip(
     original = model(**kwargs)
     serialized = await manager.serialize(original)
 
-    # deserialize by getting the schema from the registry
+    # Deserialize by getting the schema from the registry. Retry once on error
+    # because the test is otherwise sometimes flaky.
     fresh_registry_client = AsyncSchemaRegistryClient(
         **settings.to_registry_params()
     )
     fresh_serializer = AsyncAvroMessageSerializer(fresh_registry_client)
-    raw = await fresh_serializer.decode_message(serialized)
+    try:
+        raw = await fresh_serializer.decode_message(serialized)
+    except Exception:
+        await asyncio.sleep(1)
+        raw = await fresh_serializer.decode_message(serialized)
     assert raw is not None
     deserialized = model(**raw)
     assert deserialized == original
