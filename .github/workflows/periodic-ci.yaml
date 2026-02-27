@@ -5,12 +5,6 @@
 
 name: Periodic CI
 
-env:
-  # Default Python version used for all jobs other than test, which uses a
-  # matrix of supported versions. Quote the version to avoid interpretation as
-  # a floating point number.
-  PYTHON_VERSION: "3.13"
-
 "on":
   schedule:
     - cron: "0 12 * * 1"
@@ -42,7 +36,7 @@ jobs:
         run: make update-deps
 
       - name: Run nox
-        run: uv run --only-group=nox nox -s lint typing test
+        run: uv run --only-group=nox nox -P $UV_PYTHON -s lint typing test
 
       - name: Report status
         if: failure()
