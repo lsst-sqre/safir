@@ -80,9 +80,9 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 ### New features
 
-- `safir.sentry.report_exception` will notify Slack and/or Sentry if either integration is configured
-- UWS `TaskError` Sentry instrumentation now contains info about the original exception
-- The UWS helpers now notify both Slack and Sentry about errors
+- `safir.sentry.report_exception` will notify Slack and/or Sentry if either integration is configured.
+- UWS `TaskError` Sentry instrumentation now contains info about the original exception.
+- The UWS helpers now notify both Slack and Sentry about errors.
 
 <a id='changelog-13.0.1'></a>
 ## 13.0.1 (2025-09-23)
@@ -176,8 +176,7 @@ To enable this, you need to:
 - Generate an `on_job_start` function by passing a queue name to `safir.metrics.make_on_job_start`.
   Make sure you shut this event manager down cleanly in your shutdown function.
 
-Then, create a `CronJob` Kubernetes resource that periodically invokes `safir.metrics.arq.publish_queue_stats` with Kafka initialized.
-This will publish the event metrics collected by the arq jobs.
+Then, create a `CronJob` Kubernetes resource that periodically invokes `safir.metrics.arq.publish_queue_stats` with Kafka initialized. This will publish the event metrics collected by the arq jobs.
 
 <a id='changelog-11.2.0'></a>
 ## 11.2.0 (2025-07-28)
