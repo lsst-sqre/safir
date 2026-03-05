@@ -5,9 +5,13 @@ from typing import Any
 
 from pydantic import SecretStr
 from pydantic_core import Url
-from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+)
 
-from safir.database import create_async_session, create_database_engine
+from safir.database import create_database_engine
 
 __all__ = ["DatabaseSessionDependency", "db_session_dependency"]
 
@@ -40,9 +44,9 @@ class DatabaseSessionDependency:
 
     def __init__(self) -> None:
         self._engine: AsyncEngine | None = None
-        self._session: async_scoped_session | None = None
+        self._sessionmaker: async_sessionmaker[AsyncSession] | None = None
 
-    async def __call__(self) -> AsyncGenerator[async_scoped_session]:
+    async def __call__(self) -> AsyncGenerator[AsyncSession]:
         """Return the database session manager.
 
         Returns
@@ -50,22 +54,17 @@ class DatabaseSessionDependency:
         sqlalchemy.ext.asyncio.AsyncSession
             The newly-created session.
         """
-        if not self._session:
+        if not self._sessionmaker:
             raise RuntimeError("db_session_dependency not initialized")
-        try:
-            yield self._session
-        finally:
-            # Following the recommendations in the SQLAlchemy documentation,
-            # each session is scoped to a single web request. However, this
-            # all uses the same async_scoped_session object, so should share
-            # an underlying engine and connection pool.
-            await self._session.remove()
+        async with self._sessionmaker() as session:
+            yield session
 
     async def aclose(self) -> None:
         """Shut down the database engine."""
         if self._engine:
             await self._engine.dispose()
             self._engine = None
+            self._sessionmaker = None
 
     async def initialize(
         self,
@@ -115,7 +114,9 @@ class DatabaseSessionDependency:
         if pool_timeout is not None:
             kwargs["pool_timeout"] = pool_timeout
         self._engine = create_database_engine(url, password, **kwargs)
-        self._session = await create_async_session(self._engine)
+        self._sessionmaker = async_sessionmaker(
+            self._engine, expire_on_commit=False
+        )
 
 
 db_session_dependency = DatabaseSessionDependency()
