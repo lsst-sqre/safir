@@ -31,7 +31,7 @@ dependencies = [
     "pydantic-settings!=2.6.0,<3",
     "safir-logging",
     "sentry-sdk>=2,<3",
-    "starlette<1",
+    "starlette<2",
     "structlog>=21.2.0",
 ]
 dynamic = ["version"]
