@@ -101,6 +101,7 @@ dev = [
     "pytest-asyncio",
     "pytest-cov",
     "pytest-order",
+    "pytest-sugar",
     "redis>=5",
     "respx",
     "sqlalchemy[mypy]",
