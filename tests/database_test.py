@@ -58,7 +58,7 @@ async def test_initialize_database(
     session = await create_async_session(engine, logger)
     async with session.begin():
         session.add(UserV2(username="someuser"))
-    await session.remove()
+    await session.close()
 
     # Reinitializing the database without reset should preserve the row.
     await initialize_database(engine, logger, schema=BaseV2.metadata)
@@ -66,7 +66,7 @@ async def test_initialize_database(
     async with session.begin():
         result = await session.scalars(select(UserV2.username))
         assert result.all() == ["someuser"]
-    await session.remove()
+    await session.close()
 
     # Reinitializing the database with reset should delete the data. Try
     # passing in the password as a SecretStr.
@@ -79,7 +79,6 @@ async def test_initialize_database(
     async with session.begin():
         result = await session.scalars(select(UserV2.username))
         assert result.all() == []
-    await session.remove()
     await engine.dispose()
 
 
@@ -93,14 +92,13 @@ async def test_drop_database(
     session = await create_async_session(engine, logger)
     async with session.begin():
         session.add(UserV2(username="someuser"))
-    await session.remove()
+    await session.close()
 
     await drop_database(engine, BaseV2.metadata)
     session = await create_async_session(engine, logger)
     with pytest.raises(ProgrammingError):
         async with session.begin():
             await session.scalars(select(UserV2.username))
-    await session.remove()
     await engine.dispose()
 
 
@@ -160,7 +158,7 @@ async def test_create_async_session(
     )
     async with session.begin():
         session.add(UserV2(username="foo"))
-    await session.remove()
+    await session.close()
 
     # Use a query against a non-existent table as the liveness check and
     # ensure that fails.
@@ -245,7 +243,6 @@ async def test_retry_async_transaction(
     with pytest.raises(OperationalError):
         await insert_capped(1)
 
-    await session.remove()
     await engine.dispose()
 
 
@@ -273,13 +270,13 @@ def test_alembic(
         session = await create_async_session(engine, logger)
         async with session.begin():
             session.add(record)
-        await session.remove()
+        await session.close()
 
     async def list_v2() -> list[str]:
         session = await create_async_session(engine, logger)
         async with session.begin():
             result = await session.scalars(select(UserV2.username))
-        await session.remove()
+        await session.close()
         return list(result.all())
 
     # Initialize the database with the V1 schema.

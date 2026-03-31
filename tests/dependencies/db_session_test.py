@@ -7,7 +7,7 @@ import structlog
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import String, select
-from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from safir.database import (
@@ -42,18 +42,14 @@ async def test_session(database_url: str, database_password: str) -> None:
 
     @app.post("/add")
     async def add(
-        session: Annotated[
-            async_scoped_session, Depends(db_session_dependency)
-        ],
+        session: Annotated[AsyncSession, Depends(db_session_dependency)],
     ) -> None:
         async with session.begin():
             session.add(User(username="foo"))
 
     @app.get("/list")
     async def get_list(
-        session: Annotated[
-            async_scoped_session, Depends(db_session_dependency)
-        ],
+        session: Annotated[AsyncSession, Depends(db_session_dependency)],
     ) -> list[str]:
         async with session.begin():
             result = await session.scalars(select(User.username))
@@ -79,6 +75,5 @@ async def test_session(database_url: str, database_password: str) -> None:
         result = await session.scalars(select(User.username))
         assert result.all() == ["foo"]
 
-    await session.remove()
     await engine.dispose()
     await db_session_dependency.aclose()

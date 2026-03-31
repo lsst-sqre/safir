@@ -74,11 +74,11 @@ def retry_async_transaction[**P, T](
     .. code-block:: python
 
        from safir.database import retry_async_transaction
-       from sqlalchemy.ext.asyncio import async_scoped_session
+       from sqlalchemy.ext.asyncio import AsyncSession
 
 
        @retry_async_transaction(max_tries=5)
-       def make_some_database_call(session: async_scoped_session) -> None: ...
+       def make_some_database_call(session: AsyncSession) -> None: ...
 
     If the default value of ``max_tries`` is acceptable, this decorator can
     be used without arguments.
@@ -86,11 +86,11 @@ def retry_async_transaction[**P, T](
     .. code-block:: python
 
        from safir.database import retry_async_transaction
-       from sqlalchemy.ext.asyncio import async_scoped_session
+       from sqlalchemy.ext.asyncio import AsyncSession
 
 
        @retry_async_transaction
-       def make_some_database_call(session: async_scoped_session) -> None: ...
+       def make_some_database_call(session: AsyncSession) -> None: ...
     """
 
     def decorator(
