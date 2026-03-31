@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 try:
     from sqlalchemy import Select, and_, func, or_, select
-    from sqlalchemy.ext.asyncio import async_scoped_session
+    from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import InstrumentedAttribute
 except ImportError as e:
     raise ImportError(
@@ -452,7 +452,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
         self._cursor_type = cursor_type
 
     async def query_count(
-        self, session: async_scoped_session, stmt: Select[tuple]
+        self, session: AsyncSession, stmt: Select[tuple]
     ) -> int:
         """Count the number of objects that match a query.
 
@@ -477,7 +477,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
 
     async def query_object(
         self,
-        session: async_scoped_session,
+        session: AsyncSession,
         stmt: Select[tuple],
         *,
         cursor: C | None = None,
@@ -490,7 +490,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
 
         This method should be used with queries that return a single
         SQLAlchemy model. The provided query will be run with the session
-        `~sqlalchemy.ext.asyncio.async_scoped_session.scalars` method and the
+        `~sqlalchemy.ext.asyncio.AsyncSession.scalars` method and the
         resulting object passed to Pydantic's ``model_validate`` to convert to
         ``entry_type``. For queries returning a tuple of attributes, use
         `query_row` instead.
@@ -526,7 +526,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
 
     async def query_row(
         self,
-        session: async_scoped_session,
+        session: AsyncSession,
         stmt: Select[tuple],
         *,
         cursor: C | None = None,
@@ -573,7 +573,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
 
     async def _full_query(
         self,
-        session: async_scoped_session,
+        session: AsyncSession,
         stmt: Select[tuple],
         *,
         scalar: bool = False,
@@ -612,7 +612,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
 
     async def _paginated_query(
         self,
-        session: async_scoped_session,
+        session: AsyncSession,
         stmt: Select[tuple],
         *,
         cursor: C | None = None,
@@ -744,7 +744,7 @@ class CountedPaginatedQueryRunner[E: BaseModel, C: PaginationCursor](
     @override
     async def query_object(
         self,
-        session: async_scoped_session,
+        session: AsyncSession,
         stmt: Select[tuple],
         *,
         cursor: C | None = None,
@@ -759,7 +759,7 @@ class CountedPaginatedQueryRunner[E: BaseModel, C: PaginationCursor](
 
         This method should be used with queries that return a single
         SQLAlchemy model. The provided query will be run with the session
-        `~sqlalchemy.ext.asyncio.async_scoped_session.scalars` method and the
+        `~sqlalchemy.ext.asyncio.AsyncSession.scalars` method and the
         resulting object passed to Pydantic's ``model_validate`` to convert to
         ``entry_type``. For queries returning a tuple of attributes, use
         `query_row` instead.
@@ -801,7 +801,7 @@ class CountedPaginatedQueryRunner[E: BaseModel, C: PaginationCursor](
     @override
     async def query_row(
         self,
-        session: async_scoped_session,
+        session: AsyncSession,
         stmt: Select[tuple],
         *,
         cursor: C | None = None,

@@ -3,7 +3,6 @@ Using a database session in request handlers
 ############################################
 
 For FastAPI applications, Safir provides a FastAPI dependency that creates a database session for each request.
-This uses the `SQLAlchemy async_scoped_session <https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#using-asyncio-scoped-session>`__ to transparently manage a separate session per running task.
 
 Initialize the dependency
 =========================

@@ -24,7 +24,7 @@ To get a new async database connection, use code like the following:
 
    # ... use the session here ...
 
-   await session.remove()
+   await session.close()
    await engine.dispose()
 
 Creating the engine is separate from creating the session so that the engine can be disposed of properly.

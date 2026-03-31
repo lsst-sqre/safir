@@ -33,11 +33,11 @@ Here's a simplified example from the storage layer of a Safir application:
    from datetime import datetime
 
    from safir.database import datetime_to_db, retry_async_transaction
-   from sqlalchemy.ext.asyncio import async_scoped_session
+   from sqlalchemy.ext.asyncio import AsyncSesssion
 
 
    class Storage:
-       def __init__(self, session: async_scoped_session) -> None:
+       def __init__(self, session: AsyncSession) -> None:
            self._session = session
 
        @retry_async_transaction

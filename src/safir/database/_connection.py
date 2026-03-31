@@ -11,7 +11,7 @@ try:
     from sqlalchemy.exc import OperationalError
     from sqlalchemy.ext.asyncio import (
         AsyncEngine,
-        async_scoped_session,
+        AsyncSession,
         async_sessionmaker,
         create_async_engine,
     )
@@ -146,11 +146,11 @@ async def create_async_session(
     logger: BoundLogger | None = None,
     *,
     statement: Select | None = None,
-) -> async_scoped_session:
+) -> AsyncSession:
     """Create a new async database session.
 
     Optionally checks that the database is available and retries in a loop for
-    10s if it is not.  This should be used during application startup to wait
+    10s if it is not. This should be used during application startup to wait
     for any network setup or database proxy sidecar.
 
     Parameters
@@ -158,25 +158,22 @@ async def create_async_session(
     engine
         Database engine to use for the session.
     logger
-        Logger for reporting errors.  Used only if a statement is provided.
+        Logger for reporting errors. Used only if a statement is provided.
     statement
-        If provided, statement to run to check database connectivity.  This
-        will be modified with ``limit(1)`` before execution.  If not provided,
+        If provided, statement to run to check database connectivity. This
+        will be modified with ``limit(1)`` before execution. If not provided,
         database connectivity will not be checked.
 
     Returns
     -------
-    sqlalchemy.ext.asyncio.async_scoped_session
-        The database session proxy.  This is an asyncio scoped session that is
-        scoped to the current task, which means that it will materialize new
-        AsyncSession objects for each asyncio task (and thus each web
-        request).  ``await session.remove()`` should be called when the caller
-        is done with the session.
+    sqlalchemy.ext.asyncio.AsyncSession
+        A newly-created async session. It can be explicitly disposed with
+        ``await session.close()`` when the caller is done with the session.
     """
     factory = async_sessionmaker(engine, expire_on_commit=False)
-    session = async_scoped_session(factory, scopefunc=asyncio.current_task)
+    session = factory()
 
-    # If no statement was provided, just return the async_scoped_session.
+    # If no statement was provided, just return the AsyncSession.
     if statement is None:
         return session
 
@@ -190,7 +187,6 @@ async def create_async_session(
         except (ConnectionRefusedError, OperationalError, OSError):
             if logger:
                 logger.info("database not ready, waiting two seconds")
-            await session.remove()
             await asyncio.sleep(2)
             continue
 
