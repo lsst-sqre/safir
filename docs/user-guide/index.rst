@@ -38,3 +38,4 @@ User guide
    uws/index
    sentry
    test-data
+   http

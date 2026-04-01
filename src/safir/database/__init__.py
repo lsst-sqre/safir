@@ -24,7 +24,6 @@ from ._pagination import (
     PaginatedList,
     PaginatedQueryRunner,
     PaginationCursor,
-    PaginationLinkData,
 )
 from ._retry import retry_async_transaction
 
@@ -38,7 +37,6 @@ __all__ = [
     "PaginatedList",
     "PaginatedQueryRunner",
     "PaginationCursor",
-    "PaginationLinkData",
     "create_async_session",
     "create_database_engine",
     "datetime_from_db",
