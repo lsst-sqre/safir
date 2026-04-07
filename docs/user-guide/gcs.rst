@@ -52,7 +52,7 @@ If a path to a tree of files is given, it can also mock some other blob attribut
 Testing signed URLs
 -------------------
 
-Applications that want to run tests with the mock GCS API should define a fixture (in ``conftest.py``) as follows:
+Applications that want to run tests with the mock GCS API should define a fixture (in :file:`conftest.py`) as follows:
 
 .. code-block:: python
 
@@ -65,9 +65,10 @@ Applications that want to run tests with the mock GCS API should define a fixtur
 
    @pytest.fixture
    def mock_gcs() -> Iterator[MockStorageClient]:
-       yield from patch_google_storage(
+       with patch_google_storage(
            expected_expiration=timedelta(hours=1), bucket_name="some-bucket"
-       )
+       ) as mock:
+           yield mock
 
 The ``expected_expiration`` argument is optional and tells the mock object what expiration the application is expected to request for its signed URLs.
 If this option is given and the application, when tested, requests a signed URL with a different expiration, the mock will raise an assertion failure.
@@ -102,11 +103,12 @@ To mock additional blob attributes and methods, point the test fixture at a tree
 
    @pytest.fixture
    def mock_gcs() -> Iterator[MockStorageClient]:
-       yield from patch_google_storage(
+       with patch_google_storage(
            path=Path(__file__).parent / "data" / "files",
            expected_expiration=timedelta(hours=1),
            bucket_name="some-bucket",
-       )
+       ) as mock:
+           yield mock
 
 The resulting blobs will then correspond to the files on disk and will support the additional attributes ``size``, ``updated``, and ``etag``, and the additional methods ``download_as_bytes``, ``exists``, ``open``, and ``reload`` (which does nothing).
 The Etag value of the blob will be the string version of its inode number.

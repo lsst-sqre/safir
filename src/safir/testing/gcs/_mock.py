@@ -1,6 +1,7 @@
 """Mock Google Cloud Storage API for testing."""
 
 from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BufferedReader
 from pathlib import Path
@@ -266,6 +267,7 @@ class MockStorageClient(Mock):
         return MockBucket(bucket_name, self._expected_expiration, self._path)
 
 
+@contextmanager
 def patch_google_storage(
     *,
     expected_expiration: timedelta | None = None,
@@ -287,7 +289,7 @@ def patch_google_storage(
         ``generate_signed_url`` on an underlying blob.  A non-matching call
         will produce an assertion failure.
     path
-        Root of the file path for blobs, if given.  If not given, a simpler
+        Root of the file path for blobs, if given. If not given, a simpler
         mock blob will be used that only supports ``generate_signed_url``.
     bucket_name
         If set, all requests for a bucket with a name other than the one
@@ -314,11 +316,11 @@ def patch_google_storage(
        from google.cloud import storage
 
     and then use ``storage.Client`` and so forth.  Do the same with
-    q`google.auth.impersonated_credentials.Credentials``.
+    ``google.auth.impersonated_credentials.Credentials``.
 
     Examples
     --------
-    Normally this should be called from a fixture in ``tests/conftest.py``
+    Normally this should be called from a fixture in :file:`tests/conftest.py`
     such as the following:
 
     .. code-block:: python
@@ -330,10 +332,11 @@ def patch_google_storage(
 
        @pytest.fixture
        def mock_gcs() -> Iterator[MockStorageClient]:
-           yield from patch_gcs(
+           with patch_google_storage(
                expected_expiration=timedelta(hours=1),
                bucket_name="some-bucket",
-           )
+           ) as mock:
+               yield mock
     """
     mock_gcs = MockStorageClient(expected_expiration, path, bucket_name)
     with patch("google.auth.impersonated_credentials.Credentials"):
