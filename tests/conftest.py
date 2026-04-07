@@ -204,7 +204,8 @@ def mock_gcs() -> Iterator[MockStorageClient]:
 
 @pytest.fixture
 def mock_kubernetes() -> Iterator[MockKubernetesApi]:
-    yield from patch_kubernetes()
+    with patch_kubernetes() as mock:
+        yield mock
 
 
 @pytest.fixture

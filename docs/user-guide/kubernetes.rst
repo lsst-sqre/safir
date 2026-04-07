@@ -53,7 +53,8 @@ Applications that want to run tests with the mock Kubernetes API should define a
 
    @pytest.fixture
    def mock_kubernetes() -> Iterator[MockKubernetesApi]:
-       yield from patch_kubernetes()
+       with patch_kubernetes() as mock:
+           yield mock
 
 Then, when initializing Kubernetes, be sure not to import ``ApiClient``, ``CoreV1Api``, ``CustomObjectsApi``, or ``NetworkingV1Api`` directly into a module.
 Instead, use:
