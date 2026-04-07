@@ -175,9 +175,10 @@ Do this by adding the following fixture to :file:`tests/conftest.py`:
 
    @pytest.fixture(autouse=True)
    def mock_google_storage() -> Iterator[MockStorageClient]:
-       yield from patch_google_storage(
+       with patch_google_storage(
            expected_expiration=timedelta(minutes=15), bucket_name="some-bucket"
-       )
+       ) as mock:
+           yield mock
 
 See :ref:`gcs-testing` for more information.
 

@@ -197,9 +197,10 @@ def database_url(database_password: str) -> Iterator[str]:
 
 @pytest.fixture
 def mock_gcs() -> Iterator[MockStorageClient]:
-    yield from patch_google_storage(
+    with patch_google_storage(
         expected_expiration=timedelta(hours=1), bucket_name="some-bucket"
-    )
+    ) as mock:
+        yield mock
 
 
 @pytest.fixture
