@@ -7,6 +7,7 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator
+from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Protocol, override
 from unittest.mock import AsyncMock, Mock, patch
@@ -3441,6 +3442,7 @@ class MockKubernetesApi:
             body.metadata.namespace = namespace
 
 
+@contextmanager
 def patch_kubernetes() -> Iterator[MockKubernetesApi]:
     """Replace the Kubernetes API with a mock class.
 
@@ -3479,7 +3481,8 @@ def patch_kubernetes() -> Iterator[MockKubernetesApi]:
 
        @pytest.fixture
        def mock_kubernetes() -> Iterator[MockKubernetesApi]:
-           yield from patch_kubernetes()
+           with patch_kubernetes() as mock:
+               yield mock
     """
     mock_api = MockKubernetesApi()
     with patch.object(config, "load_incluster_config"):
