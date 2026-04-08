@@ -1,6 +1,7 @@
 """Send messages to Slack."""
 
 from collections.abc import Callable, Coroutine
+from datetime import UTC, datetime
 from typing import Any, ClassVar, override
 
 from fastapi import HTTPException, Request, Response
@@ -10,7 +11,7 @@ from pydantic import SecretStr
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from structlog.stdlib import BoundLogger
 
-from safir.datetime import current_datetime, format_datetime_for_logging
+from safir.datetime import format_datetime_for_logging
 from safir.dependencies.http_client import http_client_dependency
 
 from .blockkit import (
@@ -111,7 +112,7 @@ class SlackWebhookClient:
             msg = f"Error in {self._application}: {message.message}"
             message.message = msg
         else:
-            date = format_datetime_for_logging(current_datetime())
+            date = format_datetime_for_logging(datetime.now(tz=UTC))
             name = type(exc).__name__
             error = f"{name}: {exc!s}"
             message = SlackMessage(

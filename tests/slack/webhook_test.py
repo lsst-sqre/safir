@@ -1,5 +1,6 @@
 """Test Slack client."""
 
+from datetime import UTC, datetime
 from unittest.mock import ANY
 
 import pytest
@@ -8,7 +9,7 @@ from fastapi import APIRouter, FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 
-from safir.datetime import current_datetime, format_datetime_for_logging
+from safir.datetime import format_datetime_for_logging
 from safir.slack.blockkit import SlackException, SlackMessage
 from safir.slack.webhook import (
     SlackIgnoredException,
@@ -82,7 +83,7 @@ async def test_post_exception(mock_slack: MockSlackWebhook) -> None:
     class TestException(SlackException):
         pass
 
-    now = current_datetime()
+    now = datetime.now(tz=UTC)
     now_formatted = format_datetime_for_logging(now)
     exc = TestException("Blah blah blah", "username", failed_at=now)
     await client.post_exception(exc)

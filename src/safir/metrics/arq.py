@@ -5,7 +5,7 @@ because it depends on the ``arq`` package, which is only installed with the
 optional ``safir[arq]`` extra.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 try:
@@ -17,8 +17,6 @@ except ImportError as e:
         "Install it with `pip install safir[arq,kafka]`."
     ) from e
 from pydantic import BaseModel, ConfigDict, Field
-
-from safir.datetime._current import current_datetime
 
 from ._event_manager import EventManager
 from ._models import EventPayload
@@ -148,13 +146,8 @@ def make_on_job_start(queue_name: str) -> StartupShutdown:
             )
             raise ArqMetricsError(msg) from e
 
-        now = current_datetime(microseconds=True)
-        time_in_queue = now - context.ideal_start_time
-
-        event = ArqQueueJobEvent(
-            time_in_queue=time_in_queue,
-            queue=queue_name,
-        )
+        time_in_queue = datetime.now(tz=UTC) - context.ideal_start_time
+        event = ArqQueueJobEvent(time_in_queue=time_in_queue, queue=queue_name)
         await context.events.arq_queue_job_event.publish(event)
 
     return on_job_start

@@ -17,7 +17,7 @@ from vo_models.uws import JobSummary, Results
 
 from safir.arq import MockArqQueue
 from safir.arq.uws import WorkerJobInfo, WorkerResult
-from safir.datetime import current_datetime, isodatetime
+from safir.datetime import isodatetime
 from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
 from safir.uws import Job, UWSConfig
 from safir.uws._dependencies import UWSFactory
@@ -420,7 +420,7 @@ async def test_job_api(
     assert r.text == ""
 
     # Modify various settings. Validators will be tested elsewhere.
-    now = current_datetime()
+    now = datetime.now(tz=UTC).replace(microsecond=0)
     r = await client.post(
         "/test/jobs/1/destruction", data={"DESTRUCTION": isodatetime(now)}
     )
@@ -587,7 +587,7 @@ async def test_presigned_url(
 
 
 def validate_destruction(destruction: datetime, job: Job) -> datetime:
-    max_destruction = current_datetime() + timedelta(days=1)
+    max_destruction = datetime.now(tz=UTC) + timedelta(days=1)
     return min(destruction, max_destruction)
 
 
@@ -616,7 +616,8 @@ async def test_validators(
 
     # Change the destruction time, first to something that should be honored
     # and then something that should be overridden.
-    destruction = current_datetime() + timedelta(hours=1)
+    now = datetime.now(tz=UTC).replace(microsecond=0)
+    destruction = now + timedelta(hours=1)
     r = await client.post(
         "/test/jobs/1/destruction",
         data={"desTRUcTiON": isodatetime(destruction)},
@@ -626,8 +627,8 @@ async def test_validators(
     r = await client.get("/test/jobs/1/destruction")
     assert r.status_code == 200
     assert r.text == isodatetime(destruction)
-    destruction = current_datetime() + timedelta(days=5)
-    expected = current_datetime() + timedelta(days=1)
+    destruction = now + timedelta(days=5)
+    expected = now + timedelta(days=1)
     r = await client.post(
         "/test/jobs/1/destruction",
         data={"destruction": isodatetime(destruction)},

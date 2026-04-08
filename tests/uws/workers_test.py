@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import ANY
 
@@ -23,7 +23,6 @@ from safir.arq.uws import (
     WorkerTimeoutError,
     build_worker,
 )
-from safir.datetime import current_datetime
 from safir.testing.sentry import Captured
 from safir.testing.slack import MockSlackWebhook
 from safir.uws import JobResult, UWSApplication, UWSConfig
@@ -248,7 +247,7 @@ async def test_build_uws_worker(
     ctx["arq"] = arq_queue
 
     # Test starting a job.
-    now = current_datetime()
+    now = datetime.now(tz=UTC).replace(microsecond=0)
     assert job.message_id
     await arq_queue.set_in_progress(job.message_id)
     await job_started(ctx, test_token, job.id, now)
@@ -266,7 +265,7 @@ async def test_build_uws_worker(
     assert job.phase == ExecutionPhase.COMPLETED
     assert job.end_time
     assert job.end_time.microsecond == 0
-    assert now <= job.end_time <= current_datetime()
+    assert now <= job.end_time <= datetime.now(tz=UTC).replace(microsecond=0)
     assert job.results == [JobResult.from_worker_result(r) for r in results]
     assert mock_slack.messages == []
     assert sentry_exception_items.errors == []
@@ -302,7 +301,7 @@ async def test_build_uws_worker(
     assert job.phase == ExecutionPhase.ERROR
     assert job.end_time
     assert job.end_time.microsecond == 0
-    assert now <= job.end_time <= current_datetime()
+    assert now <= job.end_time <= datetime.now(tz=UTC).replace(microsecond=0)
     assert job.errors
     assert len(job.errors) == 1
     assert job.errors[0].type == ErrorType.FATAL
