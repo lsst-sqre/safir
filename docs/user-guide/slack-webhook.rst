@@ -71,7 +71,9 @@ Here's an example of constructing a message:
 
 .. code-block:: python
 
-   from safir.datetime import current_datetime, format_datetime_for_logging
+   from datetime import UTC, datetime
+
+   from safir.datetime import format_datetime_for_logging
    from safir.slack.blockkit import (
        SlackCodeBlock,
        SlackCodeField,
@@ -81,7 +83,7 @@ Here's an example of constructing a message:
    )
 
 
-   now = format_datetime_for_logging(current_datetime())
+   now = format_datetime_for_logging(datetime.now(tz=UTC))
    message = SlackMessage(
        message="This is the main part of the message *in mrkdwn*",
        fields=[

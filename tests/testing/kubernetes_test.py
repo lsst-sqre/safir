@@ -5,6 +5,7 @@ the basic calls work. There is no attempt to test all of the supported APIs.
 """
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -20,7 +21,6 @@ from kubernetes_asyncio.client import (
 )
 from kubernetes_asyncio.watch import Watch
 
-from safir.datetime import current_datetime
 from safir.testing.kubernetes import MockKubernetesApi, strip_none
 
 
@@ -249,9 +249,7 @@ async def test_pod_status(mock_kubernetes: MockKubernetesApi) -> None:
     await mock_kubernetes.create_namespaced_pod("stuff", pod)
     status = await mock_kubernetes.read_namespaced_pod_status("foo", "stuff")
     assert status.status.phase == "Running"
-    now = current_datetime()
-    start = status.status.start_time
-    assert now >= start
+    assert datetime.now(tz=UTC) >= status.status.start_time
     events = await mock_kubernetes.list_namespaced_event("stuff")
     assert len(events.items) == 1
 

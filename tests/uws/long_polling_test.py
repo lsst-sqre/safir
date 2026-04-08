@@ -1,14 +1,14 @@
 """Test for long polling when retrieving jobs."""
 
 import asyncio
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
 from vo_models.uws import JobSummary
 
 from safir.arq.uws import WorkerResult
-from safir.datetime import current_datetime, isodatetime
+from safir.datetime import isodatetime
 from safir.testing.uws import MockUWSJobRunner, assert_job_summary_equal
 from safir.uws._dependencies import UWSFactory
 
@@ -94,9 +94,9 @@ async def test_poll(
 
     # Poll for changes for one second. Nothing will happen since nothing is
     # changing the mock arq queue.
-    now = current_datetime()
+    start = datetime.now(tz=UTC)
     r = await client.get("/test/jobs/1", params={"WAIT": "1"})
-    assert (current_datetime() - now).total_seconds() >= 1
+    assert (datetime.now(tz=UTC) - start).total_seconds() >= 1
     assert r.status_code == 200
     assert_job_summary_equal(
         JobSummary[SimpleXmlParameters],
@@ -125,7 +125,7 @@ async def test_poll(
     )
 
     # Poll for a change from queued, which we should see after half a second.
-    now = current_datetime()
+    start = datetime.now(tz=UTC)
     job, r = await asyncio.gather(
         runner.mark_in_progress(test_token, "1", delay=0.5),
         client.get("/test/jobs/1", params={"WAIT": "2", "phase": "QUEUED"}),
@@ -168,4 +168,4 @@ async def test_poll(
             isodatetime(job.creation_time + timedelta(seconds=24 * 60 * 60)),
         ),
     )
-    assert (current_datetime() - now).total_seconds() >= 2
+    assert (datetime.now(tz=UTC) - start).total_seconds() >= 2

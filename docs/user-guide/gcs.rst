@@ -2,8 +2,8 @@
 Using the Google Cloud Storage API
 ##################################
 
-Safir-based applications are encouraged to use the `google-cloud-storage <https://cloud.google.com/python/docs/reference/storage/latest>`__ Python module.
-It provides both a sync and async API and works well with `workload identity <https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity>`__.
+Safir-based applications are encouraged to use the `google-cloud-storage <https://docs.cloud.google.com/python/docs/reference/storage/latest>`__ Python module.
+It provides both a sync and async API and works well with `workload identity <https://docs.cloud.google.com/kubernetes-engine/docs/how-to/workload-identity>`__.
 
 Google Cloud Storage support in Safir is optional.
 To use it, depend on ``safir[gcs]``.

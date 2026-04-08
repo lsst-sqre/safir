@@ -1,13 +1,13 @@
 """Storage layer for the UWS implementation."""
 
 from collections.abc import Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from httpx import AsyncClient, HTTPError, Response
 from pydantic import BaseModel
 
-from safir.datetime import current_datetime, isodatetime
+from safir.datetime import isodatetime
 
 try:
     from vo_models.uws.types import ErrorType, ExecutionPhase
@@ -98,10 +98,11 @@ class JobStore:
         WobblyError
             Raised if the Wobbly request fails or returns a failure status.
         """
+        now = datetime.now(tz=UTC).replace(microsecond=0)
         job_create = JobCreate(
             json_parameters=parameters.model_dump(mode="json"),
             run_id=run_id,
-            destruction_time=current_datetime() + lifetime,
+            destruction_time=now + lifetime,
             execution_duration=execution_duration,
         )
         r = await self._request("POST", token, body=job_create)

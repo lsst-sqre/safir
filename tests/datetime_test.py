@@ -6,28 +6,11 @@ import pytest
 from pydantic import BaseModel
 
 from safir.datetime import (
-    current_datetime,
     format_datetime_for_logging,
     isodatetime,
     parse_isodatetime,
     parse_timedelta,
 )
-
-
-def test_current_datetime() -> None:
-    time = current_datetime()
-    assert time.microsecond == 0
-    assert time.tzinfo == UTC
-    now = datetime.now(tz=UTC)
-    assert now - timedelta(seconds=2) <= time <= now
-
-    time = current_datetime(microseconds=True)
-    if not time.microsecond:
-        time = current_datetime(microseconds=True)
-    assert time.microsecond != 0
-    assert time.tzinfo == UTC
-    now = datetime.now(tz=UTC)
-    assert now - timedelta(seconds=2) <= time <= now
 
 
 def test_isodatetime() -> None:
@@ -50,7 +33,7 @@ def test_isodatetime() -> None:
 def test_parse_isodatetime() -> None:
     time = parse_isodatetime("2022-09-16T12:03:45Z")
     assert time == datetime(2022, 9, 16, 12, 3, 45, tzinfo=UTC)
-    now = current_datetime()
+    now = datetime.now(tz=UTC).replace(microsecond=0)
     assert parse_isodatetime(isodatetime(now)) == now
     time = parse_isodatetime("2022-09-16T12:03:45")
     assert time == datetime(2022, 9, 16, 12, 3, 45, tzinfo=UTC)

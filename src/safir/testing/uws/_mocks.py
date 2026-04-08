@@ -9,7 +9,7 @@ from urllib.parse import parse_qs
 import respx
 from httpx import AsyncClient, Request, Response
 
-from safir.datetime import current_datetime, parse_isodatetime
+from safir.datetime import parse_isodatetime
 
 try:
     from vo_models.uws.types import ExecutionPhase
@@ -93,7 +93,7 @@ class MockWobbly:
             service=service,
             owner=username,
             phase=ExecutionPhase.PENDING,
-            creation_time=current_datetime(),
+            creation_time=datetime.now(tz=UTC).replace(microsecond=0),
             **job_create.model_dump(),
         )
         self.jobs[service][username][job_id] = job
@@ -181,10 +181,10 @@ class MockWobbly:
             case ExecutionPhase.ABORTED:
                 _ = JobUpdateAborted.model_validate(body)
                 if job.start_time:
-                    job.end_time = current_datetime()
+                    job.end_time = datetime.now(tz=UTC).replace(microsecond=0)
             case ExecutionPhase.COMPLETED:
                 completed_update = JobUpdateCompleted.model_validate(body)
-                job.end_time = current_datetime()
+                job.end_time = datetime.now(tz=UTC).replace(microsecond=0)
                 job.results = completed_update.results
             case ExecutionPhase.EXECUTING:
                 executing_update = JobUpdateExecuting.model_validate(body)
@@ -192,7 +192,7 @@ class MockWobbly:
                 job.start_time = start_time
             case ExecutionPhase.ERROR:
                 error_update = JobUpdateError.model_validate(body)
-                job.end_time = current_datetime()
+                job.end_time = datetime.now(tz=UTC).replace(microsecond=0)
                 job.errors = error_update.errors
             case ExecutionPhase.QUEUED:
                 queued_update = JobUpdateQueued.model_validate(body)

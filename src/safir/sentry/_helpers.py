@@ -54,8 +54,8 @@ def fingerprint_env_handler(event: Event, _: Hint) -> Event:
 def sentry_exception_handler(event: Event, hint: Hint) -> Event:
     """Add tags and context from `~safir.slack.blockkit.SlackException`.
 
-    The Sentry event data model is:
-    https://develop.sentry.dev/sdk/data-model/event-payloads/
+    See `the Sentry event data model
+    <https://develop.sentry.dev/sdk/foundations/transport/event-payloads/>`__.
     """
     if exc_info := hint.get("exc_info"):
         exc = exc_info[1]

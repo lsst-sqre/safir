@@ -4,13 +4,13 @@ These tests don't assume any given application, and therefore don't use the
 API to create a job, instead inserting it directly via the UWSService.
 """
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
 from vo_models.uws import Jobs
 
-from safir.datetime import current_datetime, isodatetime
+from safir.datetime import isodatetime
 from safir.testing.uws import MockWobbly
 from safir.uws._dependencies import UWSFactory
 
@@ -103,9 +103,10 @@ async def test_job_list(
     # Adjust the creation time of the jobs so that searches are more
     # interesting.
     jobs = mock_wobbly.jobs[test_service][test_username]
+    now = datetime.now(tz=UTC).replace(microsecond=0)
     for i, job in enumerate(jobs.values()):
         hours = (2 - i) * 2
-        job.creation_time = current_datetime() - timedelta(hours=hours)
+        job.creation_time = now - timedelta(hours=hours)
 
     # Retrieve the job list and check it.
     r = await client.get("/test/jobs")
@@ -117,7 +118,7 @@ async def test_job_list(
     assert Jobs.from_xml(r.text) == Jobs.from_xml(expected)
 
     # Filter by recency.
-    threshold = current_datetime() - timedelta(hours=1)
+    threshold = now - timedelta(hours=1)
     r = await client.get(
         "/test/jobs", params={"after": isodatetime(threshold)}
     )

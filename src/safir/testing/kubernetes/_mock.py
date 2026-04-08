@@ -1,14 +1,13 @@
 """Mock Kubernetes API for testing."""
 
 import copy
-import datetime
 import json
 import os
 import re
 from collections import defaultdict
 from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator
 from contextlib import contextmanager
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol, override
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -56,7 +55,6 @@ except ImportError as e:
     ) from e
 
 from safir.asyncio import AsyncMultiQueue
-from safir.datetime import current_datetime
 
 __all__ = [
     "MockKubernetesApi",
@@ -142,14 +140,14 @@ class _KubernetesModel(Protocol):
 
 
 class _DatetimeSerializer(json.JSONEncoder):
-    """Allows serialization of `datetime.datetime` objects.
+    """Allows serialization of `~datetime.datetime` objects.
 
     If one is encountered, serializes it with the object's isoformat() method.
     """
 
     @override
     def default(self, o: Any) -> Any:
-        if isinstance(o, datetime.datetime):
+        if isinstance(o, datetime):
             return o.isoformat()
         return super().default(o)
 
@@ -2223,7 +2221,7 @@ class MockKubernetesApi:
         self._maybe_error("create_namespaced_pod", namespace, body)
         self._update_metadata(body, "v1", "Pod", namespace)
         body.status = V1PodStatus(phase=self.initial_pod_phase)
-        body.status.start_time = current_datetime()
+        body.status.start_time = datetime.now(tz=UTC).replace(microsecond=0)
         await self._store_object(namespace, "Pod", body.metadata.name, body)
 
         # Post an event for the pod start if configured to mark pods as
