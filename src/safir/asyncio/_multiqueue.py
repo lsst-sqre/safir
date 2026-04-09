@@ -163,7 +163,7 @@ class AsyncMultiQueue[T]:
             call to `clear`.
         """
         if self.finished:
-            msg = "end was already called, must call clear before put"
+            msg = "close was already called, must call clear before put"
             raise AsyncMultiQueueError(msg)
         self._contents.append(item)
         for trigger in self._triggers:
