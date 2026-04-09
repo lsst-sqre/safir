@@ -9,6 +9,22 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-15.0.0'></a>
+## 15.0.0 (2026-04-09)
+
+### Backwards-incompatible changes
+
+- Remove `safir.datetime.current_datetime`. This function was often confusing and redundant with core Python functionality. For database code that should not track microseconds, use `datetime.now(tz=UTC).replace(microsecond=0)` instead.
+- Return simple async sessions instead of SQLAlchemy `async_scoped_session` objects from the `db_session` FastAPI dependency. The behavior should be the same for most callers, namely an async session that is automatically closed at the end of the request, but it has more predictable behavior in situations where a session may be passed between asyncio tasks.
+- Return `AsyncSession` instead of `async_scoped_session` from `create_async_session`. The behavior should be the same for most callers, but callers should be aware that the same session will now be used across asyncio tasks.
+- The methods of `PaginatedQueryRunner` now take an `AsyncSession` instead of an `async_scoped_session`.
+- Change `safir.testing.kubernetes.patch_kubernetes` to be a context manager instead of an iterator. This makes it easier to compose with other context managers when assembling fixtures.
+- Change `safir.testing.gcs.patch_google_storage` to be a context manager instead of an iterator. This makes it easier to compose with other context managers when assembling fixtures.
+
+### Bug fixes
+
+- Register the `safir.testing.uws` modules with pytest so that assertion failures are rewritten to show more information.
+
 <a id='changelog-14.3.0'></a>
 ## 14.3.0 (2026-02-26)
 
