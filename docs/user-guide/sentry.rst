@@ -62,14 +62,15 @@ And your :file:`main.py` might look like this:
 .. code-block:: python
    :caption: src/myapp/main.py
 
-   import sentry_sdk
+   from collections.abc import AsyncGenerator
+   from contextlib import asynccontextmanager
 
+   from fastapi import FastAPI
    from safir.sentry import initialize_sentry
 
-   import myapp
-   from .config import config
+   from . import __version__
 
-   initialize_sentry(release=myapp.__version__)
+   initialize_sentry(release=__version__)
 
 
    @asynccontextmanager
@@ -117,7 +118,6 @@ If Sentry sends an event that arises from reporting one of these exceptions, the
 
    from safir.sentry import initialize_sentry
    from safir.slack.blockkit import SlackException
-
 
    initialize_sentry()
 
@@ -225,6 +225,12 @@ These can be combined to create a pytest fixture that initializes Sentry in a wa
 .. code-block:: python
    :caption: conftest.py
 
+   from typing import Generator
+
+   import pytest
+   from safir.testing.sentry import Captured
+
+
    @pytest.fixture
    def sentry_items(monkeypatch: pytest.MonkeyPatch) -> Generator[Captured]:
        """Mock Sentry transport and yield a list of all published events."""
@@ -235,6 +241,9 @@ These can be combined to create a pytest fixture that initializes Sentry in a wa
 
 .. code-block:: python
    :caption: my_test.py
+
+   from safir.testing.sentry import Captured
+
 
    def test_spawn_timeout(sentry_items: Captured) -> None:
        do_something_that_generates_an_error()
