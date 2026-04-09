@@ -20,7 +20,6 @@ Generally this fixture will look like the following:
 
 .. code-block:: python
 
-   import os
    import pytest
    from pathlib import Path
    from safir.testing.data import Data
@@ -68,6 +67,13 @@ The assertion is configured to use pytest's rich assertion rewriting, so it will
 
 `~Data.read_text` and `~Data.assert_text_matches` optionally take a ``strip`` argument that, if set to true, removes trailing whitespace such as newlines before returning or comparing the data.
 This allows the test data files on disk to end in newlines, which is more convenient for editors and programs such as :command:`git diff`.
+
+Getting the path to a test data file
+====================================
+
+Sometimes a path to a test data file needs to be passed into the code under test instead of reading the test data directly.
+The `~Data.path` method returns a `~pathlib.Path` object pointing to the full path of the test file identified by the fragment passed as its argument.
+This uses the same path resolution mechanism as the ``read_`` methods described above.
 
 Updating expected test outputs
 ==============================
