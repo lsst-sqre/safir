@@ -507,7 +507,7 @@ There are two new config options:
 
 ### Backwards-incompatible changes
 
-- Safir now depends on Pydantic v2. Python code that uses any part of Safir related to Pydantic will also need to update to Pydantic v2, since the API is significantly different. See the [Pydantic migration guide](https://docs.pydantic.dev/latest/migration/) for more information.
+- Safir now depends on Pydantic v2. Python code that uses any part of Safir related to Pydantic will also need to update to Pydantic v2, since the API is significantly different. See the [Pydantic migration guide](https://pydantic.dev/docs/validation/latest/get-started/migration/) for more information.
 - `safir.pydantic.validate_exactly_one_of` is now a Pydantic model validator. It must be called with `mode="after"`, since it operates in the model rather than on a raw dictionary.
 - Remove the `GitHubAppClientFactory.create_app_client` method, which does not work with the Gidgethub API. Instead, the documentation shows how to create a JWT with the `GitHubAppClientFactory` and pass it with requests.
 - `safir.github.GitHubAppClientFactory` now expects the application ID and installation ID (for `create_installation_client`) to be of type `int`, not `str`. This appears to match what GitHub's API returns, but not what Gidgethub expects. The ID is converted to a string when passing it to Gidgethub.

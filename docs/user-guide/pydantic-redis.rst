@@ -147,4 +147,4 @@ Sometimes, though, you may prefer to reduce the size of the serialized models in
 The `~safir.redis.PydanticRedisStorage.store` method of `~safir.redis.PydanticRedisStorage` and `~safir.redis.EncryptedPydanticRedisStorage` support the Pydantic options ``exclude_unset``, ``exclude_defaults``, and ``exclude_none`` to change the default serialization.
 These options have the same meaning as the corresponding options to Pydantic's ``model_dump_json`` method.
 
-See `the Pydantic documentation <https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_dump_json>`__ for more details.
+See `the Pydantic documentation <https://pydantic.dev/docs/validation/latest/api/pydantic/base_model/#pydantic.BaseModel.model_dump_json>`__ for more details.
