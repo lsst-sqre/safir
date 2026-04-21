@@ -40,7 +40,7 @@ You can also construct the manager manually by giving it an instance of `~schema
    registry = AsyncSchemaRegistryClient(url="https://some.url")
    manager = PydanticSchemaManager(registry=registry)
 
-.. _Pydantic settings: https://docs.pydantic.dev/latest/concepts/pydantic_settings/
+.. _Pydantic settings: https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/
 
 Using the manager
 =================

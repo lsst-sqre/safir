@@ -1,6 +1,6 @@
 """Models for representing metrics events."""
 
-from typing import Any
+from typing import Any, cast
 
 try:
     from dataclasses_avroschema.pydantic import AvroBaseModel
@@ -87,7 +87,7 @@ class EventPayload(AvroBaseModel):
         # when we need it.
         tmp_cls = create_model("Temp", __base__=cls)
 
-        schema = tmp_cls.avro_schema_to_python()
+        schema = cast("AvroBaseModel", tmp_cls).avro_schema_to_python()
         for field in schema["fields"]:
             field_type = field["type"]
             name = field["name"]

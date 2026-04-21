@@ -19,7 +19,7 @@
 .. _nox: https://nox.thea.codes/en/stable/
 .. _Phalanx: https://phalanx.lsst.io
 .. _pre-commit: https://pre-commit.com
-.. _Pydantic: https://docs.pydantic.dev/latest/
+.. _Pydantic: https://pydantic.dev/docs/validation/latest/get-started/
 .. _Pydantic BaseSettings: https://docs.pydantic.dev/latest/concepts/pydantic_settings
 .. _pydantic-xml: https://pydantic-xml.readthedocs.io/en/latest/
 .. _PyPI: https://pypi.org/project/safir/

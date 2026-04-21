@@ -273,7 +273,7 @@ These can be combined to create a pytest fixture that initializes Sentry in a wa
        assert transaction["spans"][0]["op"] == "some.operation"
 
 On a `~safir.testing.sentry.Captured` container, ``errors`` and ``transactions`` are dictionaries.
-Their contents are described in the `Sentry docs <https://develop.sentry.dev/sdk/data-model/event-payloads/>`_.
+Their contents are described in the `Sentry docs <https://develop.sentry.dev/sdk/foundations/transport/event-payloads/>`_.
 You'll probably make most of your assertions against the keys:
 
 * ``tags``
