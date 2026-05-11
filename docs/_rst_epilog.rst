@@ -20,7 +20,7 @@
 .. _Phalanx: https://phalanx.lsst.io
 .. _pre-commit: https://pre-commit.com
 .. _Pydantic: https://pydantic.dev/docs/validation/latest/get-started/
-.. _Pydantic BaseSettings: https://docs.pydantic.dev/latest/concepts/pydantic_settings
+.. _Pydantic BaseSettings: https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings
 .. _pydantic-xml: https://pydantic-xml.readthedocs.io/en/latest/
 .. _PyPI: https://pypi.org/project/safir/
 .. _pytest: https://docs.pytest.org/en/latest/
@@ -42,7 +42,7 @@
 .. _tox: https://tox.wiki/en/latest/
 .. _tox-docker: https://tox-docker.readthedocs.io/en/latest/
 .. _uv: https://docs.astral.sh/uv/
-.. _Uvicorn: https://www.uvicorn.org/
+.. _Uvicorn: https://uvicorn.dev/
 .. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.io/en/stable/
 .. _vo-models: https://vo-models.readthedocs.io/latest/
 .. _Wobbly: https://github.com/lsst-sqre/wobbly/
