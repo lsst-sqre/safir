@@ -39,6 +39,7 @@ In your application's FastAPI setup module, typically :file:`main.py`, you need 
             mode=config.arq_mode, redis_settings=config.arq_redis_settings
         )
         yield
+        await arq_dependency.aclose()
 
 
     app = FastAPI(lifespan=lifespan)
@@ -264,6 +265,7 @@ Some metrics are emitted for every job, and some should be emitted periodically.
 
 Per-job metrics
 ---------------
+
 You can emit a `safir.metrics.arq.ArqQueueJobEvent` every time arq executes one of your job functions.
 This event contains a ``time_in_queue`` field which is, for a given queue, the difference between when arq would ideally start executing a job, and when it actually does.
 This is useful for deciding if you need more workers processing jobs from that queue.
