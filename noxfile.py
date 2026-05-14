@@ -88,7 +88,7 @@ def docs_linkcheck(session: nox.Session) -> None:
 @session(uv_only_groups=["lint"], uv_no_install_project=True)
 def lint(session: nox.Session) -> None:
     """Run pre-commit hooks."""
-    session.run("pre-commit", "run", "--all-files", *session.posargs)
+    session.run("prek", "run", "--all-files", *session.posargs)
 
 
 @session(uv_groups=["dev"], uv_extras=_EXTRAS)

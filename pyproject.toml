@@ -116,9 +116,9 @@ docs = [
     "scriv[toml]>=1.5",
 ]
 lint = [
-    "pre-commit",
-    "pre-commit-uv",
+    "prek",
     "ruff>=0.12",
+    "uv",
 ]
 nox = [
     "nox",
