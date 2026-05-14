@@ -1,7 +1,7 @@
 """Update the request based on ``X-Forwarded-For`` headers."""
 
 from copy import copy
-from ipaddress import _BaseAddress, _BaseNetwork, ip_address
+from ipaddress import IPv4Address, IPv6Address, _BaseNetwork, ip_address
 
 from starlette.datastructures import Headers
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -13,14 +13,13 @@ class XForwardedMiddleware:
     """ASGI middleware to update the request based on ``X-Forwarded-For``.
 
     The remote IP address will be replaced with the right-most IP address in
-    ``X-Forwarded-For`` that is not contained within one of the trusted
-    proxy networks.
+    ``X-Forwarded-For`` that is not contained within one of the trusted proxy
+    networks.
 
     If ``X-Forwarded-For`` is found and ``X-Forwarded-Proto`` is also present,
-    the corresponding entry of ``X-Forwarded-Proto`` is used to replace the
-    scheme in the request scope. If ``X-Forwarded-Proto`` only has one entry
-    (ingress-nginx has this behavior), that one entry will become the new
-    scheme in the request scope.
+    ``X-Forwarded-Proto`` is used to replace the scheme in the request scope.
+    If ``X-Forwarded-Proto`` only has one entry (ingress-nginx has this
+    behavior), that one entry will become the new scheme in the request scope.
 
     The contents of ``X-Forwarded-Host`` will be stored as ``forwarded_host``
     in the request state if it and ``X-Forwarded-For`` are present. Normally
@@ -93,29 +92,35 @@ class XForwardedMiddleware:
         await self._app(scope, receive, send)
         return
 
-    def _get_forwarded_for(self, headers: Headers) -> list[_BaseAddress]:
+    def _get_forwarded_for(
+        self, headers: Headers
+    ) -> list[IPv4Address | IPv6Address]:
         """Retrieve the ``X-Forwarded-For`` entries from the request.
 
         Parameters
         ----------
-        scope
+        headers
             Request headers.
 
         Returns
         -------
         list of ipaddress._BaseAddress
             The list of addresses found in the header. If there are multiple
-            ``X-Forwarded-For`` headers, we don't know which one is correct,
-            so act as if there are no headers.
+            ``X-Forwarded-For`` headers, process them in the order seen.
         """
-        forwarded_for_str = headers.getlist("X-Forwarded-For")
-        if not forwarded_for_str or len(forwarded_for_str) > 1:
-            return []
-        return [
-            ip_address(addr)
-            for addr in (a.strip() for a in forwarded_for_str[0].split(","))
-            if addr
-        ]
+        forwarded_for_headers = headers.getlist("X-Forwarded-For")
+        forwarded_for = []
+        for header in forwarded_for_headers:
+            for entry in header.split(","):
+                entry_stripped = entry.strip()
+                if not entry_stripped:
+                    continue
+                try:
+                    addr = ip_address(entry_stripped)
+                except ValueError:
+                    continue
+                forwarded_for.append(addr)
+        return forwarded_for
 
     def _get_forwarded_host(self, headers: Headers) -> str | None:
         """Retrieve the ``X-Forwarded-Host`` header.

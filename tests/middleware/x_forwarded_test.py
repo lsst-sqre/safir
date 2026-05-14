@@ -5,7 +5,6 @@ from ipaddress import _BaseNetwork, ip_network
 import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
-from starlette.datastructures import Headers
 
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
@@ -164,26 +163,115 @@ async def test_no_proto_or_host() -> None:
 
 @pytest.mark.asyncio
 async def test_too_many_headers() -> None:
-    """Test handling of duplicate headers.
+    """Test handling of duplicate headers."""
+    app = build_app([ip_network("10.0.0.0/8")])
 
-    HTTPX doesn't allow passing in duplicate headers, so we cannot test end to
-    end.  Instead, test by generating a mock request and then calling the
-    underling middleware functions directly.
+    @app.get("/")
+    async def handler(request: Request) -> dict[str, str]:
+        assert request.client
+        assert request.client.host == "1.1.1.1"
+        assert not request.state.forwarded_host
+        assert request.url == "http://example.com/"
+        return {}
+
+    transport = ASGITransport(app=app)
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
+        r = await client.get(
+            "/",
+            headers=[
+                ("X-Forwarded-For", "1.1.1.1"),
+                ("X-Forwarded-Proto", "http"),
+                ("X-Forwarded-Proto", "https"),
+                ("X-Forwarded-Host", "example.com"),
+                ("X-Forwarded-Host", "example.org"),
+            ],
+        )
+    assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_multiple_headers() -> None:
+    """Test handling of multiple ``X-Forwarded-For`` headers.
+
+    The informal standard requires these be combined as if their contents were
+    all in one header separated by commas.
     """
-    scope = {
-        "type": "http",
-        "headers": [
-            ("X-Forwarded-For", "10.10.10.10"),
-            ("X-Forwarded-For", "10.10.10.1"),
-            ("X-Forwarded-Proto", "https"),
-            ("X-Forwarded-Proto", "http"),
-            ("X-Forwarded-Host", "example.org"),
-            ("X-Forwarded-Host", "example.com"),
-        ],
-    }
-    headers = Headers(scope=scope)
-    app = FastAPI()
-    middleware = XForwardedMiddleware(app, proxies=[ip_network("10.0.0.0/8")])
-    assert middleware._get_forwarded_for(headers) == []
-    assert middleware._get_forwarded_proto(headers) == []
-    assert not middleware._get_forwarded_host(headers)
+    app = build_app([ip_network("10.0.0.0/8")])
+
+    @app.get("/")
+    async def handler(request: Request) -> dict[str, str]:
+        assert request.client
+        assert request.client.host == "1.1.1.1"
+        assert request.state.forwarded_host == "foo.example.com"
+        assert request.url == "https://example.com/"
+        return {}
+
+    transport = ASGITransport(app=app)
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
+        r = await client.get(
+            "/",
+            headers=(
+                ("X-Forwarded-For", "1.1.1.1"),
+                ("X-Forwarded-For", "10.10.10.10"),
+                ("X-Forwarded-Proto", "https"),
+                ("X-Forwarded-Host", "foo.example.com"),
+            ),
+        )
+        assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_malformed() -> None:
+    app = build_app([ip_network("10.0.0.0/8")])
+
+    @app.get("/")
+    async def handler(request: Request) -> dict[str, str]:
+        assert request.client
+        assert request.client.host == "2.2.2.2"
+        assert request.state.forwarded_host == "foo.example.com"
+        assert request.url == "https://foo.example.com/"
+        return {}
+
+    transport = ASGITransport(app=app)
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
+        r = await client.get(
+            "/",
+            headers=(
+                ("Host", "foo.example.com"),
+                ("X-Forwarded-For", "'1.1.1.1'"),
+                ("X-Forwarded-For", "2.2.2.2"),
+                ("X-Forwarded-For", "10.0.0.1"),
+                ("X-Forwarded-Proto", "https"),
+                ("X-Forwarded-Host", "foo.example.com"),
+            ),
+        )
+        assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_malformed_only() -> None:
+    app = build_app([ip_network("10.0.0.0/8")])
+
+    @app.get("/")
+    async def handler(request: Request) -> dict[str, str]:
+        assert request.client
+        assert request.client.host == "127.0.0.1"
+        assert request.state.forwarded_host is None
+        assert request.url == "http://example.com/"
+        return {}
+
+    transport = ASGITransport(app=app)
+    base_url = "http://example.com"
+    async with AsyncClient(transport=transport, base_url=base_url) as client:
+        r = await client.get(
+            "/",
+            headers={
+                "X-Forwarded-For": "'1.1.1.1'",
+                "X-Forwarded-Proto": "https",
+                "X-Forwarded-Host": "foo.example.com",
+            },
+        )
+        assert r.status_code == 200
