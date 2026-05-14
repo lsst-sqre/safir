@@ -18,6 +18,7 @@ from safir.dependencies.arq import arq_dependency
 async def _lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await arq_dependency.initialize(mode=ArqMode.test, redis_settings=None)
     yield
+    await arq_dependency.aclose()
 
 
 @pytest.mark.asyncio

@@ -158,6 +158,14 @@ class ArqQueue(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    async def aclose(self) -> None:
+        """Shut down the queue and free any underlying resources.
+
+        The object must not be used after this method is called.
+        """
+        raise NotImplementedError
+
 
 class RedisArqQueue(ArqQueue):
     """A distributed queue, based on arq and Redis."""
@@ -236,6 +244,10 @@ class RedisArqQueue(ArqQueue):
     ) -> JobResult:
         job = self._get_job(job_id, queue_name=queue_name)
         return await JobResult.from_job(job)
+
+    @override
+    async def aclose(self) -> None:
+        await self._pool.aclose()
 
 
 class MockArqQueue(ArqQueue):
@@ -378,3 +390,7 @@ class MockArqQueue(ArqQueue):
             queue_name=queue_name,
         )
         self._job_results[queue_name][job_id] = result_info
+
+    @override
+    async def aclose(self) -> None:
+        pass

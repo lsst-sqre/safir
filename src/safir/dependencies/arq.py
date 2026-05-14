@@ -84,6 +84,16 @@ class ArqDependency:
             raise RuntimeError("ArqDependency is not initialized")
         return self._arq_queue
 
+    async def aclose(self) -> None:
+        """Shut down the underlying arq queue.
+
+        After this method is called, `initialize` must be called again before
+        the dependency can be used.
+        """
+        if self._arq_queue is not None:
+            await self._arq_queue.aclose()
+            self._arq_queue = None
+
 
 arq_dependency = ArqDependency()
 """Singleton instance of `ArqDependency` that serves as a FastAPI

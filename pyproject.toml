@@ -38,7 +38,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 arq = [
-    "safir-arq>10.2.0",
+    "safir-arq>15.0.0",
 ]
 db = [
     "alembic[tz]<2",
