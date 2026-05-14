@@ -9,6 +9,22 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-15.1.0'></a>
+## 15.1.0 (2026-05-14)
+
+### New features
+
+- Add an `aclose` method to `ArqQueue` and `arq_dependency` so that users of arq support can cleanly shut down the underlying Redis pool.
+- Handle multiple `X-Forwarded-For` headers in `XForwardedMiddleware` in the way documented by MDN by combining their values in order.
+
+### Bug fixes
+
+- Ignore malformed `X-Forwarded-For` header entries in `XForwardedMiddleware` instead of raising uncaught `ValueError` exceptions.
+
+### Other changes
+
+- Switch to [prek](https://prek.j178.dev/) for pre-commit checks during development.
+
 <a id='changelog-15.0.0'></a>
 ## 15.0.0 (2026-04-09)
 
