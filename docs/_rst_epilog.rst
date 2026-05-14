@@ -19,6 +19,7 @@
 .. _nox: https://nox.thea.codes/en/stable/
 .. _Phalanx: https://phalanx.lsst.io
 .. _pre-commit: https://pre-commit.com
+.. _prek: https://prek.j178.dev/
 .. _Pydantic: https://pydantic.dev/docs/validation/latest/get-started/
 .. _Pydantic BaseSettings: https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings
 .. _pydantic-xml: https://pydantic-xml.readthedocs.io/en/latest/

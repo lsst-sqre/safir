@@ -79,6 +79,8 @@ To proceed, stage the new modifications and proceed with your Git commit.
 If the ``uv-lock`` pre-commit hook fails, that indicates that the :file:`uv.lock` file is out of sync with the declared dependencies.
 To fix this, run :command:`make update-deps` as described in :ref:`dev-updating-dependencies`.
 
+Despite the name, Safir uses prek_ to run pre-commit hooks rather than the package named pre-commit.
+
 .. _dev-run-tests:
 
 Running tests
