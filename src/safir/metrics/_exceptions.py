@@ -31,8 +31,8 @@ class DuplicateEventError(EventManagerUsageError):
 
     def __init__(self, name: str) -> None:
         super().__init__(
-            f"{name}: you have already created an event with this "
-            " name. Events must have unique names within this "
+            f"{name}: you have already created an event with this"
+            " name. Events must have unique names within this"
             " application."
         )
 
