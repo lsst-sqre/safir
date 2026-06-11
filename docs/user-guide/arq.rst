@@ -236,7 +236,7 @@ The `safir.dependencies.arq.arq_dependency` dependency provides your FastAPI end
                 job_result = await arq_queue.get_job_result(
                     job_id, queue_name=queue_name
                 )
-            except (JobNotFound, JobResultUnavailable):
+            except JobNotFound, JobResultUnavailable:
                 raise HTTPException(status_code=404)
             response["result"] = job_result.result
 

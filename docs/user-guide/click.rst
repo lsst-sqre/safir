@@ -61,7 +61,6 @@ For example, here is the definition of a ``do-something`` command that uses asyn
 
    from safir.asyncio import run_with_asyncio
 
-
    # Definition of main omitted.
 
 

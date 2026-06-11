@@ -579,7 +579,6 @@ class KafkaEventManager(EventManager):
            KafkaMetricsConfiguration,
        )
 
-
        config = KafkaMetricsConfiguration(
            events=EventsConfiguration(
                application="myapp",

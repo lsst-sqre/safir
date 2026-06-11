@@ -48,6 +48,7 @@ from safir.testing.sentry import (
 )
 from safir.testing.slack import MockSlackWebhook, mock_slack_webhook
 
+from .support.constants import POSTGRES_IMAGE, REDIS_IMAGE
 from .support.kafka import (
     KafkaClients,
     KafkaStack,
@@ -190,7 +191,10 @@ def database_password() -> str:
 def database_url(database_password: str) -> Iterator[str]:
     """Start a PostgreSQL database and return a URL for it."""
     with PostgresContainer(
-        driver="asyncpg", username="safir", password=database_password
+        POSTGRES_IMAGE,
+        driver="asyncpg",
+        username="safir",
+        password=database_password,
     ) as postgres:
         yield postgres.get_connection_url()
 
@@ -217,7 +221,7 @@ def mock_slack(respx_mock: respx.Router) -> MockSlackWebhook:
 @pytest.fixture(scope="session")
 def redis() -> Iterator[RedisContainer]:
     """Start a Redis container."""
-    with RedisContainer() as redis:
+    with RedisContainer(image=REDIS_IMAGE) as redis:
         yield redis
 
 

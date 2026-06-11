@@ -280,7 +280,6 @@ class KafkaConnectionSettings(BaseSettings):
 
        from safir.kafka import KafkaConnectionSettings
 
-
        config = KafkaConnectionSettings()
        kafka_broker = KafkaBroker(**config.faststream_broker_params)
 
@@ -292,7 +291,6 @@ class KafkaConnectionSettings(BaseSettings):
     .. code-block:: python
 
        from pathlib import Path
-
 
        # ValidationError at runtime: ``client_key_path`` is not provided
        config = KafkaConnectionSettings(

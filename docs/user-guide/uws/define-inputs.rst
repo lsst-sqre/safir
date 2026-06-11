@@ -102,7 +102,6 @@ Here is an example for the same cutout service:
 
    from .dependencies import post_params_dependency
 
-
    async_post_route = UWSRoute(
        dependency=post_params_dependency,
        summary="Create async cutout job",
@@ -130,7 +129,6 @@ Here is an example for the same cutout service:
    from safir.uws import UWSRoute
 
    from .dependencies import post_params_dependency
-
 
    sync_post_route = UWSRoute(
        dependency=post_params_dependency,
@@ -203,7 +201,6 @@ Here is an example:
    from safir.uws import UWSRoute
 
    from .dependencies import get_params_dependency
-
 
    sync_post_route = UWSRoute(
        dependency=get_params_dependency,

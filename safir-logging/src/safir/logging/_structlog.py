@@ -117,7 +117,6 @@ def configure_logging(
        import structlog
        from safir.logging import configure_logging
 
-
        configure_logging(name="mybot")
        logger = structlog.get_logger("mybot")
        logger.info("Hello world")

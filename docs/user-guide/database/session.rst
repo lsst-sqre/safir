@@ -16,7 +16,6 @@ To get a new async database connection, use code like the following:
 
    from .config import config
 
-
    engine = create_database_engine(
        config.database_url, config.database_password
    )
@@ -51,7 +50,6 @@ For example:
    from sqlalchemy import select
 
    from .schema import User
-
 
    logger = structlog.get_logger(config.logger_name)
    stmt = select(User)

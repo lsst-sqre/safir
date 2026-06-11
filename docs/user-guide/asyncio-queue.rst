@@ -14,7 +14,6 @@ The writer should use the queue as follows:
 
    from safir.asyncio import AsyncMultiQueue
 
-
    queue = AsyncMultiQueue[str]()
    queue.put("soemthing")
    queue.put("else")
@@ -49,7 +48,6 @@ The timeout, if given, is the total length of time the iterator is allowed to ru
 .. code-block:: python
 
    from datetime import timedelta
-
 
    timeout = timedelta(seconds=5)
    async for item in queue.aiter_from(4, timeout):

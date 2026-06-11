@@ -118,7 +118,6 @@ def run_migrations_offline(metadata: MetaData, url: str | Url) -> None:
        from example.config import config
        from example.schema import Base
 
-
        if context.is_offline_mode():
            run_migrations_offline(Base.metadata, config.database_url)
     """
@@ -164,7 +163,6 @@ def run_migrations_online(
 
        from example.config import config
        from example.schema import Base
-
 
        if not context.is_offline_mode():
            run_migrations_online(

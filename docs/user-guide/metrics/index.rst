@@ -292,7 +292,6 @@ You can make assertions about these published events in your unit tests.
        metrics_configuration_factory,
    )
 
-
    config = metrics_configuration_factory()
    manager = config.make_manager()
 
@@ -407,7 +406,6 @@ This is just a re-export of `unittest.mock.ANY`.
 
    from safir.metrics import ANY
 
-
    pub.assert_published_all(
        [
            {"foo": "foo3", "count": 3, "duration": ANY},
@@ -421,7 +419,6 @@ You can use `safir.metrics.NOT_NONE` to indicate that any value except `None` is
 
    from safir.metrics import ANY
 
-
    pub.assert_published_all(
        [
            {"foo": "foo3", "count": 3, "duration": NOT_NONE},
@@ -434,7 +431,6 @@ This would raise an exception, because ``duration`` for the ``foo4`` payload is 
 .. code-block:: python
 
    from safir.metrics import ANY
-
 
    pub.assert_published_all(
        [

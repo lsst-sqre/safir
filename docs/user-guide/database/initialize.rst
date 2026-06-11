@@ -73,7 +73,6 @@ For applications using Click_ (the recommended way to implement a command-line i
    from .config import config
    from .schema import Base
 
-
    # Definition of main omitted.
 
 

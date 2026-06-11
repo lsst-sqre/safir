@@ -13,7 +13,6 @@ Safir provides `~safir.http.PaginationLinkData` to parse the contents of an :rfc
 
    from safir.http import PaginationLinkData
 
-
    r = client.get("/some/url", query={"limit": 100})
    links = PaginationLinkData.from_header(r.headers["Link"])
    next_url = links.next_url

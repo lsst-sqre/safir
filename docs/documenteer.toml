@@ -63,6 +63,8 @@ nitpick_ignore = [
     ['py:class', 'aiokafka.admin.client.AIOKafkaAdminClient'],
     # The Testcontainers Python project is short on API documentation
     ['py:class', 'testcontainers.core.network.Network'],
+    # Bug in Sphinx with Python 3.14
+    ["py:data", "typing.Union"]
 ]
 extensions = [
     "sphinxcontrib.autodoc_pydantic",
@@ -76,7 +78,7 @@ cryptography = "https://cryptography.io/en/latest"
 gidgethub = "https://gidgethub.readthedocs.io/en/latest"
 pyfakefs = "https://pytest-pyfakefs.readthedocs.io/en/latest"
 pytest = "https://docs.pytest.org/en/stable"
-python = "https://docs.python.org/3.13"
+python = "https://docs.python.org/3"
 schema_registry = "https://marcosschroh.github.io/python-schema-registry-client"
 sentry_sdk = "https://getsentry.github.io/sentry-python"
 structlog = "https://www.structlog.org/en/stable"
