@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-15.1.1'></a>
+## 15.1.1 (2026-06-11)
+
+### Bug fixes
+
+- Pin Starlette to 1.0.1 or later to ensure that the security fix for CVE-2026-48710 is present. Note that this will only have meaningful effect if a project depending on Safir adds an appropriate lower bound on the Safir version.
+
 <a id='changelog-15.1.0'></a>
 ## 15.1.0 (2026-05-14)
 

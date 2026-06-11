@@ -149,7 +149,6 @@ Then, create :file:`workers/uws.py` with the following contents:
 
    from ..config import config, uws
 
-
    configure_logging(
        name="example", profile=config.profile, log_level=config.log_level
    )

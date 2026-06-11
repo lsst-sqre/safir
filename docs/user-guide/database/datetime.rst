@@ -42,7 +42,6 @@ Here is example of reading an object from the database that includes DateTime co
 
    from safir.database import datetime_from_db
 
-
    stmt = select(SQLJob).where(SQLJob.id == job_id)
    result = (await session.execute(stmt)).scalar_one()
    job = Job(
@@ -60,7 +59,6 @@ Here is an example of updating a DateTime field in the database:
 .. code-block:: python
 
    from safir.database import datetime_to_db
-
 
    async with session.begin():
        stmt = select(SQLJob).where(SQLJob.id == job_id)

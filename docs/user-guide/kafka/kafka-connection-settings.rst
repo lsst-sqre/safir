@@ -15,7 +15,6 @@ Instances of this model have properties that can be used to construct different 
 
    from safir.kafka import KafkaConnectionSettings
 
-
    config = KafkaConnectionSettings()
 
    broker = KafkaBroker(**config.to_faststream_params())

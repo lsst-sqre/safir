@@ -119,7 +119,7 @@ To work properly with Alembic, that initialization should stamp the database wit
 Modify that initialization code as follows:
 
 .. code-block:: python
-   :emphasize-lines: 7,18-24,28,41
+   :emphasize-lines: 7,17-23,27,40
 
    import asyncio
    import click
@@ -132,7 +132,6 @@ Modify that initialization code as follows:
 
    from .config import config
    from .schema import Base
-
 
    # Definition of main omitted.
 
@@ -184,7 +183,6 @@ Here is a simple starting point:
 
    import click
 
-
    # Definition of main omitted.
 
 
@@ -220,7 +218,6 @@ Here is one way to implement that:
    from safir.database import create_database_engine, is_database_current
 
    from .config import config
-
 
    # Definition of main omitted.
 

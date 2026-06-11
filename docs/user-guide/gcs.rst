@@ -26,7 +26,6 @@ Then, do the following:
 
    from safir.gcs import SignedURLService
 
-
    url_service = SignedURLService("service-account")
    url = url_service.signed_url("s3://bucket/path/to/file", "application/fits")
 

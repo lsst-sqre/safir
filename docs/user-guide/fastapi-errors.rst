@@ -39,7 +39,6 @@ Then, in the application setup code of your FastAPI application, add a global er
 
    from safir.fastapi import ClientRequestError, client_request_error_handler
 
-
    app.exception_handler(ClientRequestError)(client_request_error_handler)
 
 Any uncaught exception derived from `~safir.fastapi.ClientRequestError` will be caught by this exception handler and transformed into a properly-formatted HTTP error response.
@@ -60,7 +59,6 @@ For example, if your code has defined an ``UnknownUserError`` and you know at th
 .. code-block:: python
 
    from safir.models import ErrorLocation
-
 
    raise UnknownUserError("Unknown user", ErrorLocation.path, ["user"])
 
@@ -118,7 +116,6 @@ The code to raise ``fastapi.HTTPException`` should therefore look something like
 .. code-block:: python
 
    from safir.models import ErrorDetail, ErrorLocation
-
 
    error = ErrorDetail(
        loc=[ErrorLocation.path, "foo"],

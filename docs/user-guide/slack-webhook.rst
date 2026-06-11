@@ -25,7 +25,6 @@ You will need to pass in the webhook URL (which should be injected into your app
    import structlog
    from safir.slack.webhook import SlackWebhookClient
 
-
    logger = structlog.get_logger(__name__)
    client = SlackWebhookClient(config.webhook_url, "App Name", logger)
 
@@ -81,7 +80,6 @@ Here's an example of constructing a message:
        SlackTextField,
        SlackMessage,
    )
-
 
    now = format_datetime_for_logging(datetime.now(tz=UTC))
    message = SlackMessage(
@@ -235,7 +233,6 @@ To configure this class, add code like the following in the same place the FastA
    import structlog
    from safir.slack.webhook import SlackRouteErrorHandler
 
-
    structlog.get_logger(__name__)
    SlackRouteErrorHandler.initialize(
        config.slack_webhook, "Application Name", logger
@@ -251,7 +248,6 @@ Then, use this as a custom class for every FastAPI router whose routes should re
 
    from fastapi import APIRouter
    from safir.slack.webhook import SlackRouteErrorHandler
-
 
    router = APIRouter(route_class=SlackRouteErrorHandler)
 

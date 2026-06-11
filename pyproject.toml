@@ -38,7 +38,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 arq = [
-    "safir-arq>15.0.0",
+    "safir-arq>15",
 ]
 db = [
     "alembic[tz]<2",
@@ -52,7 +52,7 @@ gcs = [
 kafka = [
     "aiokafka>=0.13,<0.15",
     "dataclasses-avroschema>=0.65.7,<1",
-    "faststream>=0.6.6,<0.7",
+    "faststream>=0.6.6,<0.8",
     "python-schema-registry-client>=2.6,<3",
 ]
 kubernetes = [
@@ -152,7 +152,6 @@ exclude_lines = [
 
 [tool.black]
 line-length = 79
-target-version = ["py313"]
 
 [tool.mypy]
 disallow_untyped_defs = true
@@ -194,6 +193,8 @@ filterwarnings = [
     "ignore:Call to deprecated close.*:DeprecationWarning",
     # testcontainers hasn't updated all of the community modules
     "ignore:.*wait_container_is_ready decorator.*:DeprecationWarning",
+    # dataclasses_avroschema uses a deprecated construction
+    "ignore:.*'_UnionGenericAlias' is deprecated.*:DeprecationWarning",
 ]
 python_files = [
     "tests/*.py",

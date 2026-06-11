@@ -82,7 +82,6 @@ class EventDependency[E: EventMaker]:
 
        from myapp.dependencies.events_dependency import dependency as ed
 
-
        events = ed()
 
        # In app code
