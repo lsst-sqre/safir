@@ -53,22 +53,27 @@ For example, if you are requesting paginated results from a table whose ORM mode
 
 .. code-block:: python
 
+   from typing import override
+
    from safir.database import DatetimeIdCursor
    from sqlalchemy.orm import InstrumentedAttribute
 
 
    class JobCursor(DatetimeIdCursor[JobModel]):
+       @override
        @staticmethod
        def id_column() -> InstrumentedAttribute:
            return Job.id
 
+       @override
        @staticmethod
        def time_column() -> InstrumentedAttribute:
            return Job.creation_time
 
+       @override
        @classmethod
        def from_entry(cls, entry: JobModel, *, reverse: bool = False) -> Self:
-           return cls(id=entry.id, time=entry.creation_time, reverse=reverse)
+           return cls(id=entry.id, time=entry.creation_time, previous=reverse)
 
 (These are essentially class properties, but due to limitations in Python abstract data types and property decorators, they're implemented as static methods.)
 
@@ -276,8 +281,6 @@ Its `~safir.database.CountedPaginatedQueryRunner.query_object` and `~safir.datab
 This is equivalent to calling `~safir.database.PaginatedQueryRunner.query_object` or `~safir.database.PaginatedQueryRunner.query_object` followed by `~safir.database.PaginatedQueryRunner.query_count`, but the encapsulation into a data structure makes it easier to pass the results between components of the service.
 
 Here's the same code above but using that approach:
-
-.. code-block:: python
 
 .. code-block:: python
    :emphasize-lines: 27, 34
