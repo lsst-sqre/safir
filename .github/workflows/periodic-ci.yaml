@@ -23,7 +23,7 @@ jobs:
           - "3.14"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
@@ -53,7 +53,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
@@ -84,7 +84,7 @@ jobs:
     needs: [test, docs]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history for setuptools_scm
 
