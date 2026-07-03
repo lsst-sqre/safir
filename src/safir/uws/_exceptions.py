@@ -73,7 +73,10 @@ class SyncJobFailedError(UWSError):
 
     def __init__(self, error: JobError) -> None:
         super().__init__(error.code, error.message, error.detail)
-        self.status_code = 500
+        if error.code == "UsageError":
+            self.status_code = 422
+        else:
+            self.status_code = 500
 
 
 class SyncJobNoResultsError(UWSError):
