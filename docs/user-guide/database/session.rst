@@ -1,3 +1,5 @@
+.. py:currentmodule:: safir.database
+
 ###########################
 Creating a database session
 ###########################
@@ -6,6 +8,9 @@ Most applications will use database sessions in the context of a FastAPI handler
 See :doc:`dependency` for more details.
 
 This page describes how to get a database session outside of a FastAPI route handler, such as for cron jobs, background processing, or other non-web-application uses.
+
+Basic session creation
+======================
 
 To get a new async database connection, use code like the following:
 
@@ -17,7 +22,7 @@ To get a new async database connection, use code like the following:
    from .config import config
 
    engine = create_database_engine(
-       config.database_url, config.database_password
+       config.database_url, config.database_password, pool_pre_ping=True
    )
    session = await create_async_session(engine)
 
@@ -29,16 +34,30 @@ To get a new async database connection, use code like the following:
 Creating the engine is separate from creating the session so that the engine can be disposed of properly.
 This ensures the connection pool is closed.
 
-The ``connect_args``, ``max_overflow``, ``pool_size``, and ``pool_timeout`` parameters to `~safir.database.create_database_engine` have the same meaning as the corresponding arguments to `sqlalchemy.create_engine`.
+.. _db-engine-parameters:
+
+Engine parameters
+=================
+
+The ``connect_args``, ``max_overflow``, ``pool_pre_ping``, ``pool_recycle``, ``pool_size``, and ``pool_timeout`` parameters to `create_database_engine` have the same meaning as the corresponding arguments to `sqlalchemy.create_engine`.
+
+If the database client will only be interacting with the database intermittantly, consider setting ``pool_pre_ping=True`` in the parameters to `create_database_engine`.
+This will verify that a connection is still open before reusing it for a session.
+If it is not, a new connection will be opened without raising an exception that the caller has to catch.
+
+See :doc:`retry` for more information about retrying database transaction failures.
+
+If the connection idle timeout for the underlying database server is known, set ``pool_recycle`` to slightly less than that idle timeout in seconds.
+SQLAlchemy will then refuse to reuse any connection that has been open for longer than that period and will instead create a new connection.
 
 .. _probing-db-connection:
 
 Probing the database connection
 ===============================
 
-`~safir.database.create_async_session` supports probing the database to ensure that it is accessible and the schema is set up correctly.
+`create_async_session` supports probing the database to ensure that it is accessible and the schema is set up correctly.
 
-To do this, pass a SQL statement to execute as the ``statement`` argument to `~safir.database.create_async_session`.
+To do this, pass a SQL statement to execute as the ``statement`` argument to `create_async_session`.
 This will be called with ``.limit(1)`` to test the resulting session.
 When ``statement`` is provided, a `structlog`_ logger must also be provided to log any errors when trying to run the statement.
 

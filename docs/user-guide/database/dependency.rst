@@ -1,3 +1,5 @@
+.. py:currentmodule:: safir.dependencies.db_session
+
 ############################################
 Using a database session in request handlers
 ############################################
@@ -33,14 +35,15 @@ You must also close the dependency during application shutdown.
 
    app = FastAPI(lifespan=lifespan)
 
-`~safir.dependencies.db_session.DatabaseSessionDependency.initialize` takes the same optional parameters as `~safir.database.create_database_engine`.
+`DatabaseSessionDependency.initialize` takes the same optional parameters as `~safir.database.create_database_engine`.
+See :ref:`db-engine-parameters` for more details.
 
 As with some of the examples above, this assumes the application has a ``config`` object with the application settings, including the database URL and password.
 
 Using the dependency
 ====================
 
-Any handler that needs a database session can depend on the `~safir.dependencies.db_session.db_session_dependency`:
+Any handler that needs a database session can depend on `db_session_dependency`:
 
 .. code-block:: python
 
