@@ -1,3 +1,5 @@
+.. py:currentmodule:: safir.database
+
 #################
 Paginated queries
 #################
@@ -21,11 +23,11 @@ This SQL query should not order or apply a ``LIMIT`` to the results; the order a
 Second, your application optionally may provide a limit on the number of results to return, a cursor indicating where in the overall list of results to pick up from, or both.
 If neither a limit nor a cursor is provided, the query is not paginated; you can still use the facilities discussed here for simplicity (and to avoid needing special cases for the non-paginated case), but pagination will not be done.
 
-Third, your application passes the SQL query and any limit or cursor, along with a database session, into `~safir.database.PaginatedQueryRunner` to perform the query.
+Third, your application passes the SQL query and any limit or cursor, along with a database session, into `~PaginatedQueryRunner` to perform the query.
 This will apply the sort order and any restrictions from the limit or cursor and then execute the query in that session.
-It will return a `~safir.database.PaginatedList`, which holds the results along with pagination information.
+It will return a `~PaginatedList`, which holds the results along with pagination information.
 
-Finally, the application will return, via the API handler, the list of entries included in the `~safir.database.PaginatedList` along with information about how to obtain the next or previous group of entries and, optionally, the total number of records.
+Finally, the application will return, via the API handler, the list of entries included in the `~PaginatedList` along with information about how to obtain the next or previous group of entries and, optionally, the total number of records.
 This pagination information is generally returned in HTTP headers, although if you wish to return it in a data structure wrapper around the results, you can do that instead.
 
 Defining the cursor
@@ -44,10 +46,10 @@ The cursor class defines the following information needed for paginated queries:
 #. How to apply the cursor to limit a SQL statement.
 #. How to invert a cursor (change it from going down the full list of results to going up the full list of results for previous links).
 
-In the general case, your application must define the cursor by creating a subclass of `~safir.database.PaginationCursor` and implementing its abstract methods.
+In the general case, your application must define the cursor by creating a subclass of `~PaginationCursor` and implementing its abstract methods.
 
-In the very common case that the API results are sorted first by some timestamp in descending order (most recent first) and then by an auto-increment unique key (most recently inserted row first), Safir provides `~safir.database.DatetimeIdCursor`, which is a generic cursor implementation that implements that ordering and keyset pagination policy.
-In this case, you need only subclass `~safir.database.DatetimeIdCursor` and provide the SQLAlchemy ORM model columns that correspond to the timestamp and the unique key.
+In the very common case that the API results are sorted first by some timestamp in descending order (most recent first) and then by an auto-increment unique key (most recently inserted row first), Safir provides `~DatetimeIdCursor`, which is a generic cursor implementation that implements that ordering and keyset pagination policy.
+In this case, you need only subclass `~DatetimeIdCursor` and provide the SQLAlchemy ORM model columns that correspond to the timestamp and the unique key.
 
 For example, if you are requesting paginated results from a table whose ORM model is named ``Job``, whose timestamp field is ``Job.creation_time``, and whose unique key is ``Job.id``, and using a Pydantic model named ``JobModel`` with the same field names, you can use the following cursor:
 
@@ -77,8 +79,8 @@ For example, if you are requesting paginated results from a table whose ORM mode
 
 (These are essentially class properties, but due to limitations in Python abstract data types and property decorators, they're implemented as static methods.)
 
-In this case, `~safir.database.DatetimeIdCursor` will handle all of the other details for you, including serialization and deserialization.
-The type parameter to `~safir.database.DatetimeIdCursor` must be the Pydantic model that the resulting paginated list will contain.
+In this case, `~DatetimeIdCursor` will handle all of the other details for you, including serialization and deserialization.
+The type parameter to `~DatetimeIdCursor` must be the Pydantic model that the resulting paginated list will contain.
 
 Performing paginated queries
 ============================
@@ -123,9 +125,9 @@ The parameter declaration should generally look something like the following:
 
 Unfortunately, due to limitations in FastAPI, you cannot annotate the cursor parameter with a validator that returns the appropriate object.
 You must instead parse the cursor in the body of the handler.
-`~safir.database.PaginationCursor.from_str` should raise `~safir.database.InvalidCursorError` on parse failure, which will be automatically converted into an HTTP 422 response if you use the error handler described in :doc:`../fastapi-errors`.
+`~PaginationCursor.from_str` should raise `~InvalidCursorError` on parse failure, which will be automatically converted into an HTTP 422 response if you use the error handler described in :doc:`../fastapi-errors`.
 
-By default, the exception raised by `~safir.database.DatetimeIdCursor` assumes the cursor is coming from a query parameter named ``cursor``.
+By default, the exception raised by `~DatetimeIdCursor` assumes the cursor is coming from a query parameter named ``cursor``.
 If this is not true for your application and you are using a cursor derived from that class, you should either catch the exception, modify ``location`` and ``field_path`` as appropriate for your application, and then re-raise it or override the ``__str__`` method to throw an exception with different metadata.
 
 Note the ``limit`` parameter in the above code example, which should also be used on any paginated route.
@@ -140,7 +142,7 @@ In this case, you should change the type to ``int | None`` and remove the ``le``
 Create the runner
 -----------------
 
-The first step of performing a paginated query is to create a `~safir.database.PaginatedQueryRunner` object.
+The first step of performing a paginated query is to create a `~PaginatedQueryRunner` object.
 Its constructor takes as arguments the type of the Pydantic model that will hold each returned object and the type of the cursor that will be used for pagination.
 
 .. code-block:: python
@@ -168,7 +170,7 @@ Or, an example of selecting specific columns:
 
 Ensure that all of the attributes required to create a cursor are included in the query and in the Pydantic model.
 
-In either case, the data returned by the query must be sufficient to construct the Pydantic model passed as the first argument to the `~safir.database.PaginatedQueryRunner` constructor.
+In either case, the data returned by the query must be sufficient to construct the Pydantic model passed as the first argument to the `~PaginatedQueryRunner` constructor.
 The query result will be passed into the ``model_validate`` method of that model.
 Among other things, this means that all necessary attributes must be present and the model must be able to handle any data conversion required.
 
@@ -186,7 +188,7 @@ Run the query
 Finally, you can run the query.
 There are two ways to do this depending on how the query is structured.
 
-If the SQL query returns a single ORM model for each result row, use `~safir.database.PaginatedQueryRunner.query_object`:
+If the SQL query returns a single ORM model for each result row, use `~PaginatedQueryRunner.query_object`:
 
 .. code-block:: python
 
@@ -194,13 +196,13 @@ If the SQL query returns a single ORM model for each result row, use `~safir.dat
        session, stmt, cursor=cursor, limit=limit
    )
 
-If the SQL query returns a tuple of individually selected attributes that correspond to the fields of the result model (the first parameter to the `~safir.database.PaginatedQueryRunner` constructor), use `~safir.database.PaginatedQueryRunner.query_row`:
+If the SQL query returns a tuple of individually selected attributes that correspond to the fields of the result model (the first parameter to the `~PaginatedQueryRunner` constructor), use `~PaginatedQueryRunner.query_row`:
 
 .. code-block:: python
 
    results = await runner.query_row(session, stmt, cursor=cursor, limit=limit)
 
-Either way, the results will be a `~safir.database.PaginatedList` wrapping a list of Pydantic models of the appropriate type.
+Either way, the results will be a `~PaginatedList` wrapping a list of Pydantic models of the appropriate type.
 
 If you want to also return the total number of entries, run a separate ``COUNT`` query:
 
@@ -220,7 +222,7 @@ Using the HTTP headers
 HTTP provides the ``Link`` header (:rfc:`8288`) to declare relationships between multiple web responses.
 Using a ``Link`` header with relation types ``first``, ``next``, and ``prev`` is a standard way of providing the client with pagination information.
 
-The Safir `~safir.database.PaginatedList` type provides a method, `~safir.database.PaginatedList.link_header`, which returns the contents of an HTTP ``Link`` header for a given paginated result.
+The Safir `~PaginatedList` type provides a method, `~PaginatedList.link_header`, which returns the contents of an HTTP ``Link`` header for a given paginated result.
 It takes as its argument the base URL for the query (usually the current URL of a route handler).
 This is the recommended way to return pagination information alongside a result.
 
@@ -266,19 +268,19 @@ Here is a very simplified example of a route handler that sets this header:
            response.headers["X-Total-Count"] = str(count)
        return results.entries
 
-Here, ``perform_query`` is a wrapper around `~safir.database.PaginatedQueryRunner` that constructs and runs the query.
+Here, ``perform_query`` is a wrapper around `~PaginatedQueryRunner` that constructs and runs the query.
 A real route handler would have more query parameters and more documentation.
 
 Including result counts
 -----------------------
 
 The example above also sets a non-standard ``X-Total-Count`` header containing the total count of entries returned by the underlying query without pagination.
-`~safir.database.PaginatedQueryRunner.query_count` will return this information.
+`~PaginatedQueryRunner.query_count` will return this information.
 There is no standard way to return this information to the client, but ``X-Total-Count`` is a widely-used informal standard.
 
-If you will always want to include the count, use `~safir.database.CountedPaginatedQueryRunner` instead.
-Its `~safir.database.CountedPaginatedQueryRunner.query_object` and `~safir.database.CountedPaginatedQueryRunner.query_row` methods will return a `~safir.database.CountedPaginatedList`, which contains a ``count`` attribute holding the count.
-This is equivalent to calling `~safir.database.PaginatedQueryRunner.query_object` or `~safir.database.PaginatedQueryRunner.query_object` followed by `~safir.database.PaginatedQueryRunner.query_count`, but the encapsulation into a data structure makes it easier to pass the results between components of the service.
+If you will always want to include the count, use `~CountedPaginatedQueryRunner` instead.
+Its `~CountedPaginatedQueryRunner.query_object` and `~CountedPaginatedQueryRunner.query_row` methods will return a `~CountedPaginatedList`, which contains a ``count`` attribute holding the count.
+This is equivalent to calling `~PaginatedQueryRunner.query_object` or `~PaginatedQueryRunner.query_object` followed by `~PaginatedQueryRunner.query_count`, but the encapsulation into a data structure makes it easier to pass the results between components of the service.
 
 Here's the same code above but using that approach:
 
@@ -327,8 +329,30 @@ Including links in the response
 Alternately, some web services may instead wish to return the paginated results inside a JSON data structure that includes the pagination information.
 This follows the `HATEOS <https://en.wikipedia.org/wiki/HATEOAS>`__ design principle of embedding links inside the returned data.
 
-In this case, the application should call the `~safir.database.PaginatedList.first_url`, `~safir.database.PaginatedList.next_url`, and `~safir.database.PaginatedList.prev_url` methods with the current URL (generally ``request.url``) as an argument to retrieve the links to the first, next, and previous blocks of results.
+In this case, the application should call the `~PaginatedList.first_url`, `~PaginatedList.next_url`, and `~PaginatedList.prev_url` methods with the current URL (generally ``request.url``) as an argument to retrieve the links to the first, next, and previous blocks of results.
 Those links can then be embedded in the response model wherever is appropriate for the API of that application.
+
+Transforming results
+--------------------
+
+Sometimes, the paginated list returned by the layer of the application that talks to the database will contain different models than the paginated list that the application wants to return to the user.
+One common cause is a database storage layer that returns internal models that need to be transformed to API models before returning them from the handler.
+
+Safir provides `~PaginatedList.from_transform` (and a corresponding method for `~CountedPaginatedList`) for this purpose.
+This method takes the paginated list with internal models and a callable that transforms one instance of model to the new desired model and returns a new paginated list with the same pagination information.
+
+Here is a simple example for hypothetical ``InternalModel`` and ``ExternalModel`` models:
+
+.. code-block::
+
+   results = get_paginated_list(...)
+
+   def transform(entry: InternalModel) -> ExternalModel:
+       return ExternalModel.from_internal_model(entry)
+
+   api_results = PaginatedList.from_transform(results, transform)
+
+In this case, ``ExternalModel.from_internal_model`` could be passed to `~PaginatedList.from_transform` directly as the second argument, but in general the ``transform`` function can do arbitrary transformations using local or instance variables or other state.
 
 Parsing paginated query responses
 =================================
