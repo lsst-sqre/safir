@@ -5,6 +5,7 @@ cursors, since the latter interact poorly with horizontally scaled services.
 """
 
 from abc import ABCMeta, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Self, override
@@ -292,6 +293,42 @@ class PaginatedList[E: BaseModel, C: PaginationCursor]:
 
     prev_cursor: C | None
     """Cursor for the previous batch of entries."""
+
+    # This type annotation for other is wrong because the correct type
+    # annotation cannot be parsed by sphinx-autodoc-typehints 3.11.0, which in
+    # turn is forced by current documenteer since newer versions require a
+    # later version of Sphinx. Fix the type annotation to be the correct
+    # PaginatedList[F, C] type once that restriction is relaxed.
+    @classmethod
+    def from_transform[F: BaseModel](
+        cls, other: "PaginatedList", transform: Callable[[F], E]
+    ) -> Self:
+        """Build a new paginated list via a transform of each member.
+
+        Some web services will need to transform the members of a paginated
+        list, to convert from internal to API models for example, without
+        losing the pagination information. This method performs that
+        operation, returning a new paginated list for the new type with the
+        same pagination details.
+
+        Parameters
+        ----------
+        transform
+            A function that converts from the entry type of this list to the
+            entry type of the new list. This will be called for each entry.
+
+        Returns
+        -------
+        PaginatedList
+            A new paginated list holding the transformed entries but with the
+            same cursors.
+        """
+        entries = [transform(m) for m in other.entries]
+        return cls(
+            entries=entries,
+            next_cursor=other.next_cursor,
+            prev_cursor=other.prev_cursor,
+        )
 
     def first_url(self, current_url: URL) -> str:
         """Construct a URL to the first group of results for this query.
@@ -661,6 +698,19 @@ class CountedPaginatedList[E: BaseModel, C: PaginationCursor](
 
     count: int
     """Total number of entries if queried without pagination."""
+
+    @override
+    @classmethod
+    def from_transform[F: BaseModel](
+        cls, other: PaginatedList[F, C], transform: Callable[[F], E]
+    ) -> Self:
+        entries = [transform(m) for m in other.entries]
+        return cls(
+            entries=entries,
+            next_cursor=other.next_cursor,
+            prev_cursor=other.prev_cursor,
+            count=getattr(other, "count", len(entries)),
+        )
 
 
 class CountedPaginatedQueryRunner[E: BaseModel, C: PaginationCursor](

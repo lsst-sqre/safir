@@ -24,8 +24,10 @@ from sqlalchemy.orm import (
 from starlette.datastructures import URL
 
 from safir.database import (
+    CountedPaginatedList,
     CountedPaginatedQueryRunner,
     DatetimeIdCursor,
+    PaginatedList,
     PaginatedQueryRunner,
     create_async_session,
     create_database_engine,
@@ -344,6 +346,15 @@ class PaginationModel(BaseModel):
     time: UtcDatetime
 
 
+class OtherPaginationModel(BaseModel):
+    id: str
+    time: UtcDatetime
+
+    @classmethod
+    def from_model(cls, model: PaginationModel) -> Self:
+        return cls(id=str(model.id), time=model.time)
+
+
 @dataclass
 class TableCursor(DatetimeIdCursor[PaginationModel]):
     @override
@@ -427,6 +438,20 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert result.prev_url(base_url) is None
         assert str(result.next_cursor) == "1600000000.5_1"
 
+        # Test transformation of results into a different model. The explicit
+        # type qualification here is only required because of a bug in
+        # sphinx-autodoc-typehints that may be fixed once updates to Sphinx 9
+        # are permitted.
+        transformed = PaginatedList[
+            OtherPaginationModel, TableCursor
+        ].from_transform(result, OtherPaginationModel.from_model)
+        link_header = result.link_header(base_url)
+        assert transformed.link_header(base_url) == link_header
+        assert len(transformed.entries) == len(result.entries)
+        for i, entry in enumerate(transformed.entries):
+            assert int(entry.id) == result.entries[i].id
+            assert entry.time == result.entries[i].time
+
         counted_result = await counted_runner.query_object(
             session, stmt, limit=2
         )
@@ -434,6 +459,18 @@ async def test_pagination(database_url: str, database_password: str) -> None:
         assert counted_result.prev_cursor == result.prev_cursor
         assert counted_result.next_cursor == result.next_cursor
         assert counted_result.count == 7
+
+        # Test transformation of results into a different model.
+        counted_transformed = CountedPaginatedList.from_transform(
+            counted_result, OtherPaginationModel.from_model
+        )
+        assert counted_transformed.count == counted_result.count
+        link_header = counted_result.link_header(base_url)
+        assert counted_transformed.link_header(base_url) == link_header
+        assert len(counted_transformed.entries) == len(counted_result.entries)
+        for i, entry in enumerate(counted_transformed.entries):
+            assert int(entry.id) == counted_result.entries[i].id
+            assert entry.time == counted_result.entries[i].time
 
         result = await runner.query_object(
             session, stmt, cursor=result.next_cursor, limit=3
