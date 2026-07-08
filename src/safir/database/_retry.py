@@ -7,7 +7,7 @@ from functools import wraps
 from typing import overload
 
 try:
-    from sqlalchemy.exc import DBAPIError
+    from sqlalchemy.exc import DBAPIError, InterfaceError
 except ImportError as e:
     raise ImportError(
         "The safir.database module requires the db extra. "
@@ -47,15 +47,17 @@ def retry_async_transaction[**P, T](
 ):
     """Retry if a transaction failed.
 
-    If the wrapped method fails with an `sqlalchemy.exc.DBAPIError` exception,
-    it is retried up to ``max_tries`` times. Any method with this decorator
-    must be idempotent, since it may be re-run multiple times.
+    If the wrapped method fails with an `sqlalchemy.exc.DBAPIError` or
+    `sqlalchemy.exc.InterfaceError` exception, it is retried up to
+    ``max_tries`` times. Any method with this decorator must be idempotent,
+    since it may be re-run multiple times.
 
-    One common use for this decorator is when the database engine has been
-    configured with the ``REPEATABLE READ`` transaction isolation level and
-    multiple writers may be updating the same object at the same time. The
-    loser of the transaction race will raise one of the above exceptions, and
-    can be retried with this decorator.
+    Besides handling unexpected database connection drops, one common use for
+    this decorator is when the database engine has been configured with the
+    ``REPEATABLE READ`` transaction isolation level and multiple writers may
+    be updating the same object at the same time. The loser of the transaction
+    race will raise `sqlalchemy.exc.DBAPIError` and can be retried with this
+    decorator.
 
     Parameters
     ----------
@@ -99,7 +101,7 @@ def retry_async_transaction[**P, T](
         @wraps(f)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             for _ in range(1, max_tries):
-                with contextlib.suppress(DBAPIError):
+                with contextlib.suppress(DBAPIError, InterfaceError):
                     return await f(*args, **kwargs)
                 await asyncio.sleep(delay)
             return await f(*args, **kwargs)

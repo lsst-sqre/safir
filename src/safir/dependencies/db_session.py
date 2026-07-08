@@ -74,6 +74,8 @@ class DatabaseSessionDependency:
         connect_args: dict[str, Any] | None = None,
         isolation_level: str | None = None,
         max_overflow: int | None = None,
+        pool_pre_ping: bool | None = None,
+        pool_recycle: int | None = None,
         pool_size: int | None = None,
         pool_timeout: float | None = None,
     ) -> None:
@@ -94,6 +96,14 @@ class DatabaseSessionDependency:
         max_overflow
             Maximum number of connections over the pool size for surge
             traffic.
+        pool_pre_ping
+            Check that a connection is alive before returning it to a session.
+        pool_recycle
+            If set to an integer, discard any idle connection open for longer
+            than the provided number of seconds rather than attempting to
+            reuse it. If the connection idle timeout on the database server is
+            known, setting this to slightly less than that timeout will
+            produce the best results.
         pool_size
             Connection pool size.
         pool_timeout
@@ -102,18 +112,17 @@ class DatabaseSessionDependency:
         """
         if self._engine:
             await self._engine.dispose()
-        kwargs: dict[str, Any] = {}
-        if connect_args:
-            kwargs["connect_args"] = connect_args
-        if isolation_level:
-            kwargs["isolation_level"] = isolation_level
-        if max_overflow is not None:
-            kwargs["max_overflow"] = max_overflow
-        if pool_size is not None:
-            kwargs["pool_size"] = pool_size
-        if pool_timeout is not None:
-            kwargs["pool_timeout"] = pool_timeout
-        self._engine = create_database_engine(url, password, **kwargs)
+        self._engine = create_database_engine(
+            url,
+            password,
+            connect_args=connect_args,
+            isolation_level=isolation_level,
+            max_overflow=max_overflow,
+            pool_pre_ping=pool_pre_ping,
+            pool_recycle=pool_recycle,
+            pool_size=pool_size,
+            pool_timeout=pool_timeout,
+        )
         self._sessionmaker = async_sessionmaker(
             self._engine, expire_on_commit=False
         )
