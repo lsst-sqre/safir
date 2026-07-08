@@ -47,9 +47,42 @@ jobs:
       - name: Run nox
         run: uv run --only-group=nox nox -P $UV_PYTHON -s lint typing test
 
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
+      docs-specific: ${{ steps.filter.outputs.docs-specific }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            docs:
+              - "CHANGELOG.md"
+              - "docs/**"
+              - "safir-arq/src/safir/**"
+              - "safir-logging/src/safir/**"
+              - "src/safir/**"
+            docs-specific:
+              - "CHANGELOG.md"
+              - "docs/**"
+
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    needs: changes
+    if: >
+      (needs.changes.outputs.docs == 'true')
+      || (github.event_name == 'workflow_dispatch')
+      || (github.event_name == 'release' && github.event.action == 'published')
 
     steps:
       - uses: actions/checkout@v7
@@ -65,7 +98,7 @@ jobs:
           sudo apt-get install -u graphviz
 
       - name: Run nox
-        run: uv run --only-group=nox nox -s docs docs-linkcheck
+        run: uv run --only-group=nox nox -s docs
 
       # Only attempt documentation uploads for tagged releases and pull
       # requests from ticket branches in the same repository. This avoids
@@ -85,7 +118,34 @@ jobs:
           || (github.event_name == 'workflow_dispatch')
           || (github.event_name == 'pull_request'
               && (startsWith(github.head_ref, 'tickets/')
-                  || startsWith(github.head_ref, 't/')))
+                  || startsWith(github.head_ref, 't/'))
+              && needs.changes.outputs.docs-specific == 'true')
+
+  linkcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    needs: changes
+    if: ${{ needs.changes.outputs.docs == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Ensure the documentation gets the right version.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Install extra packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+
+      - name: Run nox
+        run: uv run --only-group=nox nox -s docs-linkcheck
 
   test-packaging:
     name: Test packaging
