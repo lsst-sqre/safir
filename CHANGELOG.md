@@ -9,6 +9,19 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-15.2.0'></a>
+## 15.2.0 (2026-07-08)
+
+### New features
+
+- Add new `PaginatedList.from_transform` class constructor to build a new paginated list from a paginated list plus a transformation function for each element. This aids conversion from internal models to API models without losing pagination information.
+- Add `pool_pre_ping` and `pool_recycle` to `create_database_engine` and `db_session_dependency` with the same meanings as in SQLAlchemy. Recommend setting `pool_pre_ping=True` in applications that only use the database intermittently.
+- Add `InterfaceError` to the exceptions caught and retried by `@retry_async_transaction` so that this decorator can also be used to protect against database connection drops.
+
+### Bug fixes
+
+- In the UWS support code, return 422 from the sync handler on backend usage errors instead of 500.
+
 <a id='changelog-15.1.1'></a>
 ## 15.1.1 (2026-06-11)
 

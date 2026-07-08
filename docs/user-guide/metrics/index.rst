@@ -148,7 +148,7 @@ We can do this all in an :file:`events.py` file.
 
 
 .. code-block:: python
-   :caption: metrics.py
+   :caption: events.py
 
    from enum import Enum
    from datetime import timedelta
