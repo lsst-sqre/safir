@@ -125,7 +125,7 @@ nox = [
     "nox-uv",
 ]
 typing = [
-    "mypy>=1.15",
+    "mypy>=2.3",
 ]
 
 [tool.coverage.run]
