@@ -222,12 +222,12 @@ class PydanticSchemaManager:
         klass = model if inspect.isclass(model) else model.__class__
 
         try:
-            name = str(klass.Meta.schema_name)  # type: ignore [union-attr]
+            name = str(klass.Meta.schema_name)  # type: ignore [attr-defined]
         except AttributeError:
             name = klass.__name__
 
         try:
-            namespace = str(klass.Meta.namespace)  # type: ignore [union-attr]
+            namespace = str(klass.Meta.namespace)  # type: ignore [attr-defined]
         except AttributeError:
             namespace = None
 
