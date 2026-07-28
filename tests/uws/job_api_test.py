@@ -143,6 +143,7 @@ JOB_RESULTS = """
 
 @pytest.mark.asyncio
 async def test_job_run(
+    *,
     client: AsyncClient,
     test_token: str,
     test_username: str,
@@ -269,6 +270,7 @@ async def test_job_run(
 
 @pytest.mark.asyncio
 async def test_job_abort(
+    *,
     client: AsyncClient,
     test_token: str,
     runner: MockUWSJobRunner,

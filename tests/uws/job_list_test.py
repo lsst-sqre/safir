@@ -79,6 +79,7 @@ QUEUED_JOB_LIST = """
 
 @pytest.mark.asyncio
 async def test_job_list(
+    *,
     client: AsyncClient,
     test_token: str,
     test_service: str,

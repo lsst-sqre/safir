@@ -35,12 +35,10 @@ __all__ = [
     "FastStreamBrokerParams",
     "KafkaConnectionSettings",
     "PlaintextSettings",
-    "PlaintextSettings",
     "SaslMechanism",
     "SaslPlaintextSettings",
     "SaslSslSettings",
     "SecurityProtocol",
-    "SslSettings",
     "SslSettings",
 ]
 

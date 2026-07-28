@@ -220,6 +220,9 @@ extend = "ruff-shared.toml"
     "S101",    # test support functions are allowed to use assert
     "S311",    # test support functions needn't be cryptographically secure
 ]
+"src/safir/testing/kubernetes/_mock.py" = [
+    "PLR0917", # we have to match the upstream Kubernetes API
+]
 "tests/data/database/*alembic/**" = [
     "INP001",  # Alembic files are magical
     "D400",    # Alembic migrations have their own format
