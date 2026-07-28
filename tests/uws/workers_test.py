@@ -204,6 +204,7 @@ async def test_timeout(
 
 @pytest.mark.asyncio
 async def test_build_uws_worker(
+    *,
     arq_queue: MockArqQueue,
     uws_config: UWSConfig,
     test_token: str,

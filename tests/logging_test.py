@@ -136,8 +136,10 @@ def test_configure_logging_production(
     assert caplog.record_tuples[0] == (
         "myapp",
         logging.INFO,
-        '{"answer": 42, "event": "Hello world", "logger": "myapp", '
-        '"severity": "info"}',
+        (
+            '{"answer": 42, "event": "Hello world", "logger": "myapp", '
+            '"severity": "info"}'
+        ),
     )
 
 

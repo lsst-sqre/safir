@@ -23,6 +23,7 @@ class PostTest:
 
 @pytest.mark.asyncio
 async def test_errors(
+    *,
     client: AsyncClient,
     test_token: str,
     test_service: str,

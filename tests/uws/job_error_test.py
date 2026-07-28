@@ -51,6 +51,7 @@ JOB_ERROR_SUMMARY = """
 
 @pytest.mark.asyncio
 async def test_temporary_error(
+    *,
     client: AsyncClient,
     test_token: str,
     runner: MockUWSJobRunner,
@@ -106,6 +107,7 @@ async def test_temporary_error(
 
 @pytest.mark.asyncio
 async def test_fatal_error(
+    *,
     client: AsyncClient,
     test_token: str,
     runner: MockUWSJobRunner,
@@ -157,6 +159,7 @@ async def test_fatal_error(
 
 @pytest.mark.asyncio
 async def test_unknown_error(
+    *,
     client: AsyncClient,
     test_token: str,
     runner: MockUWSJobRunner,
