@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-15.2.1'></a>
+## 15.2.1 (2026-08-04)
+
+### Bug fixes
+
+- Relax the dependency upper bound on cryptography so that packages that use Safir can pick up new cryptography security fixes.
+
 <a id='changelog-15.2.0'></a>
 ## 15.2.0 (2026-07-08)
 
