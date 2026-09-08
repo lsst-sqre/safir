@@ -158,7 +158,7 @@ In-process background task
 --------------------------
 
 The simplest background tasks are handled in-process with asyncio-based task managers.
-In FastAPI applications, you can create a `Starlette BackgroundTask <https://www.starlette.io/background/>`__ (see also the `FastAPI BackgroundTasks <https://fastapi.tiangolo.com/tutorial/background-tasks/>`__ documentation).
+In FastAPI applications, you can create a `Starlette BackgroundTask <https://starlette.dev/background/>`__ (see also the `FastAPI BackgroundTasks <https://fastapi.tiangolo.com/tutorial/background-tasks/>`__ documentation).
 Another option is to use `aiojobs <https://aiojobs.readthedocs.io/en/stable/index.html>`_, which is a more general-purpose asyncio background task library.
 The downside of both these approaches is that the background tasks run in the same process as the API server.
 This can cause the server to become loaded with tasks.
