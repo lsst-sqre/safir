@@ -55,7 +55,7 @@ def sentry_exception_handler(event: Event, hint: Hint) -> Event:
     """Add tags and context from `~safir.slack.blockkit.SlackException`.
 
     See `the Sentry event data model
-    <https://develop.sentry.dev/sdk/foundations/transport/event-payloads/>`__.
+    <https://develop.sentry.dev/sdk/foundations/envelopes/event-payloads/>`__.
     """
     if exc_info := hint.get("exc_info"):
         exc = exc_info[1]
