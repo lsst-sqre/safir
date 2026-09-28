@@ -244,6 +244,12 @@ skip_fragments = "_template.md.jinja"
 
 [tool.setuptools_scm]
 
+[tool.uv]
+required-environments = [
+    "sys_platform == 'manylinux' and platform_machine == 'x86_64'",
+    "sys_platform == 'manylinux' and platform_machine == 'aarch64'",
+]
+
 [tool.uv.sources]
 safir-arq = { workspace = true }
 safir-logging = { workspace = true }
