@@ -24,7 +24,7 @@ dependencies = [
     "click>=8.2.0,<9",
     "cryptography<51",
     "fastapi>=0.100,<1",
-    "gidgethub>=5,<6",
+    "gidgethub>=5,<7",
     "httpx>=0.20.0,<1",
     "pydantic>=2.11,<3",
     "pydantic-core<3",
