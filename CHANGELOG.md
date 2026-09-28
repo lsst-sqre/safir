@@ -9,6 +9,19 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-15.2.2'></a>
+## 15.2.2 (2026-09-28)
+
+### Bug fixes
+
+- When handling `reset` on a Kafka container, do not delete the `_schemas` topic managed by the Schema Registry. Deleting that topic creates a race condition that can cause spurious test failures.
+- Relax the typing of the database pagination code to work with the new `Select` typing in SQLAlchemy 2.1.
+- Support HTTPX exceptions from streaming responses in `SlackWebException` by handling the error raised when attempting to retrieve the response body and dropping response body from the resulting exception metadata.
+
+### Other changes
+
+- `safir.pydantic.to_camel_case` and `safir.pydantic.CamelCaseModel` are now trivial wrappers around the equivalent native Pydantic functionality. They will be deprecated and removed in future major versions of Safir.
+
 <a id='changelog-15.2.1'></a>
 ## 15.2.1 (2026-08-04)
 
