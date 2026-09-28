@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Self, override
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlsplit
 
 import pytest
 import structlog
@@ -133,11 +133,11 @@ def test_build_database_url(database_url: str) -> None:
         "postgresql+asyncpg://foo%40e.com:pass%40word%2Fwith%20stuff"
         "@127.0.0.1:4444/foo"
     )
-    parsed_url = urlparse(url)
+    parsed_url = urlsplit(url)
     assert parsed_url.username
     assert parsed_url.password
 
-    # urlparse does not undo quoting in the components of netloc.
+    # urlsplit does not undo quoting in the components of netloc.
     assert unquote(parsed_url.username) == "foo@e.com"
     assert unquote(parsed_url.password) == "pass@word/with stuff"
     assert parsed_url.hostname == "127.0.0.1"

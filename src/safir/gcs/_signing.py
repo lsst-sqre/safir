@@ -1,7 +1,7 @@
 """Signing Google Cloud Storage URLs."""
 
 from datetime import timedelta
-from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
 try:
     import google.auth
@@ -81,7 +81,7 @@ class SignedURLService:
         it generates a signed URL. Doing better will require figuring out the
         lifetime and refreshing the credentials when the lifetime has expired.
         """
-        parsed_uri = urlparse(uri)
+        parsed_uri = urlsplit(uri)
         if parsed_uri.scheme not in ("s3", "gs"):
             raise ValueError(f"URI {uri} is not an s3 or gs URI")
         bucket = self._gcs.bucket(parsed_uri.netloc)

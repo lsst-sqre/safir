@@ -2,7 +2,7 @@
 
 import asyncio
 from typing import Any
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urlsplit
 
 from pydantic import SecretStr
 from pydantic_core import Url
@@ -61,7 +61,7 @@ def build_database_url(
     """
     if not isinstance(url, str):
         url = str(url)
-    parsed_url = urlparse(url)
+    parsed_url = urlsplit(url)
     if parsed_url.scheme == "postgresql":
         parsed_url = parsed_url._replace(scheme="postgresql+asyncpg")
     elif parsed_url.scheme == "mysql":

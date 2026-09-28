@@ -51,8 +51,6 @@ If your app uses a configuration system like ``pydantic.BaseSettings``, this exa
 
 .. code-block:: python
 
-    from urllib.parse import urlparse
-
     from arq.connections import RedisSettings
     from pydantic import Field
     from pydantic_settings import BaseSettings
