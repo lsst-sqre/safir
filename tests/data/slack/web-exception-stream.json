@@ -1,19 +1,5 @@
 [
   {
-    "attachments": [
-      {
-        "blocks": [
-          {
-            "text": {
-              "text": "*Response*\n```\nSome error\n```",
-              "type": "mrkdwn",
-              "verbatim": true
-            },
-            "type": "section"
-          }
-        ]
-      }
-    ],
     "blocks": [
       {
         "text": {
@@ -45,6 +31,9 @@
           "verbatim": true
         },
         "type": "section"
+      },
+      {
+        "type": "divider"
       }
     ]
   }
