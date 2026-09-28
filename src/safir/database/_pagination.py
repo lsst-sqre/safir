@@ -459,7 +459,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
     async def query_object(
         self,
         session: AsyncSession,
-        stmt: Select[tuple],
+        stmt: Select,
         *,
         cursor: C | None = None,
         limit: int | None = None,
@@ -508,7 +508,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
     async def query_row(
         self,
         session: AsyncSession,
-        stmt: Select[tuple],
+        stmt: Select,
         *,
         cursor: C | None = None,
         limit: int | None = None,
@@ -555,7 +555,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
     async def _full_query(
         self,
         session: AsyncSession,
-        stmt: Select[tuple],
+        stmt: Select,
         *,
         scalar: bool = False,
     ) -> PaginatedList[E, C]:
@@ -594,7 +594,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
     async def _paginated_query(
         self,
         session: AsyncSession,
-        stmt: Select[tuple],
+        stmt: Select,
         *,
         cursor: C | None = None,
         limit: int | None = None,
@@ -739,7 +739,7 @@ class CountedPaginatedQueryRunner[E: BaseModel, C: PaginationCursor](
     async def query_object(
         self,
         session: AsyncSession,
-        stmt: Select[tuple],
+        stmt: Select,
         *,
         cursor: C | None = None,
         limit: int | None = None,
@@ -796,7 +796,7 @@ class CountedPaginatedQueryRunner[E: BaseModel, C: PaginationCursor](
     async def query_row(
         self,
         session: AsyncSession,
-        stmt: Select[tuple],
+        stmt: Select,
         *,
         cursor: C | None = None,
         limit: int | None = None,

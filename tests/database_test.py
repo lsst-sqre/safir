@@ -423,7 +423,7 @@ async def test_pagination(database_url: str, database_password: str) -> None:
     runner = PaginatedQueryRunner(PaginationModel, TableCursor)
     counted_runner = CountedPaginatedQueryRunner(PaginationModel, TableCursor)
     async with session.begin():
-        stmt: Select[tuple] = select(PaginationTable)
+        stmt: Select = select(PaginationTable)
         assert await runner.query_count(session, stmt) == 7
         result = await runner.query_object(session, stmt, limit=2)
         assert_model_lists_equal(result.entries, rows[:2])
