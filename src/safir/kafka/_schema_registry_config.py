@@ -36,7 +36,7 @@ class SchemaManagerSettings(BaseSettings):
         case_sensitive=False,
         env_prefix="SCHEMA_MANAGER_",
         extra="forbid",
-        populate_by_name=True,
+        validate_by_name=True,
     )
 
     registry_url: AnyUrl = Field(

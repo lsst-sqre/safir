@@ -4,7 +4,13 @@ from abc import ABC, abstractmethod
 from typing import Annotated, Any, override
 
 import structlog
-from pydantic import AfterValidator, AliasChoices, Field, ValidationError
+from pydantic import (
+    AfterValidator,
+    AliasChoices,
+    AliasGenerator,
+    Field,
+    ValidationError,
+)
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog.stdlib import BoundLogger
@@ -49,7 +55,7 @@ class EventsConfiguration(BaseSettings):
     """Configuration for emitting events."""
 
     model_config = SettingsConfigDict(
-        env_prefix="METRICS_", populate_by_name=True
+        env_prefix="METRICS_", validate_by_name=True
     )
 
     topic_prefix: str = Field(
@@ -91,7 +97,7 @@ class BaseMetricsConfiguration(BaseSettings, ABC):
     clients.
     """
 
-    model_config = SettingsConfigDict(populate_by_name=True)
+    model_config = SettingsConfigDict(validate_by_name=True)
 
     application: str = Field(
         ...,
@@ -138,7 +144,7 @@ class BaseMetricsConfiguration(BaseSettings, ABC):
 class DisabledMetricsConfiguration(BaseMetricsConfiguration):
     """Metrics configuration when metrics reporting is disabled."""
 
-    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
+    model_config = SettingsConfigDict(extra="ignore", validate_by_name=True)
 
     enabled: Annotated[
         bool, AfterValidator(lambda x: _require_bool(x, False))
@@ -169,7 +175,7 @@ class DisabledMetricsConfiguration(BaseMetricsConfiguration):
 class MockMetricsConfiguration(BaseMetricsConfiguration):
     """Metrics configuration when metrics publishing is mocked."""
 
-    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
+    model_config = SettingsConfigDict(extra="ignore", validate_by_name=True)
 
     enabled: Annotated[
         bool, AfterValidator(lambda x: _require_bool(x, False))
@@ -213,9 +219,9 @@ class KafkaMetricsConfiguration(BaseMetricsConfiguration):
     """Metrics configuration when enabled, including Kafka configuration."""
 
     model_config = SettingsConfigDict(
-        alias_generator=to_camel,
+        alias_generator=AliasGenerator(validation_alias=to_camel),
         extra="forbid",
-        populate_by_name=True,
+        validate_by_name=True,
     )
 
     enabled: Annotated[
