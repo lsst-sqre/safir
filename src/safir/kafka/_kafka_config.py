@@ -310,7 +310,7 @@ class KafkaConnectionSettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        case_sensitive=False, extra="forbid", populate_by_name=True
+        case_sensitive=False, extra="forbid", validate_by_name=True
     )
 
     bootstrap_servers: str = Field(
