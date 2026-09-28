@@ -40,7 +40,7 @@ jobs:
       # can do something more complicated with a pinned version updated with a
       # script run by `make update-deps` similar to service packages.
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: ${{ matrix.python }}
 
@@ -90,7 +90,7 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v10.2.0
 
       - name: Install extra packages
         run: |
@@ -135,7 +135,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           version: ${{ env.UV_VERSION }}
 
@@ -159,7 +159,7 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v10.2.0
 
       - name: Build the packages
         run: uv build --no-sources --all-packages
@@ -182,7 +182,7 @@ jobs:
           fetch-depth: 0 # full history for setuptools_scm
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v10.2.0
 
       - name: Build the packages
         run: uv build --no-sources --all-packages
