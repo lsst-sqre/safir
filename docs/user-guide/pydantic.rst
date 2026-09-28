@@ -138,30 +138,53 @@ Accepting camel-case attributes
 
 Python prefers ``snake_case`` for all object attributes, but some external sources of data (Kubernetes custom resources, YAML configuration files generated from Helm configuration) require or prefer ``camelCase``.
 
-Thankfully, Pydantic supports converting from camel-case to snake-case on input using what Pydantic calls an "alias generator."
-Safir provides `~safir.pydantic.to_camel_case`, which can be used as that alias generator.
-
-To use it, add a configuration block to any Pydantic model that has snake-case attributes but needs to accept them in camel-case form:
+Pydantic now provides native facilities to properly handle both conventions.
+To configure a model to accept camel-case during validation, use:
 
 .. code-block:: python
 
-   from pydantic import BaseModel, ConfigDict
-   from safir.pydantic import to_camel_case
+   from pydantic import AliasGenerator, BaseModel, ConfigDict
+   from pydantic.alias_generators import to_camel
 
 
    class Model(BaseModel):
        model_config = ConfigDict(
-           alias_generator=to_camel_case, populate_by_name=True
+           alias_generator=AliasGenerator(validation_alias=to_camel),
+           validate_by_name=True,
        )
 
        some_field: str
 
-By default, only the generated aliases (so, in this case, only the camel-case form of the attribute, ``someField``) are supported.
-The additional setting ``allow_population_by_field_name``, tells Pydantic to allow either ``some_field`` or ``someField`` in the input.
+This allows the class to be initialized with either camel-case or snake-case.
+Serialization will use snake-case, which is normally what is desired for APIs.
+If serialization should also use camel-case, use:
 
-As a convenience, you can instead inherit from `~safir.pydantic.CamelCaseModel`, which is a derived class of `~pydantic.BaseModel` with those settings added.
-This is somewhat less obvious when reading the classes and thus less self-documenting, but is less tedious if you have numerous models that need to support camel-case.
-`~safir.pydantic.CamelCaseModel` also overrides ``model_dump`` and ``model_dump_json`` to change the default of ``by_alias`` to `True` so that this model exports in camel-case by default.
+.. code-block:: python
+
+   from pydantic import AliasGenerator, BaseModel, ConfigDict
+   from pydantic.alias_generators import to_camel
+
+
+   class Model(BaseModel):
+       model_config = ConfigDict(
+           alias_generator=AliasGenerator(
+               serialization_alias=to_camel, validation_alias=to_camel
+           ),
+           serialize_by_alias=True,
+           validate_by_name=True,
+       )
+
+       some_field: str
+
+When using these facilities, depend on Pydantic 2.11 or later.
+
+.. note::
+
+   Safir provides `~safir.pydantic.to_camel_case`, which is functionally equivalent to the ``to_camel`` alias generator provided by Pydantic, and `~safir.pydantic.CamelCaseModel`, which is a subclass of Pydantic's ``BaseModel`` that adds the second set of settings by default.
+
+   This alias generator and subclass are deprecated.
+   Users should switch the native Pydantic way of handling camel-case.
+   They will be removed in a future major version of Safir.
 
 Requiring exactly one of a list of attributes
 =============================================
