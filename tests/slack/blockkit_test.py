@@ -192,7 +192,9 @@ async def test_web_exception(
     class SomeError(SlackWebException):
         pass
 
-    respx_mock.get("https://example.org/").mock(return_value=Response(404))
+    respx_mock.get("https://example.org/").mock(
+        return_value=Response(404, text="Some error")
+    )
     exception = None
     try:
         async with AsyncClient() as client:
@@ -200,7 +202,9 @@ async def test_web_exception(
             r.raise_for_status()
     except HTTPError as e:
         exception = SomeError.from_exception(e)
-        assert str(exception) == "Status 404 from GET https://example.org/"
+        assert str(exception) == (
+            "Status 404 from GET https://example.org/\nBody:\nSome error\n"
+        )
         await slack.post_exception(exception)
 
     data.assert_json_matches(mock_slack.messages, "slack/web-exception")
@@ -239,3 +243,29 @@ async def test_web_exception_sentry(
     (attachment,) = sentry_combo_items.attachments
     assert attachment.filename == "httpx_response_body"
     assert attachment.bytes.decode() == "some response body"
+
+
+@pytest.mark.asyncio
+async def test_web_exception_stream(
+    data: Data, respx_mock: respx.Router, mock_slack: MockSlackWebhook
+) -> None:
+    logger = structlog.get_logger(__file__)
+    slack = SlackWebhookClient(mock_slack.url, "App", logger)
+
+    class SomeError(SlackWebException):
+        pass
+
+    respx_mock.get("https://example.org/").mock(
+        return_value=Response(404, text="Some error")
+    )
+    exception = None
+    try:
+        async with AsyncClient() as client:
+            async with client.stream("GET", "https://example.org/") as r:
+                r.raise_for_status()
+    except HTTPError as e:
+        exception = SomeError.from_exception(e)
+        assert str(exception) == "Status 404 from GET https://example.org/"
+        await slack.post_exception(exception)
+
+    data.assert_json_matches(mock_slack.messages, "slack/web-exception-stream")

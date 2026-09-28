@@ -1,10 +1,11 @@
 """Slack Block Kit message models."""
 
 from abc import ABCMeta, abstractmethod
+from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Any, ClassVar, Self, override
 
-from httpx import HTTPError, HTTPStatusError
+from httpx import HTTPError, HTTPStatusError, ResponseNotRead
 from pydantic import BaseModel, field_validator
 
 from safir.datetime import format_datetime_for_logging
@@ -359,13 +360,16 @@ class SlackWebException(SlackException):
             status = exc.response.status_code
             method = exc.request.method
             message = f"Status {status} from {method} {exc.request.url}"
+            body = None
+            with suppress(ResponseNotRead):
+                body = exc.response.text
             return cls(
                 message,
                 method=exc.request.method,
                 url=str(exc.request.url),
                 user=user,
                 status=status,
-                body=exc.response.text,
+                body=body,
             )
         else:
             exc_name = type(exc).__name__
