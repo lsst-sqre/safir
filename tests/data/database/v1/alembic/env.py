@@ -12,13 +12,12 @@ from tests.support.alembic import BaseV1, config
 # Configure structlog.
 configure_logging(name="tests", log_level=config.log_level)
 configure_alembic_logging()
+assert config.database
 
 # Run the migrations.
 if context.is_offline_mode():
-    run_migrations_offline(BaseV1.metadata, config.database_url)
+    run_migrations_offline(BaseV1.metadata, config.database.url)
 else:
     run_migrations_online(
-        BaseV1.metadata,
-        config.database_url,
-        config.database_password,
+        BaseV1.metadata, config.database.url, config.database.password
     )

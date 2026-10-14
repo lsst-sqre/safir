@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 try:
-    from google.cloud import storage
+    import google.cloud.storage
 except ImportError as e:
     raise ImportError(
         "The safir.testing.gcs module requires the gcs extra. "
@@ -40,7 +40,7 @@ class MockBlob(Mock):
     def __init__(
         self, name: str, expected_expiration: timedelta | None = None
     ) -> None:
-        super().__init__(spec=storage.blob.Blob)
+        super().__init__(spec=google.cloud.storage.blob.Blob)
         self.name = name
         self._expected_expiration = expected_expiration
 
@@ -190,7 +190,7 @@ class MockBucket(Mock):
         expected_expiration: timedelta | None = None,
         path: Path | None = None,
     ) -> None:
-        super().__init__(spec=storage.bucket.Bucket)
+        super().__init__(spec=google.cloud.storage.bucket.Bucket)
         self._expected_expiration = expected_expiration
         self._path = path
 
@@ -242,7 +242,7 @@ class MockStorageClient(Mock):
         path: Path | None = None,
         bucket_name: str | None = None,
     ) -> None:
-        super().__init__(spec=storage.Client)
+        super().__init__(spec=google.cloud.storage.Client)
         self._bucket_name = bucket_name
         self._expected_expiration = expected_expiration
         self._path = path

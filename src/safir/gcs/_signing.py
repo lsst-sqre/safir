@@ -5,8 +5,8 @@ from urllib.parse import urlsplit
 
 try:
     import google.auth
+    import google.cloud.storage
     from google.auth import impersonated_credentials
-    from google.cloud import storage
 except ImportError as e:
     raise ImportError(
         "The safir.gcs module requires the gcs extra. "
@@ -49,7 +49,7 @@ class SignedURLService:
     ) -> None:
         self._lifetime = lifetime
         self._service_account = service_account
-        self._gcs = storage.Client()
+        self._gcs = google.cloud.storage.Client()
         self._credentials, _ = google.auth.default()
 
     def signed_url(self, uri: str, mime_type: str | None) -> str:
