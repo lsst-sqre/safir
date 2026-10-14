@@ -14,7 +14,15 @@ from urllib.parse import parse_qs, urlencode
 from pydantic import BaseModel
 
 try:
-    from sqlalchemy import Select, and_, func, or_, select
+    from sqlalchemy import (
+        Result,
+        ScalarResult,
+        Select,
+        and_,
+        func,
+        or_,
+        select,
+    )
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import InstrumentedAttribute
 except ImportError as e:
@@ -579,6 +587,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
             Results of the query wrapped with pagination information.
         """
         stmt = self._cursor_type.apply_order(stmt)
+        result: Result | ScalarResult
         if scalar:
             result = await session.scalars(stmt)
         else:
@@ -649,6 +658,7 @@ class PaginatedQueryRunner[E: BaseModel, C: PaginationCursor]:
 
         # Execute the query twice, once to get the next bach of results and
         # once to get the count of all entries without pagination.
+        result: Result | ScalarResult
         if scalar:
             result = await session.scalars(limited_stmt)
         else:
