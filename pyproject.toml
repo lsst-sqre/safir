@@ -45,6 +45,7 @@ arq = [
 db = [
     "alembic[tz]<2",
     "asyncpg<1",
+    "cloud-sql-python-connector[asyncpg]>=1",
     "sqlalchemy[asyncio]>=2,<3",
 ]
 gcs = [

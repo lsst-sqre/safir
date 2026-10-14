@@ -15,10 +15,6 @@ configure_alembic_logging()
 
 # Run the migrations.
 if context.is_offline_mode():
-    run_migrations_offline(BaseV2.metadata, config.database_url)
+    run_migrations_offline(BaseV2.metadata, config.mock_url)
 else:
-    run_migrations_online(
-        BaseV2.metadata,
-        config.database_url,
-        config.database_password,
-    )
+    run_migrations_online(BaseV2.metadata, config)
