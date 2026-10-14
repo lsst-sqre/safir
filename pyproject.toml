@@ -111,7 +111,7 @@ dev = [
 ]
 docs = [
     "autodoc_pydantic",
-    "documenteer[guide]>=2.0.0",
+    "documenteer[guide]>=2.5.0b2",
     "pyfakefs",
     "scriv[toml]>=1.5",
 ]

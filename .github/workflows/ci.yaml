@@ -99,6 +99,8 @@ jobs:
 
       - name: Run nox
         run: uv run --only-group=nox nox -s docs
+        env:
+          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
 
       # Only attempt documentation uploads for tagged releases and pull
       # requests from ticket branches in the same repository. This avoids
@@ -146,6 +148,8 @@ jobs:
 
       - name: Run nox
         run: uv run --only-group=nox nox -s docs-linkcheck
+        env:
+          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
 
   test-packaging:
     name: Test packaging
