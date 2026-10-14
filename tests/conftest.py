@@ -27,6 +27,7 @@ from structlog.testing import LogCapture
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
+from safir.database import DatabaseSettings
 from safir.kafka import FastStreamErrorHandler
 from safir.metrics import (
     EventManager,
@@ -180,6 +181,15 @@ def faststream_error_handler() -> FastStreamErrorHandler:
     a FastStream broker or router.
     """
     return FastStreamErrorHandler()
+
+
+@pytest.fixture(scope="session")
+def database_config(
+    database_url: str, database_password: str
+) -> DatabaseSettings:
+    return DatabaseSettings.model_validate(
+        {"url": database_url, "password": database_password}
+    )
 
 
 @pytest.fixture(scope="session")
