@@ -3,6 +3,7 @@
 import asyncio
 import os
 import subprocess
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
@@ -10,11 +11,13 @@ from typing import Any, Self, override
 from urllib.parse import unquote, urlsplit
 
 import pytest
+import pytest_asyncio
 import structlog
 from pydantic import BaseModel, SecretStr
 from pydantic_core import Url
 from sqlalchemy import Column, MetaData, Select, String, Table, select
 from sqlalchemy.exc import OperationalError, ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.orm import (
     DeclarativeBase,
     InstrumentedAttribute,
@@ -22,10 +25,12 @@ from sqlalchemy.orm import (
     mapped_column,
 )
 from starlette.datastructures import URL
+from structlog.stdlib import BoundLogger
 
 from safir.database import (
     CountedPaginatedList,
     CountedPaginatedQueryRunner,
+    DatabaseSettings,
     DatetimeIdCursor,
     PaginatedList,
     PaginatedQueryRunner,
@@ -34,6 +39,7 @@ from safir.database import (
     datetime_from_db,
     datetime_to_db,
     drop_database,
+    engine_manager,
     initialize_database,
     is_database_current,
     retry_async_transaction,
@@ -43,39 +49,55 @@ from safir.database import (
 )
 from safir.database._connection import build_database_url
 from safir.pydantic import UtcDatetime
+from safir.testing.data import Data
 
 from .support.alembic import BaseV1, BaseV2, UserV1, UserV2, config
 
 
+@pytest.fixture
+def logger() -> BoundLogger:
+    return structlog.get_logger(__name__)
+
+
+@pytest_asyncio.fixture
+async def engine(
+    database_config: DatabaseSettings, logger: BoundLogger
+) -> AsyncIterator[AsyncEngine]:
+    schema = BaseV2.metadata
+    async with engine_manager(database_config) as engine:
+        await initialize_database(engine, logger, schema=schema, reset=True)
+        yield engine
+
+
 @pytest.mark.asyncio
 async def test_initialize_database(
-    database_url: str, database_password: str
+    *,
+    database_config: DatabaseSettings,
+    database_url: str,
+    database_password: str,
+    logger: BoundLogger,
 ) -> None:
-    logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, database_password)
-    await initialize_database(
-        engine, logger, schema=BaseV2.metadata, reset=True
-    )
-    session = await create_async_session(engine, logger)
-    async with session.begin():
-        session.add(UserV2(username="someuser"))
-    await session.close()
+    schema = BaseV2.metadata
 
-    # Reinitializing the database without reset should preserve the row.
-    await initialize_database(engine, logger, schema=BaseV2.metadata)
-    session = await create_async_session(engine, logger)
-    async with session.begin():
-        result = await session.scalars(select(UserV2.username))
-        assert result.all() == ["someuser"]
-    await session.close()
+    async with engine_manager(database_config) as engine:
+        await initialize_database(engine, logger, schema=schema, reset=True)
+        session = await create_async_session(engine, logger)
+        async with session.begin():
+            session.add(UserV2(username="someuser"))
+        await session.close()
+
+        # Reinitializing the database without reset should preserve the row.
+        await initialize_database(engine, logger, schema=BaseV2.metadata)
+        session = await create_async_session(engine, logger)
+        async with session.begin():
+            result = await session.scalars(select(UserV2.username))
+            assert result.all() == ["someuser"]
+        await session.close()
 
     # Reinitializing the database with reset should delete the data. Try
     # passing in the password as a SecretStr.
-    password = SecretStr(database_password)
-    engine = create_database_engine(database_url, password)
-    await initialize_database(
-        engine, logger, schema=BaseV2.metadata, reset=True
-    )
+    engine = create_database_engine(database_url, SecretStr(database_password))
+    await initialize_database(engine, logger, schema=schema, reset=True)
     session = await create_async_session(engine, logger)
     async with session.begin():
         result = await session.scalars(select(UserV2.username))
@@ -85,25 +107,70 @@ async def test_initialize_database(
 
 @pytest.mark.asyncio
 async def test_drop_database(
-    database_url: str, database_password: str
+    database_config: DatabaseSettings, logger: BoundLogger
 ) -> None:
-    logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, database_password)
-    await initialize_database(engine, logger, schema=BaseV2.metadata)
-    session = await create_async_session(engine, logger)
-    async with session.begin():
-        session.add(UserV2(username="someuser"))
-    await session.close()
-
-    await drop_database(engine, BaseV2.metadata)
-    session = await create_async_session(engine, logger)
-    with pytest.raises(ProgrammingError):
+    async with engine_manager(database_config) as engine:
+        await initialize_database(engine, logger, schema=BaseV2.metadata)
+        session = await create_async_session(engine, logger)
         async with session.begin():
-            await session.scalars(select(UserV2.username))
-    await engine.dispose()
+            session.add(UserV2(username="someuser"))
+        await session.close()
+
+        await drop_database(engine, BaseV2.metadata)
+        session = await create_async_session(engine, logger)
+        with pytest.raises(ProgrammingError):
+            async with session.begin():
+                await session.scalars(select(UserV2.username))
 
 
-def test_build_database_url(database_url: str) -> None:
+def test_build_url() -> None:
+    config = DatabaseSettings.model_validate(
+        {"url": "postgresql://foo@127.0.0.1/foo", "password": "password"}
+    )
+    url = config.build_url()
+    assert url == "postgresql+asyncpg://foo:password@127.0.0.1/foo"
+
+    config = DatabaseSettings.model_validate(
+        {"url": "postgresql://foo@127.0.0.1:5432/foo", "password": "password"}
+    )
+    url = config.build_url()
+    assert url == "postgresql+asyncpg://foo:password@127.0.0.1:5432/foo"
+    url = config.build_url(is_async=False)
+    assert url == "postgresql://foo:password@127.0.0.1:5432/foo"
+
+    # Test that the username and password are quoted properly.
+    config = DatabaseSettings.model_validate(
+        {
+            "url": "postgresql+asyncpg://foo%40e.com@127.0.0.1:4444/foo",
+            "password": "pass@word/with stuff",
+        },
+    )
+    url = config.build_url()
+    assert url == (
+        "postgresql+asyncpg://foo%40e.com:pass%40word%2Fwith%20stuff"
+        "@127.0.0.1:4444/foo"
+    )
+
+    # urlsplit does not undo quoting in the components of netloc.
+    parsed_url = urlsplit(url)
+    assert parsed_url.username == "foo%40e.com"
+    assert parsed_url.password
+    assert unquote(parsed_url.username) == "foo@e.com"
+    assert unquote(parsed_url.password) == "pass@word/with stuff"
+    assert parsed_url.hostname == "127.0.0.1"
+    assert parsed_url.port == 4444
+
+    # MySQL scheme modifications.
+    config = DatabaseSettings.model_validate(
+        {"url": "mysql://foo@127.0.0.1:3306/foo", "password": "password"}
+    )
+    url = config.build_url()
+    assert url == "mysql+asyncmy://foo:password@127.0.0.1:3306/foo"
+    url = config.build_url(is_async=False)
+    assert url == "mysql://foo:password@127.0.0.1:3306/foo"
+
+
+def test_build_database_url() -> None:
     url = build_database_url("postgresql://foo@127.0.0.1/foo", None)
     assert url == "postgresql+asyncpg://foo@127.0.0.1/foo"
 
@@ -146,17 +213,10 @@ def test_build_database_url(database_url: str) -> None:
 
 @pytest.mark.asyncio
 async def test_create_async_session(
-    database_url: str, database_password: str
+    engine: AsyncEngine, logger: BoundLogger
 ) -> None:
-    logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, database_password)
-    await initialize_database(
-        engine, logger, schema=BaseV2.metadata, reset=True
-    )
-
-    session = await create_async_session(
-        engine, logger, statement=select(UserV2)
-    )
+    stmt = select(UserV2)
+    session = await create_async_session(engine, logger, statement=stmt)
     async with session.begin():
         session.add(UserV2(username="foo"))
     await session.close()
@@ -166,10 +226,8 @@ async def test_create_async_session(
     metadata = MetaData()
     bad_table = Table("bad", metadata, Column("name", String(64)))
     with pytest.raises(ProgrammingError):
-        session = await create_async_session(
-            engine, logger, statement=select(bad_table)
-        )
-    await engine.dispose()
+        stmt = select(bad_table)
+        await create_async_session(engine, logger, statement=stmt)
 
 
 def test_datetime() -> None:
@@ -204,13 +262,8 @@ def test_datetime() -> None:
 
 @pytest.mark.asyncio
 async def test_retry_async_transaction(
-    database_url: str, database_password: str
+    engine: AsyncEngine, logger: BoundLogger
 ) -> None:
-    logger = structlog.get_logger(__name__)
-    engine = create_database_engine(database_url, database_password)
-    await initialize_database(
-        engine, logger, schema=BaseV2.metadata, reset=True
-    )
     session = await create_async_session(engine, logger)
     async with session.begin():
         session.add(UserV2(username="someuser"))
@@ -244,20 +297,18 @@ async def test_retry_async_transaction(
     with pytest.raises(OperationalError):
         await insert_capped(1)
 
-    await engine.dispose()
-
 
 def test_alembic(
+    *,
+    data: Data,
     database_url: str,
     database_password: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     event_loop = asyncio.new_event_loop()
-    config.database_url = Url(database_url)
-    config.database_password = SecretStr(database_password)
-    config_path = (
-        Path(__file__).parent / "data" / "database" / "v1" / "alembic.ini"
-    )
+    config.url = Url(database_url)
+    config.password = SecretStr(database_password)
+    config_path = data.path("database/v1/alembic.ini")
     logger = structlog.get_logger(__name__)
     engine = create_database_engine(database_url, database_password)
 
@@ -296,7 +347,7 @@ def test_alembic(
     event_loop.run_until_complete(store(UserV1(username="foo", name="Foo")))
 
     # Check that the database is not current with the V2 schema.
-    config_path = config_path.parent.parent / "v2" / "alembic.ini"
+    config_path = data.path("database/v2/alembic.ini")
     assert not event_loop.run_until_complete(check(config_path))
 
     # Upgrade the database to V2. It should now show as current with the V2

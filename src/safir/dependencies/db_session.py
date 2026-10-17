@@ -44,6 +44,7 @@ class DatabaseSessionDependency:
 
     def __init__(self) -> None:
         self._engine: AsyncEngine | None = None
+        self._engine_created = False
         self._sessionmaker: async_sessionmaker[AsyncSession] | None = None
 
     async def __call__(self) -> AsyncGenerator[AsyncSession]:
@@ -64,6 +65,7 @@ class DatabaseSessionDependency:
         if self._engine:
             await self._engine.dispose()
             self._engine = None
+            self._engine_created = False
             self._sessionmaker = None
 
     async def initialize(
@@ -111,7 +113,7 @@ class DatabaseSessionDependency:
             giving up.
         """
         if self._engine:
-            await self._engine.dispose()
+            await self.aclose()
         self._engine = create_database_engine(
             url,
             password,
@@ -123,6 +125,26 @@ class DatabaseSessionDependency:
             pool_size=pool_size,
             pool_timeout=pool_timeout,
         )
+        self._engine_created = True
+        self._sessionmaker = async_sessionmaker(
+            self._engine, expire_on_commit=False
+        )
+
+    async def initialize_with_engine(self, engine: AsyncEngine) -> None:
+        """Initialize the session dependency with an existing engine.
+
+        This is an alternative to the `initialize` method used if the database
+        engine is managed outside of the dependency, as will be the case for
+        callers that want native Cloud SQL support.
+
+        Parameters
+        ----------
+        engine
+            Database engine to use.
+        """
+        if self._engine:
+            await self.aclose()
+        self._engine = engine
         self._sessionmaker = async_sessionmaker(
             self._engine, expire_on_commit=False
         )
