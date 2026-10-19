@@ -22,13 +22,13 @@ Instances of this model have properties that can be used to construct different 
    admin = AIOKafkaAdminClient(**config.to_aiokafka_params)
 
 This model supports four security protocols.
-If your application is running in Phalanx, you likely should be using the Sasquatch_-managed Kafka cluster, and generating the necessary values `like this <https://sasquatch.lsst.io/user-guide/directconnection.html>`__.
+If your application is running in Phalanx, you likely should be using the Sasquatch_-managed Kafka cluster, and generating the necessary values `like this <https://sasquatch.lsst.io/user-guide/direct-connection.html>`__.
 
 SSL
 ---
 
 This is the preferred protocol. Authentication is done via mutual TLS, and all traffic goes over a TLS-encrypted channel.
-If your application is running in Phalanx, you likely should be using the Sasquatch-managed Kafka cluster, and generating these TLS credentials `like this <https://sasquatch.lsst.io/user-guide/directconnection.html>`__.
+If your application is running in Phalanx, you likely should be using the Sasquatch-managed Kafka cluster, and generating these TLS credentials `like this <https://sasquatch.lsst.io/user-guide/direct-connection.html>`__.
 
 .. code-block:: shell
 
