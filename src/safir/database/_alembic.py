@@ -3,6 +3,7 @@
 import asyncio
 from contextlib import suppress
 from pathlib import Path
+from typing import overload
 
 try:
     import alembic
@@ -23,7 +24,9 @@ from pydantic import SecretStr
 from pydantic_core import Url
 from structlog.stdlib import BoundLogger
 
+from ._config import CloudSqlSettings, DatabaseSettings
 from ._connection import build_database_url, create_database_engine
+from ._manager import engine_manager
 
 __all__ = [
     "AlembicConfigError",
@@ -103,7 +106,8 @@ def run_migrations_offline(metadata: MetaData, url: str | Url) -> None:
     metadata
         Schema metadata object for the current schema.
     url
-        Database connection URL.
+        Database connection URL. This URL is only parsed for the scheme and
+        does not have to point to a working database server.
 
     Examples
     --------
@@ -133,10 +137,22 @@ def run_migrations_offline(metadata: MetaData, url: str | Url) -> None:
         context.run_migrations()
 
 
+@overload
+def run_migrations_online(
+    metadata: MetaData, url_or_config: CloudSqlSettings | DatabaseSettings
+) -> None: ...
+
+
+@overload
+def run_migrations_online(
+    metadata: MetaData, url_or_config: str | Url, password: str | SecretStr
+) -> None: ...
+
+
 def run_migrations_online(
     metadata: MetaData,
-    url: str | Url,
-    password: str | SecretStr | None,
+    url_or_config: str | Url | CloudSqlSettings | DatabaseSettings,
+    password: str | SecretStr | None = None,
 ) -> None:
     """Run Alembic migrations online using an async backend.
 
@@ -146,10 +162,15 @@ def run_migrations_online(
     ----------
     metadata
         Schema metadata object for the current schema.
+    url_or_config
+        Database connection configuration, or the database connection URL.
+        If the argument is a database configuration object, omit the
+        ``password`` argument.
     url
-        Database connection URL, not including the password.
+        Database connection URL, not including the password. Omit if
+        ``config`` is provided.
     password
-        Database connection password.
+        Database connection password. Omit if ``config`` is provided.
 
     Examples
     --------
@@ -165,9 +186,7 @@ def run_migrations_online(
        from example.schema import Base
 
        if not context.is_offline_mode():
-           run_migrations_online(
-               Base.metadata, config.database_url, config.database_password
-           )
+           run_migrations_online(Base.metadata, config.database)
     """
 
     def do_migrations(connection: Connection) -> None:
@@ -176,10 +195,15 @@ def run_migrations_online(
             context.run_migrations()
 
     async def run_async_migrations() -> None:
-        engine = create_database_engine(url, password)
-        async with engine.connect() as connection:
-            await connection.run_sync(do_migrations)
-        await engine.dispose()
+        if isinstance(url_or_config, CloudSqlSettings | DatabaseSettings):
+            async with engine_manager(url_or_config) as engine:
+                async with engine.connect() as connection:
+                    await connection.run_sync(do_migrations)
+        else:
+            engine = create_database_engine(url_or_config, password)
+            async with engine.connect() as connection:
+                await connection.run_sync(do_migrations)
+            await engine.dispose()
 
     asyncio.run(run_async_migrations())
 
