@@ -38,3 +38,5 @@ Development guide
    :maxdepth: 2
 
    dev/index
+
+.. DM-56771 revive validation: harmless comment so the docs-specific CI filter fires. Remove with the branch.
