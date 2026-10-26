@@ -9,6 +9,13 @@ Changes for the upcoming release can be found in [changelog.d](https://github.co
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-15.2.3'></a>
+## 15.2.3 (2026-10-26)
+
+### Bug fixes
+
+- Fix an incorrect parameter to `Form` in the UWS support code that causes errors with FastAPI 0.162.0.
+
 <a id='changelog-15.2.2'></a>
 ## 15.2.2 (2026-09-28)
 
