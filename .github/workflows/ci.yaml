@@ -77,6 +77,10 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
     timeout-minutes: 15
 
     needs: changes
@@ -100,18 +104,18 @@ jobs:
 
       - name: Run nox
         run: uv run --only-group=nox nox -s docs
+        env:
+          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
 
-      # Only attempt documentation uploads for tagged releases and pull
-      # requests from ticket branches in the same repository. This avoids
-      # version clutter in the docs and failures when a PR doesn't have access
-      # to secrets.
-      - name: Upload to LSST the Docs
-        uses: lsst-sqre/ltd-upload@v1
+      - name: Upload to Docverse
+        uses: lsst-sqre/docverse-upload@v1
         with:
+          org: rubin
           project: "safir"
           dir: "docs/_build/html"
-          username: ${{ secrets.LTD_USERNAME }}
-          password: ${{ secrets.LTD_PASSWORD }}
+          token: ${{ secrets.DOCVERSE_TOKEN }}
+          github-token: ${{ github.token }}
+          comment-on-pr: "true"
         if: >
           (github.event_name == 'push' && github.ref_name == 'main')
           || (github.event_name == 'release'
@@ -124,6 +128,9 @@ jobs:
 
   linkcheck:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     timeout-minutes: 15
 
     needs: changes
@@ -147,6 +154,8 @@ jobs:
 
       - name: Run nox
         run: uv run --only-group=nox nox -s docs-linkcheck
+        env:
+          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
 
   test-packaging:
     name: Test packaging
