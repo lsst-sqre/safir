@@ -384,7 +384,7 @@ async def post_job_phase(
         Literal["RUN", "ABORT"] | None,
         Form(
             title="Job state change",
-            summary="RUN to start the job, ABORT to abort the job.",
+            description="RUN to start the job, ABORT to abort the job",
         ),
     ] = None,
     request: Request,
