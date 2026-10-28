@@ -115,3 +115,46 @@ If you need to preload test data into the database, do that after the call to ``
 
    Because the tests use a single external PostgreSQL instance with a single database, tests cannot be run in parallel, or a test may see database changes from another test.
    This, in turn, means that plugins like `pytest-xdist <https://pypi.org/project/pytest-xdist/>`__ unfortunately cannot be used to speed up tests.
+
+.. _database-alembic-testing:
+
+Testing database migrations
+===========================
+
+You will want to test that you do not accidentally introduce a database schema change.
+
+The easiest way to do this is to add a schema test that fails if the schema created by applying all Alembic migrations does not match the current SQLAlchemy ORM schema definition.
+This will require adding an Alembic migration at the same time as a schema change, which is the recommended development approach.
+
+The following test can be dropped into :file:`tests/schema_test.py` and should work for most applications that follow the Safir documentation.
+
+.. code-block:: python
+
+   import os
+   import subprocess
+
+   import pytest
+   from safir.database import drop_database, engine_manager
+
+   from example.config import Config
+   from example.dependencies.config import config_dependency
+   from example.schema import SchemaBase
+
+
+   @pytest.mark.asyncio
+   async def test_schema(config: Config) -> None:
+       async with engine_manager(config.database) as engine:
+           await drop_database(engine, SchemaBase.metadata)
+       config_path = str(config_dependency.config_path)
+       env = {**os.environ, "EXAMPLE_CONFIG_PATH": config_path}
+       subprocess.run(["alembic", "upgrade", "head"], check=True, env=env)
+       subprocess.run(["alembic", "check"], check=True, env=env)
+
+As always, replace ``example`` and ``EXAMPLE`` with the appropriate values for your application.
+This assumes that ``example.schema.SchemaBase`` is the declarative base of your SQLAlchemy ORM schema.
+Adjust as needed for your application.
+
+.. warning::
+
+   This test can only catch schema changes that Alembic knows how to generate migrations for.
+   Changes that Alembic misses, such as changes to the membership of an enum, will not be caught by this test.

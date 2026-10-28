@@ -19,7 +19,7 @@ Using the settings classes
 
 The two settings classes are `DatabaseSettings`, which is used for a conventional external database with an associated DSN and password, and `CloudSqlSettings`, which is used for a Cloud SQL PostgreSQL instance.
 The `CloudSqlSettings` class usually be used as-is.
-The `DatabaseSettings` class normally must be subclassed so that the password can be provided via an environment variable.
+The `DatabaseSettings` class normally must be subclassed to set an environment variable prefix so that the password can be provided via an environment variable.
 
 When using the Safir database support, applications should use YAML for their configuration.
 Choosing between Cloud SQL and an external database based on the configuration can be done more smoothly by validating a YAML file than by attempting to shove the same structure into environment variables.
@@ -47,7 +47,7 @@ Here is a typical example of an application with a database to configure:
            Field(title="Database configuration"),
        ]
 
-The child class exists only to override ``env_prefix`` so that you can configure the database password with the ``EXAMPLE_DATABASE_PASSWORD`` environment variable.
+The child class exists only to override ``env_prefix`` so that you can configure the database password (and the URL, which is useful for tests) with the ``EXAMPLE_DATABASE_PASSWORD`` environment variable.
 Change ``EXAMPLE`` and ``Example`` to something appropriate for your application.
 
 ``config.database`` can then be passed into `engine_manager`, which will use those settings to set up the database engine.
@@ -69,7 +69,7 @@ For example:
      database:
        url: "postgresql://example@db01.example.com/example"
 
-The password is then normally provided in the ``EXAMPLE_DATABASE_PASSWORD`` environment variable.
+The password is then normally provided in the ``EXAMPLE_DATABASE_PASSWORD`` environment variable, set via a Kubernetes secret.
 See :ref:`db-using-settings` for more details.
 
 Cloud SQL database

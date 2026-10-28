@@ -1,3 +1,7 @@
+:og:description: Learn how to manage datetime objects in databases.
+
+.. py:currentmodule:: safir.database
+
 #####################################
 Handling datetimes in database tables
 #####################################
@@ -22,13 +26,13 @@ asyncpg_ wisely declines to convert datetime objects.
 It therefore returns timezone-naive objects from the database, and raises an exception if a timezone-aware datetime object is stored in a `~sqlalchemy.types.DateTime` field.
 The conversion must therefore be done in the code making SQLAlchemy calls.
 
-Safir provides `~safir.database.datetime_to_db` and `~safir.database.datetime_from_db` helper functions to convert from a timezone-aware datetime to a timezone-naive datetime suitable for storing in a DateTime column, and vice versa.
+Safir provides `datetime_to_db` and `datetime_from_db` helper functions to convert from a timezone-aware datetime to a timezone-naive datetime suitable for storing in a DateTime column, and vice versa.
 These helper functions should be used wherever `~sqlalchemy.types.DateTime` columns are read or updated.
 
-`~safir.database.datetime_to_db` ensures the provided datetime object is timezone-aware and in UTC and converts it to a timezone-naive UTC datetime for database storage.
+`datetime_to_db` ensures the provided datetime object is timezone-aware and in UTC and converts it to a timezone-naive UTC datetime for database storage.
 It raises `ValueError` if passed a timezone-naive datetime object.
 
-`~safir.database.datetime_from_db` ensures the provided datetime object is either timezone-naive or in UTC and returns a timezone-aware UTC datetime object.
+`datetime_from_db` ensures the provided datetime object is either timezone-naive or in UTC and returns a timezone-aware UTC datetime object.
 
 Both raise `ValueError` if passed datetime objects in some other timezone.
 Both return `None` if passed `None`.
