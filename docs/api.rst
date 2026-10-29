@@ -27,6 +27,9 @@ API reference
 .. automodapi:: safir.dependencies.arq
    :include-all-objects:
 
+.. automodapi:: safir.dependencies.config
+   :include-all-objects:
+
 .. automodapi:: safir.dependencies.db_session
    :include-all-objects:
 

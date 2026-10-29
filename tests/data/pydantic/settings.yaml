@@ -1,0 +1,3 @@
+simple: 10
+multiWord: "foo"
+envOverride: "bar"
