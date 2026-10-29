@@ -15,6 +15,7 @@ User guide
    :maxdepth: 1
    :caption: Guides
 
+   config
    logging
    http-client
    database/index
