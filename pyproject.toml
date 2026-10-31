@@ -30,6 +30,7 @@ dependencies = [
     "pydantic>=2.11,<3",
     "pydantic-core<3",
     "pydantic-settings>2.6.0,<3",
+    "pyyaml>=6",
     "safir-logging",
     "sentry-sdk>=2,<3",
     "starlette>=1.0.1,<2",
@@ -44,6 +45,7 @@ arq = [
 db = [
     "alembic[tz]<2",
     "asyncpg<1",
+    "cloud-sql-python-connector[asyncpg]>=1",
     "sqlalchemy[asyncio]>=2,<3",
 ]
 gcs = [
@@ -127,6 +129,7 @@ nox = [
 ]
 typing = [
     "mypy>=2.3",
+    "types-pyyaml>=6",
 ]
 
 [tool.coverage.run]

@@ -1,3 +1,5 @@
+:og:description: Learn how to retry database calls on transient errors.
+
 .. py:currentmodule:: safir.database
 
 ##############################
@@ -13,11 +15,37 @@ Setting an isolation level
 If you have multiple simultaneous database writers and need to coordinate their writes to ensure consistent results, you may have to set a custom isolation level, such as ``REPEATABLE READ``,
 In this case, transactions that attempt to modify an object that was modified by a different connection will raise an exception and can be retried.
 
-`create_database_engine` and the ``initialize`` method of `~safir.dependencies.db_session.db_session_dependency` take an optional ``isolation_level`` argument that can be used to set a non-default isolation level.
-If given, this parameter is passed through to the underlying SQLAlchemy engine.
+To set the isolation level, subclass `DatabaseConfig` and `CloudSqlConfig` and set ``isolation_level`` to the desired value in the subclass.
+Then, use that subclass as the ``database`` key of the application configuration.
+For example:
 
-See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
-See :doc:`dependency` and :doc:`session` for more information about initializing the database engine.
+.. code-block:: python
+
+   from typing import Annotated
+
+   from pydantic import Field
+   from pydantic_settings import BaseSettings, SettingsConfigDict
+   from safir.database import CloudSqlConfig, DatabaseConfig
+
+
+   class ExampleCloudSqlConfig(CloudSqlConfig):
+       isolation_level: str = "REPEATABLE READ"
+
+
+   class ExampleDatabaseConfig(DatabaseConfig):
+       isolation_level: str = "REPEATABLE READ"
+
+
+   class Config(BaseSettings):
+       ...
+
+       database: Annotated[
+           ExampleCloudSqlConfig | ExampleDatabaseConfig,
+           Field(title="Database configuration"),
+       ]
+
+
+See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/latest/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
 
 Retrying transactions
 =====================

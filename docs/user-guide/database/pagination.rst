@@ -1,3 +1,5 @@
+:og:description: Learn how to paginate database queries in a FastAPI application.
+
 .. py:currentmodule:: safir.database
 
 #################
