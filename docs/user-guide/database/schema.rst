@@ -30,6 +30,31 @@ Each database table definition must inherit from ``SchemaBase``, imported from `
 
 In :file:`schema/__init__.py`, import the table definitions from all of the files in the directory, as well as the ``Base`` class, and export them using ``__all__``.
 
+Using non-default PostgreSQL schemas
+------------------------------------
+
+Sometimes it is convenient for multiple applications to share the same database but use separate collections of tables.
+PostgreSQL supports serving multiple schemas (in the sense of a namespace of tables) from the same database, and SQLAlchemy supports specifying the PostgreSQL schema for a given collection of tables.
+
+The normal way to do this in SQLAlchemy is to modify the `~sqlalchemy.orm.DeclarativeBase` subclass used by the table definitions to specify a non-default schema.
+For example:
+
+.. code-block:: python
+
+   from sqlalchemy import MetaData
+   from sqlalchemy.orm import DeclarativeBase
+
+   from ..config import config
+
+
+   class SchemaBase(DeclarativeBase):
+       metadata = MetaData(schema=config.database_schema)
+
+If ``config.database_schema`` is `None`, the default schema will be used; otherwise, SQLAlchemy will use the specified schema instead of the default one.
+
+Safir supports this in database initialization by creating a non-default schema if one is set.
+If the ``schema`` attribute is set (via code like the above) on the SQLAlchemy metadata passed to the ``schema`` parameter of `~safir.database.initialize_database`, it will create that schema in the PostgreSQL database if it does not already exist.
+
 Set up Alembic
 ==============
 
@@ -126,20 +151,10 @@ Here is a command to upgrade or create a database schema as appropriate:
 
 .. code-block:: python
 
-   import asyncio
    import subprocess
    from pathlib import Path
 
    import click
-   from safir.databases import (
-       engine_manager,
-       initialize_database,
-       is_database_initialized,
-       stamp_database,
-   )
-   from sqlalchemy import select
-
-   from .dependencies.config import config_dependency
 
    # Definition of main omitted.
 
@@ -152,33 +167,15 @@ Here is a command to upgrade or create a database schema as appropriate:
        default=None,
        help="Application configuration file.",
    )
-   @click.option(
-       "--alembic-config-path",
-       envvar="EXAMPLE_ALEMBIC_CONFIG_PATH",
-       type=click.Path(path_type=Path),
-       default=Path("/app/alembic.ini"),
-       help="Alembic configuration file.",
-   )
-   def update_schema(
-       *, config_path: Path | None, alembic_config_path: Path
-   ) -> None:
+   def update_schema(*, config_path: Path | None) -> None:
        """Update the schema."""
        if config_path:
-           config_dependency.set_config_path(config_path)
            env = {**os.environ, "EXAMPLE_CONFIG_PATH": str(config_path)}
        else:
            env = None
-       db_config = config_dependency.config().database
-       logger = structlog.get_logger("example")
-       stmt = select(Example).limit(1)
-       if not asyncio.run(is_database_initialized(db_config, logger, stmt)):
-           schema = SchemaBase.metadata
-           asyncio.run(initialize_database(db_config, logger, schema=schema))
-           stamp_database(alembic_config_path)
-       else:
-           subprocess.run(["alembic", "upgrade", "head"], check=True, env=env)
+       subprocess.run(["alembic", "upgrade", "head"], check=True, env=env)
 
-Change ``example`` and ``EXAMPLE`` to something appropriate for your application, and change the ``stmt`` variable to a SQL expression that checks whether the schema for your application is present.
+Change ``EXAMPLE`` to something appropriate for your application.
 If you have other upgrade or migration code that needs to run, you can add it to this function.
 
 You may also find it useful to have a command that checks the current schema and reports whether it is up to date.
@@ -191,11 +188,7 @@ Here is one way to implement that:
    import click
    import structlog
    from safir.asyncio import run_with_asyncio
-   from safir.database import (
-       create_database_engine,
-       is_database_current,
-       is_database_initialized,
-   )
+   from safir.database import engine_manager, is_database_current
 
    from .dependencies.config import config_dependency
 
@@ -219,8 +212,6 @@ Here is one way to implement that:
        logger = structlog.get_logger("example")
 
        async with engine_manager(config.database) as engine:
-           if not await is_database_initialized(engine, logger, stmt):
-               raise click.ClickException("Database has not been initialized")
            if not await is_database_current(engine, logger):
                raise click.ClickException("Database schema is not current")
 
@@ -230,34 +221,7 @@ Add Alembic checks to startup
 The application should check whether the database schema is up to date when starting.
 This is discussed as part of the broader topic of :doc:`database engine creation <engine>`.
 
-Add Alembic to the test suite
-=============================
-
-In the test suite fixtures (generally in :file:`tests/conftest.py`), integrating Alembic requires stamping the database after initializing it.
-This ensures that the checks for the schema will pass when executing tests.
-
-.. code-block:: python
-
-   import pytest_asnycio
-   import structlog
-
-   from example.config import Config
-   from example.schema import SchemaBase
-
-
-   @pytest_asyncio.fixture
-   async def empty_database(config: Config) -> None:
-       logger = structlog.get_logger(__name__)
-       schema = SchemaBase.metadata
-       async with engine_manager(config.engine) as engine:
-           await initialize_database(engine, logger, schema=schema, reset=True)
-           await stamp_database_async(engine)
-
-Any test that uses the database should then depend on this fixture.
-For applications where all or nearly all tests use the database, you can instead mark the fixture as autouse.
-
-The call to `initialize_database` with the ``reset=True`` option will ensure the schema is present and current if necessary, and will empty all of the tables except for the Alembic version table if they already exist.
-This ensures each test will start fresh.
+.. _database-alembic-nox:
 
 Integrate Alembic with nox
 ==========================
@@ -307,8 +271,8 @@ Add the following to :file:`noxfile.py`:
            username="semaphore",
            password=os.urandom(16).hex(),
        ) as postgres:
-           env["EXAMPLE_DATABASE_PASSWORD"] = postgres.password
-           env["EXAMPLE_DATABASE_URL"] = postgres.get_connection_url()
+           env["EXAMPLE_DATABASE__PASSWORD"] = postgres.password
+           env["EXAMPLE_DATABASE__URL"] = postgres.get_connection_url()
            yield _Containers(env=env, postgres=postgres)
 
 
@@ -327,7 +291,9 @@ Add the following to :file:`noxfile.py`:
                env=containers.env,
            )
 
+This code assumes you are using the configuration approach described in :doc:`config`.
 As always, replace ``EXAMPLE`` with the appropriate prefix for your application.
+
 You can now run :command:`nox -s create-migration` to create a new Alembic migration reflecting changes to the database schema since the last Alembic migration.
 
 Create the initial Alembic migration

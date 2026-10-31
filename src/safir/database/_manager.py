@@ -17,7 +17,7 @@ except ImportError as e:
         "Install it with `pip install safir[db]`."
     ) from e
 
-from ._config import CloudSqlSettings, DatabaseSettings
+from ._config import CloudSqlConfig, DatabaseConfig
 
 __all__ = [
     "CloudSqlEngineManager",
@@ -92,7 +92,7 @@ class CloudSqlEngineManager(EngineManager):
     """
 
     def __init__(
-        self, config: CloudSqlSettings, connect_args: dict[str, Any] | None
+        self, config: CloudSqlConfig, connect_args: dict[str, Any] | None
     ) -> None:
         super().__init__(connect_args)
         self._config = config
@@ -148,7 +148,7 @@ class DatabaseEngineManager(EngineManager):
     """
 
     def __init__(
-        self, config: DatabaseSettings, connect_args: dict[str, Any] | None
+        self, config: DatabaseConfig, connect_args: dict[str, Any] | None
     ) -> None:
         super().__init__(connect_args)
         self._config = config
@@ -163,7 +163,7 @@ class DatabaseEngineManager(EngineManager):
 
 
 def engine_manager(
-    config: CloudSqlSettings | DatabaseSettings,
+    config: CloudSqlConfig | DatabaseConfig,
     connect_args: dict[str, Any] | None = None,
 ) -> EngineManager:
     """Create a database engine manager.
@@ -181,7 +181,7 @@ def engine_manager(
         associated resources when the caller is finished with the engine.
     """
     match config:
-        case CloudSqlSettings():
+        case CloudSqlConfig():
             return CloudSqlEngineManager(config, connect_args)
-        case DatabaseSettings():
+        case DatabaseConfig():
             return DatabaseEngineManager(config, connect_args)

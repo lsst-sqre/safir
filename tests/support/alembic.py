@@ -1,13 +1,10 @@
 """Support classes for testing Alembic."""
 
-from pydantic import SecretStr
-from pydantic_core import Url
-from pydantic_settings import SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from safir.database import DatabaseSettings
+from safir.database import DatabaseConfig
 from safir.logging import LogLevel
-from safir.pydantic import EnvAsyncPostgresDsn
 
 __all__ = [
     "BaseV1",
@@ -18,19 +15,18 @@ __all__ = [
 ]
 
 
-class Config(DatabaseSettings):
+class Config(BaseSettings):
     """Just enough configuration to support the Alembic environments.
 
-    When running Alembic via subprocess, set ``TEST_DATABASE_URL`` and
-    ``TEST_DATABASE_PASSWORD`` to match the database that it should use.
+    When running Alembic via subprocess, set ``TEST_DATABASE__URL`` and
+    ``TEST_DATABASE__PASSWORD`` to match the database that it should use.
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="TEST_DATABASE_", case_sensitive=False
+        env_prefix="TEST_", env_nested_delimiter="__"
     )
 
-    url: EnvAsyncPostgresDsn = Url("postgresql://foo@localhost/safir")
-    password: SecretStr = SecretStr("INSECURE")
+    database: DatabaseConfig | None = None
     log_level: LogLevel = LogLevel.DEBUG
 
 

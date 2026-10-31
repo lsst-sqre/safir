@@ -9,7 +9,7 @@ from ._alembic import (
     stamp_database_async,
     unstamp_database,
 )
-from ._config import BaseDatabaseSettings, CloudSqlSettings, DatabaseSettings
+from ._config import BaseDatabaseConfig, CloudSqlConfig, DatabaseConfig
 from ._connection import create_async_session, create_database_engine
 from ._datetime import datetime_from_db, datetime_to_db
 from ._initialize import (
@@ -36,14 +36,14 @@ from ._retry import retry_async_transaction
 
 __all__ = [
     "AlembicConfigError",
-    "BaseDatabaseSettings",
+    "BaseDatabaseConfig",
+    "CloudSqlConfig",
     "CloudSqlEngineManager",
-    "CloudSqlSettings",
     "CountedPaginatedList",
     "CountedPaginatedQueryRunner",
+    "DatabaseConfig",
     "DatabaseEngineManager",
     "DatabaseInitializationError",
-    "DatabaseSettings",
     "DatetimeIdCursor",
     "EngineManager",
     "InvalidCursorError",

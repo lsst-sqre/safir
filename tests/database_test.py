@@ -30,7 +30,7 @@ from structlog.stdlib import BoundLogger
 from safir.database import (
     CountedPaginatedList,
     CountedPaginatedQueryRunner,
-    DatabaseSettings,
+    DatabaseConfig,
     DatetimeIdCursor,
     PaginatedList,
     PaginatedQueryRunner,
@@ -61,7 +61,7 @@ def logger() -> BoundLogger:
 
 @pytest_asyncio.fixture
 async def engine(
-    database_config: DatabaseSettings, logger: BoundLogger
+    database_config: DatabaseConfig, logger: BoundLogger
 ) -> AsyncIterator[AsyncEngine]:
     schema = BaseV2.metadata
     async with engine_manager(database_config) as engine:
@@ -72,7 +72,7 @@ async def engine(
 @pytest.mark.asyncio
 async def test_initialize_database(
     *,
-    database_config: DatabaseSettings,
+    database_config: DatabaseConfig,
     database_url: str,
     database_password: str,
     logger: BoundLogger,
@@ -107,7 +107,7 @@ async def test_initialize_database(
 
 @pytest.mark.asyncio
 async def test_drop_database(
-    database_config: DatabaseSettings, logger: BoundLogger
+    database_config: DatabaseConfig, logger: BoundLogger
 ) -> None:
     async with engine_manager(database_config) as engine:
         await initialize_database(engine, logger, schema=BaseV2.metadata)
@@ -124,13 +124,13 @@ async def test_drop_database(
 
 
 def test_build_url() -> None:
-    config = DatabaseSettings.model_validate(
+    config = DatabaseConfig.model_validate(
         {"url": "postgresql://foo@127.0.0.1/foo", "password": "password"}
     )
     url = config.build_url()
     assert url == "postgresql+asyncpg://foo:password@127.0.0.1/foo"
 
-    config = DatabaseSettings.model_validate(
+    config = DatabaseConfig.model_validate(
         {"url": "postgresql://foo@127.0.0.1:5432/foo", "password": "password"}
     )
     url = config.build_url()
@@ -139,7 +139,7 @@ def test_build_url() -> None:
     assert url == "postgresql://foo:password@127.0.0.1:5432/foo"
 
     # Test that the username and password are quoted properly.
-    config = DatabaseSettings.model_validate(
+    config = DatabaseConfig.model_validate(
         {
             "url": "postgresql+asyncpg://foo%40e.com@127.0.0.1:4444/foo",
             "password": "pass@word/with stuff",
@@ -161,7 +161,7 @@ def test_build_url() -> None:
     assert parsed_url.port == 4444
 
     # MySQL scheme modifications.
-    config = DatabaseSettings.model_validate(
+    config = DatabaseConfig.model_validate(
         {"url": "mysql://foo@127.0.0.1:3306/foo", "password": "password"}
     )
     url = config.build_url()
@@ -306,8 +306,9 @@ def test_alembic(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     event_loop = asyncio.new_event_loop()
-    config.url = Url(database_url)
-    config.password = SecretStr(database_password)
+    config.database = DatabaseConfig(
+        url=Url(database_url), password=SecretStr(database_password)
+    )
     config_path = data.path("database/v1/alembic.ini")
     logger = structlog.get_logger(__name__)
     engine = create_database_engine(database_url, database_password)
@@ -358,8 +359,8 @@ def test_alembic(
         cwd=str(config_path.parent),
         env={
             **os.environ,
-            "TEST_DATABASE_URL": database_url,
-            "TEST_DATABASE_PASSWORD": database_password,
+            "TEST_DATABASE__URL": database_url,
+            "TEST_DATABASE__PASSWORD": database_password,
             "PYTHONPATH": str(Path(__file__).parent.parent),
         },
     )

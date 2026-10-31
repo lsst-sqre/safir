@@ -1,122 +1,107 @@
+:og:description: Learn how to use test applications that use a database.
+
+.. py:currentmodule:: safir.database
+
 ########################################
 Testing applications that use a database
 ########################################
 
-The Safir database layer only supports PostgreSQL at present.
+The recommended strategy for testing applications that use a database is to start a real PostgreSQL server for the tests.
 While support for SQLite could be added, testing against the database that will be used for production is usually a better strategy, since some bugs (particularly around transaction management) are sensitive to the choice of backend.
 
-The recommended strategy for testing applications that use a database is to start a real PostgreSQL server for the tests.
+Starting the database for tests
+===============================
 
-Also see :ref:`database-alembic-testing` for information on how to test Alembic schema management.
+There are two ways to start the database used by the test suite: manage it in nox_, or manage it using test fixtures.
+Starting the database in nox is usually preferred, since :file:`noxfile.py` needs the ability to start the PostgreSQL server anyway to generate Alembic schema migrations.
 
-Using tox-docker
-================
+Starting the database with nox
+------------------------------
 
-One approach to starting a test database is to use the tox-docker_ plugin for tox_.
+First, ensure that you've already added the :ref:`configuration required by Alembic <database-alembic-nox>` to your :file:`noxfile.py`.
+The same code will be reused to start the database for the test suite.
 
-Configure tox-docker
---------------------
-
-To do this, add ``tox-docker`` to :file:`requirements/tox.in` and run :command:`make update`.
-Then, add the following to :file:`tox.ini` to define a database container:
-
-.. code-block:: ini
-
-   [docker:postgres]
-   image = postgres:latest
-   ports =
-       5432:5432/tcp
-   environment =
-       POSTGRES_PASSWORD = INSECURE-PASSWORD
-       POSTGRES_USER = example
-       POSTGRES_DB = example
-       PGPORT = 5432
-   # The healthcheck ensures that tox-docker won't run tests until the
-   # container is up and the command finishes with exit code 0 (success)
-   healthcheck_cmd = PGPASSWORD=$POSTGRES_PASSWORD psql  \
-       --user=$POSTGRES_USER --dbname=$POSTGRES_DB       \
-       --host=127.0.0.1 --quiet --no-align --tuples-only \
-       -1 --command="SELECT 1"
-   healthcheck_timeout = 1
-   healthcheck_retries = 30
-   healthcheck_interval = 1
-   healthcheck_start_period = 1
-
-Change ``POSTGRES_USER`` and ``POSTGRES_DB`` to match the name of your application.
-
-Add a dependency on this container to your ``py`` test environment (and any other tox environments that will run :command:`pytest`):
-
-.. code-block:: ini
-
-   [testenv:py]
-   # ...
-   docker =
-       postgres
-
-You may want to also add this to any ``run`` test environment you have defined so that a PostgreSQL container will be started for the local development environment.
-
-Pass database details to the application
-----------------------------------------
-
-Assuming that your application uses environment variables to configure the database URL and password (the recommended approach), set those environment variables in the ``py`` test environment (and any other relevant test environments, such as ``run``):
-
-.. code-block:: ini
-
-   [testenv:py]
-   # ...
-   setenv =
-       EXAMPLE_DATABASE_URL = postgresql://safir@127.0.0.1/safir
-       EXAMPLE_DATABASE_PASSWORD = INSECURE-PASSWORD
-
-Change the names of the environment variables to match those used by your application, and change the database user and database name to match your application if you did so in the ``[docker:postgres]`` section.
-
-Your application should declare the database URL in the configuration to have the Pydantic type `~safir.pydantic.EnvAsyncPostgresDsn` (see :ref:`pydantic-dsns`).
-This will automatically pick up the IP address and port of the test database from environment variables set by tox-docker_ and adjust the URL accordingly when the configuration is parsed.
-
-Use the database in tests
--------------------------
-
-Initialize the database in a test fixture.
-The simplest way to do this is to add a call to `~safir.database.initialize_database` to the ``app`` fixture.
+Then, all you should need to do is use the ``_start_containers`` context manager for the ``test`` nox session, similar to how it's used for the ``create-migration`` nox session.
 For example:
 
 .. code-block:: python
 
+   @session(uv_groups=["dev"])
+   def test(session: nox.Session) -> None:
+       """Test the example application."""
+       with _start_containers() as containers:
+           session.run(
+               "pytest",
+               "--cov=example",
+               "--cov-branch",
+               "--cov-report=",
+               *session.posargs,
+           )
+
+Change all occurrences of ``example`` to something appropriate for your application.
+The ``_start_containers`` decorator defined in :ref:`database-alembic-nox` sets the appropriate environment variables to inject the database username and password into the configuration.
+
+Using the database in tests
+===========================
+
+Since :file:`noxfile.py` defines the appropriate environment variables, your application should pick up the URL and password for the database through its normal configuration mechanism.
+Nothing special is therefore required to connect to the database.
+
+However, normally the application will not attempt to initialize the database on every startup, since this is potentially undesirable in production deployments.
+Each test should also start with an empty database state so that tests do not interfere with subsequent tests.
+You should therefore create a fixture that reinitializes the database for each test.
+Conventially, this fixture is named ``empty_database`` and uses an ``engine`` fixture to create the database engine.
+
+.. code-block:: python
+   :caption: tests/conftest.py
+
    from collections.abc import AsyncGenerator
 
    import pytest_asyncio
-   from asgi_lifespan import LifespanManager
-   from fastapi import FastAPI
-   from safir.database import create_database_engine, initialize_database
+   import structlog
+   from safir.database import (
+       engine_manager,
+       iniitalize_database,
+       stamp_database_async,
+   )
+   from sqlalchemy.ext.asyncio import AsyncEngine
 
-   from example import main
-   from example.config import config
-   from example.schema import Base
+   from example.schema import SchemaBase
 
 
    @pytest_asyncio.fixture
-   async def app() -> AsyncGenerator[FastAPI]:
-       logger = structlog.get_logger(config.logger_name)
-       engine = create_database_engine(
-           config.database_url, config.database_password
-       )
-       await initialize_database(
-           engine, logger, schema=Base.metadata, reset=True
-       )
-       await engine.dispose()
-       async with LifespanManager(main.app):
-           yield main.app
+   async def engine(config: Config) -> AsyncGenerator[AsyncEngine]:
+       async with engine_manager(config.database) as engine:
+           yield engine
 
-This uses the ``reset`` flag to drop and recreate all database tables between each test, which ensures no test records leak from one test to the next.
 
-If you need to preload test data into the database, do that after the call to ``initialize_database`` and before ``await engine.dispose()``, using the provided engine object.
+   @pytest_asyncio.fixture
+   async def empty_database(engine: AsyncEngine) -> None:
+       logger = structlog.get_logger(__file__)
+       schema = SchemaBase.metadata
+       await initialize_database(engine, logger, schema=schema, reset=True)
+       await stamp_database_async(engine)
+
+As always, replace any instances of ``example`` with what is appropriate for your application.
+
+This drops and recreates all tables between each test and ensures that the Alembic version information is correctly set so that schema checks run by the application during startup will pass.
+
+This example assumes that you have a fixture named ``config`` that returns the application configuration.
+This is a common pattern for applications that use YAML configuration files (see :doc:`/user-guilde/config`).
+If your application uses a global ``config`` object initialized from environment variables, import that instead of using a ``config`` fixture.
+
+Once these fixtures are in place, any test or fixture that needs an initialized, empty database can request on the ``empty_database`` fixture.
+Usually you will want to do that in the ``app`` fixture.
+Alternately, if nearly every test uses the database anyway, you can mark the fixture autouse.
+Tests that need a connected database engine can request the ``engine`` fixture.
 
 .. warning::
 
-   Because the tests use a single external PostgreSQL instance with a single database, tests cannot be run in parallel, or a test may see database changes from another test.
+   Because these fixtures set up a single external PostgreSQL instance with a single database, tests cannot be run in parallel, or a test may see database changes from another test.
    This, in turn, means that plugins like `pytest-xdist <https://pypi.org/project/pytest-xdist/>`__ unfortunately cannot be used to speed up tests.
+   With some additional effort, not documented here, you can work around this by using per-test databases or database schemas.
 
-.. _database-alembic-testing:
+.. _database-testing-alembic:
 
 Testing database migrations
 ===========================
@@ -151,8 +136,9 @@ The following test can be dropped into :file:`tests/schema_test.py` and should w
        subprocess.run(["alembic", "check"], check=True, env=env)
 
 As always, replace ``example`` and ``EXAMPLE`` with the appropriate values for your application.
-This assumes that ``example.schema.SchemaBase`` is the declarative base of your SQLAlchemy ORM schema.
-Adjust as needed for your application.
+
+As above, this example assumes that you have a fixture named ``config`` that returns the application configuration.
+If your application uses a global ``config`` object initialized from environment variables, import that instead of using a ``config`` fixture.
 
 .. warning::
 

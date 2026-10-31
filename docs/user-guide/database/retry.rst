@@ -15,7 +15,7 @@ Setting an isolation level
 If you have multiple simultaneous database writers and need to coordinate their writes to ensure consistent results, you may have to set a custom isolation level, such as ``REPEATABLE READ``,
 In this case, transactions that attempt to modify an object that was modified by a different connection will raise an exception and can be retried.
 
-To set the isolation level, subclass `DatabaseSettings` and `CloudSqlSettings` and set ``isolation_level`` to the desired value in the subclass.
+To set the isolation level, subclass `DatabaseConfig` and `CloudSqlConfig` and set ``isolation_level`` to the desired value in the subclass.
 Then, use that subclass as the ``database`` key of the application configuration.
 For example:
 
@@ -25,16 +25,14 @@ For example:
 
    from pydantic import Field
    from pydantic_settings import BaseSettings, SettingsConfigDict
-   from safir.database import CloudSqlSettings, DatabaseSettings
+   from safir.database import CloudSqlConfig, DatabaseConfig
 
 
-   class ExampleCloudSqlSettings(CloudSqlSettings):
+   class ExampleCloudSqlConfig(CloudSqlConfig):
        isolation_level: str = "REPEATABLE READ"
 
 
-   class ExampleDatabaseSettings(DatabaseSettings):
-       model_config = SettingsConfigDict(env_prefix="EXAMPLE_DATABASE_")
-
+   class ExampleDatabaseConfig(DatabaseConfig):
        isolation_level: str = "REPEATABLE READ"
 
 
@@ -42,12 +40,12 @@ For example:
        ...
 
        database: Annotated[
-           ExampleCloudSqlSettings | ExampleDatabaseSettings,
+           ExampleCloudSqlConfig | ExampleDatabaseConfig,
            Field(title="Database configuration"),
        ]
 
 
-See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
+See `the SQLAlchemy isolation level documentation <https://docs.sqlalchemy.org/en/latest/orm/session_transaction.html#setting-transaction-isolation-levels-dbapi-autocommit>`__ for more information.
 
 Retrying transactions
 =====================

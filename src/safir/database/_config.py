@@ -5,6 +5,8 @@ from urllib.parse import quote, urlsplit
 
 from pydantic import (
     AliasGenerator,
+    BaseModel,
+    ConfigDict,
     Field,
     MySQLDsn,
     SecretStr,
@@ -12,21 +14,20 @@ from pydantic import (
     model_validator,
 )
 from pydantic.alias_generators import to_camel
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from safir.pydantic import EnvAsyncPostgresDsn
 
 __all__ = [
-    "BaseDatabaseSettings",
-    "CloudSqlSettings",
-    "DatabaseSettings",
+    "BaseDatabaseConfig",
+    "CloudSqlConfig",
+    "DatabaseConfig",
 ]
 
 
-class BaseDatabaseSettings(BaseSettings):
+class BaseDatabaseConfig(BaseModel):
     """Base settings for database connections."""
 
-    model_config = SettingsConfigDict(
+    model_config = ConfigDict(
         alias_generator=AliasGenerator(validation_alias=to_camel),
         extra="forbid",
         populate_by_name=True,
@@ -137,7 +138,7 @@ class BaseDatabaseSettings(BaseSettings):
         return {k: v for k, v in data.items() if v is not None}
 
 
-class CloudSqlSettings(BaseDatabaseSettings):
+class CloudSqlConfig(BaseDatabaseConfig):
     """Configuration for a Cloud SQL database."""
 
     type: Literal["cloudsql"]
@@ -201,7 +202,7 @@ class CloudSqlSettings(BaseDatabaseSettings):
         return self.service_account.removesuffix(".gserviceaccount.com")
 
 
-class DatabaseSettings(BaseDatabaseSettings):
+class DatabaseConfig(BaseDatabaseConfig):
     """Configuration for an external database."""
 
     type: Literal["external"] = "external"

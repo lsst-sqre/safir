@@ -25,7 +25,7 @@ Guides
 .. toctree::
    :titlesonly:
 
-   settings
+   config
    schema
    engine
    dependency

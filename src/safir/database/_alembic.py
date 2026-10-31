@@ -20,11 +20,11 @@ except ImportError as e:
         "The safir.database module requires the db extra. "
         "Install it with `pip install safir[db]`."
     ) from e
-from pydantic import SecretStr
+from pydantic import MySQLDsn, SecretStr
 from pydantic_core import Url
 from structlog.stdlib import BoundLogger
 
-from ._config import CloudSqlSettings, DatabaseSettings
+from ._config import CloudSqlConfig, DatabaseConfig
 from ._connection import build_database_url, create_database_engine
 from ._manager import engine_manager
 
@@ -92,7 +92,9 @@ async def is_database_current(
         return True
 
 
-def run_migrations_offline(metadata: MetaData, url: str | Url) -> None:
+def run_migrations_offline(
+    metadata: MetaData, url: str | Url | MySQLDsn
+) -> None:
     """Run Alembic migrations in offline mode.
 
     This function may only be called from the Alembic :file:`env.py` file.
@@ -139,19 +141,21 @@ def run_migrations_offline(metadata: MetaData, url: str | Url) -> None:
 
 @overload
 def run_migrations_online(
-    metadata: MetaData, url_or_config: CloudSqlSettings | DatabaseSettings
+    metadata: MetaData, url_or_config: CloudSqlConfig | DatabaseConfig
 ) -> None: ...
 
 
 @overload
 def run_migrations_online(
-    metadata: MetaData, url_or_config: str | Url, password: str | SecretStr
+    metadata: MetaData,
+    url_or_config: str | Url | MySQLDsn,
+    password: str | SecretStr,
 ) -> None: ...
 
 
 def run_migrations_online(
     metadata: MetaData,
-    url_or_config: str | Url | CloudSqlSettings | DatabaseSettings,
+    url_or_config: str | Url | MySQLDsn | CloudSqlConfig | DatabaseConfig,
     password: str | SecretStr | None = None,
 ) -> None:
     """Run Alembic migrations online using an async backend.
@@ -195,7 +199,7 @@ def run_migrations_online(
             context.run_migrations()
 
     async def run_async_migrations() -> None:
-        if isinstance(url_or_config, CloudSqlSettings | DatabaseSettings):
+        if isinstance(url_or_config, CloudSqlConfig | DatabaseConfig):
             async with engine_manager(url_or_config) as engine:
                 async with engine.connect() as connection:
                     await connection.run_sync(do_migrations)
