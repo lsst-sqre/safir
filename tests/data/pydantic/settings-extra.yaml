@@ -1,0 +1,4 @@
+simple: 10
+multiWord: "foo"
+envOverride: "bar"
+extraSetting: "something"

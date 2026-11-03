@@ -1,6 +1,7 @@
 """Utilities for Pydantic models."""
 
 from ._camel import CamelCaseModel, to_camel_case
+from ._settings import YamlBaseSettings
 from ._types import (
     EnvAsyncPostgresDsn,
     EnvRedisDsn,
@@ -23,6 +24,7 @@ __all__ = [
     "IvoaIsoDatetime",
     "SecondsTimedelta",
     "UtcDatetime",
+    "YamlBaseSettings",
     "normalize_datetime",
     "normalize_isodatetime",
     "to_camel_case",
