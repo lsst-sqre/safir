@@ -52,7 +52,7 @@ gcs = [
     "google-cloud-storage>3,<4"
 ]
 kafka = [
-    "aiokafka>=0.13,<0.15",
+    "aiokafka>=0.13,<0.16",
     "dataclasses-avroschema>=0.65.7,<1",
     "faststream>=0.6.6,<0.8",
     "python-schema-registry-client>=2.6,<3",
