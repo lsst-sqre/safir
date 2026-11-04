@@ -8,14 +8,6 @@ package = "safir"
 [sphinx]
 rst_epilog_file = "_rst_epilog.rst"
 nitpicky = true
-nitpick_ignore = [
-    # The rendered value of the IvoaIsoDatetime alias includes the reprs of
-    # Pydantic's BeforeValidator and PlainSerializer dataclasses, which leak
-    # PydanticUndefined and the unquoted string "json" as reference targets.
-    # https://github.com/lsst-sqre/documenteer/issues/385
-    ["py:class", "PydanticUndefined"],
-    ["py:class", "json"],
-]
 extensions = [
     "sphinxcontrib.autodoc_pydantic",
 ]
