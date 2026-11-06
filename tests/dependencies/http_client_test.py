@@ -8,7 +8,7 @@ import pytest
 import respx
 from asgi_lifespan import LifespanManager
 from fastapi import Depends, FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 
 from safir.dependencies.http_client import http_client_dependency
 
@@ -25,9 +25,9 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 @pytest.mark.asyncio
-async def test_http_client(respx_mock: respx.Router) -> None:
+async def test_http_client(httpx2_mock: respx.Router) -> None:
     app = FastAPI(lifespan=_lifespan)
-    respx_mock.get("https://www.google.com").respond(200)
+    httpx2_mock.get("https://www.google.com").respond(200)
 
     @app.get("/")
     async def handler(

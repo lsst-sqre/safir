@@ -43,7 +43,7 @@ Testing applications using this dependency
 ==========================================
 
 When testing an application that uses this dependency, any web requests to the authenticated routes of the application must include the ``X-Auth-Request-User`` header, or the test call will be rejected.
-For example (assuming use of ``httpx.AsyncClient`` for testing):
+For example (assuming use of ``httpx2.AsyncClient`` for testing):
 
 .. code-block:: python
 
@@ -60,7 +60,7 @@ This is most easily done by defining a fixture, as follows.
 
    import pytest_asyncio
    from fastapi import FastAPI
-   from httpx import ASGITransport, AsyncClient
+   from httpx2 import ASGITransport, AsyncClient
 
 
    @pytest_asyncio.fixture

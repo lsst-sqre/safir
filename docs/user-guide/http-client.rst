@@ -1,14 +1,14 @@
-######################
-Using the HTTPX client
-######################
+#######################
+Using the HTTPX2 client
+#######################
 
-Safir helps you manage a single ``httpx.AsyncClient`` for your application.
-Using a single HTTPX_ client improves performance by reusing connections.
+Safir helps you manage a single ``httpx2.AsyncClient`` for your application.
+Using a single HTTPX2_ client improves performance by reusing connections.
 
-Setting up the httpx.AsyncClient
-================================
+Setting up the httpx2.AsyncClient
+=================================
 
-The ``httpx.AsyncClient`` will be dyanmically created during application startup.
+The ``httpx2.AsyncClient`` will be dyanmically created during application startup.
 Nothing further is needed apart from importing the dependency.
 However, it must be closed during application shutdown or a warning will be generated.
 This is normally done during the lifespan function for the FastAPI app.
@@ -31,8 +31,8 @@ This is normally done during the lifespan function for the FastAPI app.
 
 You can add this line to an existing shutdown hook if you already have one.
 
-Using the httpx.AsyncClient
-===========================
+Using the httpx2.AsyncClient
+============================
 
 To use the client in a handler, just request it via a FastAPI dependency:
 
@@ -40,7 +40,7 @@ To use the client in a handler, just request it via a FastAPI dependency:
 
    from typing import Annotated
 
-   from httpx import AsyncClient
+   from httpx2 import AsyncClient
    from safir.dependencies.http_client import http_client_dependency
 
 
@@ -54,7 +54,10 @@ To use the client in a handler, just request it via a FastAPI dependency:
 Testing considerations
 ======================
 
-If you are using ``httpx.AsyncClient`` in your application tests as well, note that it will not trigger shutdown events, so if you trigger handlers that use the HTTP client, you will get a warning about an unclosed ``httpx.AsyncClient`` in your test output.
+Startup and shutdown
+--------------------
+
+If you are using ``httpx2.AsyncClient`` in your application tests as well, note that it will not trigger shutdown events, so if you trigger handlers that use the HTTP client, you will get a warning about an unclosed ``httpx2.AsyncClient`` in your test output.
 To avoid this, wrap your test application in ``asgi_lifespan.LifespanManager`` from the asgi-lifespan Python package:
 
 .. code-block:: python
@@ -76,3 +79,35 @@ You can do this in a yield fixture to avoid code duplication.
        # Add any other necessary application setup here.
        async with LifespanManager(main.app):
            yield main.app
+
+.. _http-client-mocking:
+
+Mocking
+-------
+
+respx_ does not natively support HTTPX2 yet.
+For the time being, you will have to add a development dependency on pytest-httpx2_ and use ``httpx2_mock`` instead of ``respx_mock``.
+
+Unlike the standard ``respx_mock`` fixture, the ``httpx2_mock`` repoerts an error by default if any mock is declared but not called.
+In cases where that is expected, you will need to add a mark to tell pytest-httpx2 that this is fine.
+
+.. code-block:: python
+
+   import pytest
+
+
+   @pytest.mark.httpx2(assert_all_called=False)
+   @pytest.mark.asyncio
+   async def test_something() -> None: ...
+
+pytest-httpx2 unfortunately does not declare this marker, so if you use this, you will also need to add the following block to your :file:`pyproject.toml`:
+
+.. code-block:: toml
+
+   [tool.pytest.ini_options]
+   markers = [
+       "httpx2: implemented by pytest-httpx2 but not registered correctly"
+   ]
+
+Mocks that return ``httpx.Response`` from ``return_value`` or ``side_effect`` of a respx mock must continue to use ``httpx.Response`` even though the rest of the application is using HTTPX2.
+respx will not recognize ``httpx2.Response`` and will not handle the mock correctly if it is used.

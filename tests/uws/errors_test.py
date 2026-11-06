@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from safir.testing.sentry import Captured
 from safir.testing.slack import MockSlackWebhook
@@ -21,6 +21,7 @@ class PostTest:
     data: dict[str, str]
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_errors(
     *,

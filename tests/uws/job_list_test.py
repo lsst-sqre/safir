@@ -7,7 +7,7 @@ API to create a job, instead inserting it directly via the UWSService.
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from vo_models.uws import Jobs
 
 from safir.datetime import isodatetime
@@ -77,6 +77,7 @@ QUEUED_JOB_LIST = """
 """
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_job_list(
     *,

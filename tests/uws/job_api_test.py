@@ -12,7 +12,7 @@ import pytest
 from arq.constants import default_queue_name
 from arq.jobs import JobStatus
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 from vo_models.uws import JobSummary, Results
 
 from safir.arq import MockArqQueue
@@ -23,6 +23,8 @@ from safir.uws import Job, UWSConfig
 from safir.uws._dependencies import UWSFactory
 
 from ..support.uws import SimpleParameters, SimpleXmlParameters
+
+pytestmark = [pytest.mark.httpx2(assert_all_called=False), pytest.mark.asyncio]
 
 PENDING_JOB = """
 <uws:job
@@ -141,7 +143,6 @@ JOB_RESULTS = """
 """
 
 
-@pytest.mark.asyncio
 async def test_job_run(
     *,
     client: AsyncClient,
@@ -268,7 +269,6 @@ async def test_job_run(
     assert r.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_job_abort(
     *,
     client: AsyncClient,
@@ -355,7 +355,6 @@ async def test_job_abort(
     assert isinstance(job_result.result, asyncio.CancelledError)
 
 
-@pytest.mark.asyncio
 async def test_job_api(
     client: AsyncClient,
     test_token: str,
@@ -484,7 +483,6 @@ async def test_job_api(
     assert r.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_redirects(
     app: FastAPI, test_token: str, uws_factory: UWSFactory
 ) -> None:
@@ -546,7 +544,6 @@ async def test_redirects(
         assert r.headers["Location"] == "https://example.com/test/jobs"
 
 
-@pytest.mark.asyncio
 async def test_presigned_url(
     client: AsyncClient,
     test_token: str,
@@ -603,7 +600,6 @@ def validate_execution_duration(
         return min(duration, max_duration)
 
 
-@pytest.mark.asyncio
 async def test_validators(
     client: AsyncClient,
     test_token: str,

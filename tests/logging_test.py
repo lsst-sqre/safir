@@ -9,7 +9,7 @@ from unittest.mock import ANY
 
 import pytest
 import structlog
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from pydantic import BaseModel, ValidationError
 
 from safir.logging import LogLevel, Profile, configure_logging

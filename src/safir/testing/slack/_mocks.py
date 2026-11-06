@@ -4,7 +4,8 @@ import json
 from typing import Any
 
 import respx
-from httpx import Request, Response
+from httpx import Response
+from httpx2 import Request
 from pydantic import SecretStr
 
 __all__ = ["MockSlackWebhook", "mock_slack_webhook"]
@@ -44,6 +45,11 @@ class MockSlackWebhook:
         -------
         httpx.Response
             Always returns a 201 response.
+
+        Notes
+        -----
+        For now, this returns an ``httpx.Response`` instead of using HTTPX2
+        since respx still expects that return value from side effect mocks.
         """
         self.messages.append(json.loads(request.content.decode()))
         return Response(201)

@@ -2,7 +2,7 @@
 
 from typing import Any, Self
 
-import httpx
+import httpx2
 
 try:
     from testcontainers.core.container import DockerContainer
@@ -74,7 +74,7 @@ class SchemaRegistryContainer(DockerContainer):
     def reset(self) -> None:
         """Reset the contents of the schema registry to its initial state."""
         url = f"{self.get_url()}/subjects"
-        subjects = httpx.get(url).json()
+        subjects = httpx2.get(url).json()
         for subject in subjects:
-            httpx.delete(f"{url}/{subject}")
-            httpx.delete(f"{url}/{subject}?permanent=true")
+            httpx2.delete(f"{url}/{subject}")
+            httpx2.delete(f"{url}/{subject}?permanent=true")

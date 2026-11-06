@@ -224,8 +224,8 @@ def mock_kubernetes() -> Iterator[MockKubernetesApi]:
 
 
 @pytest.fixture
-def mock_slack(respx_mock: respx.Router) -> MockSlackWebhook:
-    return mock_slack_webhook("https://example.com/slack", respx_mock)
+def mock_slack(httpx2_mock: respx.Router) -> MockSlackWebhook:
+    return mock_slack_webhook("https://example.com/slack", httpx2_mock)
 
 
 @pytest.fixture(scope="session")
