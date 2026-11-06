@@ -45,6 +45,7 @@ def hello(
     ]
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_build_worker(
     uws_config: UWSConfig,
@@ -125,6 +126,7 @@ async def test_build_worker(
     await shutdown(ctx)
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_timeout(
     uws_config: UWSConfig,
@@ -202,6 +204,7 @@ async def test_timeout(
     await shutdown(ctx)
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_build_uws_worker(
     *,

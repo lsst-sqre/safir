@@ -1,5 +1,5 @@
 import gidgethub.apps
-import httpx
+import httpx2
 from gidgethub.httpx import GitHubAPI
 
 
@@ -18,7 +18,7 @@ class GitHubAppClientFactory:
         and is typically the name of the GitHub repository the app is built
         from (e.g. ``lsst-sqre/times-square``).
     http_client
-        The httpx client.
+        The httpx2 client.
 
     Notes
     -----
@@ -28,7 +28,7 @@ class GitHubAppClientFactory:
     """
 
     def __init__(
-        self, *, id: int, key: str, name: str, http_client: httpx.AsyncClient
+        self, *, id: int, key: str, name: str, http_client: httpx2.AsyncClient
     ) -> None:
         self.app_id = id
         self.app_key = key

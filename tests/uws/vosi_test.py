@@ -1,7 +1,7 @@
 """Tests for VOSI functionality provided by the UWS library."""
 
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from vo_models.vosi.availability import Availability
 
 AVAILABILITY = """
@@ -11,6 +11,7 @@ AVAILABILITY = """
 """
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_availability(client: AsyncClient) -> None:
     r = await client.get("/test/availability")

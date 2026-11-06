@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qs
 
 import respx
-from httpx import AsyncClient, Request, Response
+from httpx import Response
+from httpx2 import AsyncClient, Request
 
 from safir.datetime import parse_isodatetime
 
@@ -54,6 +55,11 @@ class MockWobbly:
     ----------
     jobs
         Stored jobs, organized by service, username, and then job ID.
+
+    Notes
+    -----
+    For now, all mocks return an ``httpx.Response`` instead of using HTTPX2
+    since respx still expects that return value from side effect mocks.
     """
 
     @staticmethod

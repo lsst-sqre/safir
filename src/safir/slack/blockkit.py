@@ -5,7 +5,7 @@ from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Any, ClassVar, Self, override
 
-from httpx import HTTPError, HTTPStatusError, ResponseNotRead
+from httpx2 import HTTPError, HTTPStatusError, ResponseNotRead
 from pydantic import BaseModel, field_validator
 
 from safir.datetime import format_datetime_for_logging
@@ -317,9 +317,9 @@ class SlackException(Exception):
 
 
 class SlackWebException(SlackException):
-    """Parent class of exceptions arising from HTTPX_ failures.
+    """Parent class of exceptions arising from HTTPX2_ failures.
 
-    Captures additional information from any HTTPX_ exception.  Intended to be
+    Captures additional information from any HTTPX2_ exception.  Intended to be
     subclassed.  Subclasses may wish to override the ``to_slack`` method.
 
     Parameters
@@ -342,12 +342,12 @@ class SlackWebException(SlackException):
 
     @classmethod
     def from_exception(cls, exc: HTTPError, user: str | None = None) -> Self:
-        """Create an exception from an HTTPX_ exception.
+        """Create an exception from an HTTPX2_ exception.
 
         Parameters
         ----------
         exc
-            Exception from HTTPX.
+            Exception from HTTPX2.
         user
             User on whose behalf the request is being made, if known.
 
@@ -375,7 +375,7 @@ class SlackWebException(SlackException):
             exc_name = type(exc).__name__
             message = f"{exc_name}: {exc!s}" if str(exc) else exc_name
 
-            # All httpx.HTTPError exceptions have a slot for the request,
+            # All httpx2.HTTPError exceptions have a slot for the request,
             # initialized to None and then sometimes added by child
             # constructors or during exception processing. The request
             # property is a property method that raises RuntimeError if

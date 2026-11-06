@@ -20,7 +20,7 @@ This is done with the `MockWobbly` and `MockUWSJobRunner` classes, but it requir
 Mock Wobbly
 -----------
 
-Add a development dependency on respx_ to the application.
+Add development dependencies on pytest-httpx2_ and respx_ to the application.
 Then, add a Wobbly mock fixture to :file:`tests/conftest.py`:
 
 .. code-block:: python
@@ -34,8 +34,8 @@ Then, add a Wobbly mock fixture to :file:`tests/conftest.py`:
 
 
    @pytest.fixture
-   def mock_wobbly(respx_mock: respx.Router) -> MockWobbly:
-       return patch_wobbly(respx_mock, str(config.wobbly_url))
+   def mock_wobbly(httpx2_mock: respx.Router) -> MockWobbly:
+       return patch_wobbly(httpx2_mock, str(config.wobbly_url))
 
 Change ``example.config`` to the config module for your application.
 
@@ -93,7 +93,7 @@ Finally, configure the ``client`` fixture to send the appropriate headers by def
 
    import pytest
    from fastapi import FastAPI
-   from httpx import ASGITransport, AsyncClient
+   from httpx2 import ASGITransport, AsyncClient
 
 
    @pytest_asyncio.fixture
@@ -213,11 +213,12 @@ Here is an example of a test of a hypothetical cutout service.
    :caption: tests/handlers/async_test.py
 
    import pytest
-   from httpx import AsyncClient
+   from httpx2 import AsyncClient
    from safir.testing.uws import MockUWSJobRunner
    from safir.uws import JobResult
 
 
+   @pytest.mark.httpx2(assert_all_called=False)
    @pytest.mark.asyncio
    async def test_create_job(
        client: AsyncClient, test_token: str, runner: MockUWSJobRunner
@@ -248,6 +249,9 @@ Here is an example of a test of a hypothetical cutout service.
        )
        assert r.status_code == 200
        assert "https://example.com/some/path" in r.text
+
+pytest-httpx2 requires every mocked route be used by default.
+This will often not be the case for UWS tests, since some of the Wobbly routes will not be used, which is the reason for the ``httpx2`` mark.
 
 Note the use of `MockUWSJobRunner.mark_complete` with a ``delay`` argument and `asyncio.gather` to simulate a job that takes some time to complete so that the client request to wait for job completion can be tested.
 

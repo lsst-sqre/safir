@@ -4,7 +4,7 @@ from ipaddress import _BaseNetwork, ip_network
 
 import pytest
 from fastapi import FastAPI, Request
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 
 from safir.middleware.x_forwarded import XForwardedMiddleware
 

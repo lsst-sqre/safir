@@ -170,13 +170,13 @@ For example:
 
 .. _slack-web-exceptions:
 
-Reporting HTTPX exceptions
---------------------------
+Reporting HTTPX2 exceptions
+---------------------------
 
-A common source of exceptions in Safir applications are exceptions raised by HTTPX_ while making calls to other web services.
-Safir provides a base class for those exceptions, `~safir.slack.blockkit.SlackWebException`, which behaves the same as `~safir.slack.blockkit.SlackException` but captures additional information from the underlying HTTPX exception.
+A common source of exceptions in Safir applications are exceptions raised by HTTPX2_ while making calls to other web services.
+Safir provides a base class for those exceptions, `~safir.slack.blockkit.SlackWebException`, which behaves the same as `~safir.slack.blockkit.SlackException` but captures additional information from the underlying HTTPX2 exception.
 
-The advantages of `~safir.slack.blockkit.SlackWebException` over using `~safir.slack.blockkit.SlackException` directly, possibly with the text of the HTTPX exception, are:
+The advantages of `~safir.slack.blockkit.SlackWebException` over using `~safir.slack.blockkit.SlackException` directly, possibly with the text of the HTTPX2 exception, are:
 
 - If the exception is due to an error returned by the remote server, the stringification of the exception, and the main Slack message if posted to Slack, always includes the URL, method, and status code.
   (You therefore will want to override the ``__str__`` method if your URLs may contain secret data that should not be sent in Slack alerts, such as Slack webhook URLs.)
@@ -185,12 +185,12 @@ The advantages of `~safir.slack.blockkit.SlackWebException` over using `~safir.s
 - For other exceptions, the stringification and main Slack message include both the type and the stringification of the underlying exception.
 - Where possible, the URL and method are included in a field in the Slack message.
 
-The normal way to use this class or exception classes derived from it is to call the class method ``from_exception``, passing in the underlying HTTPX exception.
+The normal way to use this class or exception classes derived from it is to call the class method ``from_exception``, passing in the underlying HTTPX2 exception.
 For example:
 
 .. code-block:: python
 
-   from httpx import AsyncClient, HTTPError
+   from httpx2 import AsyncClient, HTTPError
    from safir.slack.blockkit import SlackWebException
 
 
@@ -269,7 +269,7 @@ Testing code that uses a Slack webhook
 
 The `safir.testing.slack` module provides a simple mock of a Slack webhook that accumulates every message sent to it.
 
-To use it, first define a fixture:
+First, define a fixture:
 
 .. code-block:: python
 
@@ -279,18 +279,18 @@ To use it, first define a fixture:
 
 
    @pytest.fixture
-   def mock_slack(respx_mock: respx.Router) -> MockSlackWebhook:
-       return mock_slack_webhook(config.slack_webhook, respx_mock)
+   def mock_slack(httpx2_mock: respx.Router) -> MockSlackWebhook:
+       return mock_slack_webhook(config.slack_webhook, httpx2_mock)
 
 Replace ``config.slack_webhook`` with whatever webhook configuration your application uses.
-You will need to add ``respx`` as a dev dependency of your application.
+You will need to add ``pytest-httpx2`` and ``respx`` as a dev dependency of your application.
 
 Then, in a test, use a pattern like the following:
 
 .. code-block:: python
 
    import pytest
-   from httpx import AsyncClient
+   from httpx2 import AsyncClient
    from safir.testing.slack import MockSlackWebhook
 
 
@@ -302,3 +302,14 @@ Then, in a test, use a pattern like the following:
        assert mock_slack.messages == [{...}, {...}]
 
 The ``url`` attribute of the `~safir.testing.slack.MockSlackWebhook` object contains the URL it was configured to mock, in case a test needs convenient access to it.
+
+If a given test depends on the fixture (or if the fixture is marked as autouse) but does not send anything to the Slack webhook, you may need to add an annotation to tell respx that this is okay:
+
+.. code-block:: python
+
+   import pytest
+
+
+   @pytest.mark.httpx2(assert_all_called=False)
+   @pytest.mark.asyncio
+   async def test_something() -> None: ...
