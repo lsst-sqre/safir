@@ -307,8 +307,8 @@ class FullKafkaContainer(DockerContainer):
     def reset(self) -> None:
         """Reset Kafka topics while preserving Schema Registry state."""
         self.exec(
-            "/bin/kafka-topics --bootstrap-server localhost:9092 --delete"
-            " --topic '^(?!_schemas$).*'"
+            "/bin/kafka-topics --bootstrap-server localhost:9092"
+            " --delete --if-exists --topic '^(?!_schemas$|__).*'"
         )
 
     def _configure(self) -> None:
