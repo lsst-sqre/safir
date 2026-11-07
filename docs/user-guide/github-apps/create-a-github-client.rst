@@ -26,7 +26,7 @@ To create a Gidgethub client for a GitHub App, Safir provides the `safir.github.
 Setting up the factory
 ======================
 
-The `GitHubAppClientFactory` requires information about the GitHub App, which you will normally include in your application's configuration, and an instance of `httpx.AsyncClient`, which your application will typically create with the `~safir.dependencies.http_client.http_client_dependency` dependency (see :doc:`../http-client`).
+The `GitHubAppClientFactory` requires information about the GitHub App, which you will normally include in your application's configuration, and an instance of `httpx2.AsyncClient`, which your application will typically create with the `~safir.dependencies.http_client.http_client_dependency` dependency (see :doc:`../http-client`).
 For information about creating a GitHub App, retrieving its App ID and generating a private key, see `GitHub's documentation <https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app>`__.
 
 .. code-block:: python

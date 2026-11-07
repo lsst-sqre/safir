@@ -2,7 +2,7 @@
 
 import pytest
 from fastapi import FastAPI, status
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 
 from safir.fastapi import ClientRequestError, client_request_error_handler
 from safir.models import ErrorLocation, ErrorModel

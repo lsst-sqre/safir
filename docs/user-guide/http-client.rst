@@ -1,14 +1,14 @@
-######################
-Using the HTTPX client
-######################
+#######################
+Using the HTTPX2 client
+#######################
 
-Safir helps you manage a single ``httpx.AsyncClient`` for your application.
-Using a single HTTPX_ client improves performance by reusing connections.
+Safir helps you manage a single ``httpx2.AsyncClient`` for your application.
+Using a single HTTPX2_ client improves performance by reusing connections.
 
-Setting up the httpx.AsyncClient
-================================
+Setting up the httpx2.AsyncClient
+=================================
 
-The ``httpx.AsyncClient`` will be dyanmically created during application startup.
+The ``httpx2.AsyncClient`` will be dyanmically created during application startup.
 Nothing further is needed apart from importing the dependency.
 However, it must be closed during application shutdown or a warning will be generated.
 This is normally done during the lifespan function for the FastAPI app.
@@ -31,8 +31,8 @@ This is normally done during the lifespan function for the FastAPI app.
 
 You can add this line to an existing shutdown hook if you already have one.
 
-Using the httpx.AsyncClient
-===========================
+Using the httpx2.AsyncClient
+============================
 
 To use the client in a handler, just request it via a FastAPI dependency:
 
@@ -40,7 +40,7 @@ To use the client in a handler, just request it via a FastAPI dependency:
 
    from typing import Annotated
 
-   from httpx import AsyncClient
+   from httpx2 import AsyncClient
    from safir.dependencies.http_client import http_client_dependency
 
 
@@ -54,7 +54,7 @@ To use the client in a handler, just request it via a FastAPI dependency:
 Testing considerations
 ======================
 
-If you are using ``httpx.AsyncClient`` in your application tests as well, note that it will not trigger shutdown events, so if you trigger handlers that use the HTTP client, you will get a warning about an unclosed ``httpx.AsyncClient`` in your test output.
+If you are using ``httpx2.AsyncClient`` in your application tests as well, note that it will not trigger shutdown events, so if you trigger handlers that use the HTTP client, you will get a warning about an unclosed ``httpx2.AsyncClient`` in your test output.
 To avoid this, wrap your test application in ``asgi_lifespan.LifespanManager`` from the asgi-lifespan Python package:
 
 .. code-block:: python

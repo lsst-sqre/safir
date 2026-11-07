@@ -10,7 +10,7 @@ import respx
 import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import APIRouter, FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 from structlog.stdlib import BoundLogger
 
 from safir.arq import MockArqQueue
@@ -69,7 +69,7 @@ def arq_queue() -> MockArqQueue:
 async def client(
     app: FastAPI, test_token: str, test_username: str
 ) -> AsyncGenerator[AsyncClient]:
-    """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
+    """Return an ``httpx2.AsyncClient`` configured to talk to the test app."""
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="https://example.com/",
@@ -97,17 +97,19 @@ def mock_google_storage() -> Iterator[MockStorageClient]:
 
 @pytest.fixture(autouse=True)
 def mock_slack(
-    uws_config: UWSConfig, respx_mock: respx.Router
+    uws_config: UWSConfig, httpx2_mock: respx.Router
 ) -> MockSlackWebhook:
     assert uws_config.slack_webhook
     return mock_slack_webhook(
-        uws_config.slack_webhook.get_secret_value(), respx_mock
+        uws_config.slack_webhook.get_secret_value(), httpx2_mock
     )
 
 
 @pytest.fixture
-def mock_wobbly(respx_mock: respx.Router, uws_config: UWSConfig) -> MockWobbly:
-    return patch_wobbly(respx_mock, str(uws_config.wobbly_url))
+def mock_wobbly(
+    httpx2_mock: respx.Router, uws_config: UWSConfig
+) -> MockWobbly:
+    return patch_wobbly(httpx2_mock, str(uws_config.wobbly_url))
 
 
 @pytest_asyncio.fixture

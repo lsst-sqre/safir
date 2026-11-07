@@ -7,7 +7,7 @@ import pytest
 import respx
 import sentry_sdk
 import structlog
-from httpx import AsyncClient, HTTPError, Response
+from httpx2 import AsyncClient, HTTPError
 from pydantic import ValidationError
 
 from safir.slack.blockkit import (
@@ -184,7 +184,7 @@ def test_exception_pickling() -> None:
 
 @pytest.mark.asyncio
 async def test_web_exception(
-    data: Data, respx_mock: respx.Router, mock_slack: MockSlackWebhook
+    data: Data, httpx2_mock: respx.Router, mock_slack: MockSlackWebhook
 ) -> None:
     logger = structlog.get_logger(__file__)
     slack = SlackWebhookClient(mock_slack.url, "App", logger)
@@ -192,9 +192,7 @@ async def test_web_exception(
     class SomeError(SlackWebException):
         pass
 
-    respx_mock.get("https://example.org/").mock(
-        return_value=Response(404, text="Some error")
-    )
+    httpx2_mock.get("https://example.org/").respond(404, text="Some error")
     exception = None
     try:
         async with AsyncClient() as client:
@@ -212,14 +210,14 @@ async def test_web_exception(
 
 @pytest.mark.asyncio
 async def test_web_exception_sentry(
-    respx_mock: respx.Router,
+    httpx2_mock: respx.Router,
     sentry_combo_items: Captured,
 ) -> None:
     class SomeError(SlackWebException):
         pass
 
-    respx_mock.get("https://example.org/").mock(
-        return_value=Response(404, text="some response body")
+    httpx2_mock.get("https://example.org/").respond(
+        404, text="some response body"
     )
     exception = None
     try:
@@ -247,7 +245,7 @@ async def test_web_exception_sentry(
 
 @pytest.mark.asyncio
 async def test_web_exception_stream(
-    data: Data, respx_mock: respx.Router, mock_slack: MockSlackWebhook
+    data: Data, httpx2_mock: respx.Router, mock_slack: MockSlackWebhook
 ) -> None:
     logger = structlog.get_logger(__file__)
     slack = SlackWebhookClient(mock_slack.url, "App", logger)
@@ -255,9 +253,7 @@ async def test_web_exception_stream(
     class SomeError(SlackWebException):
         pass
 
-    respx_mock.get("https://example.org/").mock(
-        return_value=Response(404, text="Some error")
-    )
+    httpx2_mock.get("https://example.org/").respond(404, text="Some error")
     exception = None
     try:
         async with AsyncClient() as client:

@@ -117,6 +117,7 @@ async def test_report_exception_both(
     assert error["user"]["username"] == "someuser"
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_report_exception_sentry_only(
     mock_slack: MockSlackWebhook, sentry_combo_items: Captured
@@ -134,6 +135,7 @@ async def test_report_exception_sentry_only(
     assert error["user"]["username"] == "someuser"
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_report_exception_ignores(
     mock_slack: MockSlackWebhook, sentry_combo_items: Captured
