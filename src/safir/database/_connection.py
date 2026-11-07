@@ -4,9 +4,6 @@ import asyncio
 from typing import Any
 from urllib.parse import quote, urlsplit
 
-from pydantic import SecretStr
-from pydantic_core import Url
-
 try:
     from sqlalchemy.exc import OperationalError
     from sqlalchemy.ext.asyncio import (
@@ -21,6 +18,8 @@ except ImportError as e:
         "The safir.database module requires the db extra. "
         "Install it with `pip install safir[db]`."
     ) from e
+from pydantic import MySQLDsn, SecretStr
+from pydantic_core import Url
 from structlog.stdlib import BoundLogger
 
 __all__ = [
@@ -31,13 +30,13 @@ __all__ = [
 
 
 def build_database_url(
-    url: str | Url, password: str | SecretStr | None, *, is_async: bool = True
+    url: str | Url | MySQLDsn,
+    password: str | SecretStr | None,
 ) -> str:
     """Build the authenticated URL for the database.
 
-    Unless ``is_async`` is set to `False`, the database scheme is forced to
-    ``postgresql+asyncpg`` if it is ``postgresql``, and ``mysql+asyncmy`` if
-    it is ``mysql``.
+    The database scheme is forced to ``postgresql+asyncpg`` if it is
+    ``postgresql``, and ``mysql+asyncmy`` if it is ``mysql``.
 
     Parameters
     ----------
@@ -45,8 +44,6 @@ def build_database_url(
         Database connection URL, not including the password.
     password
         Database connection password.
-    is_async
-        Whether to force an async driver.
 
     Returns
     -------
@@ -84,7 +81,7 @@ def build_database_url(
 
 
 def create_database_engine(
-    url: str | Url,
+    url: str | Url | MySQLDsn,
     password: str | SecretStr | None,
     *,
     connect_args: dict[str, Any] | None = None,

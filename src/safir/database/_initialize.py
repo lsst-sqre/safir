@@ -15,6 +15,8 @@ except ImportError as e:
 from structlog.stdlib import BoundLogger
 
 from ._alembic import unstamp_database
+from ._config import CloudSqlConfig, DatabaseConfig
+from ._manager import engine_manager
 
 __all__ = [
     "DatabaseInitializationError",
@@ -42,8 +44,37 @@ async def drop_database(engine: AsyncEngine, schema: MetaData) -> None:
     await unstamp_database(engine)
 
 
+async def _initialize_with_engine(
+    engine: AsyncEngine, logger: BoundLogger, schema: MetaData, *, reset: bool
+) -> None:
+    """Create and initialize a database from an engine."""
+    success = False
+    error = None
+    for _ in range(5):
+        try:
+            async with engine.begin() as conn:
+                if schema.schema is not None:
+                    await conn.execute(CreateSchema(schema.schema, True))
+                if reset:
+                    await conn.run_sync(schema.drop_all)
+                await conn.run_sync(schema.create_all)
+            success = True
+        except (ConnectionRefusedError, OperationalError, OSError) as e:
+            logger.info("Database not ready, waiting two seconds")
+            error = str(e)
+            await asyncio.sleep(2)
+            continue
+        if success:
+            logger.info("initialized database schema")
+            break
+    if not success:
+        msg = "Database schema initialization failed (database not reachable?)"
+        logger.error(msg)
+        raise DatabaseInitializationError(error)
+
+
 async def initialize_database(
-    engine: AsyncEngine,
+    engine_or_config: AsyncEngine | CloudSqlConfig | DatabaseConfig,
     logger: BoundLogger,
     *,
     schema: MetaData,
@@ -53,8 +84,9 @@ async def initialize_database(
 
     Parameters
     ----------
-    engine
-        Database engine to use.  Create with `create_database_engine`.
+    engine_or_config
+        Database engine to use, created with `engine_manager`, or the database
+        configuration to use to create an engine.
     logger
         Logger used to report problems
     schema
@@ -73,27 +105,9 @@ async def initialize_database(
         After five attempts, the database still could not be initialized.
         This is normally due to some connectivity issue to the database.
     """
-    success = False
-    error = None
-    for _ in range(5):
-        try:
-            async with engine.begin() as conn:
-                if schema.schema is not None:
-                    await conn.execute(CreateSchema(schema.schema, True))
-                if reset:
-                    await conn.run_sync(schema.drop_all)
-                await conn.run_sync(schema.create_all)
-            success = True
-        except (ConnectionRefusedError, OperationalError, OSError) as e:
-            logger.info("database not ready, waiting two seconds")
-            error = str(e)
-            await asyncio.sleep(2)
-            continue
-        if success:
-            logger.info("initialized database schema")
-            break
-    if not success:
-        msg = "database schema initialization failed (database not reachable?)"
-        logger.error(msg)
-        await engine.dispose()
-        raise DatabaseInitializationError(error)
+    if isinstance(engine_or_config, AsyncEngine):
+        engine = engine_or_config
+        await _initialize_with_engine(engine, logger, schema, reset=reset)
+    else:
+        async with engine_manager(engine_or_config) as engine:
+            await _initialize_with_engine(engine, logger, schema, reset=reset)

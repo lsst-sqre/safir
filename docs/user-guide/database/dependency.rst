@@ -1,3 +1,5 @@
+:og:description: Learn how to use the Safir database session FastAPI dependency.
+
 .. py:currentmodule:: safir.dependencies.db_session
 
 ############################################
@@ -10,40 +12,13 @@ Initialize the dependency
 =========================
 
 To use the database session dependency, it must first be initialized during application startup.
-Generally this is done inside the application lifespan function.
-You must also close the dependency during application shutdown.
-
-.. code-block:: python
-
-   from collections.abc import AsyncGenerator
-   from contextlib import asynccontextmanager
-
-   from fastapi import FastAPI
-   from safir.dependencies.db_session import db_session_dependency
-
-   from .config import config
-
-
-   @asynccontextmanager
-   async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-       await db_session_dependency.initialize(
-           config.database_url, config.database_password
-       )
-       yield
-       await db_session_dependency.aclose()
-
-
-   app = FastAPI(lifespan=lifespan)
-
-`DatabaseSessionDependency.initialize` takes the same optional parameters as `~safir.database.create_database_engine`.
-See :ref:`db-engine-parameters` for more details.
-
-As with some of the examples above, this assumes the application has a ``config`` object with the application settings, including the database URL and password.
+Generally this is done inside the application lifespan function inside the `~safir.database.engine_manager` async context manager.
+See :ref:`database-engine-fastapi` for more details.
 
 Using the dependency
 ====================
 
-Any handler that needs a database session can depend on `db_session_dependency`:
+Any handler that needs a database session can then depend on `db_session_dependency`:
 
 .. code-block:: python
 
@@ -67,9 +42,9 @@ Transaction management
 
 The application must manage transactions when using the Safir database dependency.
 SQLAlchemy will automatically start a transaction if you perform any database operation using a session (including read-only operations).
-If that transaction is not explicitly ended, `asyncpg`_ may leave it open, which will cause database deadlocks and other problems.
+If that transaction is not explicitly ended, asyncpg_ may leave it open, which will cause database deadlocks and other problems.
 
-Generally it's best to manage the transaction in the handler function (see the ``get_index`` example, above).
+Generally it's best to manage the transaction in either the handler function (see the ``get_index`` example, above) or the service layer.
 Wrap all code that may make database calls in an ``async with session.begin()`` block.
 This will open a transaction, commit the transaction at the end of the block, and roll back the transaction if the block raises an exception.
 
