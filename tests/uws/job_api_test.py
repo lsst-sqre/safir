@@ -392,7 +392,7 @@ async def test_job_api(
     r = await client.get("/test/jobs/1/destruction")
     assert r.status_code == 200
     assert r.headers["Content-Type"] == "text/plain; charset=utf-8"
-    assert r.text == isodatetime(destruction_time)
+    assert r.text == isodatetime(job.destruction_time)
 
     r = await client.get("/test/jobs/1/executionduration")
     assert r.status_code == 200
@@ -448,6 +448,7 @@ async def test_job_api(
             "300",
             isodatetime(now),
         ),
+        fuzzy_destruction=False,
     )
 
     # Delete the job.
