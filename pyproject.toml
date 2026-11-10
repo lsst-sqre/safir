@@ -100,7 +100,7 @@ dev = [
     "asgi-lifespan",
     "coverage[toml]",
     "fastapi>=0.93.0",
-    "pytest>=6.2.0,<9.2",  # https://github.com/Teemu/pytest-sugar/issues/312
+    "pytest>=6.2.0,<9.3",  # https://github.com/Teemu/pytest-sugar/issues/312
     "pytest-asyncio",
     "pytest-cov",
     "pytest-order",
