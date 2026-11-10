@@ -8,6 +8,18 @@ package = "safir"
 [sphinx]
 rst_epilog_file = "_rst_epilog.rst"
 nitpicky = true
+nitpick_ignore = [
+    # SerializedJob.phase uses ExecutionPhase members as its Field examples.
+    # For the copy of that field inherited by Job, Sphinx 9 renders the
+    # annotation's source text, turning each member into a reference target.
+    # Documenteer 2.5.0b4 degrades those to plain text only in a build that
+    # reads the sources. A build that reuses pickled doctrees (docs-linkcheck
+    # run after docs, as Periodic CI does) warns instead. Remove these once
+    # https://github.com/lsst-sqre/documenteer/issues/554 is fixed.
+    ["py:class", "ExecutionPhase.PENDING"],
+    ["py:class", "ExecutionPhase.EXECUTING"],
+    ["py:class", "ExecutionPhase.COMPLETED"],
+]
 extensions = [
     "sphinxcontrib.autodoc_pydantic",
 ]
