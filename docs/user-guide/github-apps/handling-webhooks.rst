@@ -18,7 +18,7 @@ The URL path for this endpoint corresponds to the webhook callback URL you set u
 
    from typing import Annotated
 
-   import httpx
+   import httpx2
    from fastapi import APIRouter, Depends, Request, Response, status
    from gidgethub.sansio import Event
    from safir.dependencies.logger import logger_dependency

@@ -12,7 +12,7 @@
 .. _FastStream FastAPI Plugin: https://faststream.ag2.ai/latest/getting-started/integrations/fastapi
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
 .. _Gidgethub: https://gidgethub.readthedocs.io/en/latest/
-.. _HTTPX: https://www.python-httpx.org/
+.. _HTTPX2: https://pydantic.dev/docs/httpx2/get-started/
 .. _Kafka: https://kafka.apache.org/
 .. _kubernetes_asyncio: https://github.com/tomplus/kubernetes_asyncio
 .. _mypy: https://www.mypy-lang.org
@@ -25,6 +25,7 @@
 .. _pydantic-xml: https://pydantic-xml.readthedocs.io/en/latest/
 .. _PyPI: https://pypi.org/project/safir/
 .. _pytest: https://docs.pytest.org/en/latest/
+.. _pytest-httpx2: https://github.com/lundberg/pytest-httpx2
 .. _redis-py: https://redis.readthedocs.io/en/stable/
 .. _respx: https://lundberg.github.io/respx/
 .. _Roundtable: https://roundtable.lsst.io

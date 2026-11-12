@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, ParamSpec
 
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from structlog.stdlib import BoundLogger
 
 from safir.sentry._helpers import report_exception

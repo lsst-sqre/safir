@@ -5,7 +5,7 @@ from typing import Annotated
 import pytest
 import structlog
 from fastapi import Depends, FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import String, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
