@@ -102,18 +102,45 @@ jobs:
           sudo apt-get update
           sudo apt-get install -u graphviz
 
+      - name: Get Ook token
+        id: ook-token
+        uses: lsst-sqre/gafaelfawr/.github/actions/gafaelfawr-token@tickets/DM-56862-oidc-demo
+        with:
+          base-url: "https://roundtable-dev.lsst.cloud"
+          scope: "exec:linkcheck write:intersphinx"
+
       - name: Run nox
         run: uv run --only-group=nox nox -s docs
         env:
-          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
+          OOK_TOKEN: ${{ steps.ook-token.outputs.token }}
+
+      # Demo: upload with a token obtained through the Gafaelfawr token
+      # exchange. The exchange is skipped under the same condition as the
+      # upload.
+      - name: Get Docverse token
+        id: docverse-token
+        uses: lsst-sqre/gafaelfawr/.github/actions/gafaelfawr-token@tickets/DM-56862-oidc-demo
+        with:
+          base-url: "https://roundtable-dev.lsst.cloud"
+          scope: "exec:docverse"
+        if: >
+          (github.event_name == 'push' && github.ref_name == 'main')
+          || (github.event_name == 'release'
+              && github.event.action == 'published')
+          || (github.event_name == 'workflow_dispatch')
+          || (github.event_name == 'pull_request'
+              && (startsWith(github.head_ref, 'tickets/')
+                  || startsWith(github.head_ref, 't/'))
+              && needs.changes.outputs.docs-specific == 'true')
 
       - name: Upload to Docverse
         uses: lsst-sqre/docverse-upload@v1
         with:
-          org: rubin
+          org: jsc-test-20260807
           project: "safir"
           dir: "docs/_build/html"
-          token: ${{ secrets.DOCVERSE_TOKEN }}
+          base-url: "https://roundtable-dev.lsst.cloud/docverse/api"
+          token: ${{ steps.docverse-token.outputs.token }}
           github-token: ${{ github.token }}
           comment-on-pr: "true"
         if: >
@@ -152,10 +179,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz
 
+      - name: Get Ook token
+        id: ook-token
+        uses: lsst-sqre/gafaelfawr/.github/actions/gafaelfawr-token@tickets/DM-56862-oidc-demo
+        with:
+          base-url: "https://roundtable-dev.lsst.cloud"
+          scope: "exec:linkcheck write:intersphinx"
+
       - name: Run nox
         run: uv run --only-group=nox nox -s docs-linkcheck
         env:
-          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
+          OOK_TOKEN: ${{ steps.ook-token.outputs.token }}
 
   test-packaging:
     name: Test packaging

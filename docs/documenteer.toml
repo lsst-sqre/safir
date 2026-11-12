@@ -12,6 +12,9 @@ extensions = [
     "sphinxcontrib.autodoc_pydantic",
 ]
 
+[sphinx.intersphinx.cache]
+service_url = "https://roundtable-dev.lsst.cloud/ook"
+
 [sphinx.intersphinx.projects]
 aiokafka = "https://aiokafka.readthedocs.io/en/stable"
 arq = "https://arq-docs.helpmanual.io"
@@ -29,6 +32,7 @@ testcontainers = "https://testcontainers-python.readthedocs.io/en/latest"
 vomodels = "https://vo-models.readthedocs.io/latest"
 
 [sphinx.linkcheck]
+service_url = "https://roundtable-dev.lsst.cloud/ook"
 ignore = [
     # StackOverflow sometimes rejects all link checks from GitHub Actions.
     '^https://stackoverflow.com/questions/',
