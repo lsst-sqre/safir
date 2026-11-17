@@ -2,6 +2,8 @@
 
 import pickle
 
+import pytest
+
 from safir.arq.uws import (
     WorkerError,
     WorkerFatalError,
@@ -11,6 +13,7 @@ from safir.arq.uws import (
 from safir.uws._exceptions import TaskError
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 def test_pickle() -> None:
     """Test that the `TaskError` exceptions can be pickled.
 

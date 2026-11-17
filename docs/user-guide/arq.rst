@@ -110,7 +110,7 @@ The :file:`src/yourapp/worker/main.py` module looks like:
     import uuid
     from typing import Any
 
-    import httpx
+    import httpx2
     import structlog
     from safir.logging import configure_logging
 
@@ -130,7 +130,7 @@ The :file:`src/yourapp/worker/main.py` module looks like:
         instance_key = uuid.uuid4().hex
         logger = logger.bind(worker_instance=instance_key)
 
-        http_client = httpx.AsyncClient()
+        http_client = httpx2.AsyncClient()
         ctx["http_client"] = http_client
 
         ctx["logger"] = logger
@@ -284,7 +284,7 @@ Your worker set up in :file:`worker/main.py` might look like this:
     import uuid
     from typing import Any
 
-    import httpx
+    import httpx2
     import structlog
     from safir.logging import configure_logging
     from safir.metrics.arq import initialize_arq_metrics, make_on_job_start
@@ -305,7 +305,7 @@ Your worker set up in :file:`worker/main.py` might look like this:
         instance_key = uuid.uuid4().hex
         logger = logger.bind(worker_instance=instance_key)
 
-        http_client = httpx.AsyncClient()
+        http_client = httpx2.AsyncClient()
         ctx["http_client"] = http_client
 
         ctx["logger"] = logger

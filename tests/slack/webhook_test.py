@@ -6,7 +6,7 @@ from unittest.mock import ANY
 import pytest
 import structlog
 from fastapi import APIRouter, FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 from pydantic import SecretStr
 
 from safir.datetime import format_datetime_for_logging

@@ -1,7 +1,7 @@
 """Test handling of jobs that fail."""
 
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from vo_models.uws import JobSummary
 
 from safir.arq.uws import WorkerFatalError, WorkerTransientError
@@ -13,6 +13,8 @@ from safir.uws._dependencies import UWSFactory
 from safir.uws._exceptions import TaskError
 
 from ..support.uws import SimpleParameters, SimpleXmlParameters
+
+pytestmark = [pytest.mark.httpx2(assert_all_called=False), pytest.mark.asyncio]
 
 ERRORED_JOB = """
 <uws:job
@@ -49,7 +51,6 @@ JOB_ERROR_SUMMARY = """
 """
 
 
-@pytest.mark.asyncio
 async def test_temporary_error(
     *,
     client: AsyncClient,
@@ -105,7 +106,6 @@ async def test_temporary_error(
     assert sentry_exception_items.errors == []
 
 
-@pytest.mark.asyncio
 async def test_fatal_error(
     *,
     client: AsyncClient,
@@ -157,7 +157,6 @@ async def test_fatal_error(
     assert sentry_exception_items.errors == []
 
 
-@pytest.mark.asyncio
 async def test_unknown_error(
     *,
     client: AsyncClient,

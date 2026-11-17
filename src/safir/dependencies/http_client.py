@@ -1,6 +1,6 @@
 """HTTP client dependency for FastAPI."""
 
-import httpx
+import httpx2
 
 __all__ = [
     "DEFAULT_HTTP_TIMEOUT",
@@ -18,7 +18,7 @@ seconds. Users of this dependency can always lower it if needed.
 
 
 class HTTPClientDependency:
-    """Provides an ``httpx.AsyncClient`` as a dependency.
+    """Provides an ``httpx2.AsyncClient`` as a dependency.
 
     The resulting client will have redirects enabled and the default timeout
     increased to 20 seconds.
@@ -46,18 +46,18 @@ class HTTPClientDependency:
     """
 
     def __init__(self) -> None:
-        self.http_client: httpx.AsyncClient | None = None
+        self.http_client: httpx2.AsyncClient | None = None
 
-    async def __call__(self) -> httpx.AsyncClient:
-        """Return the cached ``httpx.AsyncClient``."""
+    async def __call__(self) -> httpx2.AsyncClient:
+        """Return the cached ``httpx2.AsyncClient``."""
         if not self.http_client:
-            self.http_client = httpx.AsyncClient(
+            self.http_client = httpx2.AsyncClient(
                 timeout=DEFAULT_HTTP_TIMEOUT, follow_redirects=True
             )
         return self.http_client
 
     async def aclose(self) -> None:
-        """Close the ``httpx.AsyncClient``."""
+        """Close the ``httpx2.AsyncClient``."""
         if self.http_client:
             await self.http_client.aclose()
             self.http_client = None

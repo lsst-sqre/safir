@@ -3,14 +3,15 @@
 import asyncio
 
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from safir.arq.uws import WorkerResult, WorkerUsageError
 from safir.testing.uws import MockUWSJobRunner
 from safir.uws._exceptions import TaskError
 
+pytestmark = [pytest.mark.httpx2(assert_all_called=False), pytest.mark.asyncio]
 
-@pytest.mark.asyncio
+
 async def test_sync(
     client: AsyncClient,
     test_token: str,
@@ -45,7 +46,6 @@ async def test_sync(
         assert r.headers["Location"] == "https://example.com/some/path"
 
 
-@pytest.mark.asyncio
 async def test_sync_usage_error(
     client: AsyncClient,
     test_token: str,

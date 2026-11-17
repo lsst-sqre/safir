@@ -8,7 +8,7 @@ to individual route handlers, which in turn can create other needed objects.
 from typing import Annotated, Literal
 
 from fastapi import Depends, Form, Query
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from structlog.stdlib import BoundLogger
 
 try:

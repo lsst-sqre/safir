@@ -8,7 +8,7 @@ import pytest
 from arq.constants import default_queue_name
 from asgi_lifespan import LifespanManager
 from fastapi import Depends, FastAPI, HTTPException
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 
 from safir.arq import ArqMode, JobNotFound, JobResultUnavailable, MockArqQueue
 from safir.dependencies.arq import arq_dependency

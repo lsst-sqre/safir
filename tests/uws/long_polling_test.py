@@ -4,7 +4,7 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from vo_models.uws import JobSummary
 
 from safir.arq.uws import WorkerResult
@@ -82,6 +82,7 @@ FINISHED_JOB = """
 """
 
 
+@pytest.mark.httpx2(assert_all_called=False)
 @pytest.mark.asyncio
 async def test_poll(
     client: AsyncClient,

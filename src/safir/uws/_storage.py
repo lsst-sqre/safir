@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from httpx import AsyncClient, HTTPError, Response
+from httpx2 import AsyncClient, HTTPError, Response
 from pydantic import BaseModel
 
 from safir.datetime import isodatetime

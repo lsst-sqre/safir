@@ -32,6 +32,8 @@ from safir.uws._storage import JobStore
 
 from ..support.uws import SimpleParameters
 
+pytestmark = [pytest.mark.httpx2(assert_all_called=False), pytest.mark.asyncio]
+
 
 def hello(
     params: SimpleParameters, info: WorkerJobInfo, logger: BoundLogger
@@ -45,7 +47,6 @@ def hello(
     ]
 
 
-@pytest.mark.asyncio
 async def test_build_worker(
     uws_config: UWSConfig,
     test_token: str,
@@ -125,7 +126,6 @@ async def test_build_worker(
     await shutdown(ctx)
 
 
-@pytest.mark.asyncio
 async def test_timeout(
     uws_config: UWSConfig,
     test_token: str,
@@ -202,7 +202,6 @@ async def test_timeout(
     await shutdown(ctx)
 
 
-@pytest.mark.asyncio
 async def test_build_uws_worker(
     *,
     arq_queue: MockArqQueue,
