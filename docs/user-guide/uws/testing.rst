@@ -259,6 +259,9 @@ Note the use of `MockUWSJobRunner.mark_complete` with a ``delay`` argument and `
 A more sophisticated test would check the XML results returned by the API against the UWS XML schema.
 This can be done using the models provided by vo-models_.
 
+Safir provides a function, `assert_job_summary_equal`, that compares the XML returned from a UWS job summary endpoint to expected XML.
+This may be helpful in writing some UWS tests.
+
 Testing the backend worker
 ==========================
 
